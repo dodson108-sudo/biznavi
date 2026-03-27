@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizNavi — AI 경영전략 분석</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/landing.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     LANDING (Version B — 신뢰 구축형)
+══════════════════════════════════════════ -->
+<section id="landing" class="screen">
+
+  <!-- Landing Navigation -->
+  <nav class="lp-nav" id="lpNav">
+    <div class="lp-nav-inner">
+      <a class="lp-nav-logo" href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
+        <svg width="24" height="24" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="13" cy="13" r="12" fill="#0A0E1A" stroke="#F5C030" stroke-width="1.4"/>
+          <polyline points="5,19 8,15 11,16 13,12 16,10 19,6" stroke="#F5C030" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="19" cy="6" r="2" fill="#F5C030"/>
+        </svg>
+        BizNavi AI
+      </a>
+      <div class="lp-nav-links">
+        <a href="#lp-features">기능</a>
+        <a href="#lp-trust">후기</a>
+        <a href="#lp-pricing">가격</a>
+        <a href="#lp-faq">FAQ</a>
+      </div>
+      <div class="lp-nav-actions">
+        <button class="lp-btn-secondary lp-btn-sm" onclick="App.showApiModal()">데모 체험</button>
+        <button class="lp-btn-primary lp-btn-sm" onclick="App.startWizard()">무료 시작 →</button>
+        <button class="lp-nav-hamburger" aria-label="메뉴">☰</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 모바일 전체화면 메뉴 -->
+  <div class="lp-mobile-menu" id="lpMobileMenu">
+    <a href="#lp-features" class="lp-mobile-link">기능</a>
+    <a href="#lp-trust"    class="lp-mobile-link">후기</a>
+    <a href="#lp-pricing"  class="lp-mobile-link">가격</a>
+    <a href="#lp-faq"      class="lp-mobile-link">FAQ</a>
+  </div>
+
+  <!-- ── 섹션 1: HERO ── -->
+  <section id="lp-hero" class="lp-section visible">
+    <div class="lp-hero-badge"><span class="dot"></span> 진단을 통한 실제전략 분석엔진</div>
+    <h1 class="lp-hero-h1">경영전략 수립과<br><span class="lp-accent">실행계획을 한번에!</span></h1>
+    <p class="lp-hero-sub">SWOT · STP · 4P 분석과 실행 로드맵을 30분 안에 자동 생성</p>
+    <div class="lp-hero-cta">
+      <button class="lp-btn-primary" onclick="App.startWizard()">무료로 시작하기 →</button>
+      <button class="lp-btn-secondary" onclick="App.showApiModal()">▷ 데모 체험</button>
+    </div>
+    <div class="lp-hero-stats">
+      <div class="lp-stat-item">
+        <div class="lp-stat-num">6가지</div>
+        <div class="lp-stat-label">전략 프레임워크</div>
+      </div>
+      <div class="lp-stat-item">
+        <div class="lp-stat-num">30분 완성</div>
+        <div class="lp-stat-label">전략 초안 생성</div>
+      </div>
+      <div class="lp-stat-item">
+        <div class="lp-stat-num">PDF 출력</div>
+        <div class="lp-stat-label">즉시 보고서 다운로드</div>
+      </div>
+      <div class="lp-stat-item">
+        <div class="lp-stat-num">무료 체험</div>
+        <div class="lp-stat-label">가입 없이 시작</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 2: 문제 제기 ── -->
+  <section id="lp-pain" class="lp-section" style="--lp-delay:0.1s">
+    <div class="lp-container">
+      <div class="lp-section-title">
+        <h2>전략 수립, 이렇게 힘드셨죠?</h2>
+        <p>중소기업과 스타트업이 매일 겪는 현실적인 어려움</p>
+      </div>
+      <div class="lp-pain-grid">
+        <div class="lp-pain-card">
+          <span class="lp-pain-ico">💸</span>
+          <h3>컨설팅 비용이 너무 비쌉니다</h3>
+          <p>전문 전략 컨설팅은 수백만 원에서 수천만 원. 중소기업과 스타트업에게는 넘기 어려운 장벽입니다.</p>
+        </div>
+        <div class="lp-pain-card">
+          <span class="lp-pain-ico">🌀</span>
+          <h3>어디서부터 시작해야 할지 막막합니다</h3>
+          <p>SWOT부터 해야 할까요, STP부터 해야 할까요? 프레임워크는 많은데 적용 방법을 모르면 시작조차 어렵습니다.</p>
+        </div>
+        <div class="lp-pain-card">
+          <span class="lp-pain-ico">🗃️</span>
+          <h3>만들어도 실행으로 이어지지 않습니다</h3>
+          <p>열심히 만든 전략 문서가 서랍 속에 잠들어 있습니다. 구체적인 KPI와 로드맵 없이는 실행이 불가능합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 3: 가치 제안 ── -->
+  <section id="lp-value" class="lp-section" style="--lp-delay:0.12s">
+    <div class="lp-container">
+      <div class="lp-section-title">
+        <h2>BizNavi AI가 해결합니다</h2>
+        <p>AI가 복잡한 전략 수립 과정을 단순하고 실행 가능하게 만듭니다</p>
+      </div>
+      <div class="lp-value-grid">
+        <div class="lp-value-card">
+          <span class="lp-value-ico">💰</span>
+          <div class="lp-value-num">1%</div>
+          <h3>비용 절감</h3>
+          <p>컨설팅 비용의 1% 이하로 동일한 수준의 전략 분석을 받아보세요</p>
+        </div>
+        <div class="lp-value-card">
+          <span class="lp-value-ico">⚡</span>
+          <div class="lp-value-num">30분</div>
+          <h3>시간 단축</h3>
+          <p>수주 걸리던 전략 수립 과정을 30분 안에 완성. 지금 당장 시작하세요</p>
+        </div>
+        <div class="lp-value-card">
+          <span class="lp-value-ico">🎯</span>
+          <div class="lp-value-num">실행</div>
+          <h3>실행 가능</h3>
+          <p>구체적인 KPI와 3단계 로드맵까지. 전략이 아닌 실행 계획을 드립니다</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 4: 기능 상세 ── -->
+  <section id="lp-features" class="lp-section" style="--lp-delay:0.1s">
+    <div class="lp-container">
+      <div class="lp-section-title">
+        <h2>6가지 전략 프레임워크 자동 생성</h2>
+        <p>기업 정보를 입력하면 AI가 완성된 전략 보고서를 즉시 생성합니다</p>
+      </div>
+      <div class="lp-feat-grid">
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">🔬</span>
+          <h3>SWOT 분석</h3>
+          <p>강점·약점·기회·위협을 체계적으로 도출. 4분할 매트릭스로 한눈에 확인</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">🎯</span>
+          <h3>STP 전략</h3>
+          <p>시장 세분화(Segmentation) · 목표 타겟(Targeting) · 포지셔닝(Positioning) 도출</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">📊</span>
+          <h3>4P 마케팅 믹스</h3>
+          <p>제품(Product) · 가격(Price) · 유통(Place) · 프로모션(Promotion) 전략 설계</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">⚡</span>
+          <h3>핵심 전략 5</h3>
+          <p>우선순위별 실행 전략 5가지. 지금 당장 실행 가능한 구체적 방향 제시</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">📈</span>
+          <h3>KPI 설계</h3>
+          <p>측정 가능한 핵심 성과 지표 설계. 목표 달성 여부를 숫자로 확인하세요</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">🗺️</span>
+          <h3>실행 로드맵</h3>
+          <p>단기·중기·장기 3단계 타임라인. 언제, 무엇을, 어떻게 할지 한눈에 파악</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 5: 신뢰 요소 ── -->
+  <section id="lp-trust" class="lp-section" style="--lp-delay:0.12s">
+    <div class="lp-container">
+      <div class="lp-section-title">
+        <h2>이미 많은 분들이 사용하고 있습니다</h2>
+        <p>실제 사용자들의 생생한 후기를 들어보세요</p>
+      </div>
+      <div class="lp-review-grid">
+        <div class="lp-review-card">
+          <div class="lp-stars">★★★★★</div>
+          <p class="lp-review-text">"창업 3년차인데 처음으로 체계적인 전략을 갖게 됐습니다. 이제야 방향이 보이는 느낌입니다."</p>
+          <div class="lp-review-author">
+            <div class="lp-review-avatar">김</div>
+            <div class="lp-review-info">
+              <h4>김○○</h4>
+              <p>스타트업 대표 · 식품 O2O 서비스</p>
+            </div>
+          </div>
+        </div>
+        <div class="lp-review-card">
+          <div class="lp-stars">★★★★★</div>
+          <p class="lp-review-text">"경영지도사로서 초기 진단 업무 시간이 70% 줄었습니다. 클라이언트에게 훨씬 빠르게 가치를 전달하고 있어요."</p>
+          <div class="lp-review-author">
+            <div class="lp-review-avatar">이</div>
+            <div class="lp-review-info">
+              <h4>이○○</h4>
+              <p>경영지도사 · 중소기업 컨설팅</p>
+            </div>
+          </div>
+        </div>
+        <div class="lp-review-card">
+          <div class="lp-stars">★★★★★</div>
+          <p class="lp-review-text">"투자자 미팅 전날 만들었는데 반응이 정말 좋았어요. IR 자료 준비에 큰 도움이 됐습니다."</p>
+          <div class="lp-review-author">
+            <div class="lp-review-avatar">박</div>
+            <div class="lp-review-info">
+              <h4>박○○</h4>
+              <p>IT기업 COO · Series A 준비 중</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="lp-trust-stats">
+        <div class="lp-trust-stat">
+          <div class="lp-trust-stat-num">1,200건+</div>
+          <div class="lp-trust-stat-label">누적 분석 건수</div>
+        </div>
+        <div class="lp-trust-stat">
+          <div class="lp-trust-stat-num">4.8/5</div>
+          <div class="lp-trust-stat-label">평균 만족도</div>
+        </div>
+        <div class="lp-trust-stat">
+          <div class="lp-trust-stat-num">89%</div>
+          <div class="lp-trust-stat-label">재사용률</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 6: 프로덕트 데모 ── -->
+  <section id="lp-demo" class="lp-section" style="--lp-delay:0.1s">
+    <div class="lp-container">
+      <div class="lp-section-title">
+        <h2>실제 결과물을 확인해보세요</h2>
+        <p>입력 후 30분, 이런 전략 보고서가 자동으로 생성됩니다</p>
+      </div>
+      <div class="lp-demo-layout">
+        <!-- 좌측: 목업 -->
+        <div class="lp-mockup">
+          <div class="lp-mockup-top">
+            <div class="lp-mockup-dot"></div>
+            <div class="lp-mockup-dot"></div>
+            <div class="lp-mockup-dot"></div>
+            <span class="lp-mockup-label">BizNavi AI — 전략 분석 결과</span>
+          </div>
+          <div style="font-size:11px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:8px">SWOT MATRIX</div>
+          <div class="lp-swot">
+            <div class="lp-swot-cell s">
+              <h4>STRENGTH 강점</h4>
+              <p>독자적 기술력, 강한 고객 충성도, 낮은 원가 구조</p>
+            </div>
+            <div class="lp-swot-cell w">
+              <h4>WEAKNESS 약점</h4>
+              <p>브랜드 인지도 부족, 마케팅 역량 미흡</p>
+            </div>
+            <div class="lp-swot-cell o">
+              <h4>OPPORTUNITY 기회</h4>
+              <p>시장 성장세, 디지털 전환 수요 증가</p>
+            </div>
+            <div class="lp-swot-cell t">
+              <h4>THREAT 위협</h4>
+              <p>대기업 진입, 경쟁 심화, 규제 강화</p>
+            </div>
+          </div>
+          <div style="font-size:11px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:8px">KPI DASHBOARD</div>
+          <div class="lp-kpi-item">
+            <div class="lp-kpi-label"><span>매출 성장률</span><span style="color:#F5C030">+35%</span></div>
+            <div class="lp-kpi-bar"><div class="lp-kpi-fill" style="width:70%"></div></div>
+          </div>
+          <div class="lp-kpi-item">
+            <div class="lp-kpi-label"><span>고객 획득 비용</span><span style="color:#F5C030">-20%</span></div>
+            <div class="lp-kpi-bar"><div class="lp-kpi-fill" style="width:55%"></div></div>
+          </div>
+          <div class="lp-kpi-item">
+            <div class="lp-kpi-label"><span>시장 점유율</span><span style="color:#F5C030">15%</span></div>
+            <div class="lp-kpi-bar"><div class="lp-kpi-fill" style="width:40%"></div></div>
+          </div>
+        </div>
+        <!-- 우측: 설명 -->
+        <div class="lp-demo-right">
+          <h3>완전한 전략 보고서가<br>자동으로 생성됩니다</h3>
+          <p>기업 정보와 시장 상황만 입력하면 Claude AI가 맞춤형 전략 분석을 즉시 생성합니다.</p>
+          <ul class="lp-demo-features">
+            <li><span class="lp-check">✓</span> SWOT 4분할 매트릭스 자동 생성</li>
+            <li><span class="lp-check">✓</span> STP 전략 상세 분석</li>
+            <li><span class="lp-check">✓</span> 4P 마케팅 믹스 전략</li>
+            <li><span class="lp-check">✓</span> 실행 가능한 KPI 설계</li>
+            <li><span class="lp-check">✓</span> 3단계 실행 로드맵</li>
+            <li><span class="lp-check">✓</span> PDF 즉시 다운로드</li>
+          </ul>
+          <button class="lp-btn-primary" onclick="App.startWizard()">지금 바로 체험하기 →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 7: 가격표 ── -->
+  <section id="lp-pricing" class="lp-section" style="--lp-delay:0.12s">
+    <div class="lp-container">
+      <div class="lp-section-title">
+        <h2>합리적인 가격으로 시작하세요</h2>
+        <p>지금은 모든 기능을 무료로 체험할 수 있습니다</p>
+      </div>
+      <div class="lp-pricing-grid">
+        <div class="lp-plan">
+          <div class="lp-plan-name">FREE</div>
+          <div class="lp-plan-price">₩0<span> /월</span></div>
+          <div class="lp-plan-desc">지금 당장 무료로 시작하세요</div>
+          <ul class="lp-plan-features">
+            <li>월 3회 AI 분석</li>
+            <li>SWOT / STP / 4P 기본 분석</li>
+            <li>PDF 출력</li>
+            <li>데모 모드 무제한</li>
+          </ul>
+          <button class="lp-plan-btn" onclick="App.startWizard()">시작하기</button>
+        </div>
+        <div class="lp-plan featured">
+          <div class="lp-plan-badge">✦ 추천</div>
+          <div class="lp-plan-name">PRO</div>
+          <div class="lp-plan-price">₩29,000<span> /월</span></div>
+          <div class="lp-plan-desc">전문적인 전략 수립이 필요한 분께</div>
+          <ul class="lp-plan-features">
+            <li>월 30회 AI 분석</li>
+            <li>전체 6가지 프레임워크</li>
+            <li>분석 히스토리 저장</li>
+            <li>우선 고객 지원</li>
+            <li>고급 PDF 템플릿</li>
+          </ul>
+          <button class="lp-plan-btn" onclick="App.startWizard()">시작하기</button>
+        </div>
+        <div class="lp-plan">
+          <div class="lp-plan-name">BUSINESS</div>
+          <div class="lp-plan-price">₩99,000<span> /월</span></div>
+          <div class="lp-plan-desc">팀 단위 전략 수립이 필요한 기업</div>
+          <ul class="lp-plan-features">
+            <li>무제한 AI 분석</li>
+            <li>팀 멤버 공유</li>
+            <li>API 연동 지원</li>
+            <li>전담 고객 지원</li>
+            <li>커스텀 브랜딩</li>
+          </ul>
+          <button class="lp-plan-btn" onclick="App.startWizard()">시작하기</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 8: FAQ ── -->
+  <section id="lp-faq" class="lp-section" style="--lp-delay:0.1s">
+    <div class="lp-container">
+      <div class="lp-section-title">
+        <h2>자주 묻는 질문</h2>
+      </div>
+      <div class="lp-faq-list">
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            API 키 없이도 사용할 수 있나요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">네, 가능합니다. 데모 모드를 통해 API 키 없이도 SWOT · STP · 4P 분석 등 전체 기능을 체험하실 수 있습니다. 실제 AI 분석을 원하신다면 Anthropic Claude API 키를 등록하시면 됩니다.</div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            생성된 전략 데이터는 어디에 저장되나요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">모든 데이터는 사용자의 브라우저(localStorage)에만 저장됩니다. 외부 서버로 전송되거나 저장되지 않으므로 기업 정보 보안 걱정 없이 사용하실 수 있습니다.</div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            실제 AI 분석과 데모 모드의 차이는 무엇인가요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">데모 모드는 미리 준비된 샘플 데이터로 결과를 보여주며, 실제 AI 분석은 입력하신 기업 정보를 바탕으로 Claude AI가 맞춤형 전략을 실시간으로 생성합니다. 실제 모드의 결과물이 훨씬 구체적이고 맞춤화된 내용을 담고 있습니다.</div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            PDF로 출력하면 어떤 형식으로 나오나요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">브라우저 인쇄 기능을 통해 PDF로 저장할 수 있습니다. SWOT 매트릭스, STP 분석, 4P 전략, KPI 대시보드, 실행 로드맵이 깔끔한 보고서 형식으로 출력됩니다.</div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            모바일에서도 사용할 수 있나요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">네, 완전한 모바일 반응형으로 설계되어 있습니다. 스마트폰과 태블릿에서도 편리하게 전략 분석을 진행하고 결과를 확인하실 수 있습니다.</div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            환불 정책은 어떻게 되나요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">유료 플랜 결제 후 7일 이내에 환불을 요청하시면 전액 환불해 드립니다. 무료 체험 후 결정하시는 것을 권장합니다. 문의는 이메일로 연락 주세요.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 섹션 9: 2차 CTA ── -->
+  <section id="lp-cta" class="lp-section" style="--lp-delay:0.15s">
+    <h2 class="lp-cta-h2">지금 바로 첫 번째<br>전략을 만들어보세요</h2>
+    <p class="lp-cta-sub">가입 없이 무료로 시작 · 30분이면 완성</p>
+    <button class="lp-btn-primary" onclick="App.startWizard()">무료로 전략 만들기 →</button>
+  </section>
+
+  <!-- ── 섹션 10: FOOTER ── -->
+  <footer id="lp-footer" class="lp-section visible">
+    <div class="lp-container">
+      <div class="lp-footer-grid">
+        <div>
+          <div class="lp-footer-logo">BizNavi AI</div>
+          <p class="lp-footer-slogan">AI가 완성하는 경영전략.<br>30분 안에 실행 가능한 전략을 만드세요.</p>
+        </div>
+        <div class="lp-footer-col">
+          <h4>서비스</h4>
+          <ul class="lp-footer-links">
+            <li><a href="#lp-features">서비스 소개</a></li>
+            <li><a href="#lp-pricing">가격</a></li>
+            <li><a href="#lp-faq">FAQ</a></li>
+            <li><a href="mailto:contact@biznavi.ai">문의하기</a></li>
+          </ul>
+        </div>
+        <div class="lp-footer-col">
+          <h4>문의</h4>
+          <p class="lp-footer-email">이메일: <a href="mailto:contact@biznavi.ai">contact@biznavi.ai</a></p>
+          <div class="lp-footer-sns">
+            <a class="lp-sns-btn" href="#" title="블로그">📝</a>
+            <a class="lp-sns-btn" href="#" title="인스타그램">📸</a>
+            <a class="lp-sns-btn" href="#" title="유튜브">▶</a>
+          </div>
+        </div>
+      </div>
+      <div class="lp-footer-bar">
+        <p>© 2024 BizNavi AI · Powered by Claude AI</p>
+        <p><a href="#">개인정보처리방침</a> · <a href="#">이용약관</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── 글로벌 시장 실시간 롤링 배너 ── -->
+  <div id="lp-ticker" role="marquee" aria-label="글로벌 시장 실시간">
+    <div class="lp-ticker-left">
+      <span class="lp-ticker-label">글로벌 시장 실시간</span>
+      <span class="lp-ticker-clock" id="tickerClock">--:--:--</span>
+    </div>
+    <div class="lp-ticker-scroll">
+      <div class="lp-ticker-track" id="tickerTrack"></div>
+    </div>
+    <div class="lp-ticker-note">주가: 장중 업데이트</div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════
+     API KEY MODAL
+══════════════════════════════════════════ -->
+<div id="apiModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="serif">🔑 API 설정</h2>
+      <p>Anthropic Claude API 키를 입력하거나<br>데모 모드로 체험하세요</p>
+    </div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btnDemo" onclick="App.setMode('demo')">데모 모드</button>
+      <button class="mode-btn" id="btnReal" onclick="App.setMode('real')">실제 모드</button>
+    </div>
+
+    <div id="demoContent">
+      <div class="info-box">
+        <p><strong style="color:var(--teal)">✓ 데모 모드 활성화</strong><br>
+        API 키 없이 샘플 데이터로 전체 기능을 체험합니다.<br>실제 AI 분석 결과와는 다를 수 있습니다.</p>
+      </div>
+    </div>
+
+    <div id="realContent" class="hidden">
+      <div class="form-group">
+        <label>Claude API 키</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" />
+        <p class="hint">키는 브라우저 localStorage에만 저장되며 외부로 전송되지 않습니다</p>
+      </div>
+    </div>
+
+    <button class="btn btn-gold" style="width:100%;margin-top:4px" onclick="App.confirmKey()">시작하기 →</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="App.closeModal()">취소</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     WIZARD
+══════════════════════════════════════════ -->
+<section id="wizard" class="screen hidden has-nav">
+  <nav class="top-nav">
+    <div class="nav-logo">
+      <svg class="nav-logo-icon" width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="13" cy="13" r="12" fill="#070F1E" stroke="#F5C030" stroke-width="1.3"/>
+        <circle cx="13" cy="13" r="9.5" fill="none" stroke="#1BBFB2" stroke-width="0.6" stroke-dasharray="2,4" opacity="0.6"/>
+        <line x1="13" y1="3.5" x2="13" y2="22.5" stroke="#1BBFB2" stroke-width="0.4" opacity="0.25"/>
+        <line x1="3.5" y1="13" x2="22.5" y2="13" stroke="#1BBFB2" stroke-width="0.4" opacity="0.25"/>
+        <!-- 틱: N/E/S/W -->
+        <line x1="13" y1="2"  x2="13" y2="5.5"  stroke="#F5C030" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="24" y1="13" x2="20.5" y2="13" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <line x1="13" y1="24" x2="13" y2="20.5" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <line x1="2"  y1="13" x2="5.5"  y2="13" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <!-- 바늘 북 (골드) -->
+        <polygon points="13,5.5 14.3,12.5 13,11.5 11.7,12.5" fill="#F5C030"/>
+        <!-- 바늘 남 (희미) -->
+        <polygon points="13,20.5 14.3,13.5 13,14.5 11.7,13.5" fill="#F5C030" opacity="0.25"/>
+        <!-- 중심 -->
+        <circle cx="13" cy="13" r="1.8" fill="#070F1E" stroke="#F5C030" stroke-width="1"/>
+        <circle cx="13" cy="13" r="0.9" fill="#1BBFB2"/>
+      </svg>
+      BizNavi
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-ghost btn-sm" onclick="App.showModal()">⚙ API 설정</button>
+    </div>
+  </nav>
+
+  <div style="padding:32px 20px 60px;display:flex;flex-direction:column;align-items:center">
+    <div class="wiz-head">
+      <h2 class="serif">기업 정보 입력</h2>
+      <p>정확한 정보일수록 더 정밀한 분석 결과를 받을 수 있습니다</p>
+    </div>
+
+    <!-- Progress Percentage Bar -->
+    <div class="wiz-progress-bar">
+      <div class="wiz-progress-fill" id="wizProgressFill" style="width:33%"></div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress">
+      <div class="step-ind">
+        <div class="step-circ active" id="c1">1</div>
+        <div class="step-lbl active" id="l1">기업 정보</div>
+      </div>
+      <div class="step-line" id="ln1"></div>
+      <div class="step-ind">
+        <div class="step-circ" id="c2">2</div>
+        <div class="step-lbl" id="l2">시장 분석</div>
+      </div>
+      <div class="step-line" id="ln2"></div>
+      <div class="step-ind">
+        <div class="step-circ" id="c3">3</div>
+        <div class="step-lbl" id="l3">문제/목표</div>
+      </div>
+    </div>
+
+    <!-- Step 1 -->
+    <div id="step1" class="wiz-card">
+      <h3 class="serif">📋 기업 기본 정보 <span class="step-badge">STEP 1 / 3</span></h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>회사명 *<span class="field-check">✓</span></label>
+          <input type="text" id="companyName" placeholder="예: (주)테크스타트" />
+        </div>
+        <div class="form-group">
+          <label>업종 *<span class="field-check">✓</span></label>
+          <select id="industry">
+            <option value="">업종 선택</option>
+            <option>IT/소프트웨어</option><option>제조업</option><option>서비스업</option>
+            <option>유통/물류</option><option>의료/헬스케어</option><option>금융/핀테크</option>
+            <option>교육</option><option>식품/음료</option><option>건설/부동산</option>
+            <option>패션/뷰티</option><option>미디어/엔터테인먼트</option><option>기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>설립연도</label>
+          <input type="number" id="foundedYear" placeholder="예: 2018" min="1900" max="2099" />
+        </div>
+        <div class="form-group">
+          <label>직원 수</label>
+          <select id="employees">
+            <option value="">선택</option>
+            <option>1~5명</option><option>6~10명</option><option>11~50명</option>
+            <option>51~100명</option><option>101~300명</option><option>301~1000명</option><option>1000명 이상</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>연매출 (억원)</label>
+          <input type="text" id="revenue" placeholder="예: 10억 / 비공개" />
+        </div>
+        <div class="form-group">
+          <label>사업 지역</label>
+          <select id="region">
+            <option value="">선택</option>
+            <option>국내(수도권)</option><option>국내(전국)</option><option>아시아</option><option>글로벌</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>주요 제품/서비스 *<span class="field-check">✓</span></label>
+          <textarea id="products" placeholder="예: B2B SaaS 인사관리 솔루션, HR 자동화 플랫폼"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>핵심 경쟁력</label>
+          <textarea id="bizStrengths" placeholder="예: 독자 AI 알고리즘, 강력한 파트너 네트워크, 특허 기술 3건"></textarea>
+        </div>
+      </div>
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" onclick="App.showLanding()">← 처음으로</button>
+        <button class="btn btn-gold" onclick="App.goStep(2)">다음 단계 →</button>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="step2" class="wiz-card hidden">
+      <h3 class="serif">📈 시장 및 경쟁 분석 <span class="step-badge">STEP 2 / 3</span></h3>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>타겟 고객 *<span class="field-check">✓</span></label>
+          <textarea id="targetCustomer" placeholder="예: 직원 50~300명 규모의 중견기업 인사담당자, 스타트업 HR팀"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>주요 경쟁사</label>
+          <textarea id="competitors" placeholder="예: 네이버 웍스, 카카오워크, Microsoft Teams (간접경쟁)"></textarea>
+        </div>
+        <div class="form-group">
+          <label>추정 시장 규모</label>
+          <input type="text" id="marketSize" placeholder="예: 국내 1조원" />
+        </div>
+        <div class="form-group">
+          <label>현재 시장점유율</label>
+          <input type="text" id="marketShare" placeholder="예: 약 3%, 신규 진입" />
+        </div>
+        <div class="form-group full">
+          <label>주요 차별화 요소</label>
+          <textarea id="differentiation" placeholder="예: 경쟁사 대비 30% 저렴한 가격, AI 자동화로 업무 60% 절감"></textarea>
+        </div>
+      </div>
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" onclick="App.goStep(1)">← 이전</button>
+        <button class="btn btn-gold" onclick="App.goStep(3)">다음 단계 →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="step3" class="wiz-card hidden">
+      <h3 class="serif">🎯 현재 문제점 및 목표 <span class="step-badge">STEP 3 / 3</span></h3>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>현재 직면한 문제 *<span class="field-check">✓</span></label>
+          <textarea id="problems" placeholder="예: 신규 고객 유치 비용 증가, 해지율 월 5% 상승, 영업팀 생산성 저하"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>달성하고 싶은 목표 *<span class="field-check">✓</span></label>
+          <textarea id="goals" placeholder="예: 12개월 내 매출 200% 성장, 해지율 2% 이하 유지, 브랜드 인지도 향상"></textarea>
+        </div>
+        <div class="form-group">
+          <label>목표 기간</label>
+          <select id="timeline">
+            <option value="">선택</option>
+            <option>3개월 (단기)</option><option>6개월</option>
+            <option>1년</option><option>2년</option><option>3년 이상</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>가용 예산</label>
+          <select id="budget">
+            <option value="">선택</option>
+            <option>1000만원 미만</option><option>1000~5000만원</option>
+            <option>5000만원~1억원</option><option>1억~5억원</option>
+            <option>5억원 이상</option><option>미정</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>추가 참고사항</label>
+          <textarea id="notes" placeholder="예: 최근 투자 유치 완료, 신제품 출시 예정, 해외 진출 검토 중 등"></textarea>
+        </div>
+      </div>
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" onclick="App.goStep(2)">← 이전</button>
+        <button class="btn btn-gold" onclick="App.runAnalysis()">AI 분석 시작 →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     LOADING
+══════════════════════════════════════════ -->
+<section id="loading" class="screen hidden" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:36px">
+  <div class="spinner-wrap">
+    <div class="sp-out"></div>
+    <div class="sp-in"></div>
+    <div class="sp-dot"></div>
+  </div>
+  <div class="ld-text">
+    <h2 class="serif">AI 분석 중…</h2>
+    <p>Claude AI가 경영 데이터를 분석하고 있습니다</p>
+  </div>
+  <div class="ld-steps">
+    <div class="ld-step active" id="ls1"><div class="ld-step-ico">◌</div><span>기업 정보 처리 중</span></div>
+    <div class="ld-step" id="ls2"><div class="ld-step-ico">○</div><span>SWOT 분석 수행 중</span></div>
+    <div class="ld-step" id="ls3"><div class="ld-step-ico">○</div><span>시장 전략 수립 중</span></div>
+    <div class="ld-step" id="ls4"><div class="ld-step-ico">○</div><span>보고서 생성 중</span></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     DASHBOARD
+══════════════════════════════════════════ -->
+<section id="dashboard" class="screen hidden has-nav">
+  <nav class="top-nav">
+    <div class="nav-logo">
+      <svg class="nav-logo-icon" width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="13" cy="13" r="12" fill="#070F1E" stroke="#F5C030" stroke-width="1.3"/>
+        <circle cx="13" cy="13" r="9.5" fill="none" stroke="#1BBFB2" stroke-width="0.6" stroke-dasharray="2,4" opacity="0.6"/>
+        <line x1="13" y1="3.5" x2="13" y2="22.5" stroke="#1BBFB2" stroke-width="0.4" opacity="0.25"/>
+        <line x1="3.5" y1="13" x2="22.5" y2="13" stroke="#1BBFB2" stroke-width="0.4" opacity="0.25"/>
+        <!-- 틱: N/E/S/W -->
+        <line x1="13" y1="2"  x2="13" y2="5.5"  stroke="#F5C030" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="24" y1="13" x2="20.5" y2="13" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <line x1="13" y1="24" x2="13" y2="20.5" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <line x1="2"  y1="13" x2="5.5"  y2="13" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <!-- 바늘 북 (골드) -->
+        <polygon points="13,5.5 14.3,12.5 13,11.5 11.7,12.5" fill="#F5C030"/>
+        <!-- 바늘 남 (희미) -->
+        <polygon points="13,20.5 14.3,13.5 13,14.5 11.7,13.5" fill="#F5C030" opacity="0.25"/>
+        <!-- 중심 -->
+        <circle cx="13" cy="13" r="1.8" fill="#070F1E" stroke="#F5C030" stroke-width="1"/>
+        <circle cx="13" cy="13" r="0.9" fill="#1BBFB2"/>
+      </svg>
+      BizNavi
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-ghost btn-sm" onclick="App.restart()">↩ 새 분석</button>
+      <button class="btn btn-outline btn-sm" onclick="window.print()">인쇄</button>
+    </div>
+  </nav>
+
+  <div class="dash-inner">
+    <!-- 헤더 -->
+    <div class="dash-hdr">
+      <div class="dash-title">
+        <h2 class="serif" id="dTitle">경영전략 분석 보고서</h2>
+        <p id="dSub"></p>
+      </div>
+      <span class="demo-badge hidden" id="demoBadge">📊 DEMO DATA</span>
+    </div>
+
+    <!-- 사이드바 + 콘텐츠 -->
+    <div class="dash-layout">
+
+      <!-- 좌측 목차 네비게이션 -->
+      <nav class="report-nav" id="reportNav">
+        <div class="report-nav-title">목차</div>
+        <a href="#sec-summary"  class="nav-link active"><span class="nav-dot"></span>Executive Summary</a>
+        <a href="#sec-swot"     class="nav-link"><span class="nav-dot"></span>SWOT 분석</a>
+        <a href="#sec-stp"      class="nav-link"><span class="nav-dot"></span>STP 분석</a>
+        <a href="#sec-4p"       class="nav-link"><span class="nav-dot"></span>4P 마케팅</a>
+        <a href="#sec-strategy" class="nav-link"><span class="nav-dot"></span>핵심 전략</a>
+        <a href="#sec-kpi"      class="nav-link"><span class="nav-dot"></span>KPI 지표</a>
+        <a href="#sec-roadmap"  class="nav-link"><span class="nav-dot"></span>실행 로드맵</a>
+      </nav>
+
+      <!-- 우측 리포트 콘텐츠 -->
+      <div class="report-content">
+
+        <!-- Executive Summary -->
+        <div class="section-card reveal" id="sec-summary">
+          <div class="sec-title"><h3 class="serif">Executive Summary</h3><span class="badge">요약</span></div>
+          <div class="exec" id="execSummary"></div>
+        </div>
+
+        <!-- SWOT -->
+        <div class="section-card reveal" id="sec-swot">
+          <div class="sec-title"><h3 class="serif">SWOT 분석</h3><span class="badge">전략 환경</span></div>
+          <div class="swot-grid">
+            <div class="swot-q s"><h4>Strengths · 강점</h4><ul class="swot-ul" id="swotS"></ul></div>
+            <div class="swot-q w"><h4>Weaknesses · 약점</h4><ul class="swot-ul" id="swotW"></ul></div>
+            <div class="swot-q o"><h4>Opportunities · 기회</h4><ul class="swot-ul" id="swotO"></ul></div>
+            <div class="swot-q t"><h4>Threats · 위협</h4><ul class="swot-ul" id="swotT"></ul></div>
+          </div>
+        </div>
+
+        <!-- STP -->
+        <div class="section-card reveal" id="sec-stp">
+          <div class="sec-title"><h3 class="serif">STP 분석</h3><span class="badge">시장 전략</span></div>
+          <div class="stp-grid">
+            <div class="stp-card"><div class="stp-big">S</div><div class="stp-label">Segmentation · 세분화</div><div class="stp-txt" id="stpS"></div></div>
+            <div class="stp-card"><div class="stp-big">T</div><div class="stp-label">Targeting · 타겟팅</div><div class="stp-txt" id="stpT"></div></div>
+            <div class="stp-card"><div class="stp-big">P</div><div class="stp-label">Positioning · 포지셔닝</div><div class="stp-txt" id="stpP"></div></div>
+          </div>
+        </div>
+
+        <!-- 4P -->
+        <div class="section-card reveal" id="sec-4p">
+          <div class="sec-title"><h3 class="serif">4P 마케팅 믹스</h3><span class="badge">마케팅 전략</span></div>
+          <div class="fourp-grid">
+            <div class="fourp-card"><div class="fourp-lbl">Product</div><div class="fourp-title">제품 전략</div><div class="fourp-txt" id="fpProduct"></div></div>
+            <div class="fourp-card"><div class="fourp-lbl">Price</div><div class="fourp-title">가격 전략</div><div class="fourp-txt" id="fpPrice"></div></div>
+            <div class="fourp-card"><div class="fourp-lbl">Place</div><div class="fourp-title">유통 전략</div><div class="fourp-txt" id="fpPlace"></div></div>
+            <div class="fourp-card"><div class="fourp-lbl">Promotion</div><div class="fourp-title">촉진 전략</div><div class="fourp-txt" id="fpPromotion"></div></div>
+          </div>
+        </div>
+
+        <!-- Key Strategies -->
+        <div class="section-card reveal" id="sec-strategy">
+          <div class="sec-title"><h3 class="serif">핵심 전략 5가지</h3><span class="badge">전략 방향</span></div>
+          <div class="strat-list" id="strategies"></div>
+        </div>
+
+        <!-- KPI -->
+        <div class="section-card reveal" id="sec-kpi">
+          <div class="sec-title"><h3 class="serif">KPI 지표</h3><span class="badge">성과 관리</span></div>
+          <div class="kpi-grid" id="kpiGrid"></div>
+        </div>
+
+        <!-- Roadmap -->
+        <div class="section-card reveal" id="sec-roadmap">
+          <div class="sec-title"><h3 class="serif">실행 로드맵</h3><span class="badge">액션 플랜</span></div>
+          <div class="roadmap" id="roadmap"></div>
+        </div>
+
+      </div><!-- /report-content -->
+    </div><!-- /dash-layout -->
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script src="js/ai-engine.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/wizard.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ticker.js"></script>
+</body>
+</html>

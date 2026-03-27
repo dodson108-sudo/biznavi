@@ -1,0 +1,191 @@
+# BizNavi AI 프로젝트
+
+## 최근 수정 이력 (2026-03-27)
+
+### Hero 섹션 텍스트 변경 (index.html)
+- 배지 텍스트: `Claude AI 기반 전략 분석 엔진` → `진단을 통한 실제전략 분석엔진`
+- h1 헤드라인: 두 줄 구성 — `경영전략 수립과` / `실행계획을 한번에!` (두 번째 줄 골드 강조)
+- 부제목: `<br>` 제거하여 한 줄로 — `SWOT · STP · 4P 분석과 실행 로드맵을 30분 안에 자동 생성`
+
+### 글로벌 시장 실시간 롤링 배너 추가 (index.html + landing.css + js/ticker.js)
+- TradingView 위젯 제거 → 자체 제작 롤링 배너로 교체
+- 위치: `position:fixed; bottom:0` — 모든 화면에서 항상 하단 고정
+- 높이: `48px` / 배경: `#050810` / 상단 테두리: `2px solid rgba(245,192,48,0.35)`
+- `z-index: 9999` / `body { padding-bottom: 48px }` 로 콘텐츠 가림 방지
+
+#### 표시 항목 (10종)
+| 항목 | 표시 방식 | 데이터 |
+|------|----------|--------|
+| 코스피·코스닥·다우·나스닥·닛케이 | `장중` (이탤릭·뮤트) | CORS 제한으로 실시간 불가 |
+| 달러/원·엔/원·위안/원 | 실시간 숫자 + 5분 갱신 | `open.er-api.com` (CORS 지원, 무료) |
+| WTI·금 | 고정값 (`$78.00` / `$2,300`) | 참고용 고정 |
+
+#### 구성 요소
+- 좌측: `글로벌 시장 실시간` 레이블 (골드, 0.85rem) + 실시간 시계 HH:MM:SS
+- 우측: `주가: 장중 업데이트` 안내 (데스크톱만 표시)
+- 롤링: CSS `@keyframes lp-ticker-move` (translateX 0 → -50%), 콘텐츠 2× 복제로 끊김 없는 루프
+- hover 시 일시정지, 속도 동적 조정 (~40px/s 기준)
+
+#### ticker.js 구조
+- IIFE 패턴, DOMContentLoaded 이후 실행
+- `fetchFX()`: `open.er-api.com/v6/latest/USD` → KRW/JPY/CNY 환산
+  - 엔/원은 100엔 기준으로 표시 (`rates.KRW / rates.JPY × 100`)
+- `buildTrack()`: DOM 최초 1회 생성 (fallback 텍스트로 즉시 표시)
+- `updateInPlace()`: 데이터 갱신 시 DOM 텍스트만 교체 (애니메이션 유지)
+- `adjustSpeed()`: `requestAnimationFrame`으로 실제 너비 측정 후 duration 계산
+- 5분 간격 자동 갱신 (`setInterval`)
+
+#### CSS 클래스 (ticker 전용)
+| 클래스 | 역할 |
+|--------|------|
+| `.lp-ticker-left` | 레이블·시계 영역 (flex-shrink:0, border-right) |
+| `.lp-ticker-scroll` | 롤링 영역 (overflow:hidden) |
+| `.lp-ticker-track` | 애니메이션 대상 (inline-flex, 2× 복제) |
+| `.lp-ticker-note` | 우측 안내 텍스트 (데스크톱만) |
+| `.lp-t-item` | 개별 종목 래퍼 (`data-id` 속성으로 JS 타겟팅) |
+| `.lp-t-name` | 지수명 (#9BAAC8, 0.78rem) |
+| `.lp-t-val` | 실시간 값 (#E8EDF5, 0.85rem, 600) |
+| `.lp-t-fallback` | 장중 텍스트 (이탤릭, 뮤트, 0.7rem) |
+| `.lp-t-fixed` | WTI·금 고정값 (반투명, 0.82rem) |
+| `.lp-t-chg.up/.dn` | 등락률 (#4ADE80 / #F87171) |
+| `.lp-t-sep` | 구분선 `|` (rgba(42,63,117,0.6)) |
+
+---
+
+## 완성 상태 (2026-03)
+- 랜딩페이지 10개 섹션 완성 (Version B 신뢰구축형, 다크네이비 테마)
+- 멀티파일 구조 분리 완료 (HTML/CSS/JS 완전 분리)
+- 위저드 → AI 분석 → 대시보드 전체 흐름 완성
+- 위저드 3단계 입력 화면 다크테마 통일 완료 (딥네이비 배경, 골드 포인트)
+- 모바일 반응형 완료 (햄버거 메뉴, 2×2 통계 그리드, 1열 레이아웃)
+- Hero 격자 패턴 + 골드 후광 애니메이션 완료
+- 섹션 스크롤 fade-in 애니메이션 완료 (IntersectionObserver)
+- 네비게이션 스크롤 blur 효과 완료
+- 결과 대시보드 개선 완료
+  (좌측 목차 사이드바, KPI 카드 다크테마, DEMO DATA 뱃지 위치 수정, 섹션 간격 개선)
+- 글로벌 시장 실시간 롤링 배너 완료 (자체 제작, position fixed 하단 고정)
+
+---
+
+## 파일 구조 및 역할
+
+```
+biznavi/
+├── index.html          HTML 뼈대, 인라인 CSS/JS 없음
+├── css/
+│   ├── style.css       공통 스타일 (위저드·로딩·모달·네비 — 다크테마)
+│   ├── landing.css     랜딩페이지 전용 (lp-* 클래스, 다크테마, 모바일 반응형)
+│   └── dashboard.css   결과 대시보드 전용
+└── js/
+    ├── app.js          메인 코디네이터 (화면전환, 모달, 분석 실행, 햄버거 메뉴)
+    ├── wizard.js       3단계 입력 위저드 로직
+    ├── ai-engine.js    Claude API 호출 및 데모 데이터 생성
+    ├── dashboard.js    결과 렌더링 (SWOT/STP/4P/KPI/로드맵)
+    └── ticker.js       글로벌 시장 롤링 배너 (환율 실시간, 주가 장중 표시)
+```
+
+### CSS 로드 순서 (index.html head)
+```html
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/landing.css" />
+<link rel="stylesheet" href="css/dashboard.css" />
+```
+
+### JS 로드 순서 (body 하단, 의존성 순)
+```html
+<script src="js/ai-engine.js"></script>  <!-- 의존성 없음 -->
+<script src="js/dashboard.js"></script>  <!-- 의존성 없음 -->
+<script src="js/wizard.js"></script>     <!-- 의존성 없음 -->
+<script src="js/app.js"></script>        <!-- 위 3개 모두 참조 -->
+<script src="js/ticker.js"></script>     <!-- 독립 실행, 의존성 없음 -->
+```
+
+---
+
+## 랜딩페이지 10개 섹션 (완성)
+
+| # | ID | 내용 |
+|---|-----|------|
+| 1 | `#lp-hero` | 풀스크린 히어로 (배지, 헤드라인, CTA 2개, 통계 바) |
+| 2 | `#lp-pain` | 문제 제기 (3개 Pain 카드) |
+| 3 | `#lp-value` | 가치 제안 (빅넘버 3개 임팩트 카드) |
+| 4 | `#lp-features` | 6가지 기능 상세 카드 |
+| 5 | `#lp-trust` | 신뢰 요소 (3개 후기 + 통계) |
+| 6 | `#lp-demo` | 프로덕트 데모 (CSS 목업) |
+| 7 | `#lp-pricing` | 가격표 (3플랜, PRO 골드 강조) |
+| 8 | `#lp-faq` | FAQ 아코디언 (6개 항목) |
+| 9 | `#lp-cta` | 2차 CTA |
+| 10 | `#lp-footer` | 푸터 |
+| — | `#lp-ticker` | 하단 고정 롤링 배너 (섹션 외부, fixed) |
+
+- 네비게이션 로고 클릭 → 페이지 상단 스무스 스크롤
+- 네비게이션 링크: 기능 / 후기 / 가격 / FAQ (섹션 앵커)
+- `.lp-section` 스크롤 페이드인 (IntersectionObserver)
+- 네비게이션 스크롤 시 `backdrop-filter: blur` 효과
+
+---
+
+## 디자인 기준 (전체 통일 — 다크테마)
+
+> 위저드·로딩·모달·네비 모두 랜딩페이지와 동일한 다크테마로 통일됨
+
+### 공통 (랜딩 + 위저드 + 네비)
+- 배경: `#0A0E1A` (딥네이비)
+- 카드/폼: `#0F1629`
+- 입력 필드: `rgba(22,32,64,0.8)`
+- 포인트: `#F5C030` (골드) / 진한: `#D4A017` / 밝은: `#FFD966`
+- 텍스트: `#E8EDF5` / 보조: `rgba(255,255,255,.55)`
+- 폰트: Noto Serif KR (헤딩) + Noto Sans KR (본문)
+
+### 대시보드 (dashboard.css)
+- 공통 CSS 변수(`--bg`, `--gold` 등) 그대로 사용 — 다크테마 일관성 유지
+- 좌측 목차 사이드바: `flex-shrink:0; width:180px; position:sticky; top:80px`
+- 레이아웃: `.dash-layout { display:flex; gap:24px }` + `.report-content { flex:1; min-width:0 }`
+- 모바일(768px 이하): `.report-nav { display:none }`, `.dash-layout { display:block }`
+- KPI 카드: `background:rgba(15,22,41,0.9)`, 골드 테두리 `rgba(245,192,48,.2)`
+- DEMO/AI 뱃지: `.demo-badge-inline` / `.real-badge-inline` — `dSub` 단락 안에 인라인 렌더링
+  - 기존 HTML의 `#demoBadge` span은 JS에서 `hidden` 처리 (레이아웃에 관여하지 않음)
+- 섹션 카드 간격: `margin-bottom:32px`
+- 스크롤 스파이: `.nav-link.active` 골드 강조 (dashboard.js `initScrollReveal` 내 처리)
+
+---
+
+## 모바일 반응형 (768px 이하)
+
+- 햄버거 메뉴 (☰/✕ 토글): `app.js` + `.lp-mobile-menu` (landing.css)
+  - 클릭 시 슬라이드 다운, 항목 클릭 시 자동 닫힘, 외부 클릭 시 닫힘
+  - 배경 `#0A0E1A` 완전 불투명, `z-index:9999`, `visibility` 기반 애니메이션
+- 통계 바: 4항목 2×2 그리드
+- 기능 카드: 1열 레이아웃, 설명 텍스트 `0.95rem`
+- 네비 버튼: 크기 축소, 로고 한 줄 고정
+- 롤링 배너: 높이 40px 축소, 시계·노트 숨김, 등락률 숨김, 폰트 축소
+
+---
+
+## JS 모듈 공개 API
+
+| 모듈 | 공개 함수 |
+|------|----------|
+| `App` | `startWizard`, `showLanding`, `showModal`, `showApiModal`, `closeModal`, `setMode`, `confirmKey`, `goStep`, `runAnalysis`, `restart` |
+| `Wizard` | `goStep`, `validate`, `collect`, `animateLoading`, `reset` |
+| `AIEngine` | `callClaude`, `fakeAnalysis` |
+| `Dashboard` | `render`, `initScrollReveal`, `initCountUp`, `addRipple`, `initInputChecks` |
+| `lpToggleFaq` | 전역 함수 (FAQ onclick에서 직접 호출) |
+
+- 모든 모듈은 IIFE 패턴 (`const Foo = (() => { ... })()`)
+- `lpToggleFaq`는 HTML `onclick` 속성에서 호출되므로 전역 스코프 유지 필수
+- `ticker.js`는 공개 API 없음 (자체 완결 IIFE, DOMContentLoaded 자동 실행)
+
+---
+
+## 작업 규칙
+- 랜딩페이지 수정 → `landing.css` 또는 `index.html` 랜딩 섹션
+- 위저드/네비/모달 스타일 수정 → `style.css`
+- 모바일 반응형 수정 → `landing.css` (`@media(max-width:768px)` 블록)
+- 햄버거 메뉴 동작 수정 → `app.js` 하단 햄버거 토글 IIFE
+- AI 기능 수정 → `ai-engine.js`만
+- 위저드 로직 수정 → `wizard.js`만
+- 결과화면 수정 → `dashboard.js` + `dashboard.css`
+- 롤링 배너 수정 → `ticker.js` + `landing.css` (ticker 섹션)
+- `lp-` 접두사: 랜딩 전용 클래스에만 사용
+- 인라인 스타일 추가 금지, 디자인 수정은 해당 CSS 파일만

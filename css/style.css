@@ -1,0 +1,274 @@
+/* ================================================================
+   BizNavi AI — style.css
+   공통/공유 스타일: 변수, 리셋, 유틸리티, 네비, 버튼, 폼, 모달, 위저드, 로딩
+   ================================================================ */
+
+/* ===== VARIABLES ===== */
+:root {
+  --bg:        #0A0E1A;
+  --bg-card:   #0F1629;
+  --bg-input:  rgba(22,32,64,0.8);
+  --border:    rgba(42,63,117,0.7);
+  --gold:      #F5C030;
+  --gold-dk:   #D4A017;
+  --gold-lt:   #FFD966;
+  --txt:       #E8EDF5;
+  --txt2:      rgba(255,255,255,.55);
+  --txt3:      rgba(255,255,255,.35);
+  --teal:      #F5C030;
+  --red:       #E05555;
+  --blue:      #2D7ED4;
+  --orange:    #E0862A;
+  --r:         12px;
+  --shadow:    0 4px 28px rgba(0,0,0,.4);
+}
+/* ===== RESET ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#070A14;border-radius:3px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--gold-dk),rgba(42,63,117,.8));border-radius:6px;transition:background .2s}
+::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+/* ===== UTILITY ===== */
+.hidden{display:none!important}
+.screen{min-height:100vh;width:100%}
+.has-nav{padding-top:60px}
+/* ===== TOP NAV ===== */
+.top-nav{
+  position:fixed;top:0;left:0;right:0;height:60px;
+  background:rgba(10,14,26,.96);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(245,192,48,.12);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;z-index:200;
+}
+.nav-logo{font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:1px}
+.nav-actions{display:flex;gap:8px}
+/* ===== BUTTONS ===== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 28px;border-radius:8px;
+  font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .2s;border:none;outline:none;
+}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-dk));color:#0A0E1A}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,192,48,.35)}
+.btn-outline{background:transparent;color:var(--gold);border:1px solid rgba(245,192,48,.4)}
+.btn-outline:hover{background:rgba(245,192,48,.08);border-color:var(--gold)}
+.btn-ghost{background:transparent;color:var(--txt2);border:1px solid rgba(255,255,255,.12)}
+.btn-ghost:hover{background:rgba(255,255,255,.05);color:var(--txt)}
+.btn-lg{padding:17px 44px;font-size:16px}
+.btn-sm{padding:8px 14px;font-size:12px}
+/* ===== FORMS ===== */
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:7px;letter-spacing:.8px;text-transform:uppercase}
+.form-group input,
+.form-group textarea,
+.form-group select{
+  width:100%;background:var(--bg-input);border:1px solid var(--border);
+  border-radius:8px;padding:11px 14px;
+  font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--txt);
+  transition:border-color .2s;outline:none;
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,192,48,.10)}
+/* 브라우저 자동완성이 배경을 흰색으로 덮는 현상 방지 */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus{
+  -webkit-box-shadow:0 0 0 1000px #121D3E inset !important;
+  -webkit-text-fill-color:#E8EDF5 !important;
+  caret-color:#E8EDF5;
+}
+.form-group textarea{resize:vertical;min-height:76px}
+.form-group select option{background:#0F1629;color:var(--txt)}
+/* 특정 필드 배경 강제 고정 (autofill 외 다른 오버라이드 방지) */
+#marketSize,#marketShare{background:rgba(22,32,64,0.8) !important;color:#E8EDF5 !important}
+.hint{font-size:11px;color:var(--txt3);margin-top:5px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid .full{grid-column:1/-1}
+/* ===== MODAL ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  backdrop-filter:blur(10px);z-index:900;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.modal{
+  background:var(--bg-card);border:1px solid rgba(245,192,48,.15);
+  border-radius:16px;padding:36px;width:100%;max-width:480px;
+  box-shadow:var(--shadow);
+}
+.modal-head{text-align:center;margin-bottom:28px}
+.modal-head h2{font-size:22px;margin-bottom:8px;color:var(--txt)}
+.modal-head p{font-size:13px;color:var(--txt2);line-height:1.6}
+.mode-toggle{display:flex;background:rgba(255,255,255,.05);border-radius:8px;padding:4px;margin-bottom:22px}
+.mode-btn{flex:1;padding:10px;border:none;background:transparent;color:var(--txt2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-radius:6px;transition:all .2s}
+.mode-btn.active{background:var(--gold);color:#0A0E1A;font-weight:700}
+.info-box{background:rgba(245,192,48,.06);border:1px solid rgba(245,192,48,.15);border-radius:8px;padding:14px;margin-bottom:18px}
+.info-box p{font-size:13px;color:var(--txt2);line-height:1.6}
+/* ===== NAV LOGO ===== */
+.nav-logo{
+  display:flex;align-items:center;gap:8px;
+  font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;
+  color:var(--gold);letter-spacing:1px;
+}
+.nav-logo-icon{flex-shrink:0}
+/* ===== WIZARD ===== */
+#wizard{padding:32px 20px 60px;display:flex;flex-direction:column;align-items:center}
+.wiz-head{text-align:center;max-width:580px;margin-bottom:36px}
+.wiz-head h2{font-size:26px;margin-bottom:8px;color:var(--txt)}
+.wiz-head p{color:var(--txt2);font-size:13px}
+/* Progress */
+.progress{display:flex;align-items:center;margin-bottom:36px}
+.step-ind{display:flex;flex-direction:column;align-items:center;gap:7px}
+.step-circ{
+  width:38px;height:38px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--txt3);
+  transition:all .3s;background:rgba(22,32,64,0.6);
+}
+.step-circ.active{border-color:var(--gold);color:var(--gold);background:rgba(245,192,48,.10)}
+.step-circ.done{border-color:var(--gold);background:var(--gold);color:#0A0E1A}
+.step-lbl{font-size:11px;color:var(--txt3);white-space:nowrap}
+.step-lbl.active{color:var(--gold);font-weight:700}
+.step-line{width:56px;height:2px;background:var(--border);margin-bottom:26px;transition:background .3s}
+.step-line.done{background:var(--gold)}
+/* Wizard Card */
+.wiz-card{
+  background:var(--bg-card);border:1px solid rgba(245,192,48,.12);
+  border-radius:16px;padding:36px;width:100%;max-width:680px;
+  box-shadow:var(--shadow);
+}
+.wiz-card h3{font-size:18px;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07);color:var(--txt)}
+.wiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:22px;border-top:1px solid rgba(255,255,255,.07)}
+/* ===== LOADING ===== */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px}
+.spinner-wrap{position:relative;width:110px;height:110px}
+.sp-out{
+  position:absolute;inset:0;border:3px solid rgba(42,63,117,.6);
+  border-top-color:var(--gold);border-radius:50%;
+  animation:spin 1.2s linear infinite;
+}
+.sp-in{
+  position:absolute;inset:18px;border:2px solid rgba(42,63,117,.4);
+  border-bottom-color:var(--blue);border-radius:50%;
+  animation:spin .8s linear infinite reverse;
+}
+.sp-dot{
+  position:absolute;inset:40%;background:var(--gold);border-radius:50%;
+  animation:pulse 1.5s ease-in-out infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.4}}
+.ld-text{text-align:center}
+.ld-text h2{font-size:22px;margin-bottom:8px;color:var(--txt)}
+.ld-text p{color:var(--txt2);font-size:13px}
+.ld-steps{display:flex;flex-direction:column;gap:10px;width:280px}
+.ld-step{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--txt3);transition:color .3s}
+.ld-step.active{color:var(--gold)}
+.ld-step.done{color:rgba(245,192,48,.65)}
+.ld-step-ico{
+  width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;
+  display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;
+}
+.ld-step.active .ld-step-ico{animation:spin 1s linear infinite}
+/* ===== RESPONSIVE ===== */
+@media(max-width:720px){
+  .swot-grid,.stp-grid,.fourp-grid,.form-grid{grid-template-columns:1fr}
+  .wiz-card{padding:22px}
+  .step-line{width:28px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:420px){
+  .kpi-grid{grid-template-columns:1fr}
+  .modal{padding:22px}
+}
+
+/* ===== PAGE TRANSITION ===== */
+.screen{transition:opacity .35s ease,transform .35s ease}
+.screen.page-exit{opacity:0;transform:translateY(8px);pointer-events:none}
+.screen.page-enter{animation:pageIn .4s ease both}
+@keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== RIPPLE ===== */
+.btn,.btn-gold-hero,.btn-demo,.mode-btn{position:relative;overflow:hidden}
+.ripple-circle{
+  position:absolute;border-radius:50%;
+  background:rgba(245,192,48,.12);
+  transform:scale(0);animation:rippleAnim .55s linear;
+  pointer-events:none;
+}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+
+/* ===== WIZARD ENHANCEMENTS ===== */
+/* Slide transition */
+.wiz-card{transition:opacity .3s ease,transform .3s ease}
+.wiz-card.slide-exit{opacity:0;transform:translateX(-20px)}
+.wiz-card.slide-enter{animation:wizSlideIn .35s ease both}
+@keyframes wizSlideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+/* Enhanced progress */
+.progress{gap:0}
+.step-ind{gap:6px}
+.step-circ{
+  width:42px;height:42px;font-size:14px;
+  box-shadow:0 0 0 4px transparent;transition:all .35s;
+}
+.step-circ.active{
+  box-shadow:0 0 0 4px rgba(245,192,48,.2);
+  animation:stepPulse 2s ease-in-out infinite;
+}
+@keyframes stepPulse{0%,100%{box-shadow:0 0 0 4px rgba(245,192,48,.2)}50%{box-shadow:0 0 0 8px rgba(245,192,48,.08)}}
+.step-circ.done{transform:scale(1.05)}
+.step-line{width:80px;height:3px;border-radius:3px;margin-bottom:32px;position:relative;overflow:hidden}
+.step-line.done{background:var(--gold)}
+.step-line.done::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+  animation:lineSweep 1.5s ease both;
+}
+@keyframes lineSweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+/* Progress percentage bar */
+.wiz-progress-bar{
+  width:100%;max-width:680px;height:3px;
+  background:rgba(42,63,117,.6);border-radius:3px;
+  margin-bottom:28px;overflow:hidden;
+}
+.wiz-progress-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--gold),var(--gold-lt));
+  transition:width .6s cubic-bezier(.4,0,.2,1);
+}
+/* Input completed state */
+.form-group.completed input,
+.form-group.completed textarea,
+.form-group.completed select{
+  border-color:rgba(245,192,48,.4);
+  background:rgba(245,192,48,.03);
+}
+.form-group label{
+  display:flex;align-items:center;justify-content:space-between;
+}
+.field-check{
+  width:16px;height:16px;border-radius:50%;
+  background:var(--gold);display:none;
+  align-items:center;justify-content:center;
+  font-size:9px;color:#0A0E1A;font-weight:900;flex-shrink:0;
+}
+.form-group.completed .field-check{display:flex}
+/* Wiz card title */
+.wiz-card h3{
+  display:flex;align-items:center;gap:10px;
+  font-size:18px;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07);
+}
+.wiz-card h3 .step-badge{
+  font-size:11px;padding:2px 10px;border-radius:20px;font-family:'Noto Sans KR',sans-serif;font-weight:700;
+  background:rgba(245,192,48,.12);color:var(--gold);border:1px solid rgba(245,192,48,.25);
+}
+
+/* ===== COUNTUP ===== */
+.stat-num{display:block}
+
+/* ===== MODAL ANIMATION ===== */
+.modal-overlay:not(.hidden) .modal{animation:modalIn .3s ease both}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
