@@ -578,6 +578,15 @@
           </select>
         </div>
         <div class="form-group">
+          <label>비즈니스 모델 *<span class="field-check">✓</span></label>
+          <select id="bizModel">
+            <option value="">비즈니스 모델 선택</option>
+            <option>B2B SaaS</option><option>B2C 구독</option><option>B2B 솔루션</option>
+            <option>B2C 커머스</option><option>플랫폼·마켓플레이스</option><option>프랜차이즈</option>
+            <option>제조·유통</option><option>서비스업</option><option>기타</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>설립연도</label>
           <input type="number" id="foundedYear" placeholder="예: 2018" min="1900" max="2099" />
         </div>
@@ -605,6 +614,10 @@
           <textarea id="products" placeholder="예: B2B SaaS 인사관리 솔루션, HR 자동화 플랫폼"></textarea>
         </div>
         <div class="form-group full">
+          <label>핵심 강점 한 줄 요약 *<span class="field-check">✓</span></label>
+          <input type="text" id="coreStrength" placeholder="예: 국내 유일 실시간 재고 AI 자동화 기술 보유" maxlength="60" />
+        </div>
+        <div class="form-group full">
           <label>핵심 경쟁력</label>
           <textarea id="bizStrengths" placeholder="예: 독자 AI 알고리즘, 강력한 파트너 네트워크, 특허 기술 3건"></textarea>
         </div>
@@ -621,11 +634,11 @@
       <div class="form-grid">
         <div class="form-group full">
           <label>타겟 고객 *<span class="field-check">✓</span></label>
-          <textarea id="targetCustomer" placeholder="예: 직원 50~300명 규모의 중견기업 인사담당자, 스타트업 HR팀"></textarea>
+          <textarea id="targetCustomer" placeholder="예: 직원 50~300명 규모 중소 제조기업의 생산관리 담당자"></textarea>
         </div>
         <div class="form-group full">
-          <label>주요 경쟁사</label>
-          <textarea id="competitors" placeholder="예: 네이버 웍스, 카카오워크, Microsoft Teams (간접경쟁)"></textarea>
+          <label>주요 경쟁사 *<span class="field-check">✓</span></label>
+          <textarea id="competitors" placeholder="예: 더존비즈온, 영림원소프트랩 — 대비 우리 강점: 도입 속도 3배 빠름"></textarea>
         </div>
         <div class="form-group">
           <label>추정 시장 규모</label>

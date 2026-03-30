@@ -22,7 +22,11 @@ const Dashboard = (() => {
 
     // SWOT
     const ul = (id, arr) => {
-      document.getElementById(id).innerHTML = arr.map(t => `<li>${t}</li>`).join('');
+      document.getElementById(id).innerHTML = arr.map(t =>
+        typeof t === 'object'
+          ? `<li><strong>${t.item}</strong>${t.evidence ? `<span class="swot-evidence">${t.evidence}</span>` : ''}</li>`
+          : `<li>${t}</li>`
+      ).join('');
     };
     ul('swotS', data.swot.strengths);
     ul('swotW', data.swot.weaknesses);
@@ -48,6 +52,7 @@ const Dashboard = (() => {
           <span class="p-badge p-${s.priority}">${s.priority==='high'?'높음':s.priority==='medium'?'보통':'낮음'} 우선순위</span>
           <h4>${s.title}</h4>
           <p>${s.description}</p>
+          ${(s.owner || s.timeline) ? `<div class="strat-meta">${s.owner ? `<span>👤 ${s.owner}</span>` : ''}${s.timeline ? `<span>📅 ${s.timeline}</span>` : ''}</div>` : ''}
         </div>
       </div>`).join('');
 
@@ -59,6 +64,7 @@ const Dashboard = (() => {
         <div class="kpi-tgt">목표: ${k.target}</div>
         <div class="kpi-bar"><div class="kpi-fill" data-pct="${k.progress||0}"></div></div>
         <div class="kpi-time">${k.timeline}</div>
+        ${(k.method || k.owner) ? `<div class="kpi-meta">${k.owner ? `<span>👤 ${k.owner}</span>` : ''}${k.method ? `<span title="${k.method}">📏 측정방법 있음</span>` : ''}</div>` : ''}
       </div>`).join('');
 
     // Roadmap
@@ -67,6 +73,7 @@ const Dashboard = (() => {
         <div class="rm-hdr">
           <span class="rm-name">${r.phase}</span>
           <span class="rm-period">${r.period}</span>
+          ${r.budget ? `<span class="rm-budget">💰 ${r.budget}</span>` : ''}
         </div>
         <div class="rm-tasks">${r.tasks.map(t => `<span class="rm-task">${t}</span>`).join('')}</div>
       </div>`).join('');

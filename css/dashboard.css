@@ -123,6 +123,11 @@
 .swot-ul li::before{content:'▸';flex-shrink:0;margin-top:1px}
 .swot-q.s .swot-ul li::before{color:var(--teal)}.swot-q.w .swot-ul li::before{color:var(--red)}
 .swot-q.o .swot-ul li::before{color:var(--blue)}.swot-q.t .swot-ul li::before{color:var(--orange)}
+.swot-ul li{flex-direction:column;align-items:flex-start}
+.swot-ul li strong{display:flex;align-items:flex-start;gap:7px;color:var(--txt)}
+.swot-ul li strong::before{content:'▸';flex-shrink:0;margin-top:1px}
+.swot-ul li::before{display:none}
+.swot-evidence{font-size:10px;color:var(--txt3);padding-left:14px;margin-top:2px;line-height:1.4}
 
 /* ===== STP ===== */
 .stp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -164,6 +169,7 @@
 }
 .strat-body h4{font-size:14px;margin-bottom:5px;color:var(--txt)}
 .strat-body p{font-size:12px;color:var(--txt2);line-height:1.6}
+.strat-meta{display:flex;gap:10px;margin-top:6px;font-size:10px;color:var(--txt3)}
 .p-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:5px}
 .p-high{background:rgba(255,107,107,.12);color:var(--red)}
 .p-medium{background:rgba(255,159,67,.12);color:var(--orange)}
@@ -192,6 +198,8 @@
 .kpi-bar{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
 .kpi-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold-lt));width:0;transition:width 1.2s ease;box-shadow:0 0 8px rgba(245,192,48,.35)}
 .kpi-time{font-size:10px;color:var(--txt3);margin-top:6px}
+.kpi-meta{display:flex;gap:8px;margin-top:4px;font-size:10px;color:var(--txt3)}
+.kpi-meta span[title]{cursor:help}
 
 /* ===== 로드맵 ===== */
 .roadmap{position:relative;padding-left:30px}
@@ -224,6 +232,7 @@
 .rm-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .rm-name{font-size:14px;font-weight:700;color:var(--txt)}
 .rm-period{font-size:11px;color:var(--gold);background:rgba(245,192,48,.12);padding:3px 10px;border-radius:20px}
+.rm-budget{font-size:10px;color:var(--txt3);margin-left:auto}
 .rm-tasks{display:flex;flex-wrap:wrap;gap:7px}
 .rm-task{
   background:var(--bg-card);border:1px solid rgba(255,255,255,.08);

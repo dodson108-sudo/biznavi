@@ -1,5 +1,44 @@
 # BizNavi AI 프로젝트
 
+## 배포 상태 (2026-03-27)
+
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 업로드 완료 (커밋: `e86d81c` "BizNavi AI 첫 배포")
+- **Vercel**: 배포 진행 중 (GitHub 연동 후 자동 빌드 예정)
+- **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-03-30)
+
+### 위저드 1단계 필드 추가 (index.html + wizard.js)
+- `bizModel` 선택박스 추가 — 업종 바로 아래 위치, 9가지 옵션 (B2B SaaS, B2C 구독, 플랫폼·마켓플레이스 등), 필수 필드(`*`)
+- `coreStrength` 한 줄 입력란 추가 — 주요 제품/서비스 아래 위치, `maxlength="60"`, 필수 필드(`*`)
+- `wizard.js` `validate(1)` 에 `bizModel`·`coreStrength` 미입력 시 alert 추가
+- `wizard.js` `collect()` 에 `bizModel`·`coreStrength` 수집 추가
+
+### 위저드 2단계 필수 필드 변경 (index.html + wizard.js)
+- `competitors`: 선택 → 필수 필드로 변경 (`*` 표시, `field-check` ✓ 아이콘 추가)
+- `targetCustomer`: 이미 필수였으나 placeholder 업데이트 (제조기업 예시로 구체화)
+- `wizard.js` `validate(2)` 에 `targetCustomer`·`competitors` 미입력 시 alert 추가
+
+### AI 엔진 고도화 v2.0 (js/ai-engine.js)
+- 시스템 프롬프트 강화: "맥킨지 출신 시니어 컨설턴트" 페르소나 + 5대 핵심 원칙 (일반론 금지, 업종 특화, 근거 포함 등)
+- SWOT 구조 변경: `string[]` → `{item, evidence}[]` (각 항목에 근거/활용방안 포함, 6개씩)
+- `keyStrategies` 구조 변경: `owner`·`timeline` 필드 추가, 5개 → 6개로 확장
+- `kpi` 구조 변경: `method`·`owner` 필드 추가, 6개 → 10개로 확장
+- `roadmap` 구조 변경: 각 phase에 `budget` 필드 추가, task 4개 → 6개로 확장
+- `buildPrompt()`: `bizModel`·`coreStrength`·`competitors` 반영, 분석 지침 섹션 추가
+- `max_tokens`: 4096 → 8000으로 증가
+- `fakeAnalysis()`: `bizModel`·`comp`·`tl`·`cs` 변수 활용한 동적 데모 데이터 생성
+
+### 대시보드 CSS 보완 (css/dashboard.css)
+- `.swot-evidence`: SWOT 각 항목의 근거 텍스트 스타일 (10px, `var(--txt3)`, 좌측 indent)
+- `.strat-meta`: 핵심전략 카드 하단 담당자·기간 표시 영역 (flex, 10px, `var(--txt3)`)
+- `.kpi-meta`: KPI 카드 하단 측정방법·담당자 표시 영역 (flex, 10px, `cursor:help`)
+- `.rm-budget`: 로드맵 phase 헤더 우측 예산 표시 (10px, `var(--txt3)`, `margin-left:auto`)
+
+---
+
 ## 최근 수정 이력 (2026-03-27)
 
 ### Hero 섹션 텍스트 변경 (index.html)
@@ -52,11 +91,14 @@
 
 ---
 
-## 완성 상태 (2026-03)
+## 완성 상태 (2026-03-30 기준)
 - 랜딩페이지 10개 섹션 완성 (Version B 신뢰구축형, 다크네이비 테마)
 - 멀티파일 구조 분리 완료 (HTML/CSS/JS 완전 분리)
 - 위저드 → AI 분석 → 대시보드 전체 흐름 완성
+- 위저드 1단계: `bizModel` 선택박스 + `coreStrength` 입력란 추가 (필수 필드)
+- 위저드 2단계: `targetCustomer`·`competitors` 모두 필수 필드로 확정
 - 위저드 3단계 입력 화면 다크테마 통일 완료 (딥네이비 배경, 골드 포인트)
+- AI 엔진 v2.0: SWOT evidence 구조, KPI 10개+측정방법, 전략 owner/timeline, 로드맵 budget 포함
 - 모바일 반응형 완료 (햄버거 메뉴, 2×2 통계 그리드, 1열 레이아웃)
 - Hero 격자 패턴 + 골드 후광 애니메이션 완료
 - 섹션 스크롤 fade-in 애니메이션 완료 (IntersectionObserver)
@@ -64,6 +106,7 @@
 - 결과 대시보드 개선 완료
   (좌측 목차 사이드바, KPI 카드 다크테마, DEMO DATA 뱃지 위치 수정, 섹션 간격 개선)
 - 글로벌 시장 실시간 롤링 배너 완료 (자체 제작, position fixed 하단 고정)
+- GitHub 업로드 완료 → Vercel 배포 진행 중 (미커밋 변경 존재)
 
 ---
 
