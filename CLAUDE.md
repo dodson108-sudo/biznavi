@@ -91,6 +91,37 @@
 
 ---
 
+## 최근 작업 현황 (업데이트)
+
+### 진단 모듈 시스템 구축 완료
+- js/diagnosis/ 폴더 신규 생성
+- js/diagnosis/common.js: 공통 모듈 (4영역 16항목)
+- js/diagnosis/industry/: 업종 특화 7개 파일
+  - mfg_parts.js (뿌리 제조 및 부품가공업)
+  - food_mfg.js (식품 제조 및 가공업)
+  - local_service.js (생활밀착형 서비스업)
+  - wholesale.js (전문 유통 및 도소매업)
+  - restaurant.js (외식 및 휴게음식업)
+  - knowledge_it.js (지식 서비스 및 IT개발)
+  - construction.js (소규모 건설 및 인테리어)
+- js/diagnosis/bizmodel/: 사업모델 특화 9개 파일
+  - b2b_saas.js / b2c_sub.js / b2b_solution.js
+  - b2c_commerce.js / platform.js / franchise.js
+  - mfg_dist.js / service.js / etc.js
+
+### 다음 작업 (Phase 3부터 시작)
+- Phase 3: wizard.js 4단계 구조 확장
+  - 기존 3단계 → 4단계로 확장
+  - STEP 1(기업정보) → STEP 2(업종별 맞춤 진단 신규) → STEP 3(시장분석) → STEP 4(문제/목표)
+  - 업종+사업모델 조합 → 진단지 자동 매핑 함수 작성
+  - 탭 구조: [기본 경영 진단] [업종 특화 진단] [사업모델 진단]
+  - 5점 척도 + 선택적 서술 입력 UI
+- Phase 4: ai-engine.js 진단 결과 연동
+- Phase 5: 대시보드 레이더 차트 추가
+- Phase 6: 테스트 및 Vercel 배포
+
+---
+
 ## 완성 상태 (2026-03-30 기준)
 - 랜딩페이지 10개 섹션 완성 (Version B 신뢰구축형, 다크네이비 테마)
 - 멀티파일 구조 분리 완료 (HTML/CSS/JS 완전 분리)
