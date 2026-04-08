@@ -17,11 +17,11 @@ const Wizard = (() => {
     '외식 및 휴게음식업': 'restaurant',
     'IT/소프트웨어': 'knowledge_it',
     '건설/부동산': 'construction',
-    '의료/헬스케어': 'local_service',
-    '금융/핀테크': 'knowledge_it',
-    '교육': 'knowledge_it',
-    '패션/뷰티': 'local_service',
-    '미디어/엔터테인먼트': 'knowledge_it',
+    '의료/헬스케어': 'medical',
+    '금융/핀테크': 'finance',
+    '교육': 'education',
+    '패션/뷰티': 'fashion',
+    '미디어/엔터테인먼트': 'media',
     '기타': 'etc'
   };
 
@@ -141,6 +141,11 @@ const Wizard = (() => {
       'restaurant':    typeof INDUSTRY_RESTAURANT   !== 'undefined' ? INDUSTRY_RESTAURANT   : null,
       'knowledge_it':  typeof INDUSTRY_KNOWLEDGE_IT !== 'undefined' ? INDUSTRY_KNOWLEDGE_IT : null,
       'construction':  typeof INDUSTRY_CONSTRUCTION !== 'undefined' ? INDUSTRY_CONSTRUCTION : null,
+      'medical':       typeof INDUSTRY_MEDICAL      !== 'undefined' ? INDUSTRY_MEDICAL      : null,
+      'finance':       typeof INDUSTRY_FINANCE      !== 'undefined' ? INDUSTRY_FINANCE      : null,
+      'education':     typeof INDUSTRY_EDUCATION    !== 'undefined' ? INDUSTRY_EDUCATION    : null,
+      'fashion':       typeof INDUSTRY_FASHION      !== 'undefined' ? INDUSTRY_FASHION      : null,
+      'media':         typeof INDUSTRY_MEDIA        !== 'undefined' ? INDUSTRY_MEDIA        : null,
     };
     const industryData = industryVarMap[industryKey];
     if (industryData) renderDiagModule('diag-industry-container', industryData);
