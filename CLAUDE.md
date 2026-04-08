@@ -91,31 +91,52 @@
 
 ---
 
-## 최근 작업 현황 (업데이트)
+## 최근 작업 현황 (2026-04-08 업데이트)
 
-### 진단 모듈 시스템 구축 완료
-- js/diagnosis/ 폴더 신규 생성
+### Phase 2 완료: 진단 모듈 시스템 구축
 - js/diagnosis/common.js: 공통 모듈 (4영역 16항목)
-- js/diagnosis/industry/: 업종 특화 7개 파일
-  - mfg_parts.js (뿌리 제조 및 부품가공업)
-  - food_mfg.js (식품 제조 및 가공업)
-  - local_service.js (생활밀착형 서비스업)
-  - wholesale.js (전문 유통 및 도소매업)
-  - restaurant.js (외식 및 휴게음식업)
-  - knowledge_it.js (지식 서비스 및 IT개발)
-  - construction.js (소규모 건설 및 인테리어)
-- js/diagnosis/bizmodel/: 사업모델 특화 9개 파일
-  - b2b_saas.js / b2c_sub.js / b2b_solution.js
-  - b2c_commerce.js / platform.js / franchise.js
-  - mfg_dist.js / service.js / etc.js
+- js/diagnosis/industry/: 업종 특화 7개 파일 (뿌리제조·식품·서비스·유통·외식·IT·건설)
+- js/diagnosis/bizmodel/: 사업모델 특화 9개 파일 (B2B SaaS·B2C구독·솔루션·커머스·플랫폼·프랜차이즈·제조유통·서비스·기타)
 
-### 다음 작업 (Phase 3부터 시작)
-- Phase 3: wizard.js 4단계 구조 확장
-  - 기존 3단계 → 4단계로 확장
-  - STEP 1(기업정보) → STEP 2(업종별 맞춤 진단 신규) → STEP 3(시장분석) → STEP 4(문제/목표)
-  - 업종+사업모델 조합 → 진단지 자동 매핑 함수 작성
-  - 탭 구조: [기본 경영 진단] [업종 특화 진단] [사업모델 진단]
-  - 5점 척도 + 선택적 서술 입력 UI
+### Phase 3 완료: 4단계 위저드 확장 (2026-04-08)
+
+#### index.html 수정
+- 진단 파일 17개 `<script>` 태그 추가 (app.js 위)
+- 프로그레스 인디케이터: 3단계 → 4단계 (기업정보 / 맞춤진단 / 시장분석 / 문제목표)
+  - `ln3` 추가, 스텝 배지 모두 `X / 4` 로 변경
+- 기존 step2(시장분석) → step3, 기존 step3(문제/목표) → step4 로 밀어냄
+- 신규 step2 삽입: 업종별 맞춤 진단 화면
+  - 탭 3개: [기본 경영 진단] [업종 특화 진단] [사업모델 진단]
+  - 진행률 바 (0/48 항목)
+- `industry` select: 12개 업종 옵션 (`value` 속성 명시, INDUSTRY_MAP 키 일치)
+- `bizModel` select: 9개 모델 옵션 (`value` 속성 명시, BIZMODEL_MAP 키 일치)
+
+#### wizard.js v3.1 (완전 재작성)
+- `curDiagTab`, `diagMemos`, `TAB_ORDER` 변수 추가
+- `INDUSTRY_MAP`: 13개 업종 → 진단 파일 키 매핑
+- `BIZMODEL_MAP`: 9개 사업모델 → 진단 파일 키 매핑
+- `goStep()`: STEP 2에서 탭 순서(common→industry→bizmodel) 진행 후 STEP 3 이동
+- `updateStepUI()`: 4단계 + ln3 처리, 25/50/75/100% 진행률
+- `validate()`: step2 = 10개 이상 체크 필수, step3/4 필수 필드 검사
+- `loadDiagnosisUI()`: 업종·사업모델 자동 매핑 후 3개 탭 렌더링, 첫 탭 리셋, 점수 복원
+- `renderDiagModule()`: 진단 데이터 → HTML 동적 생성 (5점 척도 버튼 + 메모 textarea)
+- `restoreScores()`: `diagScores` → `data-key` 속성으로 `selected` 클래스 복원
+- `validateCurrentTab()`: 현재 탭 미체크 항목 검증 + 경고 스타일 + 스크롤
+- `prevDiagTab()`: 이전 탭 이동 (common이면 STEP 1)
+- `switchDiagTab()`: 탭 전환 + 100ms 후 점수 복원 + 첫 항목 스크롤
+- `updateDiagTabUI()`: 탭 버튼 active 처리 + 다음 버튼 텍스트 동적 변경
+- `collect()`: `diagScores` 포함하여 반환
+
+#### css/style.css 추가
+- `.diag-tabs`, `.diag-tab`, `.diag-tab-content`: 탭 네비게이션
+- `.diag-module`, `.diag-area`, `.diag-item`: 진단 모듈 레이아웃
+- `.diag-scale`, `.diag-scale-buttons`, `.diag-score-btn.selected`: 5점 척도 UI
+- `.diag-memo`: 메모 textarea
+- `.diag-progress`, `.diag-progress-bar`, `#diag-progress-fill`: 진행률 바
+- `.diag-item-warning`: 미체크 항목 빨간 테두리 경고
+- 모바일 반응형 포함
+
+### 다음 작업
 - Phase 4: ai-engine.js 진단 결과 연동
 - Phase 5: 대시보드 레이더 차트 추가
 - Phase 6: 테스트 및 Vercel 배포
@@ -147,15 +168,35 @@
 biznavi/
 ├── index.html          HTML 뼈대, 인라인 CSS/JS 없음
 ├── css/
-│   ├── style.css       공통 스타일 (위저드·로딩·모달·네비 — 다크테마)
+│   ├── style.css       공통 스타일 (위저드·로딩·모달·네비·진단 UI — 다크테마)
 │   ├── landing.css     랜딩페이지 전용 (lp-* 클래스, 다크테마, 모바일 반응형)
 │   └── dashboard.css   결과 대시보드 전용
 └── js/
     ├── app.js          메인 코디네이터 (화면전환, 모달, 분석 실행, 햄버거 메뉴)
-    ├── wizard.js       3단계 입력 위저드 로직
+    ├── wizard.js       4단계 입력 위저드 로직 (v3.1)
     ├── ai-engine.js    Claude API 호출 및 데모 데이터 생성
     ├── dashboard.js    결과 렌더링 (SWOT/STP/4P/KPI/로드맵)
-    └── ticker.js       글로벌 시장 롤링 배너 (환율 실시간, 주가 장중 표시)
+    ├── ticker.js       글로벌 시장 롤링 배너 (환율 실시간, 주가 장중 표시)
+    └── diagnosis/
+        ├── common.js               공통 경영 진단 (4영역 16항목)
+        ├── industry/               업종 특화 진단 (7개)
+        │   ├── mfg_parts.js        뿌리 제조 및 부품가공업
+        │   ├── food_mfg.js         식품 제조 및 가공업
+        │   ├── local_service.js    생활밀착형 서비스업
+        │   ├── wholesale.js        전문 유통 및 도소매업
+        │   ├── restaurant.js       외식 및 휴게음식업
+        │   ├── knowledge_it.js     지식 서비스 및 IT개발
+        │   └── construction.js     소규모 건설 및 인테리어
+        └── bizmodel/               사업모델 특화 진단 (9개)
+            ├── b2b_saas.js
+            ├── b2c_sub.js
+            ├── b2b_solution.js
+            ├── b2c_commerce.js
+            ├── platform.js
+            ├── franchise.js
+            ├── mfg_dist.js
+            ├── service.js
+            └── etc.js
 ```
 
 ### CSS 로드 순서 (index.html head)
@@ -167,11 +208,28 @@ biznavi/
 
 ### JS 로드 순서 (body 하단, 의존성 순)
 ```html
-<script src="js/ai-engine.js"></script>  <!-- 의존성 없음 -->
-<script src="js/dashboard.js"></script>  <!-- 의존성 없음 -->
-<script src="js/wizard.js"></script>     <!-- 의존성 없음 -->
-<script src="js/app.js"></script>        <!-- 위 3개 모두 참조 -->
-<script src="js/ticker.js"></script>     <!-- 독립 실행, 의존성 없음 -->
+<script src="js/ai-engine.js"></script>               <!-- 의존성 없음 -->
+<script src="js/dashboard.js"></script>               <!-- 의존성 없음 -->
+<script src="js/wizard.js"></script>                  <!-- 의존성 없음 -->
+<script src="js/diagnosis/common.js"></script>        <!-- 진단 공통 -->
+<script src="js/diagnosis/industry/mfg_parts.js"></script>
+<script src="js/diagnosis/industry/food_mfg.js"></script>
+<script src="js/diagnosis/industry/local_service.js"></script>
+<script src="js/diagnosis/industry/wholesale.js"></script>
+<script src="js/diagnosis/industry/restaurant.js"></script>
+<script src="js/diagnosis/industry/knowledge_it.js"></script>
+<script src="js/diagnosis/industry/construction.js"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js"></script>
+<script src="js/diagnosis/bizmodel/platform.js"></script>
+<script src="js/diagnosis/bizmodel/franchise.js"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js"></script>
+<script src="js/diagnosis/bizmodel/service.js"></script>
+<script src="js/diagnosis/bizmodel/etc.js"></script>
+<script src="js/app.js"></script>                     <!-- 위 모두 참조 -->
+<script src="js/ticker.js"></script>                  <!-- 독립 실행, 의존성 없음 -->
 ```
 
 ---
@@ -241,7 +299,7 @@ biznavi/
 | 모듈 | 공개 함수 |
 |------|----------|
 | `App` | `startWizard`, `showLanding`, `showModal`, `showApiModal`, `closeModal`, `setMode`, `confirmKey`, `goStep`, `runAnalysis`, `restart` |
-| `Wizard` | `goStep`, `validate`, `collect`, `animateLoading`, `reset` |
+| `Wizard` | `goStep`, `validate`, `collect`, `animateLoading`, `reset`, `setScore`, `setMemo`, `switchDiagTab`, `prevDiagTab` |
 | `AIEngine` | `callClaude`, `fakeAnalysis` |
 | `Dashboard` | `render`, `initScrollReveal`, `initCountUp`, `addRipple`, `initInputChecks` |
 | `lpToggleFaq` | 전역 함수 (FAQ onclick에서 직접 호출) |
