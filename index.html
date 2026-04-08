@@ -550,18 +550,23 @@
       <div class="step-line" id="ln1"></div>
       <div class="step-ind">
         <div class="step-circ" id="c2">2</div>
-        <div class="step-lbl" id="l2">시장 분석</div>
+        <div class="step-lbl" id="l2">맞춤 진단</div>
       </div>
       <div class="step-line" id="ln2"></div>
       <div class="step-ind">
         <div class="step-circ" id="c3">3</div>
-        <div class="step-lbl" id="l3">문제/목표</div>
+        <div class="step-lbl" id="l3">시장 분석</div>
+      </div>
+      <div class="step-line" id="ln3"></div>
+      <div class="step-ind">
+        <div class="step-circ" id="c4">4</div>
+        <div class="step-lbl" id="l4">문제/목표</div>
       </div>
     </div>
 
     <!-- Step 1 -->
     <div id="step1" class="wiz-card">
-      <h3 class="serif">📋 기업 기본 정보 <span class="step-badge">STEP 1 / 3</span></h3>
+      <h3 class="serif">📋 기업 기본 정보 <span class="step-badge">STEP 1 / 4</span></h3>
       <div class="form-grid">
         <div class="form-group">
           <label>회사명 *<span class="field-check">✓</span></label>
@@ -571,19 +576,34 @@
           <label>업종 *<span class="field-check">✓</span></label>
           <select id="industry">
             <option value="">업종 선택</option>
-            <option>IT/소프트웨어</option><option>제조업</option><option>서비스업</option>
-            <option>유통/물류</option><option>의료/헬스케어</option><option>금융/핀테크</option>
-            <option>교육</option><option>식품/음료</option><option>건설/부동산</option>
-            <option>패션/뷰티</option><option>미디어/엔터테인먼트</option><option>기타</option>
+            <option value="제조업">뿌리 제조 및 부품가공업</option>
+            <option value="식품/음료">식품 제조 및 가공업</option>
+            <option value="서비스업">생활밀착형 서비스업</option>
+            <option value="유통/물류">전문 유통 및 도소매업</option>
+            <option value="외식 및 휴게음식업">외식 및 휴게음식업</option>
+            <option value="IT/소프트웨어">지식 서비스 및 IT개발</option>
+            <option value="건설/부동산">소규모 건설 및 인테리어</option>
+            <option value="의료/헬스케어">의료/헬스케어</option>
+            <option value="금융/핀테크">금융/핀테크</option>
+            <option value="교육">교육</option>
+            <option value="패션/뷰티">패션/뷰티</option>
+            <option value="미디어/엔터테인먼트">미디어/엔터테인먼트</option>
+            <option value="기타">기타</option>
           </select>
         </div>
         <div class="form-group">
           <label>비즈니스 모델 *<span class="field-check">✓</span></label>
           <select id="bizModel">
             <option value="">비즈니스 모델 선택</option>
-            <option>B2B SaaS</option><option>B2C 구독</option><option>B2B 솔루션</option>
-            <option>B2C 커머스</option><option>플랫폼·마켓플레이스</option><option>프랜차이즈</option>
-            <option>제조·유통</option><option>서비스업</option><option>기타</option>
+            <option value="B2B SaaS">B2B SaaS</option>
+            <option value="B2C 구독">B2C 구독</option>
+            <option value="B2B 솔루션">B2B 솔루션</option>
+            <option value="B2C 커머스">B2C 커머스</option>
+            <option value="플랫폼·마켓플레이스">플랫폼·마켓플레이스</option>
+            <option value="프랜차이즈">프랜차이즈</option>
+            <option value="제조·유통">제조·유통</option>
+            <option value="서비스업">서비스업</option>
+            <option value="기타">기타</option>
           </select>
         </div>
         <div class="form-group">
@@ -628,9 +648,46 @@
       </div>
     </div>
 
-    <!-- Step 2 -->
+    <!-- Step 2 (신규: 업종별 맞춤 진단) -->
     <div id="step2" class="wiz-card hidden">
-      <h3 class="serif">📈 시장 및 경쟁 분석 <span class="step-badge">STEP 2 / 3</span></h3>
+      <h3 class="serif">🔍 업종별 맞춤 진단 <span class="step-badge">STEP 2 / 4</span></h3>
+
+      <!-- 탭 네비게이션 -->
+      <div class="diag-tabs">
+        <button class="diag-tab active" onclick="Wizard.switchDiagTab('common', event)">📋 기본 경영 진단</button>
+        <button class="diag-tab" onclick="Wizard.switchDiagTab('industry', event)">🏭 업종 특화 진단</button>
+        <button class="diag-tab" onclick="Wizard.switchDiagTab('bizmodel', event)">💼 사업모델 진단</button>
+      </div>
+
+      <!-- 탭 컨텐츠 -->
+      <div id="diagTab-common" class="diag-tab-content">
+        <div id="diag-common-container"></div>
+      </div>
+      <div id="diagTab-industry" class="diag-tab-content hidden">
+        <div id="diag-industry-container"></div>
+      </div>
+      <div id="diagTab-bizmodel" class="diag-tab-content hidden">
+        <div id="diag-bizmodel-container"></div>
+      </div>
+
+      <!-- 진행률 -->
+      <div class="diag-progress">
+        <span id="diag-progress-text">0 / 48 항목 완료</span>
+        <div class="diag-progress-bar">
+          <div id="diag-progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- 버튼 -->
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" onclick="Wizard.prevDiagTab()">← 이전</button>
+        <button class="btn btn-gold" onclick="App.goStep(3)">다음 단계 →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 (구 Step 2: 시장분석) -->
+    <div id="step3" class="wiz-card hidden">
+      <h3 class="serif">📈 시장 및 경쟁 분석 <span class="step-badge">STEP 3 / 4</span></h3>
       <div class="form-grid">
         <div class="form-group full">
           <label>타겟 고객 *<span class="field-check">✓</span></label>
@@ -654,14 +711,14 @@
         </div>
       </div>
       <div class="wiz-nav">
-        <button class="btn btn-ghost" onclick="App.goStep(1)">← 이전</button>
-        <button class="btn btn-gold" onclick="App.goStep(3)">다음 단계 →</button>
+        <button class="btn btn-ghost" onclick="App.goStep(2)">← 이전</button>
+        <button class="btn btn-gold" onclick="App.goStep(4)">다음 단계 →</button>
       </div>
     </div>
 
-    <!-- Step 3 -->
-    <div id="step3" class="wiz-card hidden">
-      <h3 class="serif">🎯 현재 문제점 및 목표 <span class="step-badge">STEP 3 / 3</span></h3>
+    <!-- Step 4 (구 Step 3: 문제/목표) -->
+    <div id="step4" class="wiz-card hidden">
+      <h3 class="serif">🎯 현재 문제점 및 목표 <span class="step-badge">STEP 4 / 4</span></h3>
       <div class="form-grid">
         <div class="form-group full">
           <label>현재 직면한 문제 *<span class="field-check">✓</span></label>
@@ -694,7 +751,7 @@
         </div>
       </div>
       <div class="wiz-nav">
-        <button class="btn btn-ghost" onclick="App.goStep(2)">← 이전</button>
+        <button class="btn btn-ghost" onclick="App.goStep(3)">← 이전</button>
         <button class="btn btn-gold" onclick="App.runAnalysis()">AI 분석 시작 →</button>
       </div>
     </div>
@@ -849,6 +906,23 @@
 <script src="js/ai-engine.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/wizard.js"></script>
+<script src="js/diagnosis/common.js"></script>
+<script src="js/diagnosis/industry/mfg_parts.js"></script>
+<script src="js/diagnosis/industry/food_mfg.js"></script>
+<script src="js/diagnosis/industry/local_service.js"></script>
+<script src="js/diagnosis/industry/wholesale.js"></script>
+<script src="js/diagnosis/industry/restaurant.js"></script>
+<script src="js/diagnosis/industry/knowledge_it.js"></script>
+<script src="js/diagnosis/industry/construction.js"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js"></script>
+<script src="js/diagnosis/bizmodel/platform.js"></script>
+<script src="js/diagnosis/bizmodel/franchise.js"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js"></script>
+<script src="js/diagnosis/bizmodel/service.js"></script>
+<script src="js/diagnosis/bizmodel/etc.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ticker.js"></script>
 </body>
