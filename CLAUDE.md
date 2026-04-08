@@ -98,48 +98,33 @@
 - js/diagnosis/industry/: 업종 특화 7개 파일 (뿌리제조·식품·서비스·유통·외식·IT·건설)
 - js/diagnosis/bizmodel/: 사업모델 특화 9개 파일 (B2B SaaS·B2C구독·솔루션·커머스·플랫폼·프랜차이즈·제조유통·서비스·기타)
 
-### Phase 3 완료: 4단계 위저드 확장 (2026-04-08)
+### Phase 3 완료 - 4단계 위저드 구현
+- index.html: 4단계 스텝 인디케이터 완성
+- STEP 2 업종별 맞춤 진단 화면 추가
+  - 탭 구조: [기본 경영] [업종 특화] [사업모델]
+  - 5점 척도 + 메모 입력 UI
+  - 탭 순서대로 진행 (기본경영→업종특화→사업모델→STEP3)
+  - 이전 버튼 탭 역순 이동
+  - 미체크 항목 경고 + 스크롤 기능
+  - 입력값 유지 (diagScores 보존)
+  - 진행률 대시보드 정상 작동
+- 업종 12개 + 사업모델 9개 드롭다운 반영
+- wizard.js INDUSTRY_MAP / BIZMODEL_MAP 완성
 
-#### index.html 수정
-- 진단 파일 17개 `<script>` 태그 추가 (app.js 위)
-- 프로그레스 인디케이터: 3단계 → 4단계 (기업정보 / 맞춤진단 / 시장분석 / 문제목표)
-  - `ln3` 추가, 스텝 배지 모두 `X / 4` 로 변경
-- 기존 step2(시장분석) → step3, 기존 step3(문제/목표) → step4 로 밀어냄
-- 신규 step2 삽입: 업종별 맞춤 진단 화면
-  - 탭 3개: [기본 경영 진단] [업종 특화 진단] [사업모델 진단]
-  - 진행률 바 (0/48 항목)
-- `industry` select: 12개 업종 옵션 (`value` 속성 명시, INDUSTRY_MAP 키 일치)
-- `bizModel` select: 9개 모델 옵션 (`value` 속성 명시, BIZMODEL_MAP 키 일치)
-
-#### wizard.js v3.1 (완전 재작성)
-- `curDiagTab`, `diagMemos`, `TAB_ORDER` 변수 추가
-- `INDUSTRY_MAP`: 13개 업종 → 진단 파일 키 매핑
-- `BIZMODEL_MAP`: 9개 사업모델 → 진단 파일 키 매핑
-- `goStep()`: STEP 2에서 탭 순서(common→industry→bizmodel) 진행 후 STEP 3 이동
-- `updateStepUI()`: 4단계 + ln3 처리, 25/50/75/100% 진행률
-- `validate()`: step2 = 10개 이상 체크 필수, step3/4 필수 필드 검사
-- `loadDiagnosisUI()`: 업종·사업모델 자동 매핑 후 3개 탭 렌더링, 첫 탭 리셋, 점수 복원
-- `renderDiagModule()`: 진단 데이터 → HTML 동적 생성 (5점 척도 버튼 + 메모 textarea)
-- `restoreScores()`: `diagScores` → `data-key` 속성으로 `selected` 클래스 복원
-- `validateCurrentTab()`: 현재 탭 미체크 항목 검증 + 경고 스타일 + 스크롤
-- `prevDiagTab()`: 이전 탭 이동 (common이면 STEP 1)
-- `switchDiagTab()`: 탭 전환 + 100ms 후 점수 복원 + 첫 항목 스크롤
-- `updateDiagTabUI()`: 탭 버튼 active 처리 + 다음 버튼 텍스트 동적 변경
-- `collect()`: `diagScores` 포함하여 반환
-
-#### css/style.css 추가
-- `.diag-tabs`, `.diag-tab`, `.diag-tab-content`: 탭 네비게이션
-- `.diag-module`, `.diag-area`, `.diag-item`: 진단 모듈 레이아웃
-- `.diag-scale`, `.diag-scale-buttons`, `.diag-score-btn.selected`: 5점 척도 UI
-- `.diag-memo`: 메모 textarea
-- `.diag-progress`, `.diag-progress-bar`, `#diag-progress-fill`: 진행률 바
-- `.diag-item-warning`: 미체크 항목 빨간 테두리 경고
-- 모바일 반응형 포함
+### 5개 업종 전용 JS 파일 작업 중
+- ✅ medical.js (의료/헬스케어) 완료
+- ⬜ finance.js (금융/핀테크)
+- ⬜ education.js (교육)
+- ⬜ fashion.js (패션/뷰티)
+- ⬜ media.js (미디어/엔터테인먼트)
 
 ### 다음 작업
+- 5개 업종 JS 파일 나머지 4개 완성
+- wizard.js INDUSTRY_MAP 업데이트 (임시 매핑 → 전용 파일로 교체)
+- index.html script 태그 5개 추가
 - Phase 4: ai-engine.js 진단 결과 연동
 - Phase 5: 대시보드 레이더 차트 추가
-- Phase 6: 테스트 및 Vercel 배포
+- Phase 6: Vercel 배포
 
 ---
 
