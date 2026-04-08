@@ -5,15 +5,171 @@
 
 const AIEngine = (() => {
 
+  function calcDiagScores(diagScores) {
+    if (!diagScores || Object.keys(diagScores).length === 0) return null;
+
+    const tabs = {
+      common: { label: '기본 경영 진단', areas: {}, total: 0, count: 0 },
+      industry: { label: '업종 특화 진단', areas: {}, total: 0, count: 0 },
+      bizmodel: { label: '사업모델 진단', areas: {}, total: 0, count: 0 }
+    };
+
+    Object.keys(diagScores).forEach(key => {
+      const entry = diagScores[key];
+      if (!entry || !entry.score || entry.score === 0) return;
+
+      // key 형식: diag-{tab}-container_{area_id}_{item_id}
+      const parts = key.split('_');
+      if (parts.length < 2) return;
+
+      // 탭 판별
+      let tabKey = 'common';
+      if (key.includes('diag-industry')) tabKey = 'industry';
+      else if (key.includes('diag-bizmodel')) tabKey = 'bizmodel';
+
+      // 영역 판별 (1_1 → area_1)
+      const itemParts = key.split('_');
+      const areaId = 'area_' + itemParts[itemParts.length - 2];
+
+      const tab = tabs[tabKey];
+      if (!tab.areas[areaId]) tab.areas[areaId] = { total: 0, count: 0 };
+      tab.areas[areaId].total += entry.score;
+      tab.areas[areaId].count += 1;
+      tab.total += entry.score;
+      tab.count += 1;
+    });
+
+    // 평균 점수 계산
+    const result = {};
+    Object.keys(tabs).forEach(tabKey => {
+      const tab = tabs[tabKey];
+      if (tab.count === 0) return;
+      result[tabKey] = {
+        label: tab.label,
+        avg: Math.round((tab.total / tab.count) * 10) / 10,
+        areas: {}
+      };
+      Object.keys(tab.areas).forEach(areaId => {
+        const area = tab.areas[areaId];
+        result[tabKey].areas[areaId] = Math.round((area.total / area.count) * 10) / 10;
+      });
+    });
+    return result;
+  }
+
+  function getScoreLabel(score) {
+    if (score >= 4.0) return '🟢 강점';
+    if (score >= 3.0) return '🟡 보통';
+    if (score >= 2.0) return '🟠 취약';
+    return '🔴 위험';
+  }
+
+  function buildDiagSummary(diagScores) {
+    const scores = calcDiagScores(diagScores);
+    if (!scores) return '진단 미실시';
+
+    let summary = '';
+    Object.keys(scores).forEach(tabKey => {
+      const tab = scores[tabKey];
+      summary += `\n[${tab.label}] 종합 ${tab.avg}점 ${getScoreLabel(tab.avg)}\n`;
+      Object.keys(tab.areas).forEach(areaId => {
+        const areaScore = tab.areas[areaId];
+        summary += `  · ${areaId}: ${areaScore}점 ${getScoreLabel(areaScore)}\n`;
+      });
+    });
+
+    // 취약/위험 영역 추출
+    const weakAreas = [];
+    const strongAreas = [];
+    Object.keys(scores).forEach(tabKey => {
+      Object.keys(scores[tabKey].areas).forEach(areaId => {
+        const s = scores[tabKey].areas[areaId];
+        if (s < 2.5) weakAreas.push(`${scores[tabKey].label} - ${areaId} (${s}점)`);
+        if (s >= 4.0) strongAreas.push(`${scores[tabKey].label} - ${areaId} (${s}점)`);
+      });
+    });
+
+    if (weakAreas.length > 0) {
+      summary += `\n⚠️ 즉각 개선 필요 영역:\n`;
+      weakAreas.forEach(a => summary += `  · ${a}\n`);
+    }
+    if (strongAreas.length > 0) {
+      summary += `\n💪 핵심 강점 영역:\n`;
+      strongAreas.forEach(a => summary += `  · ${a}\n`);
+    }
+
+    return summary;
+  }
+
+  function buildInsightsSummary(industry, bizModel) {
+    const industryVarMap = {
+      '제조업': typeof INDUSTRY_MFG_PARTS !== 'undefined' ? INDUSTRY_MFG_PARTS : null,
+      '식품/음료': typeof INDUSTRY_FOOD_MFG !== 'undefined' ? INDUSTRY_FOOD_MFG : null,
+      '서비스업': typeof INDUSTRY_LOCAL_SERVICE !== 'undefined' ? INDUSTRY_LOCAL_SERVICE : null,
+      '유통/물류': typeof INDUSTRY_WHOLESALE !== 'undefined' ? INDUSTRY_WHOLESALE : null,
+      '외식 및 휴게음식업': typeof INDUSTRY_RESTAURANT !== 'undefined' ? INDUSTRY_RESTAURANT : null,
+      'IT/소프트웨어': typeof INDUSTRY_KNOWLEDGE_IT !== 'undefined' ? INDUSTRY_KNOWLEDGE_IT : null,
+      '건설/부동산': typeof INDUSTRY_CONSTRUCTION !== 'undefined' ? INDUSTRY_CONSTRUCTION : null,
+      '의료/헬스케어': typeof INDUSTRY_MEDICAL !== 'undefined' ? INDUSTRY_MEDICAL : null,
+      '금융/핀테크': typeof INDUSTRY_FINANCE !== 'undefined' ? INDUSTRY_FINANCE : null,
+      '교육': typeof INDUSTRY_EDUCATION !== 'undefined' ? INDUSTRY_EDUCATION : null,
+      '패션/뷰티': typeof INDUSTRY_FASHION !== 'undefined' ? INDUSTRY_FASHION : null,
+      '미디어/엔터테인먼트': typeof INDUSTRY_MEDIA !== 'undefined' ? INDUSTRY_MEDIA : null,
+    };
+
+    const bizModelVarMap = {
+      'B2B SaaS': typeof BIZMODEL_B2B_SAAS !== 'undefined' ? BIZMODEL_B2B_SAAS : null,
+      'B2C 구독': typeof BIZMODEL_B2C_SUB !== 'undefined' ? BIZMODEL_B2C_SUB : null,
+      'B2B 솔루션': typeof BIZMODEL_B2B_SOLUTION !== 'undefined' ? BIZMODEL_B2B_SOLUTION : null,
+      'B2C 커머스': typeof BIZMODEL_B2C_COMMERCE !== 'undefined' ? BIZMODEL_B2C_COMMERCE : null,
+      '플랫폼·마켓플레이스': typeof BIZMODEL_PLATFORM !== 'undefined' ? BIZMODEL_PLATFORM : null,
+      '프랜차이즈': typeof BIZMODEL_FRANCHISE !== 'undefined' ? BIZMODEL_FRANCHISE : null,
+      '제조·유통': typeof BIZMODEL_MFG_DIST !== 'undefined' ? BIZMODEL_MFG_DIST : null,
+      '서비스업': typeof BIZMODEL_SERVICE !== 'undefined' ? BIZMODEL_SERVICE : null,
+      '기타': typeof BIZMODEL_ETC !== 'undefined' ? BIZMODEL_ETC : null,
+    };
+
+    let insightText = '';
+
+    const industryData = industryVarMap[industry];
+    if (industryData && industryData.insights) {
+      insightText += `\n[${industryData.title} 핵심 진단 처방 방향]\n`;
+      industryData.insights.forEach((insight, i) => {
+        insightText += `  ${i+1}. ${insight}\n`;
+      });
+    }
+
+    const bizModelData = bizModelVarMap[bizModel];
+    if (bizModelData && bizModelData.insights) {
+      insightText += `\n[${bizModelData.title} 핵심 진단 처방 방향]\n`;
+      bizModelData.insights.forEach((insight, i) => {
+        insightText += `  ${i+1}. ${insight}\n`;
+      });
+    }
+
+    return insightText;
+  }
+
   const SYSTEM = `당신은 맥킨지 & 컴퍼니 출신 20년 경력의 시니어 경영전략 컨설턴트입니다.
 한국 중소기업·스타트업 전문이며, SWOT/STP/4P/KPI/로드맵 기반의 실전 컨설팅 보고서를 작성합니다.
 
 [핵심 원칙]
+0. 언어 원칙: 중소기업 대표가 바로 이해할 수 있는 쉬운 한국어로 작성한다.
+   영어 약어(NPS, CSM, MRR 등) 사용 시 반드시 한국어로 풀어서 설명한다.
+   예) NPS(고객 추천 지수), CSM(고객 성공 담당자), MRR(월 반복 매출)
+   전문 용어보다 실제 현장에서 쓰는 말을 우선 사용한다.
 1. 입력된 기업 정보에서 반드시 구체적 수치·업종 특성·경쟁 구도를 분석에 반영할 것
 2. 일반론적 표현("디지털 전환", "고객 만족") 금지 — 반드시 해당 기업에 특화된 표현 사용
 3. 각 전략 항목은 "왜 이 기업에 필요한가"의 근거를 포함할 것
 4. KPI는 현실적으로 측정 가능한 지표만 포함할 것
-5. 로드맵 태스크는 즉시 실행 가능한 액션 중심으로 작성할 것
+5. 진단 결과 활용 지침:
+   - 🔴위험(1~1.9점) 영역 → SWOT 약점에 반드시 포함, 즉각 개선 전략 최우선 제시
+   - 🟠취약(2~2.9점) 영역 → SWOT 약점에 포함, 단기 개선 과제로 제시
+   - 🟡보통(3~3.9점) 영역 → 현상 유지 또는 점진적 개선 방향 제시
+   - 🟢강점(4~5점) 영역 → SWOT 강점에 반드시 포함, 차별화 전략의 핵심으로 활용
+6. 진단 점수가 낮은 영역일수록 더 구체적이고 실행 가능한 처방을 제시할 것.
+7. 단순한 방향 제시가 아닌 실제 중소기업이 당장 실행할 수 있는 구체적 액션 플랜을 포함할 것.
+8. 업종별 인사이트(insights)를 참고하여 해당 업종에 특화된 처방을 제시할 것.
 
 반드시 다음 JSON 구조로만 응답하세요 (마크다운 코드블록 없이 순수 JSON):
 {
@@ -140,7 +296,19 @@ const AIEngine = (() => {
 - 목표 기간: ${d.timeline || '미입력'}
 - 가용 예산: ${d.budget || '미입력'}
 - 추가사항: ${d.notes || '없음'}
-
+${ d.diagScores && Object.keys(d.diagScores).length > 0 ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. 업종별 맞춤 진단 결과
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${buildDiagSummary(d.diagScores)}
+` : '' }
+${ (d.industry || d.bizModel) ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. 업종별 전문 처방 방향 (필수 반영)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${buildInsightsSummary(d.industry, d.bizModel)}
+아래 처방 방향을 전략 수립 시 반드시 반영할 것.
+` : '' }
 [분석 지침]
 - ${d.companyName}의 업종(${d.industry})과 비즈니스 모델(${d.bizModel || '미확인'})에 특화된 전략을 제시할 것
 - 경쟁사(${d.competitors || '미입력'}) 대비 차별화 포인트를 SWOT·포지셔닝에 명확히 반영할 것

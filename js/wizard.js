@@ -396,6 +396,7 @@ const Wizard = (() => {
   function reset() {
     curStep = 1;
     curDiagTab = 'common';
+    Object.keys(diagScores).forEach(k => delete diagScores[k]);
     updateStepUI(1);
   }
 

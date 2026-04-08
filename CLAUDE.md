@@ -111,20 +111,41 @@
 - 업종 12개 + 사업모델 9개 드롭다운 반영
 - wizard.js INDUSTRY_MAP / BIZMODEL_MAP 완성
 
-### 5개 업종 전용 JS 파일 작업 중
-- ✅ medical.js (의료/헬스케어) 완료
-- ⬜ finance.js (금융/핀테크)
-- ⬜ education.js (교육)
-- ⬜ fashion.js (패션/뷰티)
-- ⬜ media.js (미디어/엔터테인먼트)
+### Phase 4 완료 - ai-engine.js 진단 결과 연동
+- 진단 점수 계산 함수 추가 (calcDiagScores)
+- 점수 등급 판별 함수 추가 (getScoreLabel)
+- 진단 요약 생성 함수 추가 (buildDiagSummary)
+- buildPrompt에 진단 결과 섹션 추가
+- 시스템 프롬프트 고도화 (0~8번 지침)
+  - 0번: 쉬운 한국어 언어 원칙
+  - 5번: 진단 점수 등급별 활용 지침
+  - 6번: 취약 영역 구체적 처방
+  - 7번: 실행 가능한 액션 플랜
+  - 8번: 업종별 인사이트 활용
+- 업종별 insights 프롬프트 자동 반영 (buildInsightsSummary)
+- 새분석 버튼 → STEP 1 초기화 수정
+- STEP 3 이전 버튼 → STEP 2 진단 화면으로 수정
+
+### 5개 업종 전용 JS 파일 완성
+- medical.js / finance.js / education.js / fashion.js / media.js
+- wizard.js INDUSTRY_MAP 전용 파일로 교체 완료
+- index.html script 태그 추가 완료
+- 총 진단 파일: 22개 (common 1 + industry 12 + bizmodel 9)
 
 ### 다음 작업
-- 5개 업종 JS 파일 나머지 4개 완성
-- wizard.js INDUSTRY_MAP 업데이트 (임시 매핑 → 전용 파일로 교체)
-- index.html script 태그 5개 추가
-- Phase 4: ai-engine.js 진단 결과 연동
-- Phase 5: 대시보드 레이더 차트 추가
-- Phase 6: Vercel 배포
+- Claude API 키 발급 및 연결 (console.anthropic.com)
+- API 연결 후 실제 분석 테스트
+- 프롬프트 튜닝 (결과 보면서 개선)
+- Phase 5: STEP 3,4 고도화
+  - STEP 3: TAM/SAM/SOM 구조화, 경쟁사 비교, 5 Forces 체크리스트
+  - STEP 4: SMART 목표 구조화, 투자 우선순위, 정부지원사업 관심 여부
+- Phase 6: 대시보드 고도화 (레이더 차트, 취약 영역 시각화)
+- Phase 7: 솔루션 품질 강화
+  - 웹서치 연동 (실시간 업종 데이터)
+  - 정부지원사업 자동 매칭
+  - 경영 서적 8권 프롬프트 반영
+- Phase 8: Vercel 배포
+- Phase 9: DART 재무분석 모듈 별도 개발 (추후)
 
 ---
 
