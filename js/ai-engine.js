@@ -563,5 +563,5 @@ ${d.externalRisk ? `- 외부 리스크(${d.externalRisk})에 대한 대응 전�
     };
   }
 
-  return { callClaude, fakeAnalysis };
+  return { callClaude, fakeAnalysis, calcDiagScores };
 })();

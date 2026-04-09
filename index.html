@@ -1006,6 +1006,7 @@
       <nav class="report-nav" id="reportNav">
         <div class="report-nav-title">목차</div>
         <a href="#sec-summary"  class="nav-link active"><span class="nav-dot"></span>Executive Summary</a>
+        <a href="#sec-diag"     class="nav-link"><span class="nav-dot"></span>경영 진단</a>
         <a href="#sec-swot"     class="nav-link"><span class="nav-dot"></span>SWOT 분석</a>
         <a href="#sec-stp"      class="nav-link"><span class="nav-dot"></span>STP 분석</a>
         <a href="#sec-4p"       class="nav-link"><span class="nav-dot"></span>4P 마케팅</a>
@@ -1021,6 +1022,19 @@
         <div class="section-card reveal" id="sec-summary">
           <div class="sec-title"><h3 class="serif">Executive Summary</h3><span class="badge">요약</span></div>
           <div class="exec" id="execSummary"></div>
+        </div>
+
+        <!-- 경영 진단 분석 -->
+        <div class="section-card reveal" id="sec-diag" style="display:none">
+          <div class="sec-title"><h3 class="serif">경영 진단 분석</h3><span class="badge">역량 진단</span></div>
+          <div class="diag-dash-wrap">
+            <div class="diag-radar-wrap">
+              <canvas id="radarChart"></canvas>
+            </div>
+            <div class="diag-right-wrap">
+              <div id="weakBanner"></div>
+            </div>
+          </div>
         </div>
 
         <!-- SWOT -->
@@ -1057,7 +1071,7 @@
 
         <!-- Key Strategies -->
         <div class="section-card reveal" id="sec-strategy">
-          <div class="sec-title"><h3 class="serif">핵심 전략 5가지</h3><span class="badge">전략 방향</span></div>
+          <div class="sec-title"><h3 class="serif">핵심 전략 6가지</h3><span class="badge">전략 방향</span></div>
           <div class="strat-list" id="strategies"></div>
         </div>
 
@@ -1081,6 +1095,7 @@
 <!-- ══════════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="js/ai-engine.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/wizard.js"></script>

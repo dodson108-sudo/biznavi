@@ -5,7 +5,155 @@
 
 const Dashboard = (() => {
 
-  let _scrollSpyBound = null;   // 이벤트 중복 방지용 참조
+  let _scrollSpyBound = null;
+  let _radarChart = null;
+
+  // 공통 진단 영역 이름 매핑
+  const COMMON_AREA_LABELS = {
+    area_1: '재무건전성',
+    area_2: '조직·인력',
+    area_3: '고객·매출',
+    area_4: '경영역량'
+  };
+
+  function scoreLabel(s) {
+    if (s >= 4.0) return '강점';
+    if (s >= 3.0) return '보통';
+    if (s >= 2.0) return '취약';
+    return '위험';
+  }
+
+  function renderDiagSection(fd) {
+    const section = document.getElementById('sec-diag');
+    if (!section) return;
+    const diagScores = fd && fd.diagScores;
+    const hasScores = diagScores && Object.keys(diagScores).filter(k => diagScores[k].score > 0).length > 0;
+    if (!hasScores) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    const scores = AIEngine.calcDiagScores(diagScores);
+    if (!scores) return;
+    renderRadar(scores);
+    renderWeakAreas(scores);
+  }
+
+  function renderRadar(scores) {
+    const ctx = document.getElementById('radarChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    if (_radarChart) { _radarChart.destroy(); _radarChart = null; }
+
+    const labels = [];
+    const data   = [];
+
+    // 공통 4개 영역
+    if (scores.common) {
+      ['area_1','area_2','area_3','area_4'].forEach(id => {
+        if (scores.common.areas[id] !== undefined) {
+          labels.push(COMMON_AREA_LABELS[id]);
+          data.push(scores.common.areas[id]);
+        }
+      });
+    }
+    if (scores.industry) { labels.push('업종특화'); data.push(scores.industry.avg); }
+    if (scores.bizmodel) { labels.push('사업모델'); data.push(scores.bizmodel.avg); }
+    if (labels.length < 3) return;
+
+    _radarChart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels,
+        datasets: [{
+          label: '진단 점수',
+          data,
+          backgroundColor: 'rgba(245,192,48,0.12)',
+          borderColor:      'rgba(245,192,48,0.85)',
+          borderWidth: 2,
+          pointBackgroundColor: data.map(v => v < 2 ? '#F87171' : v < 3 ? '#FB923C' : v >= 4 ? '#4ADE80' : '#F5C030'),
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          r: {
+            min: 0, max: 5,
+            ticks: { stepSize: 1, color: 'rgba(232,237,245,0.35)', font: { size: 9 }, backdropColor: 'transparent' },
+            grid:        { color: 'rgba(255,255,255,0.07)' },
+            angleLines:  { color: 'rgba(255,255,255,0.07)' },
+            pointLabels: { color: 'rgba(232,237,245,0.85)', font: { size: 11, weight: '600' } },
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15,22,41,0.95)',
+            borderColor: 'rgba(245,192,48,0.3)',
+            borderWidth: 1,
+            callbacks: {
+              label: ctx => ` ${ctx.raw}점 (${scoreLabel(ctx.raw)})`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderWeakAreas(scores) {
+    const banner = document.getElementById('weakBanner');
+    if (!banner) return;
+
+    const allAreas = [];
+    if (scores.common) {
+      ['area_1','area_2','area_3','area_4'].forEach(id => {
+        if (scores.common.areas[id] !== undefined)
+          allAreas.push({ label: COMMON_AREA_LABELS[id], score: scores.common.areas[id] });
+      });
+    }
+    if (scores.industry) allAreas.push({ label: '업종특화 종합', score: scores.industry.avg });
+    if (scores.bizmodel) allAreas.push({ label: '사업모델 종합', score: scores.bizmodel.avg });
+
+    const sorted = [...allAreas].sort((a, b) => a.score - b.score);
+    const weakAreas   = sorted.filter(a => a.score < 3.0);
+    const strongAreas = sorted.filter(a => a.score >= 4.0).reverse();
+
+    // 전체 점수 pill
+    let html = '<div class="diag-score-pills">';
+    allAreas.forEach(a => {
+      const cls  = a.score >= 4 ? 'pill-strong' : a.score >= 3 ? 'pill-ok' : a.score >= 2 ? 'pill-weak' : 'pill-danger';
+      const icon = a.score >= 4 ? '💪' : a.score >= 3 ? '✅' : a.score >= 2 ? '⚠️' : '🔴';
+      html += `<span class="diag-pill ${cls}">${icon} ${a.label}<em>${a.score}점</em></span>`;
+    });
+    html += '</div>';
+
+    // 취약/위험 경고
+    if (weakAreas.length > 0) {
+      html += '<div class="diag-alerts">';
+      html += '<div class="diag-alerts-title">⚠️ 개선 필요 영역 — AI 전략에 우선 반영됨</div>';
+      weakAreas.forEach(a => {
+        const isDanger = a.score < 2;
+        html += `<div class="diag-alert-row ${isDanger ? 'alert-danger' : 'alert-warn'}">
+          <span class="alert-icon">${isDanger ? '🔴' : '🟠'}</span>
+          <span class="alert-area-name">${a.label}</span>
+          <span class="alert-score-val">${a.score}점</span>
+          <span class="alert-msg-txt">${isDanger ? '즉각 개선 필요' : '단기 개선 권고'}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // 강점 영역
+    if (strongAreas.length > 0) {
+      html += '<div class="diag-strong-pills"><span class="diag-strong-label">💪 핵심 강점</span>';
+      strongAreas.forEach(a => {
+        html += `<span class="diag-pill pill-strong">⭐ ${a.label} <em>${a.score}점</em></span>`;
+      });
+      html += '</div>';
+    }
+
+    banner.innerHTML = html;
+  }
 
   function render(data, fd, isDemo) {
     document.getElementById('dTitle').textContent = (fd.companyName || '기업') + ' 경영전략 분석 리포트';
@@ -78,6 +226,9 @@ const Dashboard = (() => {
         <div class="rm-tasks">${r.tasks.map(t => `<span class="rm-task">${t}</span>`).join('')}</div>
       </div>`).join('');
 
+    // 진단 분석 섹션 (레이더 차트 + 취약 배너)
+    renderDiagSection(fd);
+
     // Animate KPI bars after render
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -123,7 +274,7 @@ const Dashboard = (() => {
     });
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록
-    const secIds = ['sec-summary','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap'];
+    const secIds = ['sec-summary','sec-diag','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap'];
     function onScroll() {
       const offset = 100;
       let activeId = secIds[0];
