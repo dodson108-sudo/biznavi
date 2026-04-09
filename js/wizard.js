@@ -398,6 +398,13 @@ const Wizard = (() => {
     curDiagTab = 'common';
     Object.keys(diagScores).forEach(k => delete diagScores[k]);
     updateStepUI(1);
+    // step 카드 가시성 초기화: step1 표시, step2~4 숨김
+    const step1 = document.getElementById('step1');
+    if (step1) step1.classList.remove('hidden');
+    for (let i = 2; i <= 4; i++) {
+      const el = document.getElementById('step' + i);
+      if (el) { el.classList.add('hidden'); el.classList.remove('slide-exit', 'slide-enter'); }
+    }
   }
 
   return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, switchDiagTab, prevDiagTab };

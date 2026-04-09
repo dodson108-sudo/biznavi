@@ -150,7 +150,15 @@ const AIEngine = (() => {
     return insightText;
   }
 
-  const SYSTEM = `당신은 맥킨지 & 컴퍼니 출신 20년 경력의 시니어 경영전략 컨설턴트입니다.
+  const SYSTEM = `[절대 규칙]
+- 응답은 반드시 순수 JSON 텍스트만 출력한다. \`\`\`json 코드블록 절대 사용 금지.
+- 첫 글자는 반드시 { 여야 한다. 그 앞에 어떤 텍스트도 넣지 말 것.
+- JSON만 출력. 설명 텍스트 절대 금지.
+- 각 문자열은 60자 이내로 작성.
+- 배열 항목은 지정된 수를 초과하지 말 것.
+- JSON이 완성되지 않으면 내용을 줄여서라도 완성할 것.
+
+당신은 맥킨지 & 컴퍼니 출신 20년 경력의 시니어 경영전략 컨설턴트입니다.
 한국 중소기업·스타트업 전문이며, SWOT/STP/4P/KPI/로드맵 기반의 실전 컨설팅 보고서를 작성합니다.
 
 [핵심 원칙]
@@ -170,6 +178,9 @@ const AIEngine = (() => {
 6. 진단 점수가 낮은 영역일수록 더 구체적이고 실행 가능한 처방을 제시할 것.
 7. 단순한 방향 제시가 아닌 실제 중소기업이 당장 실행할 수 있는 구체적 액션 플랜을 포함할 것.
 8. 업종별 인사이트(insights)를 참고하여 해당 업종에 특화된 처방을 제시할 것.
+9. 응답은 반드시 완전한 JSON 형식으로만 출력한다.
+   JSON이 잘리지 않도록 각 섹션의 내용을 간결하게 작성한다.
+   각 항목당 2~3문장 이내로 작성한다.
 
 반드시 다음 JSON 구조로만 응답하세요 (마크다운 코드블록 없이 순수 JSON):
 {
@@ -177,7 +188,7 @@ const AIEngine = (() => {
 
   "swot": {
     "strengths": [
-      {"item": "강점 내용", "evidence": "근거 또는 활용 방안"},
+      {"item": "강점1", "evidence": "근거 또는 활용 방안"},
       {"item": "강점2", "evidence": "근거"},
       {"item": "강점3", "evidence": "근거"},
       {"item": "강점4", "evidence": "근거"},
@@ -185,7 +196,7 @@ const AIEngine = (() => {
       {"item": "강점6", "evidence": "근거"}
     ],
     "weaknesses": [
-      {"item": "약점 내용", "evidence": "개선 방향"},
+      {"item": "약점1", "evidence": "개선 방향"},
       {"item": "약점2", "evidence": "개선 방향"},
       {"item": "약점3", "evidence": "개선 방향"},
       {"item": "약점4", "evidence": "개선 방향"},
@@ -193,7 +204,7 @@ const AIEngine = (() => {
       {"item": "약점6", "evidence": "개선 방향"}
     ],
     "opportunities": [
-      {"item": "기회 내용", "evidence": "활용 전략"},
+      {"item": "기회1", "evidence": "활용 전략"},
       {"item": "기회2", "evidence": "활용 전략"},
       {"item": "기회3", "evidence": "활용 전략"},
       {"item": "기회4", "evidence": "활용 전략"},
@@ -201,7 +212,7 @@ const AIEngine = (() => {
       {"item": "기회6", "evidence": "활용 전략"}
     ],
     "threats": [
-      {"item": "위협 내용", "evidence": "대응 방안"},
+      {"item": "위협1", "evidence": "대응 방안"},
       {"item": "위협2", "evidence": "대응 방안"},
       {"item": "위협3", "evidence": "대응 방안"},
       {"item": "위협4", "evidence": "대응 방안"},
@@ -224,7 +235,7 @@ const AIEngine = (() => {
   },
 
   "keyStrategies": [
-    {"title": "전략명 (5자 이내)", "description": "전략 상세 (3문장: 목적·실행방법·기대효과)", "priority": "high", "owner": "담당부서/역할", "timeline": "실행 기간"},
+    {"title": "전략명 (6자 이내)", "description": "전략 상세 설명 (2~3문장, 즉시 실행 액션 포함)", "priority": "high", "owner": "담당부서", "timeline": "실행 기간"},
     {"title": "전략명2", "description": "설명", "priority": "high", "owner": "담당", "timeline": "기간"},
     {"title": "전략명3", "description": "설명", "priority": "high", "owner": "담당", "timeline": "기간"},
     {"title": "전략명4", "description": "설명", "priority": "medium", "owner": "담당", "timeline": "기간"},
@@ -233,16 +244,16 @@ const AIEngine = (() => {
   ],
 
   "kpi": [
-    {"metric": "지표명", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 30, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표명", "current": "현재값(구체적 숫자)", "target": "목표값(구체적 숫자)", "timeline": "기간", "progress": 20, "method": "측정 방법", "owner": "담당"},
     {"metric": "지표2", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 15, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표3", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 50, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표4", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 20, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표5", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 10, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표6", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 40, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표7", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 25, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표8", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 35, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표9", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 60, "method": "측정 방법", "owner": "담당"},
-    {"metric": "지표10", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 45, "method": "측정 방법", "owner": "담당"}
+    {"metric": "지표3", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 35, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표4", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 10, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표5", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 50, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표6", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 25, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표7", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 40, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표8", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 5, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표9", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 30, "method": "측정 방법", "owner": "담당"},
+    {"metric": "지표10", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 20, "method": "측정 방법", "owner": "담당"}
   ],
 
   "roadmap": [
@@ -254,13 +265,13 @@ const AIEngine = (() => {
     },
     {
       "phase": "2단계: 성장 가속",
-      "period": "4~6개월",
+      "period": "4~8개월",
       "budget": "예상 예산",
       "tasks": ["태스크1", "태스크2", "태스크3", "태스크4", "태스크5", "태스크6"]
     },
     {
-      "phase": "3단계: 확장 최적화",
-      "period": "7~12개월",
+      "phase": "3단계: 도약·확장",
+      "period": "9~12개월",
       "budget": "예상 예산",
       "tasks": ["태스크1", "태스크2", "태스크3", "태스크4", "태스크5", "태스크6"]
     }
@@ -326,10 +337,12 @@ ${buildInsightsSummary(d.industry, d.bizModel)}
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8000,
         system: SYSTEM,
-        messages: [{ role: 'user', content: buildPrompt(formData) }],
+        messages: [
+          { role: 'user', content: buildPrompt(formData) },
+        ],
       }),
     });
     if (!res.ok) {
@@ -338,11 +351,34 @@ ${buildInsightsSummary(d.industry, d.bizModel)}
       throw new Error(msg);
     }
     const body = await res.json();
-    const text = body.content[0].text;
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) || text.match(/(\{[\s\S]*\})/);
-    const jsonStr = match ? match[1] : text;
-    try { return JSON.parse(jsonStr.trim()); }
-    catch(e) { throw new Error('응답 JSON 파싱 실패: ' + e.message); }
+    const text = body.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('');
+
+    console.log('API 원본 응답 (처음 500자):', text.substring(0, 500));
+
+    // JSON 추출 시도 1: ```json 블록 (마크다운 코드블록)
+    const jsonBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (jsonBlock) {
+      try { return JSON.parse(jsonBlock[1]); } catch(e) {}
+    }
+
+    // JSON 추출 시도 2: 텍스트 전체가 순수 JSON인 경우
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{')) {
+      try { return JSON.parse(trimmed); } catch(e) {}
+    }
+
+    // JSON 추출 시도 3: 텍스트 중간에 { } 블록이 있는 경우
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      const candidate = text.substring(start, end + 1);
+      try { return JSON.parse(candidate); } catch(e) {}
+    }
+
+    throw new Error('JSON 파싱 실패: ' + text.substring(0, 200));
   }
 
   async function fakeAnalysis(d) {

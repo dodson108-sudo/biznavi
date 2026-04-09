@@ -54,10 +54,21 @@ const App = (() => {
   function closeModal() { document.getElementById('apiModal').classList.add('hidden'); }
   function setMode(m) {
     mode = m;
-    document.getElementById('btnDemo').classList.toggle('active', m === 'demo');
-    document.getElementById('btnReal').classList.toggle('active', m === 'real');
-    document.getElementById('demoContent').classList.toggle('hidden', m !== 'demo');
-    document.getElementById('realContent').classList.toggle('hidden', m !== 'real');
+    const btnDemo    = document.getElementById('btnDemo');
+    const btnReal    = document.getElementById('btnReal');
+    const demoContent = document.getElementById('demoContent');
+    const realContent = document.getElementById('realContent');
+    if (m === 'real') {
+      btnDemo.classList.remove('active');
+      btnReal.classList.add('active');
+      demoContent.classList.add('hidden');
+      realContent.classList.remove('hidden');
+    } else {
+      btnReal.classList.remove('active');
+      btnDemo.classList.add('active');
+      realContent.classList.add('hidden');
+      demoContent.classList.remove('hidden');
+    }
   }
   function confirmKey() {
     if (mode === 'real') {
@@ -76,8 +87,14 @@ const App = (() => {
   function showLanding() { show('landing'); }
 
   function restart() {
+    if (!confirm('새로 분석하시겠습니까?\n입력하신 모든 정보를 처음부터 다시 입력해야 합니다.')) return;
     Wizard.reset();
     show('wizard');
+  }
+
+  function prevFromDash() {
+    show('wizard');
+    Wizard.goStep(4);
   }
 
   function goStep(n) {
@@ -111,7 +128,7 @@ const App = (() => {
   setTimeout(() => Dashboard.initCountUp(), 400);
   setTimeout(() => Dashboard.initInputChecks(), 100);
 
-  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart };
+  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash };
 })();
 
 /* ===== LANDING PAGE JS ===== */
