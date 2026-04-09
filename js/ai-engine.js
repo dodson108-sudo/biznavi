@@ -278,11 +278,51 @@ const AIEngine = (() => {
   ]
 }`;
 
+  function buildCompetitorBlock(d) {
+    const comps = [];
+    if (d.comp1Name) {
+      let c = `  · ${d.comp1Name}`;
+      if (d.comp1Price)    c += ` | 가격: ${d.comp1Price}`;
+      if (d.comp1Customer) c += ` | 주요고객: ${d.comp1Customer}`;
+      if (d.comp1Weakness) c += ` | 약점(우리기회): ${d.comp1Weakness}`;
+      comps.push(c);
+    }
+    if (d.comp2Name) {
+      let c = `  · ${d.comp2Name}`;
+      if (d.comp2Price)    c += ` | 가격: ${d.comp2Price}`;
+      if (d.comp2Customer) c += ` | 주요고객: ${d.comp2Customer}`;
+      if (d.comp2Weakness) c += ` | 약점(우리기회): ${d.comp2Weakness}`;
+      comps.push(c);
+    }
+    if (d.comp3Name) {
+      let c = `  · ${d.comp3Name}`;
+      if (d.comp3Price)    c += ` | 가격: ${d.comp3Price}`;
+      if (d.comp3Customer) c += ` | 주요고객: ${d.comp3Customer}`;
+      if (d.comp3Weakness) c += ` | 약점(우리기회): ${d.comp3Weakness}`;
+      comps.push(c);
+    }
+    return comps.length > 0 ? comps.join('\n') : '  미입력';
+  }
+
+  function buildForcesBlock(d) {
+    const forces = [
+      { label: '신규진입자 위협', val: d.forceEntry,      memo: d.forceEntryMemo },
+      { label: '대체재 위협',     val: d.forceSubstitute, memo: d.forceSubstituteMemo },
+      { label: '공급자 협상력',   val: d.forceSupplier,   memo: d.forceSupplierMemo },
+      { label: '구매자 협상력',   val: d.forceBuyer,      memo: d.forceBuyerMemo },
+      { label: '경쟁자 간 경쟁', val: d.forceRivalry,    memo: d.forceRivalryMemo },
+    ];
+    return forces
+      .filter(f => f.val)
+      .map(f => `  · ${f.label}: ${f.val}${f.memo ? ' — ' + f.memo : ''}`)
+      .join('\n') || '  미입력';
+  }
+
   function buildPrompt(d) {
     return `다음 기업 정보를 바탕으로 맞춤형 경영전략 분석 보고서를 작성해주세요.
 입력된 정보를 최대한 분석에 반영하고, 일반론적 표현은 피해주세요.
 
-## 기업 기본 정보
+## 1. 기업 기본 정보
 - 회사명: ${d.companyName}
 - 업종: ${d.industry}
 - 비즈니스 모델: ${d.bizModel || '미입력'}
@@ -294,37 +334,53 @@ const AIEngine = (() => {
 - 핵심 강점 한 줄: ${d.coreStrength || '미입력'}
 - 기타 핵심 경쟁력: ${d.bizStrengths || '미입력'}
 
-## 시장 및 경쟁 분석
+## 2. 타겟 고객 및 시장
 - 타겟 고객: ${d.targetCustomer || '미입력'}
-- 주요 경쟁사 및 대비 포지션: ${d.competitors || '미입력'}
-- 시장 규모: ${d.marketSize || '미입력'}
-- 현재 시장 점유율: ${d.marketShare || '미입력'}
-- 핵심 차별화 요소: ${d.differentiation || '미입력'}
+- 주요 고객 획득 경로: ${d.customerAcquisition || '미입력'}
+- CAC vs LTV: ${d.cacLtv || '미파악'}
+- TAM (전체 시장): ${d.tam || '미입력'}
+- SAM (접근 가능 시장): ${d.sam || '미입력'}
+- SOM (점유 목표): ${d.som || '미입력'}
+- 시장 연 성장률: ${d.marketGrowthRate || '미입력'}
+- 주요 시장 트렌드: ${d.marketTrend || '미입력'}
 
-## 현재 문제점 및 전략 목표
+## 3. 경쟁사 분석
+${buildCompetitorBlock(d)}
+- 우리의 핵심 차별화: ${d.differentiation || '미입력'}
+
+## 4. 5 Forces 분석
+${buildForcesBlock(d)}
+
+## 5. 현재 문제점 및 전략 목표
 - 현재 가장 큰 문제: ${d.problems}
 - 달성 목표: ${d.goals}
 - 목표 기간: ${d.timeline || '미입력'}
 - 가용 예산: ${d.budget || '미입력'}
+- 외부 리스크 요인: ${d.externalRisk || '미입력'}
+- 핵심 파트너십/협력사: ${d.partnerships || '미입력'}
+- 정부지원사업 관심: ${d.govSupport || '미입력'}
 - 추가사항: ${d.notes || '없음'}
 ${ d.diagScores && Object.keys(d.diagScores).length > 0 ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-4. 업종별 맞춤 진단 결과
+6. 업종별 맞춤 진단 결과
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${buildDiagSummary(d.diagScores)}
 ` : '' }
 ${ (d.industry || d.bizModel) ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-5. 업종별 전문 처방 방향 (필수 반영)
+7. 업종별 전문 처방 방향 (필수 반영)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${buildInsightsSummary(d.industry, d.bizModel)}
-아래 처방 방향을 전략 수립 시 반드시 반영할 것.
 ` : '' }
 [분석 지침]
 - ${d.companyName}의 업종(${d.industry})과 비즈니스 모델(${d.bizModel || '미확인'})에 특화된 전략을 제시할 것
-- 경쟁사(${d.competitors || '미입력'}) 대비 차별화 포인트를 SWOT·포지셔닝에 명확히 반영할 것
-- KPI는 ${d.timeline || '12개월'} 내 달성 가능한 현실적 수치로 설정할 것
-- 로드맵 태스크는 ${d.budget ? '예산 ' + d.budget + ' 범위 내에서 ' : ''}즉시 실행 가능한 액션으로 작성할 것`;
+- 경쟁사(${d.comp1Name || '미입력'}) 대비 차별화 포인트, 특히 경쟁사 약점을 SWOT·포지셔닝에 명확히 반영할 것
+- 5 Forces 결과를 기회·위협 분석에 직접 반영할 것${d.forceEntry === '강' || d.forceRivalry === '강' ? ' (진입/경쟁 강도 강함 — 방어 전략 우선)' : ''}
+- TAM/SAM/SOM 데이터를 STP 세분화와 KPI 목표 설정에 반영할 것
+- KPI는 ${d.timeline || '12개월'} 내 달성 가능한 현실적 수치로, 가능하면 입력된 현재값 기준으로 설정할 것
+- 로드맵 태스크는 ${d.budget ? '예산 ' + d.budget + ' 범위 내에서 ' : ''}즉시 실행 가능한 액션으로 작성할 것
+${d.govSupport && d.govSupport !== '관심 없음' ? `- 정부지원사업(${d.govSupport}) 활용 방안을 로드맵 또는 핵심전략에 반드시 포함할 것` : ''}
+${d.externalRisk ? `- 외부 리스크(${d.externalRisk})에 대한 대응 전략을 위협 분석 및 로드맵에 반영할 것` : ''}`;
   }
 
   async function callClaude(key, formData) {

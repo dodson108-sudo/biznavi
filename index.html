@@ -689,26 +689,174 @@
     <div id="step3" class="wiz-card hidden">
       <h3 class="serif">📈 시장 및 경쟁 분석 <span class="step-badge">STEP 3 / 4</span></h3>
       <div class="form-grid">
+
+        <!-- ① 타겟 고객 -->
+        <div class="wiz-section-title">👤 타겟 고객</div>
         <div class="form-group full">
           <label>타겟 고객 *<span class="field-check">✓</span></label>
-          <textarea id="targetCustomer" placeholder="예: 직원 50~300명 규모 중소 제조기업의 생산관리 담당자"></textarea>
-        </div>
-        <div class="form-group full">
-          <label>주요 경쟁사 *<span class="field-check">✓</span></label>
-          <textarea id="competitors" placeholder="예: 더존비즈온, 영림원소프트랩 — 대비 우리 강점: 도입 속도 3배 빠름"></textarea>
+          <textarea id="targetCustomer" placeholder="예: 직원 50~300명 규모 중소 제조기업의 생산관리 담당자. 월 학원비 30만원 이상 지출하는 수도권 중위권 고등학생 학부모"></textarea>
         </div>
         <div class="form-group">
-          <label>추정 시장 규모</label>
-          <input type="text" id="marketSize" placeholder="예: 국내 1조원" />
+          <label>주요 고객 획득 경로</label>
+          <textarea id="customerAcquisition" placeholder="예: 지인 소개(40%), 블로그/SEO(30%), 유튜브 광고(20%), 전시회(10%)"></textarea>
         </div>
         <div class="form-group">
-          <label>현재 시장점유율</label>
-          <input type="text" id="marketShare" placeholder="예: 약 3%, 신규 진입" />
+          <label>고객 획득비용(CAC) vs 생애가치(LTV)</label>
+          <input type="text" id="cacLtv" placeholder="예: CAC 30만원 / LTV 300만원 (10배) 또는 미파악" />
+          <p class="hint">모르면 '미파악'이라고 입력하세요. AI가 추정해드립니다.</p>
+        </div>
+
+        <!-- ② 시장 규모 -->
+        <div class="wiz-section-title">📊 시장 규모 (TAM / SAM / SOM)</div>
+        <div class="form-group">
+          <label>TAM — 전체 시장 규모</label>
+          <input type="text" id="tam" placeholder="예: 국내 HR SaaS 시장 약 1조원" />
+          <p class="hint">내가 속한 산업 전체의 시장 크기</p>
+        </div>
+        <div class="form-group">
+          <label>SAM — 실제 접근 가능 시장</label>
+          <input type="text" id="sam" placeholder="예: 직원 50~300명 중소기업 대상 약 2000억원" />
+          <p class="hint">우리가 실제로 공략할 수 있는 범위</p>
+        </div>
+        <div class="form-group">
+          <label>SOM — 현실적 점유 목표</label>
+          <input type="text" id="som" placeholder="예: 3년 내 100억원 (SAM의 5%)" />
+          <p class="hint">목표 기간 내 달성 가능한 점유 규모</p>
+        </div>
+        <div class="form-group">
+          <label>시장 연 성장률(CAGR)</label>
+          <input type="text" id="marketGrowthRate" placeholder="예: 연 15% 성장 / 정체 / 모름" />
         </div>
         <div class="form-group full">
-          <label>주요 차별화 요소</label>
-          <textarea id="differentiation" placeholder="예: 경쟁사 대비 30% 저렴한 가격, AI 자동화로 업무 60% 절감"></textarea>
+          <label>주요 시장 트렌드 (1~2가지)</label>
+          <textarea id="marketTrend" placeholder="예: AI 자동화 도입 급증으로 기존 수작업 대체 수요 폭발, 정부 스마트공장 지원사업 확대"></textarea>
         </div>
+
+        <!-- ③ 경쟁사 비교 -->
+        <div class="wiz-section-title">⚔️ 경쟁사 비교 (최대 3개)</div>
+        <div class="comp-card">
+          <div class="comp-card-title">경쟁사 1 *</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>경쟁사명 *<span class="field-check">✓</span></label>
+              <input type="text" id="comp1Name" placeholder="예: 더존비즈온" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 가격대</label>
+              <input type="text" id="comp1Price" placeholder="예: 월 50만원~, 우리보다 2배 비쌈" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 주요 고객층</label>
+              <input type="text" id="comp1Customer" placeholder="예: 중견기업 이상, 직원 300명+" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 약점 (우리 기회)</label>
+              <input type="text" id="comp1Weakness" placeholder="예: 도입 기간 6개월 이상, 중소기업 지원 부족" />
+            </div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-card-title">경쟁사 2 (선택)</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>경쟁사명</label>
+              <input type="text" id="comp2Name" placeholder="예: 영림원소프트랩" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 가격대</label>
+              <input type="text" id="comp2Price" placeholder="예: 월 30만원~" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 주요 고객층</label>
+              <input type="text" id="comp2Customer" placeholder="예: 제조업 특화" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 약점 (우리 기회)</label>
+              <input type="text" id="comp2Weakness" placeholder="예: AI 기능 없음, UI 구식" />
+            </div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-card-title">경쟁사 3 (선택)</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>경쟁사명</label>
+              <input type="text" id="comp3Name" placeholder="예: 스타트업 A" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 가격대</label>
+              <input type="text" id="comp3Price" placeholder="예: 월 10만원~, 저가 공략" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 주요 고객층</label>
+              <input type="text" id="comp3Customer" placeholder="예: 소기업 대상" />
+            </div>
+            <div class="form-group">
+              <label>경쟁사 약점 (우리 기회)</label>
+              <input type="text" id="comp3Weakness" placeholder="예: 기능 단순, AS 취약" />
+            </div>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label>우리의 핵심 차별화 요소</label>
+          <textarea id="differentiation" placeholder="예: 경쟁사 대비 도입 기간 1/3 단축, AI 자동화로 담당자 업무 60% 절감, 중소기업 전담 CS팀 운영"></textarea>
+        </div>
+
+        <!-- ④ 5 Forces -->
+        <div class="wiz-section-title">🔬 산업 경쟁 강도 (5 Forces)</div>
+        <div class="forces-grid">
+          <div class="force-item">
+            <div class="force-label">🚪 신규 진입자 위협</div>
+            <select class="force-select" id="force_entry">
+              <option value="">강도 선택</option>
+              <option value="강">강 — 진입 장벽 낮음</option>
+              <option value="중">중 — 보통 수준</option>
+              <option value="약">약 — 진입 어려움</option>
+            </select>
+            <textarea class="force-memo" id="force_entry_memo" placeholder="이유: 예) SaaS 개발 비용 낮아 스타트업 진입 쉬움"></textarea>
+          </div>
+          <div class="force-item">
+            <div class="force-label">🔄 대체재 위협</div>
+            <select class="force-select" id="force_substitute">
+              <option value="">강도 선택</option>
+              <option value="강">강 — 대체재 많음</option>
+              <option value="중">중 — 보통 수준</option>
+              <option value="약">약 — 대체재 없음</option>
+            </select>
+            <textarea class="force-memo" id="force_substitute_memo" placeholder="이유: 예) 엑셀·수작업으로 대체 가능, 전환 비용 낮음"></textarea>
+          </div>
+          <div class="force-item">
+            <div class="force-label">🏭 공급자 협상력</div>
+            <select class="force-select" id="force_supplier">
+              <option value="">강도 선택</option>
+              <option value="강">강 — 공급자 우위</option>
+              <option value="중">중 — 보통 수준</option>
+              <option value="약">약 — 우리 우위</option>
+            </select>
+            <textarea class="force-memo" id="force_supplier_memo" placeholder="이유: 예) AWS 클라우드 의존도 높아 비용 통제 어려움"></textarea>
+          </div>
+          <div class="force-item">
+            <div class="force-label">🛒 구매자 협상력</div>
+            <select class="force-select" id="force_buyer">
+              <option value="">강도 선택</option>
+              <option value="강">강 — 구매자 우위</option>
+              <option value="중">중 — 보통 수준</option>
+              <option value="약">약 — 우리 우위</option>
+            </select>
+            <textarea class="force-memo" id="force_buyer_memo" placeholder="이유: 예) 상위 3개 고객사가 매출 70% 차지, 가격 압박 심함"></textarea>
+          </div>
+          <div class="force-item">
+            <div class="force-label">⚔️ 기존 경쟁자 간 경쟁</div>
+            <select class="force-select" id="force_rivalry">
+              <option value="">강도 선택</option>
+              <option value="강">강 — 경쟁 치열</option>
+              <option value="중">중 — 보통 수준</option>
+              <option value="약">약 — 경쟁 적음</option>
+            </select>
+            <textarea class="force-memo" id="force_rivalry_memo" placeholder="이유: 예) 상위 3개사가 시장 70% 점유, 가격 경쟁 심화"></textarea>
+          </div>
+        </div>
+
       </div>
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.goStep(2)">← 이전</button>
@@ -716,17 +864,20 @@
       </div>
     </div>
 
-    <!-- Step 4 (구 Step 3: 문제/목표) -->
+    <!-- Step 4: 문제/목표/리스크 -->
     <div id="step4" class="wiz-card hidden">
-      <h3 class="serif">🎯 현재 문제점 및 목표 <span class="step-badge">STEP 4 / 4</span></h3>
+      <h3 class="serif">🎯 목표 및 실행 조건 <span class="step-badge">STEP 4 / 4</span></h3>
       <div class="form-grid">
+
+        <!-- ① 문제와 목표 -->
+        <div class="wiz-section-title">🚨 현재 문제 및 목표</div>
         <div class="form-group full">
-          <label>현재 직면한 문제 *<span class="field-check">✓</span></label>
-          <textarea id="problems" placeholder="예: 신규 고객 유치 비용 증가, 해지율 월 5% 상승, 영업팀 생산성 저하"></textarea>
+          <label>현재 직면한 핵심 문제 *<span class="field-check">✓</span></label>
+          <textarea id="problems" placeholder="예: 신규 고객 유치 비용이 월 200만원인데 전환율 3%에 그침. 기존 고객 해지율 월 8%로 매출이 정체 중. 영업 담당자 1명이 전체 매출 60% 담당해 리스크 큼"></textarea>
         </div>
         <div class="form-group full">
           <label>달성하고 싶은 목표 *<span class="field-check">✓</span></label>
-          <textarea id="goals" placeholder="예: 12개월 내 매출 200% 성장, 해지율 2% 이하 유지, 브랜드 인지도 향상"></textarea>
+          <textarea id="goals" placeholder="예: 12개월 내 MRR 500만원→2000만원 달성. 해지율 8%→3% 이하 유지. 영업 채널 3개 이상 다각화"></textarea>
         </div>
         <div class="form-group">
           <label>목표 기간</label>
@@ -745,9 +896,35 @@
             <option>5억원 이상</option><option>미정</option>
           </select>
         </div>
+
+        <!-- ② 리스크 및 제약 -->
+        <div class="wiz-section-title">⚠️ 리스크 및 제약 조건</div>
         <div class="form-group full">
-          <label>추가 참고사항</label>
-          <textarea id="notes" placeholder="예: 최근 투자 유치 완료, 신제품 출시 예정, 해외 진출 검토 중 등"></textarea>
+          <label>최대 리스크 요인 (외부 환경)</label>
+          <textarea id="externalRisk" placeholder="예: 내년 중 대형 경쟁사가 저가 요금제 출시 예정. 개인정보보호법 강화로 마케팅 데이터 활용 제한 가능. 경기 침체로 IT 투자 예산 삭감 우려"></textarea>
+        </div>
+        <div class="form-group">
+          <label>핵심 파트너십 / 협력사</label>
+          <input type="text" id="partnerships" placeholder="예: 회계법인 A사 제휴, 벤더 파트너 5개사, AWS 파트너" />
+        </div>
+        <div class="form-group">
+          <label>정부지원사업 관심 여부</label>
+          <select id="govSupport">
+            <option value="">선택</option>
+            <option value="관심 있음 - 디지털 전환">관심 있음 — 디지털 전환 바우처</option>
+            <option value="관심 있음 - R&D">관심 있음 — R&D 과제</option>
+            <option value="관심 있음 - 수출">관심 있음 — 수출 지원</option>
+            <option value="관심 있음 - 고용">관심 있음 — 고용 지원</option>
+            <option value="관심 있음 - 전반">관심 있음 — 전반적으로 알고 싶음</option>
+            <option value="관심 없음">현재 관심 없음</option>
+          </select>
+        </div>
+
+        <!-- ③ 기타 -->
+        <div class="wiz-section-title">📝 추가 참고사항</div>
+        <div class="form-group full">
+          <label>기타 참고사항</label>
+          <textarea id="notes" placeholder="예: 최근 시리즈A 투자 유치 완료(5억원). 신제품 출시 3개월 내 예정. 해외 진출(동남아) 검토 중. 공동창업자 간 역할 분리 필요"></textarea>
         </div>
       </div>
       <div class="wiz-nav">

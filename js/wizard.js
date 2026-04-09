@@ -113,8 +113,8 @@ const Wizard = (() => {
       }
     }
     if (step === 3) {
-      if (!get('targetCustomer')) { alert('타겟 고객을 입력해주세요.');   return false; }
-      if (!get('competitors'))    { alert('주요 경쟁사를 입력해주세요.'); return false; }
+      if (!get('targetCustomer')) { alert('타겟 고객을 입력해주세요.');         return false; }
+      if (!get('comp1Name'))      { alert('경쟁사 1의 이름을 입력해주세요.'); return false; }
     }
     if (step === 4) {
       if (!get('problems')) { alert('현재 직면한 문제를 입력해주세요.'); return false; }
@@ -346,17 +346,48 @@ const Wizard = (() => {
       products:        g('products'),
       coreStrength:    g('coreStrength'),
       bizStrengths:    g('bizStrengths'),
-      targetCustomer:  g('targetCustomer'),
-      competitors:     g('competitors'),
-      marketSize:      g('marketSize'),
-      marketShare:     g('marketShare'),
-      differentiation: g('differentiation'),
-      problems:        g('problems'),
-      goals:           g('goals'),
-      timeline:        g('timeline'),
-      budget:          g('budget'),
-      notes:           g('notes'),
-      diagScores:      diagScores,
+      // STEP 3
+      targetCustomer:      g('targetCustomer'),
+      customerAcquisition: g('customerAcquisition'),
+      cacLtv:              g('cacLtv'),
+      tam:                 g('tam'),
+      sam:                 g('sam'),
+      som:                 g('som'),
+      marketGrowthRate:    g('marketGrowthRate'),
+      marketTrend:         g('marketTrend'),
+      comp1Name:           g('comp1Name'),
+      comp1Price:          g('comp1Price'),
+      comp1Customer:       g('comp1Customer'),
+      comp1Weakness:       g('comp1Weakness'),
+      comp2Name:           g('comp2Name'),
+      comp2Price:          g('comp2Price'),
+      comp2Customer:       g('comp2Customer'),
+      comp2Weakness:       g('comp2Weakness'),
+      comp3Name:           g('comp3Name'),
+      comp3Price:          g('comp3Price'),
+      comp3Customer:       g('comp3Customer'),
+      comp3Weakness:       g('comp3Weakness'),
+      differentiation:     g('differentiation'),
+      forceEntry:          g('force_entry'),
+      forceEntryMemo:      g('force_entry_memo'),
+      forceSubstitute:     g('force_substitute'),
+      forceSubstituteMemo: g('force_substitute_memo'),
+      forceSupplier:       g('force_supplier'),
+      forceSupplierMemo:   g('force_supplier_memo'),
+      forceBuyer:          g('force_buyer'),
+      forceBuyerMemo:      g('force_buyer_memo'),
+      forceRivalry:        g('force_rivalry'),
+      forceRivalryMemo:    g('force_rivalry_memo'),
+      // STEP 4
+      problems:            g('problems'),
+      goals:               g('goals'),
+      timeline:            g('timeline'),
+      budget:              g('budget'),
+      externalRisk:        g('externalRisk'),
+      partnerships:        g('partnerships'),
+      govSupport:          g('govSupport'),
+      notes:               g('notes'),
+      diagScores:          diagScores,
     };
   }
 

@@ -87,6 +87,47 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 #marketSize,#marketShare{background:rgba(22,32,64,0.8) !important;color:#E8EDF5 !important}
 .hint{font-size:11px;color:var(--txt3);margin-top:5px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* ===== 위저드 섹션 구분 ===== */
+.wiz-section-title{
+  grid-column:1/-1;
+  font-size:13px;font-weight:700;color:var(--gold);
+  padding:10px 0 4px;border-bottom:1px solid rgba(245,192,48,.2);
+  margin-top:8px;letter-spacing:.5px;
+}
+/* ===== 경쟁사 비교 카드 ===== */
+.comp-card{
+  grid-column:1/-1;
+  background:rgba(22,32,64,0.5);border:1px solid rgba(245,192,48,.1);
+  border-radius:10px;padding:16px;
+}
+.comp-card-title{
+  font-size:12px;font-weight:700;color:var(--txt2);
+  margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;
+}
+.comp-card .form-grid{gap:10px}
+/* ===== 5 Forces ===== */
+.forces-grid{
+  grid-column:1/-1;
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+.force-item{
+  background:rgba(22,32,64,0.5);border:1px solid rgba(245,192,48,.08);
+  border-radius:8px;padding:12px;
+}
+.force-label{font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:8px}
+.force-select{
+  width:100%;background:rgba(22,32,64,0.8);border:1px solid var(--border);
+  border-radius:6px;padding:6px 10px;color:var(--txt);font-size:12px;
+  margin-bottom:6px;
+}
+.force-select option{background:#0F1629}
+.force-memo{
+  width:100%;background:rgba(22,32,64,0.8);border:1px solid var(--border);
+  border-radius:6px;padding:6px 10px;color:var(--txt);font-size:12px;
+  resize:vertical;min-height:48px;font-family:'Noto Sans KR',sans-serif;
+}
+.force-memo::placeholder{color:var(--txt3);font-size:11px}
+@media(max-width:768px){.forces-grid{grid-template-columns:1fr}}
 .form-grid .full{grid-column:1/-1}
 /* ===== MODAL ===== */
 .modal-overlay{
