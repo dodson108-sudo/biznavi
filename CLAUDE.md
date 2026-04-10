@@ -8,6 +8,40 @@
 
 ---
 
+## 최근 수정 이력 (2026-04-10)
+
+### Phase 8 완료 — Vercel 배포 + 디자인·UX 대규모 개선
+
+#### Vercel 배포 설정
+- `vercel.json` 추가 (보안 헤더·캐시 설정, builds 블록 제거로 정적 파일 전체 서빙)
+- `.gitignore` 추가 (hwpx·env 파일 제외)
+- `index.html` SEO meta + Open Graph / Twitter Card 태그 추가
+
+#### 랜딩페이지 디자인 — Option 2 다크+화이트 투톤
+- 히어로·가치·후기·CTA: 다크 `#0A0E1A` 유지
+- Pain·Features·DEMO·Pricing·FAQ: 라이트 `#F4F6FB` (밝은 배경)
+- 라이트 섹션 텍스트: `#1A2340`, 카드: 흰색+그림자
+
+#### 히어로 Canvas 배경 애니메이션 (js/hero-canvas.js 신규)
+- 우상향 차트 라인, 22개 데이터 노드+연결선, 플로팅 전략 카드 8종
+- 골드 파티클 상승, 바 차트 그라데이션 애니메이션
+- 탭 숨김 시 RAF 자동 중지, 리사이즈 대응
+
+#### Finnhub API 연동 (ticker.js)
+- 다우(^DJI)·나스닥(^IXIC)·닛케이(^N225) 실시간 + 등락률 표시
+- API 키: `d7c610hr01quh9fcl1d0d7c610hr01quh9fcl1dg` (무료, 60회/분)
+- 5분마다 환율+지수 동시 갱신
+
+#### UX 개선
+- "무료로 시작하기" → "진단 시작하기"로 전체 통일
+- "데모 체험" 버튼 완전 제거
+- 우상단 "진단 시작하기" 버튼 제거
+- API 모달 제거 → startWizard() 직접 위저드로 이동
+- STEP 4 하단 API 키 입력란 추가 (선택사항, 미입력 시 샘플 데이터)
+- 모든 화면의 BizNavi 로고 클릭 → 랜딩 홈으로 이동
+
+---
+
 ## 최근 수정 이력 (2026-04-09)
 
 ### Phase 7 착수 — AI 엔진 경영 프레임워크 10권 반영 (js/ai-engine.js)
