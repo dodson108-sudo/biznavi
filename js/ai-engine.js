@@ -386,6 +386,15 @@ ${ (d.industry || d.bizModel) ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${buildInsightsSummary(d.industry, d.bizModel)}
 ` : '' }
+${ (typeof GovSupport !== 'undefined') ? (() => {
+  const block = GovSupport.buildPromptBlock(d);
+  return block ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. 정부지원사업 자동 매칭 결과 (필수 반영)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${block}
+` : '';
+})() : '' }
 [분석 지침]
 - ${d.companyName}의 업종(${d.industry})과 비즈니스 모델(${d.bizModel || '미확인'})에 특화된 전략을 제시할 것
 - 경쟁사(${d.comp1Name || '미입력'}) 대비 차별화 포인트, 특히 경쟁사 약점을 SWOT·포지셔닝에 명확히 반영할 것

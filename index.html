@@ -1013,6 +1013,7 @@
         <a href="#sec-strategy" class="nav-link"><span class="nav-dot"></span>핵심 전략</a>
         <a href="#sec-kpi"      class="nav-link"><span class="nav-dot"></span>KPI 지표</a>
         <a href="#sec-roadmap"  class="nav-link"><span class="nav-dot"></span>실행 로드맵</a>
+        <a href="#sec-gov"      class="nav-link"><span class="nav-dot"></span>정부지원사업</a>
       </nav>
 
       <!-- 우측 리포트 콘텐츠 -->
@@ -1087,6 +1088,13 @@
           <div class="roadmap" id="roadmap"></div>
         </div>
 
+        <!-- 정부지원사업 매칭 -->
+        <div class="section-card reveal" id="sec-gov" style="display:none">
+          <div class="sec-title"><h3 class="serif">정부지원사업 매칭</h3><span class="badge">자동 매칭</span></div>
+          <p class="gov-intro">입력하신 업종·규모·관심 분야를 기반으로 신청 가능한 지원사업을 자동 매칭했습니다.</p>
+          <div class="gov-grid" id="govGrid"></div>
+        </div>
+
       </div><!-- /report-content -->
     </div><!-- /dash-layout -->
   </div>
@@ -1096,6 +1104,7 @@
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/gov-support.js"></script>
 <script src="js/ai-engine.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/wizard.js"></script>

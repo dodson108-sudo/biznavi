@@ -23,6 +23,30 @@ const Dashboard = (() => {
     return '위험';
   }
 
+  function renderGovSection(fd) {
+    const section = document.getElementById('sec-gov');
+    const grid    = document.getElementById('govGrid');
+    if (!section || !grid) return;
+
+    if (typeof GovSupport === 'undefined') { section.style.display = 'none'; return; }
+
+    const matched = GovSupport.match(fd);
+    if (matched.length === 0) { section.style.display = 'none'; return; }
+
+    section.style.display = '';
+    grid.innerHTML = matched.map(p => `
+      <div class="gov-card">
+        <div class="gov-card-header">
+          <span class="gov-org">${p.org}</span>
+          <span class="gov-score-badge">매칭 ${p.score}점</span>
+        </div>
+        <div class="gov-name">${p.name}</div>
+        <div class="gov-support">💰 ${p.support}</div>
+        <div class="gov-summary">${p.summary}</div>
+        <a class="gov-link" href="${p.url}" target="_blank" rel="noopener">신청 정보 보기 →</a>
+      </div>`).join('');
+  }
+
   function renderDiagSection(fd) {
     const section = document.getElementById('sec-diag');
     if (!section) return;
@@ -229,6 +253,9 @@ const Dashboard = (() => {
     // 진단 분석 섹션 (레이더 차트 + 취약 배너)
     renderDiagSection(fd);
 
+    // 정부지원사업 매칭 섹션
+    renderGovSection(fd);
+
     // Animate KPI bars after render
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -274,7 +301,7 @@ const Dashboard = (() => {
     });
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록
-    const secIds = ['sec-summary','sec-diag','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap'];
+    const secIds = ['sec-summary','sec-diag','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-gov'];
     function onScroll() {
       const offset = 100;
       let activeId = secIds[0];

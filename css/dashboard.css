@@ -293,6 +293,82 @@
   .report-nav{display:none}
 }
 
+/* ===== 정부지원사업 매칭 섹션 ===== */
+.gov-intro {
+  color: var(--txt2);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+.gov-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.gov-card {
+  background: rgba(15,22,41,0.9);
+  border: 1px solid rgba(245,192,48,0.2);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.gov-card:hover {
+  border-color: rgba(245,192,48,0.55);
+  transform: translateY(-2px);
+}
+.gov-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.gov-org {
+  font-size: 0.72rem;
+  color: var(--gold);
+  background: rgba(245,192,48,0.12);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.gov-score-badge {
+  font-size: 0.68rem;
+  color: var(--txt3);
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.gov-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--txt1);
+  line-height: 1.4;
+}
+.gov-support {
+  font-size: 0.82rem;
+  color: #4ADE80;
+  font-weight: 600;
+}
+.gov-summary {
+  font-size: 0.82rem;
+  color: var(--txt2);
+  line-height: 1.55;
+  flex: 1;
+}
+.gov-link {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.gov-link:hover { opacity: 0.75; }
+
+@media (max-width: 768px) {
+  .gov-grid { grid-template-columns: 1fr; }
+}
+
 /* ===== 인쇄 ===== */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
