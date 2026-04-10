@@ -168,6 +168,15 @@ function lpToggleFaq(btn) {
   if (!isOpen) item.classList.add('open');
 }
 
+// 모든 화면의 nav-logo 클릭 → 홈(랜딩) 이동
+document.querySelectorAll('.nav-logo').forEach(function(logo) {
+  logo.style.cursor = 'pointer';
+  logo.addEventListener('click', function() {
+    App.showLanding();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
 // Nav scroll effect
 (function() {
   const nav = document.getElementById('lpNav');
