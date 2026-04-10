@@ -10,6 +10,16 @@
 (function () {
   'use strict';
 
+  /* Finnhub API 키 (무료, 60회/분 제한) */
+  const FINNHUB_KEY = 'd7c610hr01quh9fcl1d0d7c610hr01quh9fcl1dg';
+
+  /* Finnhub 지수 심볼 매핑 */
+  const FINNHUB_SYMBOLS = {
+    dow:    '^DJI',
+    nasdaq: '^IXIC',
+    nikkei: '^N225',
+  };
+
   /* ──────────────────────────────────────────
      표시 항목 정의
      fallback: 값을 가져오지 못할 때 표시할 텍스트
@@ -18,9 +28,9 @@
   const ITEMS = [
     { id: 'kospi',  name: '코스피',  type: 'index', dec: 2, fallback: '장중'    },
     { id: 'kosdaq', name: '코스닥',  type: 'index', dec: 2, fallback: '장중'    },
-    { id: 'dow',    name: '다우',    type: 'index', dec: 0, fallback: '장중'    },
-    { id: 'nasdaq', name: '나스닥',  type: 'index', dec: 2, fallback: '장중'    },
-    { id: 'nikkei', name: '닛케이',  type: 'index', dec: 0, fallback: '장중'    },
+    { id: 'dow',    name: '다우',    type: 'finnhub', dec: 0, fallback: '장중'  },
+    { id: 'nasdaq', name: '나스닥',  type: 'finnhub', dec: 2, fallback: '장중'  },
+    { id: 'nikkei', name: '닛케이',  type: 'finnhub', dec: 0, fallback: '장중'  },
     { id: 'usdkrw', name: '달러/원', type: 'fx',    dec: 2 },
     { id: 'jpykrw', name: '엔/원',   type: 'fx',    dec: 2 },
     { id: 'cnykrw', name: '위안/원', type: 'fx',    dec: 2 },
@@ -44,6 +54,32 @@
     };
     tick();
     setInterval(tick, 1000);
+  }
+
+  /* ──────────────────────────────────────────
+     Finnhub 지수 API (다우·나스닥·닛케이)
+     — CORS 지원, 무료 60회/분
+  ────────────────────────────────────────── */
+  async function fetchFinnhub() {
+    const entries = Object.entries(FINNHUB_SYMBOLS); // [[id, symbol], ...]
+    await Promise.allSettled(entries.map(async ([id, symbol]) => {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(
+          `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_KEY}`,
+          { signal: ctrl.signal }
+        );
+        clearTimeout(timer);
+        if (!res.ok) return;
+        const data = await res.json();
+        // c: 현재가, pc: 전일 종가
+        if (data.c && data.c > 0) {
+          const change = data.pc ? ((data.c - data.pc) / data.pc) * 100 : null;
+          state[id] = { value: data.c, change };
+        }
+      } catch (_) { /* 오류 시 fallback 유지 */ }
+    }));
   }
 
   /* ──────────────────────────────────────────
@@ -183,12 +219,12 @@
     startClock();
     buildTrack();           // 즉시 표시 (환율 '--', 주가 '장중', WTI/금 고정값)
 
-    await fetchFX();        // 환율 실시간 로드
+    await Promise.all([fetchFX(), fetchFinnhub()]);  // 환율 + 지수 동시 로드
     updateInPlace();
 
-    /* 5분마다 환율 갱신 */
+    /* 5분마다 갱신 */
     setInterval(async () => {
-      await fetchFX();
+      await Promise.all([fetchFX(), fetchFinnhub()]);
       updateInPlace();
     }, 5 * 60_000);
   }
