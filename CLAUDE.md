@@ -1,10 +1,33 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-03-27)
+## 배포 상태 (2026-04-09 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 업로드 완료 (커밋: `e86d81c` "BizNavi AI 첫 배포")
-- **Vercel**: 배포 진행 중 (GitHub 연동 후 자동 빌드 예정)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: `ff77b76` "feat: AI 출력 품질 고도화 + STEP 4 UX 개선"
+- **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-09)
+
+### AI 출력 품질 고도화 v3.0 (js/ai-engine.js)
+- SYSTEM 프롬프트 전면 재작성
+  - 10대 경영 프레임워크 → 특정 JSON 필드에 1:1 직접 매핑 (체크리스트 형태로 강제)
+  - 필수 반영 원칙 6가지 추가:
+    1. 5 Forces → SWOT 기회/위협 직접 문장 인용
+    2. TAM/SAM/SOM → STP 세분화 + KPI 목표 수치 연계
+    3. 경쟁사 약점 → SWOT 기회 + 포지셔닝 전략 직접 활용
+    4. 진단 점수 등급별 우선순위 처방 (🔴위험 즉각 1순위)
+    5. 업종 트렌드 → SWOT 기회 최소 2개 직접 인용
+    6. 정부지원사업 → 로드맵 1단계 신청 일정 포함
+  - keyStrategies: 루멜트 [진단→방침→행동] 3단 구조 강제 (희망 목록 나열 금지)
+  - fourP.promotion: StoryBrand 7단계 구조 강제 ([고객이 원하는 것]→[문제]→[가이드]→...)
+  - 로드맵 1단계: 린 MVP Build→Measure→Learn 사이클 명시
+  - 로드맵 3단계: 6가지 시스템 취약 영역 강화 순서 구조
+  - 로드맵 전체: 플라이휠 가속 구조 (초기 성공 → 다음 단계 가속)
+  - 60자 문자열 제한 완전 제거 → 상세 서술 허용
+- app.js: saveApiKey() 함수 추가 (STEP 4 API 박스 확인 버튼 핸들러) + public API 등록
+- index.html: STEP 4 wiz-api-box를 wiz-nav 버튼 아래로 이동 + saveApiKey 확인 버튼 추가
 
 ---
 
