@@ -126,7 +126,7 @@ const Wizard = (() => {
   function loadDiagnosisUI() {
     const industry = document.getElementById('industry')?.value || '';
     const bizModel = document.getElementById('bizModel')?.value || '';
-    const industryKey = INDUSTRY_MAP[industry] || 'mfg_parts';
+    const industryKey = INDUSTRY_MAP[industry] || 'etc';
     const bizModelKey = BIZMODEL_MAP[bizModel] || 'etc';
 
     // 공통 모듈 렌더링
@@ -165,12 +165,64 @@ const Wizard = (() => {
     const bizModelData = bizModelVarMap[bizModelKey];
     if (bizModelData) renderDiagModule('diag-bizmodel-container', bizModelData);
 
+    // ── 업종×사업모델 통합 교차 진단 영역 추가 ──
+    if (typeof CrossContext !== 'undefined' && industry && bizModel) {
+      const crossArea = CrossContext.buildCrossArea(industryKey, bizModelKey, industry, bizModel);
+      renderCrossArea('diag-bizmodel-container', crossArea);
+    }
+
+    // 탭 버튼 레이블 동적 업데이트 (업종·사업모델 반영)
+    const indLabel  = industry || '업종';
+    const bizLabel  = bizModel || '사업모델';
+    const tabIndustry = document.getElementById('diagTabBtn-industry');
+    const tabBizmodel = document.getElementById('diagTabBtn-bizmodel');
+    if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단';
+    if (tabBizmodel) tabBizmodel.textContent = '💼 ' + bizLabel + ' × 통합 진단';
+
+    // 진행률 카운터 총 항목 수 동적 갱신
+    const totalItems = document.querySelectorAll('.diag-item').length || 52;
+    const progressText = document.getElementById('diag-progress-text');
+    if (progressText) progressText.textContent = '0 / ' + totalItems + ' 항목 완료';
+
     // 첫 탭으로 리셋
     curDiagTab = 'common';
     updateDiagTabUI('common');
 
     // 저장된 점수 복원
     restoreScores();
+  }
+
+  // 교차 진단 영역 추가 렌더링 (기존 컨테이너에 append)
+  function renderCrossArea(containerId, area) {
+    const container = document.getElementById(containerId);
+    if (!container || !area) return;
+
+    let html = '<div class="diag-cross-area">';
+    html += '<div class="diag-area">';
+    html += '<div class="diag-area-header diag-area-header--cross">';
+    html += '<h4 class="diag-area-title">' + area.title + '</h4>';
+    if (area.description) html += '<p class="diag-area-desc">' + area.description + '</p>';
+    html += '</div>';
+    area.items.forEach(item => {
+      const scoreKey = containerId + '_' + item.id;
+      html += '<div class="diag-item" id="diag-item-' + scoreKey + '">';
+      html += '<div class="diag-item-text">' + item.text + '</div>';
+      html += '<div class="diag-scale">';
+      html += '<span class="diag-scale-label">' + item.min + '</span>';
+      html += '<div class="diag-scale-buttons">';
+      for (let s = 1; s <= 5; s++) {
+        html += '<button class="diag-score-btn" data-key="' + scoreKey + '" data-score="' + s + '" onclick="Wizard.setScore(\'' + scoreKey + '\',' + s + ',this)">' + s + '</button>';
+      }
+      html += '</div>';
+      html += '<span class="diag-scale-label">' + item.max + '</span>';
+      html += '</div>';
+      const savedMemo = diagMemos[scoreKey] || '';
+      html += '<textarea class="diag-memo" placeholder="💬 구체적 상황 메모 (선택)" onchange="Wizard.setMemo(\'' + scoreKey + '\',this.value)">' + savedMemo + '</textarea>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '</div>';
+    container.innerHTML += html;
   }
 
   function renderDiagModule(containerId, data) {
@@ -238,7 +290,7 @@ const Wizard = (() => {
   }
 
   function updateDiagProgress() {
-    const total = 48;
+    const total = document.querySelectorAll('.diag-item').length || 48;
     const done = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
     const pct = Math.round((done / total) * 100);
     const el = document.getElementById('diag-progress-text');
@@ -308,7 +360,7 @@ const Wizard = (() => {
   function updateDiagTabUI(tab) {
     // 탭 버튼 active 처리
     document.querySelectorAll('.diag-tab').forEach(t => t.classList.remove('active'));
-    const activeBtn = document.querySelector('[onclick*="switchDiagTab(\'' + tab + '\')"]');
+    const activeBtn = document.getElementById('diagTabBtn-' + tab);
     if (activeBtn) activeBtn.classList.add('active');
 
     // 탭 컨텐츠 표시/숨김

@@ -457,6 +457,24 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .diag-memo::placeholder { color: rgba(255,255,255,0.3); }
 .diag-memo:focus { outline: none; border-color: rgba(245,192,48,0.4); }
 
+/* 교차 진단 영역 (업종×사업모델 통합) */
+.diag-cross-area {
+  margin-top: 8px;
+}
+.diag-cross-area .diag-area {
+  border: 1.5px solid rgba(245,192,48,0.35);
+  background: rgba(245,192,48,0.04);
+}
+.diag-area-header--cross .diag-area-title {
+  color: #F5C030;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.diag-area-header--cross .diag-area-desc {
+  color: rgba(245,192,48,0.6);
+}
+
 .diag-progress {
   margin: 24px 0 20px;
   padding: 16px;

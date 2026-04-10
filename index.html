@@ -663,9 +663,9 @@
 
       <!-- 탭 네비게이션 -->
       <div class="diag-tabs">
-        <button class="diag-tab active" onclick="Wizard.switchDiagTab('common', event)">📋 기본 경영 진단</button>
-        <button class="diag-tab" onclick="Wizard.switchDiagTab('industry', event)">🏭 업종 특화 진단</button>
-        <button class="diag-tab" onclick="Wizard.switchDiagTab('bizmodel', event)">💼 사업모델 진단</button>
+        <button id="diagTabBtn-common"   class="diag-tab active" onclick="Wizard.switchDiagTab('common', event)">📋 기본 경영 진단</button>
+        <button id="diagTabBtn-industry" class="diag-tab" onclick="Wizard.switchDiagTab('industry', event)">🏭 업종 특화 진단</button>
+        <button id="diagTabBtn-bizmodel" class="diag-tab" onclick="Wizard.switchDiagTab('bizmodel', event)">💼 사업모델 진단</button>
       </div>
 
       <!-- 탭 컨텐츠 -->
@@ -1151,6 +1151,7 @@
 <script src="js/diagnosis/bizmodel/mfg_dist.js"></script>
 <script src="js/diagnosis/bizmodel/service.js"></script>
 <script src="js/diagnosis/bizmodel/etc.js"></script>
+<script src="js/diagnosis/cross-context.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ticker.js"></script>
 <script src="js/hero-canvas.js"></script>
