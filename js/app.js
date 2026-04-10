@@ -83,7 +83,11 @@ const App = (() => {
   }
 
   /* ── WIZARD COORDINATION ── */
-  function startWizard() { showModal(); }
+  function startWizard() {
+    // API 모달 없이 바로 위저드 시작
+    mode = apiKey ? 'real' : 'demo';
+    show('wizard');
+  }
   function showLanding() { show('landing'); }
 
   function restart() {
@@ -104,6 +108,25 @@ const App = (() => {
   /* ── ANALYSIS ── */
   async function runAnalysis() {
     if (!Wizard.validate(3)) return;
+
+    // STEP 4 API 키 입력란에서 키 읽기
+    const wizKeyEl = document.getElementById('wizApiKey');
+    if (wizKeyEl && wizKeyEl.value.trim()) {
+      const k = wizKeyEl.value.trim();
+      if (k.startsWith('sk-ant-')) {
+        apiKey = k;
+        localStorage.setItem('biznavi_key', k);
+        mode = 'real';
+      } else {
+        alert('API 키 형식이 올바르지 않습니다.\n(sk-ant-… 형식)\n\n샘플 데이터로 진행합니다.');
+        mode = 'demo';
+        apiKey = '';
+      }
+    } else {
+      // 키 미입력 → localStorage 저장값 사용, 없으면 데모
+      mode = apiKey ? 'real' : 'demo';
+    }
+
     const data = Wizard.collect();
     show('loading');
     Wizard.animateLoading();
@@ -114,7 +137,7 @@ const App = (() => {
       Dashboard.render(result, data, mode === 'demo' || !apiKey);
       show('dashboard');
     } catch (e) {
-      alert('오류: ' + e.message + '\n\n데모 데이터로 대체합니다.');
+      alert('오류: ' + e.message + '\n\n샘플 데이터로 대체합니다.');
       const result = await AIEngine.fakeAnalysis(data);
       Dashboard.render(result, data, true);
       show('dashboard');
@@ -127,6 +150,11 @@ const App = (() => {
   // Init on load
   setTimeout(() => Dashboard.initCountUp(), 400);
   setTimeout(() => Dashboard.initInputChecks(), 100);
+  // 저장된 API 키가 있으면 STEP4 입력란에 자동 채우기
+  setTimeout(() => {
+    const wizKeyEl = document.getElementById('wizApiKey');
+    if (wizKeyEl && apiKey) wizKeyEl.value = apiKey;
+  }, 200);
 
   return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash };
 })();

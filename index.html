@@ -48,8 +48,7 @@
         <a href="#lp-faq">FAQ</a>
       </div>
       <div class="lp-nav-actions">
-        <button class="lp-btn-secondary lp-btn-sm" onclick="App.showApiModal()">데모 체험</button>
-        <button class="lp-btn-primary lp-btn-sm" onclick="App.startWizard()">무료 시작 →</button>
+        <button class="lp-btn-primary lp-btn-sm" onclick="App.startWizard()">진단 시작하기 →</button>
         <button class="lp-nav-hamburger" aria-label="메뉴">☰</button>
       </div>
     </div>
@@ -69,8 +68,7 @@
     <h1 class="lp-hero-h1">경영전략 수립과<br><span class="lp-accent">실행계획을 한번에!</span></h1>
     <p class="lp-hero-sub">SWOT · STP · 4P 분석과 실행 로드맵을 30분 안에 자동 생성</p>
     <div class="lp-hero-cta">
-      <button class="lp-btn-primary" onclick="App.startWizard()">무료로 시작하기 →</button>
-      <button class="lp-btn-secondary" onclick="App.showApiModal()">▷ 데모 체험</button>
+      <button class="lp-btn-primary" onclick="App.startWizard()">진단 시작하기 →</button>
     </div>
     <div class="lp-hero-stats">
       <div class="lp-stat-item">
@@ -425,7 +423,7 @@
   <section id="lp-cta" class="lp-section" style="--lp-delay:0.15s">
     <h2 class="lp-cta-h2">지금 바로 첫 번째<br>전략을 만들어보세요</h2>
     <p class="lp-cta-sub">가입 없이 무료로 시작 · 30분이면 완성</p>
-    <button class="lp-btn-primary" onclick="App.startWizard()">무료로 전략 만들기 →</button>
+    <button class="lp-btn-primary" onclick="App.startWizard()">진단 시작하기 →</button>
   </section>
 
   <!-- ── 섹션 10: FOOTER ── -->
@@ -937,6 +935,16 @@
         <div class="form-group full">
           <label>기타 참고사항</label>
           <textarea id="notes" placeholder="예: 최근 시리즈A 투자 유치 완료(5억원). 신제품 출시 3개월 내 예정. 해외 진출(동남아) 검토 중. 공동창업자 간 역할 분리 필요"></textarea>
+        </div>
+      </div>
+      <!-- API 키 입력 (선택) -->
+      <div class="wiz-api-box">
+        <div class="wiz-api-title">🤖 AI 분석 설정 <span class="wiz-api-optional">선택사항</span></div>
+        <p class="wiz-api-desc">Claude API 키를 입력하면 실제 AI가 맞춤형 전략을 생성합니다.<br>입력하지 않으면 샘플 데이터로 결과를 확인할 수 있습니다.</p>
+        <div class="form-group">
+          <label>Claude API 키 (sk-ant-…)</label>
+          <input type="password" id="wizApiKey" placeholder="sk-ant-api03-…" autocomplete="off" />
+          <div class="hint">Anthropic Console에서 발급 · 브라우저에 안전하게 저장됩니다</div>
         </div>
       </div>
       <div class="wiz-nav">
