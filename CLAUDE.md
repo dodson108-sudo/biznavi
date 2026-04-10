@@ -1,10 +1,27 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-09 최신)
+## 배포 상태 (2026-04-10 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: `ff77b76` "feat: AI 출력 품질 고도화 + STEP 4 UX 개선"
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: `9ac39f1` "feat: 업종×사업모델 유기적 통합 진단 시스템 구축"
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-10)
+
+### 업종×사업모델 유기적 통합 진단 시스템 (js/diagnosis/cross-context.js 신규)
+- `cross-context.js`: 13개 업종 × 9개 사업모델 핵심 조합 **31개** 특화 교차 진단 4문항 정의
+  - 건설×B2B솔루션, IT×SaaS, 제조×유통, 식품×구독, 외식×프랜차이즈 등 핵심 조합 모두 커버
+  - 미정의 조합은 IND_CTX / BIZ_CTX 컨텍스트 키워드 기반 자동 fallback 생성
+  - `CrossContext.buildCrossArea(industryKey, bizModelKey, label, label)` Public API
+- `wizard.js` 수정:
+  - 사업모델 탭 하단에 `🔗 통합 진단: [업종] × [사업모델]` 영역 자동 추가 (4문항)
+  - 탭 버튼 레이블 동적 변경: "🏭 건설/부동산 특화 진단" / "💼 B2B솔루션 × 통합 진단"
+  - 진행률 카운터 DOM 실제 항목 수 기준으로 동적 계산 (기존 48 → 52항목)
+  - `updateDiagTabUI()`: id 기반 선택자로 안정화
+- `index.html`: 탭 버튼에 id 추가 (diagTabBtn-common/industry/bizmodel)
+- `css/style.css`: `.diag-cross-area` 골드 테두리·배경 강조 스타일 추가
 
 ---
 
