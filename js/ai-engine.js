@@ -386,11 +386,20 @@ ${ (d.industry || d.bizModel) ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${buildInsightsSummary(d.industry, d.bizModel)}
 ` : '' }
+${ (typeof IndustryTrends !== 'undefined' && d.industry) ? (() => {
+  const block = IndustryTrends.buildPromptBlock(d.industry);
+  return block ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8-1. 업종 시장 트렌드 데이터 (2025~2026)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${block}
+` : '';
+})() : '' }
 ${ (typeof GovSupport !== 'undefined') ? (() => {
   const block = GovSupport.buildPromptBlock(d);
   return block ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-8. 정부지원사업 자동 매칭 결과 (필수 반영)
+8-2. 정부지원사업 자동 매칭 결과 (필수 반영)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${block}
 ` : '';
