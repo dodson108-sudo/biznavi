@@ -177,7 +177,7 @@ const Wizard = (() => {
     const tabIndustry = document.getElementById('diagTabBtn-industry');
     const tabBizmodel = document.getElementById('diagTabBtn-bizmodel');
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단';
-    if (tabBizmodel) tabBizmodel.textContent = '💼 ' + bizLabel + ' × 통합 진단';
+    if (tabBizmodel) tabBizmodel.textContent = '💼 ' + bizLabel + ' ✕ 통합 진단';
 
     // 진행률 카운터 총 항목 수 동적 갱신
     const totalItems = document.querySelectorAll('.diag-item').length || 52;
