@@ -936,7 +936,11 @@
           <textarea id="notes" placeholder="예: 최근 시리즈A 투자 유치 완료(5억원). 신제품 출시 3개월 내 예정. 해외 진출(동남아) 검토 중. 공동창업자 간 역할 분리 필요"></textarea>
         </div>
       </div>
-      <!-- API 키 입력 (선택) -->
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" onclick="App.goStep(3)">← 이전</button>
+        <button class="btn btn-gold" onclick="App.runAnalysis()">AI 분석 시작 →</button>
+      </div>
+      <!-- API 키 입력 (선택) — 버튼 아래 배치 -->
       <div class="wiz-api-box">
         <div class="wiz-api-title">🤖 AI 분석 설정 <span class="wiz-api-optional">선택사항</span></div>
         <p class="wiz-api-desc">Claude API 키를 입력하면 실제 AI가 맞춤형 전략을 생성합니다.<br>입력하지 않으면 샘플 데이터로 결과를 확인할 수 있습니다.</p>
@@ -945,10 +949,7 @@
           <input type="password" id="wizApiKey" placeholder="sk-ant-api03-…" autocomplete="off" />
           <div class="hint">Anthropic Console에서 발급 · 브라우저에 안전하게 저장됩니다</div>
         </div>
-      </div>
-      <div class="wiz-nav">
-        <button class="btn btn-ghost" onclick="App.goStep(3)">← 이전</button>
-        <button class="btn btn-gold" onclick="App.runAnalysis()">AI 분석 시작 →</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="App.saveApiKey()">🔑 API 키 저장 후 분석 시작</button>
       </div>
     </div>
   </div>

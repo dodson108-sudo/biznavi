@@ -144,6 +144,24 @@ const App = (() => {
     }
   }
 
+  /* API 키 저장 후 분석 시작 (API 박스 확인 버튼) */
+  function saveApiKey() {
+    const wizKeyEl = document.getElementById('wizApiKey');
+    if (!wizKeyEl || !wizKeyEl.value.trim()) {
+      alert('API 키를 입력해주세요.');
+      return;
+    }
+    const k = wizKeyEl.value.trim();
+    if (!k.startsWith('sk-ant-')) {
+      alert('API 키 형식이 올바르지 않습니다.\n(sk-ant-… 형식으로 입력해주세요.)');
+      return;
+    }
+    apiKey = k;
+    localStorage.setItem('biznavi_key', k);
+    mode = 'real';
+    runAnalysis();
+  }
+
   /* ── PUBLIC API ── */
   function showApiModal() { showModal(); }
 
@@ -156,7 +174,7 @@ const App = (() => {
     if (wizKeyEl && apiKey) wizKeyEl.value = apiKey;
   }, 200);
 
-  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash };
+  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey };
 })();
 
 /* ===== LANDING PAGE JS ===== */
