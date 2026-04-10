@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# 작업 문서 (배포 제외)
+*.hwpx
+*.hwp
+*.docx
+*.xlsx
+
+# 환경변수 (혹시 나중에 생길 경우 대비)
+.env
+.env.local
+.env.production
