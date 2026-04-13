@@ -1,10 +1,56 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-10 최신)
+## 배포 상태 (2026-04-13 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: `9ac39f1` "feat: 업종×사업모델 유기적 통합 진단 시스템 구축"
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: Phase 1 진단고도화 (진단유형 확인 화면)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-13)
+
+### Phase 1: 진단고도화 — 5대 역량 도메인 + 10대 컨설팅 유형 + 진단유형 확인 화면
+
+#### js/diagnosis/common.js
+- 5번째 진단 영역 `differentiation` 추가: 차별화·경쟁우위 역량 (4문항)
+  - 5_1: 경쟁사 대비 핵심 차별화 요소, 5_2: 고객 선택 이유, 5_3: 모방 난이도, 5_4: 비가격 경쟁 수단
+
+#### index.html (STEP 1 + 신규 섹션)
+- STEP 1에 `customerProblem` 텍스트영역 추가 (린 캔버스 Problem 블록, 필수)
+- STEP 1에 `unfairAdvantage` 입력란 추가 (모방 불가 경쟁 우위, 선택)
+- `#diag-reveal` 섹션 신규 추가 (loading과 dashboard 사이)
+  - 레이더 차트 canvas, 5대 역량 점수 바, 진단 유형 박스, 솔루션 미리보기 목록
+  - 하단 네비: "진단 수정하기" ← → "솔루션 전체 보고서 보기"
+
+#### js/wizard.js (v3.2)
+- `CONSULTING_TYPES` 상수: 10대 컨설팅 유형 정의 (label, icon, desc, preview 4항목)
+  - 경영재무전략 / 사업화·성장전략 / 차별화·경쟁우위전략 / 기업구조·시스템전략 / 혁신·신사업전략
+  - 마케팅·브랜드전략 / 조직·인력운영전략 / 디지털전환전략 / 사업재편·피벗전략 / 고객경험·서비스전략
+- `calcDomainScores(diagScores)`: diagScores 키 패턴으로 5대 역량 도메인 점수 계산
+  - finance(1_*+4_*) / hr(2_*) / bm(3_*+bizmodel) / future(industry) / differentiation(5_*)
+- `classifyConsultingType(domainScores)`: 규칙 기반 분류기 → primary + secondary 컨설팅 유형 반환
+  - 전체 평균 < 2.0이면 피벗전략, 최약 도메인 → 유형 매핑, 특수 케이스(finance+hr 동시 낮음)
+- `showDiagReveal(data)`: diag-reveal 화면 DOM 채우기 + drawRadarChart 호출
+- `drawRadarChart(canvasId, domainScores)`: Canvas API로 5각형 레이더 차트 렌더링
+- `collect()`: `customerProblem`, `unfairAdvantage` 수집 추가
+- 공개 API: `showDiagReveal`, `calcDomainScores`, `classifyConsultingType`, `drawRadarChart` 추가
+
+#### css/style.css
+- `#diag-reveal`, `.dr-wrap`, `.dr-header`, `.dr-body`, `.dr-radar-wrap`, `.dr-score-*`
+- `.dr-type-box`, `.dr-type-primary/secondary/desc`, `.dr-preview`, `.dr-nav` 스타일 추가
+- 모바일 반응형: dr-body 1열, dr-nav 세로 정렬
+
+#### js/app.js
+- `screens` 배열에 `'diag-reveal'` 추가
+- `_pendingResult`, `_pendingData`, `_pendingIsDemo` 상태 변수 추가
+- `runAnalysis()`: AI 호출 완료 후 dashboard 대신 diag-reveal로 이동
+- `proceedToSolution()`: diag-reveal → dashboard 이동 (보관된 결과 렌더링)
+- `goBackToDiag()`: diag-reveal → wizard STEP4로 복귀
+- 공개 API: `proceedToSolution`, `goBackToDiag` 추가
+
+#### js/ai-engine.js (buildPrompt)
+- `customerProblem` (린 캔버스 Problem), `unfairAdvantage`, `consultingType` 프롬프트 반영
 
 ---
 

@@ -382,6 +382,241 @@ const Wizard = (() => {
     }
   }
 
+  /* ── 10대 컨설팅 유형 정의 ── */
+  const CONSULTING_TYPES = {
+    finance_strategy: {
+      label: '경영재무전략', icon: '💰',
+      desc: '수익구조 개선, 원가 절감, 재무 건전성 확보가 최우선 과제입니다.',
+      preview: ['손익분기점(BEP) 분석 및 재무 재구조화', '고정비/변동비 최적화 전략', '현금흐름 관리 체계 수립', '정부 금융지원 사업 연계']
+    },
+    growth_strategy: {
+      label: '사업화·성장전략', icon: '🚀',
+      desc: '시장 검증과 매출 성장 궤도 진입이 핵심 과제입니다.',
+      preview: ['린 MVP 검증 및 시장 적합성(PMF) 확보', '핵심 고객 세그먼트 집중 공략', '수익 모델 다각화 및 단가 최적화', '성장 지표(KPI) 설계 및 트래킹']
+    },
+    differentiation_strategy: {
+      label: '차별화·경쟁우위전략', icon: '🏆',
+      desc: '경쟁사와의 명확한 차별화 포지션 확보가 시급합니다.',
+      preview: ['핵심 차별화 요소 발굴 및 강화', '경쟁사 약점 분석 기반 포지셔닝', '모방 불가 핵심 역량 보호 체계', 'USP(고유 판매 제안) 메시지 정립']
+    },
+    structure_strategy: {
+      label: '기업구조·시스템전략', icon: '🏗️',
+      desc: '조직 체계와 운영 시스템 구축이 성장의 병목입니다.',
+      preview: ['업무 SOP·매뉴얼화 체계 구축', '조직 역할 분산 및 위임 체계 수립', '성과 측정 및 인센티브 시스템 설계', '핵심 프로세스 표준화']
+    },
+    innovation_strategy: {
+      label: '혁신·신사업전략', icon: '💡',
+      desc: '신기술·신사업 기회 탐색과 혁신 역량 강화가 필요합니다.',
+      preview: ['업종 트렌드·기술 변화 분석', '신사업 기회 영역 발굴', '기존 사업 혁신 로드맵 수립', '오픈 이노베이션·파트너십 전략']
+    },
+    marketing_strategy: {
+      label: '마케팅·브랜드전략', icon: '📣',
+      desc: '브랜드 인지도와 고객 유입 채널 확대가 핵심 과제입니다.',
+      preview: ['타겟 고객 페르소나 정의 및 세분화', 'StoryBrand 기반 메시지 체계 구축', '디지털 마케팅 채널 최적화', '콘텐츠·브랜드 자산 구축']
+    },
+    hr_strategy: {
+      label: '조직·인력운영전략', icon: '👥',
+      desc: '인재 확보와 조직 역량 강화가 성장의 핵심입니다.',
+      preview: ['핵심 인재 채용·유지 체계 구축', '직무별 역량 기준 및 평가 체계', '조직문화·소통 활성화 방안', '교육·훈련 체계 수립']
+    },
+    digital_strategy: {
+      label: '디지털전환전략', icon: '🤖',
+      desc: 'AI·디지털 도구 도입으로 운영 효율화와 경쟁력 확보가 필요합니다.',
+      preview: ['업무 자동화·AI 도구 도입 로드맵', '데이터 기반 의사결정 체계 구축', '디지털 고객 접점 강화', 'IT 인프라 현대화 우선순위 수립']
+    },
+    pivot_strategy: {
+      label: '사업재편·피벗전략', icon: '🔄',
+      desc: '전반적 역량 개선이 필요하며, 사업 방향 재정립이 시급합니다.',
+      preview: ['현재 사업 모델의 핵심 문제 진단', '사업 피벗 옵션 및 가능성 평가', '단계적 사업 재편 로드맵 수립', '리스크 최소화 전환 전략']
+    },
+    cx_strategy: {
+      label: '고객경험·서비스전략', icon: '⭐',
+      desc: '고객 만족도와 재구매율 향상으로 매출 기반 안정화가 필요합니다.',
+      preview: ['고객 여정 지도(Customer Journey Map) 분석', '핵심 고객 경험 개선 포인트 발굴', '재구매·재계약률 향상 프로그램', 'NPS 기반 고객 피드백 체계 구축']
+    }
+  };
+
+  /* ── 5대 역량 도메인 점수 계산 ── */
+  function calcDomainScores(scores) {
+    const domains = {
+      finance:         { label: '경영재무역량',     scores: [], color: '#4ADE80' },
+      hr:              { label: '인적자원역량',     scores: [], color: '#60A5FA' },
+      bm:              { label: 'BM역량',          scores: [], color: '#A78BFA' },
+      future:          { label: '미래기술대응역량', scores: [], color: '#FB923C' },
+      differentiation: { label: '차별화·경쟁우위역량', scores: [], color: '#F5C030' }
+    };
+    Object.entries(scores || {}).forEach(([key, val]) => {
+      if (!val || !val.score) return;
+      const s = val.score;
+      if (key.startsWith('diag-common-container_1_') || key.startsWith('diag-common-container_4_')) {
+        domains.finance.scores.push(s);
+      } else if (key.startsWith('diag-common-container_2_')) {
+        domains.hr.scores.push(s);
+      } else if (key.startsWith('diag-common-container_3_')) {
+        domains.bm.scores.push(s);
+      } else if (key.startsWith('diag-common-container_5_')) {
+        domains.differentiation.scores.push(s);
+      } else if (key.startsWith('diag-industry-container_')) {
+        domains.future.scores.push(s);
+      } else if (key.startsWith('diag-bizmodel-container_')) {
+        domains.bm.scores.push(s);
+      }
+    });
+    const result = {};
+    Object.entries(domains).forEach(([k, d]) => {
+      const avg = d.scores.length > 0
+        ? d.scores.reduce((a, b) => a + b, 0) / d.scores.length : 0;
+      result[k] = { label: d.label, avg: Math.round(avg * 10) / 10, color: d.color };
+    });
+    return result;
+  }
+
+  /* ── 컨설팅 유형 분류 (규칙 기반) ── */
+  function classifyConsultingType(domainScores) {
+    const vals = Object.values(domainScores).map(d => d.avg).filter(v => v > 0);
+    const overallAvg = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 3;
+
+    if (overallAvg < 2.0) return { primary: 'pivot_strategy', secondary: 'finance_strategy' };
+
+    const sorted = Object.entries(domainScores)
+      .filter(([, d]) => d.avg > 0)
+      .sort(([, a], [, b]) => a.avg - b.avg);
+
+    if (!sorted.length) return { primary: 'growth_strategy', secondary: 'differentiation_strategy' };
+
+    const [weakKey] = sorted[0];
+    const secondKey = sorted[1]?.[0] || 'differentiation';
+    const secondAvg = sorted[1]?.[1]?.avg || 3;
+
+    if (weakKey === 'finance' && secondKey === 'hr' && secondAvg < 2.5) {
+      return { primary: 'structure_strategy', secondary: 'finance_strategy' };
+    }
+
+    const domainToType = {
+      finance:         'finance_strategy',
+      hr:              secondAvg < 2.5 ? 'structure_strategy' : 'hr_strategy',
+      bm:              overallAvg < 3.0 ? 'growth_strategy' : 'marketing_strategy',
+      future:          secondAvg < 2.8 ? 'digital_strategy' : 'innovation_strategy',
+      differentiation: 'differentiation_strategy'
+    };
+    const secondaryMap = {
+      finance:         'structure_strategy',
+      hr:              'hr_strategy',
+      bm:              'cx_strategy',
+      future:          'innovation_strategy',
+      differentiation: 'marketing_strategy'
+    };
+
+    return {
+      primary:   domainToType[weakKey]   || 'growth_strategy',
+      secondary: secondaryMap[secondKey] || 'differentiation_strategy'
+    };
+  }
+
+  /* ── 진단유형 확인 화면 렌더링 ── */
+  function showDiagReveal(data) {
+    const scores = data.diagScores || diagScores;
+    const domainScores = calcDomainScores(scores);
+    const { primary, secondary } = classifyConsultingType(domainScores);
+    const pType = CONSULTING_TYPES[primary]   || CONSULTING_TYPES.growth_strategy;
+    const sType = CONSULTING_TYPES[secondary] || CONSULTING_TYPES.differentiation_strategy;
+
+    const elPrimary   = document.getElementById('drTypePrimary');
+    const elSecondary = document.getElementById('drTypeSecondary');
+    const elDesc      = document.getElementById('drTypeDesc');
+    if (elPrimary)   elPrimary.textContent   = pType.icon + ' ' + pType.label;
+    if (elSecondary) elSecondary.textContent = '보조 유형: ' + sType.icon + ' ' + sType.label;
+    if (elDesc)      elDesc.textContent      = pType.desc;
+
+    const elScoreList = document.getElementById('drScoreList');
+    if (elScoreList) {
+      elScoreList.innerHTML = Object.values(domainScores).map(d => {
+        const pct   = (d.avg / 5) * 100;
+        const cls   = d.avg >= 4.0 ? 'high' : d.avg >= 3.0 ? 'mid' : d.avg >= 2.0 ? 'low' : d.avg > 0 ? 'risk' : 'none';
+        const lbl   = d.avg >= 4.0 ? '강점' : d.avg >= 3.0 ? '보통' : d.avg >= 2.0 ? '취약' : d.avg > 0 ? '위험' : '미입력';
+        return '<div class="dr-score-item">' +
+          '<span class="dr-score-label">' + d.label + '</span>' +
+          '<div class="dr-score-bar-wrap"><div class="dr-score-bar ' + cls + '" style="width:' + pct + '%"></div></div>' +
+          '<span class="dr-score-val ' + cls + '">' + (d.avg > 0 ? d.avg.toFixed(1) : '—') + ' <small>' + lbl + '</small></span>' +
+          '</div>';
+      }).join('');
+    }
+
+    const elPreview = document.getElementById('drPreviewList');
+    if (elPreview) {
+      elPreview.innerHTML = pType.preview.map(p => '<li>' + p + '</li>').join('');
+    }
+
+    drawRadarChart('radarChart', domainScores);
+    return { primary, secondary, domainScores };
+  }
+
+  /* ── 5각형 레이더 차트 (Canvas) ── */
+  function drawRadarChart(canvasId, domainScores) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const cx = w / 2, cy = h / 2;
+    const R = Math.min(w, h) / 2 - 48;
+    const entries = Object.values(domainScores);
+    const n = entries.length;
+
+    ctx.clearRect(0, 0, w, h);
+    const angles = entries.map((_, i) => (i * 2 * Math.PI / n) - Math.PI / 2);
+
+    function pt(angle, r) { return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }; }
+
+    // 배경 격자
+    for (let lv = 1; lv <= 5; lv++) {
+      const r = (R * lv) / 5;
+      ctx.beginPath();
+      angles.forEach((a, i) => { const p = pt(a, r); i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    // 축선
+    angles.forEach(a => {
+      const p = pt(a, R);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p.x, p.y);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+    });
+
+    // 데이터 폴리곤
+    ctx.beginPath();
+    entries.forEach((d, i) => {
+      const r = (R * Math.max(d.avg, 0)) / 5;
+      const p = pt(angles[i], r);
+      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(245,192,48,0.18)';
+    ctx.fill();
+    ctx.strokeStyle = '#F5C030';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 데이터 점
+    entries.forEach((d, i) => {
+      const r = (R * Math.max(d.avg, 0)) / 5;
+      const p = pt(angles[i], r);
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#F5C030'; ctx.fill();
+    });
+
+    // 레이블
+    const shortLabels = ['경영재무', '인적자원', 'BM역량', '미래기술', '차별화'];
+    ctx.font = '11px Noto Sans KR, sans-serif';
+    ctx.textAlign = 'center';
+    entries.forEach((d, i) => {
+      const p = pt(angles[i], R + 22);
+      ctx.fillStyle = '#E8EDF5';
+      ctx.fillText(shortLabels[i] || d.label, p.x, p.y + 4);
+    });
+  }
+
   function collect() {
     const g = id => {
       const el = document.getElementById(id);
@@ -398,6 +633,8 @@ const Wizard = (() => {
       products:        g('products'),
       coreStrength:    g('coreStrength'),
       bizStrengths:    g('bizStrengths'),
+      customerProblem: g('customerProblem'),
+      unfairAdvantage: g('unfairAdvantage'),
       // STEP 3
       targetCustomer:      g('targetCustomer'),
       customerAcquisition: g('customerAcquisition'),
@@ -490,5 +727,5 @@ const Wizard = (() => {
     }
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, switchDiagTab, prevDiagTab };
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart };
 })();

@@ -7,9 +7,12 @@ const App = (() => {
   /* ── STATE ── */
   let mode = 'demo';
   let apiKey = localStorage.getItem('biznavi_key') || '';
+  let _pendingResult = null;
+  let _pendingData   = null;
+  let _pendingIsDemo = false;
 
   /* ── SCREEN ── */
-  const screens = ['landing', 'wizard', 'loading', 'dashboard'];
+  const screens = ['landing', 'wizard', 'loading', 'diag-reveal', 'dashboard'];
 
   function show(id) {
     const current = screens.find(s => !document.getElementById(s).classList.contains('hidden'));
@@ -123,7 +126,6 @@ const App = (() => {
         apiKey = '';
       }
     } else {
-      // 키 미입력 → localStorage 저장값 사용, 없으면 데모
       mode = apiKey ? 'real' : 'demo';
     }
 
@@ -134,14 +136,36 @@ const App = (() => {
       const result = (mode === 'demo' || !apiKey)
         ? await AIEngine.fakeAnalysis(data)
         : await AIEngine.callClaude(apiKey, data);
-      Dashboard.render(result, data, mode === 'demo' || !apiKey);
-      show('dashboard');
+      // 분석 결과 보관 → diag-reveal 화면으로 이동
+      _pendingResult = result;
+      _pendingIsDemo = (mode === 'demo' || !apiKey);
+      const revealInfo = Wizard.showDiagReveal(data);
+      data.consultingType = revealInfo?.primary || '';
+      _pendingData = data;
+      show('diag-reveal');
     } catch (e) {
       alert('오류: ' + e.message + '\n\n샘플 데이터로 대체합니다.');
       const result = await AIEngine.fakeAnalysis(data);
-      Dashboard.render(result, data, true);
-      show('dashboard');
+      _pendingResult = result;
+      _pendingIsDemo = true;
+      const revealInfo = Wizard.showDiagReveal(data);
+      data.consultingType = revealInfo?.primary || '';
+      _pendingData = data;
+      show('diag-reveal');
     }
+  }
+
+  /* 진단유형 확인 후 솔루션 보고서로 이동 */
+  function proceedToSolution() {
+    if (!_pendingResult || !_pendingData) return;
+    Dashboard.render(_pendingResult, _pendingData, _pendingIsDemo);
+    show('dashboard');
+  }
+
+  /* 진단 수정: 위저드 STEP 4로 돌아가기 */
+  function goBackToDiag() {
+    show('wizard');
+    Wizard.goStep(4);
   }
 
   /* API 키 저장 후 분석 시작 (API 박스 확인 버튼) */
@@ -174,7 +198,7 @@ const App = (() => {
     if (wizKeyEl && apiKey) wizKeyEl.value = apiKey;
   }, 200);
 
-  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey };
+  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag };
 })();
 
 /* ===== LANDING PAGE JS ===== */

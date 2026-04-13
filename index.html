@@ -650,6 +650,14 @@
           <label>핵심 경쟁력</label>
           <textarea id="bizStrengths" placeholder="예: 독자 AI 알고리즘, 강력한 파트너 네트워크, 특허 기술 3건"></textarea>
         </div>
+        <div class="form-group full">
+          <label>고객이 겪는 핵심 문제 *<span class="field-check">✓</span></label>
+          <textarea id="customerProblem" placeholder="예: 재고 관리가 수기로 이루어져 오차 발생 시 손실이 크고, 실시간 파악이 불가능합니다"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>경쟁 우위 (모방 불가 강점)</label>
+          <input type="text" id="unfairAdvantage" placeholder="예: 특허 2건 + 대기업 독점 공급 계약, 5년 이상 축적된 고객 데이터" maxlength="100" />
+        </div>
       </div>
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.showLanding()">← 처음으로</button>
@@ -973,6 +981,74 @@
     <div class="ld-step" id="ls2"><div class="ld-step-ico">○</div><span>SWOT 분석 수행 중</span></div>
     <div class="ld-step" id="ls3"><div class="ld-step-ico">○</div><span>시장 전략 수립 중</span></div>
     <div class="ld-step" id="ls4"><div class="ld-step-ico">○</div><span>보고서 생성 중</span></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     DIAG-REVEAL (진단유형 확인 화면)
+══════════════════════════════════════════ -->
+<section id="diag-reveal" class="screen hidden">
+  <nav class="top-nav">
+    <div class="nav-logo">
+      <svg class="nav-logo-icon" width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="13" cy="13" r="12" fill="#070F1E" stroke="#F5C030" stroke-width="1.3"/>
+        <circle cx="13" cy="13" r="9.5" fill="none" stroke="#1BBFB2" stroke-width="0.6" stroke-dasharray="2,4" opacity="0.6"/>
+        <line x1="13" y1="3.5" x2="13" y2="22.5" stroke="#1BBFB2" stroke-width="0.4" opacity="0.25"/>
+        <line x1="3.5" y1="13" x2="22.5" y2="13" stroke="#1BBFB2" stroke-width="0.4" opacity="0.25"/>
+        <line x1="13" y1="2"  x2="13" y2="5.5"  stroke="#F5C030" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="24" y1="13" x2="20.5" y2="13" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <line x1="13" y1="24" x2="13" y2="20.5" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <line x1="2"  y1="13" x2="5.5"  y2="13" stroke="#F5C030" stroke-width="1"   stroke-linecap="round" opacity="0.5"/>
+        <polygon points="13,5.5 14.3,12.5 13,11.5 11.7,12.5" fill="#F5C030"/>
+        <polygon points="13,20.5 14.3,13.5 13,14.5 11.7,13.5" fill="#F5C030" opacity="0.25"/>
+        <circle cx="13" cy="13" r="1.8" fill="#070F1E" stroke="#F5C030" stroke-width="1"/>
+        <circle cx="13" cy="13" r="0.9" fill="#1BBFB2"/>
+      </svg>
+      BizNavi
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-outline btn-sm" onclick="App.goBackToDiag()">← 진단 수정</button>
+      <button class="btn btn-ghost btn-sm" onclick="App.restart()">↩ 새 분석</button>
+    </div>
+  </nav>
+
+  <div class="dr-wrap">
+    <!-- 헤더 -->
+    <div class="dr-header">
+      <p class="dr-subtitle">AI 진단 완료</p>
+      <h2 class="serif dr-title">귀사의 진단 결과를 확인하세요</h2>
+      <p class="dr-desc">아래 진단 유형과 역량 프로파일을 확인한 후, 솔루션 보고서를 열람하세요.</p>
+    </div>
+
+    <div class="dr-body">
+      <!-- 좌: 레이더 차트 -->
+      <div class="dr-radar-wrap">
+        <h3 class="dr-section-title">5대 역량 프로파일</h3>
+        <canvas id="radarChart" width="300" height="300"></canvas>
+        <div class="dr-score-list" id="drScoreList"></div>
+      </div>
+
+      <!-- 우: 컨설팅 유형 + 미리보기 -->
+      <div class="dr-right">
+        <div class="dr-type-box">
+          <div class="dr-type-label">진단 컨설팅 유형</div>
+          <div class="dr-type-primary" id="drTypePrimary">—</div>
+          <div class="dr-type-secondary" id="drTypeSecondary"></div>
+          <p class="dr-type-desc" id="drTypeDesc"></p>
+        </div>
+
+        <div class="dr-preview">
+          <h3 class="dr-section-title">제안 솔루션 미리보기</h3>
+          <ul class="dr-preview-list" id="drPreviewList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단 네비 -->
+    <div class="dr-nav">
+      <button class="btn btn-outline" onclick="App.goBackToDiag()">← 진단 수정하기</button>
+      <button class="btn btn-gold dr-proceed-btn" onclick="App.proceedToSolution()">솔루션 전체 보고서 보기 →</button>
+    </div>
   </div>
 </section>
 

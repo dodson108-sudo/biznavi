@@ -514,3 +514,164 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   border-radius: 8px;
   padding: 8px;
 }
+
+/* ================================================================
+   DIAG-REVEAL — 진단유형 확인 화면
+   ================================================================ */
+#diag-reveal {
+  background: var(--bg, #0A0E1A);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+.dr-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.dr-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.dr-subtitle {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold, #F5C030);
+  margin-bottom: 8px;
+}
+.dr-title {
+  font-size: 1.8rem;
+  color: var(--txt, #E8EDF5);
+  margin-bottom: 10px;
+}
+.dr-desc {
+  color: rgba(255,255,255,.55);
+  font-size: 0.95rem;
+}
+
+.dr-body {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  margin-bottom: 36px;
+}
+
+/* 레이더 차트 영역 */
+.dr-radar-wrap {
+  flex: 0 0 320px;
+  background: #0F1629;
+  border: 1px solid rgba(245,192,48,.15);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.dr-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+#radarChart {
+  display: block;
+  margin: 0 auto 16px;
+}
+
+/* 점수 바 목록 */
+.dr-score-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.dr-score-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.dr-score-label { flex: 0 0 80px; color: rgba(255,255,255,.7); text-align: right; }
+.dr-score-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
+.dr-score-bar { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.dr-score-bar.high { background: #4ADE80; }
+.dr-score-bar.mid  { background: #FACC15; }
+.dr-score-bar.low  { background: #FB923C; }
+.dr-score-bar.risk { background: #F87171; }
+.dr-score-bar.none { background: rgba(255,255,255,.2); }
+.dr-score-val { flex: 0 0 60px; font-weight: 600; }
+.dr-score-val.high { color: #4ADE80; }
+.dr-score-val.mid  { color: #FACC15; }
+.dr-score-val.low  { color: #FB923C; }
+.dr-score-val.risk { color: #F87171; }
+.dr-score-val.none { color: rgba(255,255,255,.35); }
+.dr-score-val small { font-weight: 400; font-size: 10px; margin-left: 2px; }
+
+/* 우측: 유형 + 미리보기 */
+.dr-right { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+.dr-type-box {
+  background: linear-gradient(135deg, #0F1629, #131d3a);
+  border: 1px solid rgba(245,192,48,.3);
+  border-radius: 16px;
+  padding: 24px 28px;
+}
+.dr-type-label {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold, #F5C030);
+  margin-bottom: 10px;
+}
+.dr-type-primary {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--txt, #E8EDF5);
+  margin-bottom: 6px;
+}
+.dr-type-secondary {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,.5);
+  margin-bottom: 12px;
+}
+.dr-type-desc {
+  font-size: 0.92rem;
+  color: rgba(255,255,255,.75);
+  line-height: 1.6;
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding-top: 12px;
+  margin: 0;
+}
+
+.dr-preview {
+  background: #0F1629;
+  border: 1px solid rgba(245,192,48,.12);
+  border-radius: 16px;
+  padding: 24px 28px;
+}
+.dr-preview-list {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.dr-preview-list li {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,.8);
+  padding-left: 20px;
+  position: relative;
+  line-height: 1.5;
+}
+.dr-preview-list li::before {
+  content: '→';
+  position: absolute; left: 0;
+  color: var(--gold, #F5C030);
+}
+
+/* 하단 네비 */
+.dr-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.dr-proceed-btn { font-size: 1rem; padding: 14px 28px; }
+
+@media (max-width: 768px) {
+  .dr-body { flex-direction: column; }
+  .dr-radar-wrap { flex: unset; width: 100%; }
+  .dr-nav { flex-direction: column; gap: 12px; }
+  .dr-proceed-btn { width: 100%; }
+}

@@ -379,6 +379,9 @@ const AIEngine = (() => {
 - 주요 제품/서비스: ${d.products}
 - 핵심 강점 한 줄: ${d.coreStrength || '미입력'}
 - 기타 핵심 경쟁력: ${d.bizStrengths || '미입력'}
+- 고객의 핵심 문제(린 캔버스 Problem): ${d.customerProblem || '미입력'}
+- 모방 불가 경쟁 우위(Unfair Advantage): ${d.unfairAdvantage || '미입력'}
+- 진단 컨설팅 유형: ${d.consultingType || '미확인'}
 
 ## 2. 타겟 고객 및 시장
 - 타겟 고객: ${d.targetCustomer || '미입력'}
