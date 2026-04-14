@@ -23,6 +23,40 @@ const Dashboard = (() => {
     return '위험';
   }
 
+  function renderLeanCanvas(data, fd) {
+    const section = document.getElementById('sec-lean-canvas');
+    if (!section) return;
+
+    const lc = data.leanCanvas;
+    if (!lc) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    // 9블록 정의 (린 캔버스 순서)
+    const blocks = [
+      { key: 'problem',               label: 'Problem',              sub: '핵심 문제',         icon: '🔴', cls: 'lc-problem' },
+      { key: 'solution',              label: 'Solution',             sub: '해결책',            icon: '💡', cls: 'lc-solution' },
+      { key: 'uniqueValueProposition',label: 'Unique Value Prop.',   sub: '핵심 가치 제안',    icon: '⭐', cls: 'lc-uvp' },
+      { key: 'unfairAdvantage',       label: 'Unfair Advantage',     sub: '모방 불가 강점',    icon: '🛡️', cls: 'lc-advantage' },
+      { key: 'customerSegments',      label: 'Customer Segments',    sub: '타겟 고객',         icon: '👥', cls: 'lc-customer' },
+      { key: 'keyMetrics',            label: 'Key Metrics',          sub: '핵심 지표',         icon: '📊', cls: 'lc-metrics' },
+      { key: 'channels',              label: 'Channels',             sub: '채널',              icon: '📣', cls: 'lc-channels' },
+      { key: 'costStructure',         label: 'Cost Structure',       sub: '비용 구조',         icon: '💸', cls: 'lc-cost' },
+      { key: 'revenueStreams',        label: 'Revenue Streams',      sub: '수익 흐름',         icon: '💰', cls: 'lc-revenue' },
+    ];
+
+    const grid = document.getElementById('leanCanvasGrid');
+    if (!grid) return;
+    grid.innerHTML = blocks.map(b => `
+      <div class="lc-block ${b.cls}">
+        <div class="lc-block-hdr">
+          <span class="lc-icon">${b.icon}</span>
+          <span class="lc-label">${b.label}</span>
+          <span class="lc-sublabel">${b.sub}</span>
+        </div>
+        <div class="lc-content">${(lc[b.key] || '—').replace(/\n/g, '<br>')}</div>
+      </div>`).join('');
+  }
+
   function renderSpecializedSection(data, fd) {
     const section = document.getElementById('sec-consulting');
     if (!section) return;
@@ -296,6 +330,7 @@ const Dashboard = (() => {
           <span class="rm-period">${r.period}</span>
           ${r.budget ? `<span class="rm-budget">💰 ${r.budget}</span>` : ''}
         </div>
+        ${r.framework ? `<div class="rm-framework">${r.framework}</div>` : ''}
         <div class="rm-tasks">${r.tasks.map(t => `<span class="rm-task">${t}</span>`).join('')}</div>
       </div>`).join('');
 
@@ -304,6 +339,9 @@ const Dashboard = (() => {
 
     // 컨설팅 유형별 특화 분석 섹션
     renderSpecializedSection(data, fd);
+
+    // 린 캔버스 시각화 섹션
+    renderLeanCanvas(data, fd);
 
     // 정부지원사업 매칭 섹션
     renderGovSection(fd);
@@ -353,7 +391,7 @@ const Dashboard = (() => {
     });
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록
-    const secIds = ['sec-summary','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-gov'];
+    const secIds = ['sec-summary','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-gov'];
     function onScroll() {
       const offset = 100;
       let activeId = secIds[0];

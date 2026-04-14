@@ -2,13 +2,41 @@
 
 ## 배포 상태 (2026-04-14 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: B-2 AI 솔루션 출력 구조 개선 (컨설팅 유형별 특화 분석)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: B-3 단계별 실행 가이드 구조화 (로드맵 프레임워크 배지 + 린 캔버스)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-14)
+
+### B-3: 단계별 실행 가이드 구조화 — 로드맵 프레임워크 배지 + 린 캔버스 시각화
+
+#### js/ai-engine.js
+- SYSTEM 프롬프트 roadmap에 `framework` 필드 추가 (린 스타트업 / 플라이휠 / 6대 시스템)
+- JSON 구조에 `leanCanvas` 필드 추가: 9블록 (problem, customerSegments, uniqueValueProposition, solution, channels, revenueStreams, costStructure, keyMetrics, unfairAdvantage)
+- fakeAnalysis roadmap 각 단계에 `framework` 추가
+- fakeAnalysis에 `leanCanvas` 객체 추가 (form 입력값 customerProblem·unfairAdvantage 자동 반영)
+
+#### index.html
+- 대시보드 목차에 `린 캔버스` 항목 추가 (`sec-lean-canvas`)
+- 실행 로드맵 아래 `#sec-lean-canvas` 섹션 추가 (9블록 그리드)
+
+#### js/dashboard.js
+- `renderLeanCanvas(data, fd)` 함수 추가 (9블록 lean canvas 렌더링)
+- 로드맵 렌더링에 `.rm-framework` 배지 표시 추가
+- `render()` 함수에서 `renderLeanCanvas()` 호출 추가
+- 스크롤 스파이 `secIds`에 `sec-lean-canvas` 추가
+
+#### css/dashboard.css
+- `.lc-grid`: 3열 반응형 그리드 (모바일 2열 → 1열)
+- `.lc-block`: 9블록 카드 기본 스타일
+- `.lc-uvp`: 핵심 가치 제안 골드 강조 (특별 border + 배경)
+- `.lc-problem`: 문제 블록 붉은 계열 테두리
+- `.lc-revenue`: 수익 블록 그린 계열 테두리
+- `.rm-framework`: 로드맵 단계별 프레임워크 배지 스타일 (골드 배경)
+
+---
 
 ### B-2: AI 솔루션 출력 구조 개선 — 컨설팅 유형별 특화 분석 섹션 추가
 
