@@ -225,6 +225,107 @@ const Wizard = (() => {
     container.innerHTML += html;
   }
 
+  /* ── 타입별 항목 렌더러 ── */
+  function _renderItemHtml(item, scoreKey) {
+    const saved        = diagScores[scoreKey] || {};
+    const savedScore   = saved.score   || 0;
+    const savedRaw     = (saved.rawValue !== undefined) ? saved.rawValue : '';
+    const savedChoices = saved.choices || [];
+    const savedMemo    = diagMemos[scoreKey] || '';
+
+    let html = '<div class="diag-item" id="diag-item-' + scoreKey + '">';
+    html += '<div class="diag-item-text">' + item.text + '</div>';
+
+    switch (item.type) {
+      case 'numeric': html += _renderNumeric(item, scoreKey, savedRaw, savedScore); break;
+      case 'mixed':   html += _renderMixed(item, scoreKey, savedChoices, savedScore); break;
+      default:        html += _renderBars(item, scoreKey, savedScore); break;
+    }
+
+    html += '<textarea class="diag-memo" placeholder="💬 구체적 상황 메모 (선택)" onchange="Wizard.setMemo(\'' + scoreKey + '\',this.value)">' + savedMemo + '</textarea>';
+    html += '</div>';
+    return html;
+  }
+
+  function _renderBars(item, scoreKey, savedScore) {
+    let html = '<div class="diag-scale">';
+    html += '<span class="diag-scale-label">' + (item.min || '') + '</span>';
+    html += '<div class="diag-scale-buttons">';
+    for (let s = 1; s <= 5; s++) {
+      const sel = savedScore === s ? ' selected' : '';
+      html += '<button class="diag-score-btn' + sel + '" data-key="' + scoreKey + '" data-score="' + s + '" onclick="Wizard.setScore(\'' + scoreKey + '\',' + s + ',this)">' + s + '</button>';
+    }
+    html += '</div>';
+    html += '<span class="diag-scale-label">' + (item.max || '') + '</span>';
+    html += '</div>';
+    if (item.anchors) {
+      const initText = savedScore > 0 ? item.anchors[savedScore] : '💡 점수를 선택하면 행동 기준이 표시됩니다';
+      const anchorsEsc = JSON.stringify(item.anchors).replace(/\\/g, '\\\\').replace(/'/g, '&apos;');
+      html += '<div class="bars-anchor-display" id="bars-anchor-' + scoreKey + '" data-anchors=\'' + anchorsEsc + '\'>' + initText + '</div>';
+    }
+    return html;
+  }
+
+  function _renderNumeric(item, scoreKey, savedRaw, savedScore) {
+    const SCORE_LABELS = ['', '🔴 위험', '🟠 취약', '🟡 보통', '🟢 강점', '🟢 최우수'];
+    const cls      = savedScore >= 4 ? 'high' : savedScore >= 3 ? 'mid' : savedScore >= 2 ? 'low' : savedScore > 0 ? 'risk' : '';
+    const scoreText = savedScore > 0
+      ? '→ ' + savedScore + '점 (' + SCORE_LABELS[savedScore] + ')'
+      : '값을 입력하면 점수가 자동 계산됩니다';
+    const rangesEsc = JSON.stringify(item.scoreRanges || []).replace(/'/g, '&apos;');
+
+    let html = '<div class="diag-numeric-wrap" id="num-wrap-' + scoreKey + '" data-ranges=\'' + rangesEsc + '\'>';
+    html += '<label class="diag-numeric-label">' + (item.inputLabel || item.text) + '</label>';
+    html += '<div class="diag-numeric-row">';
+    html += '<input type="number" step="any" class="diag-numeric-input" id="num-' + scoreKey + '" value="' + savedRaw + '" placeholder="' + (item.placeholder || '') + '" oninput="Wizard.setNumeric(\'' + scoreKey + '\',this.value)" />';
+    html += '<span class="diag-numeric-unit">' + (item.unit || '') + '</span>';
+    html += '</div>';
+    html += '<div class="diag-numeric-result ' + cls + '" id="numr-' + scoreKey + '">' + scoreText + '</div>';
+    html += '<div class="diag-numeric-fallback">';
+    html += '<span class="diag-fallback-label">수치가 없다면 주관적으로 선택</span>';
+    html += '<span class="diag-scale-label" style="font-size:11px">' + (item.min || '') + '</span>';
+    html += '<div class="diag-scale-buttons">';
+    for (let s = 1; s <= 5; s++) {
+      const sel = savedScore === s ? ' selected' : '';
+      html += '<button class="diag-score-btn' + sel + '" data-key="' + scoreKey + '" data-score="' + s + '" onclick="Wizard.setScore(\'' + scoreKey + '\',' + s + ',this)">' + s + '</button>';
+    }
+    html += '</div>';
+    html += '<span class="diag-scale-label" style="font-size:11px">' + (item.max || '') + '</span>';
+    html += '</div>';
+    html += '</div>';
+    return html;
+  }
+
+  function _renderMixed(item, scoreKey, savedChoices, savedScore) {
+    const noneValEsc = (item.noneValue || '').replace(/"/g, '&quot;');
+    const effectiveCount = savedChoices.filter(c => c !== (item.noneValue || '')).length;
+    const noneOnly = savedChoices.length === 1 && savedChoices[0] === item.noneValue;
+    const scoreText = savedScore > 0
+      ? (noneOnly ? '해당 없음 → 1점' : effectiveCount + '개 선택 → ' + savedScore + '점')
+      : '해당하는 항목을 모두 선택하세요';
+
+    let html = '<div class="diag-mixed-wrap">';
+    html += '<div class="diag-mixed-choices" id="mix-' + scoreKey + '" data-none="' + noneValEsc + '">';
+    (item.choices || []).forEach(choice => {
+      const checked = savedChoices.includes(choice) ? ' checked' : '';
+      const isNone  = choice === item.noneValue;
+      const choiceEsc = choice.replace(/"/g, '&quot;');
+      html += '<label class="diag-mixed-choice' + (isNone ? ' choice-none' : '') + '">';
+      html += '<input type="checkbox" value="' + choiceEsc + '"' + checked + ' onchange="Wizard.setMixed(\'' + scoreKey + '\',this)"> ';
+      html += choice + '</label>';
+    });
+    html += '</div>';
+    html += '<div class="diag-mixed-result" id="mixr-' + scoreKey + '">' + scoreText + '</div>';
+    html += '<div style="display:none"><div class="diag-scale-buttons">';
+    for (let s = 1; s <= 5; s++) {
+      const sel = savedScore === s ? ' selected' : '';
+      html += '<button class="diag-score-btn' + sel + '" data-key="' + scoreKey + '" data-score="' + s + '">' + s + '</button>';
+    }
+    html += '</div></div>';
+    html += '</div>';
+    return html;
+  }
+
   function renderDiagModule(containerId, data) {
     const container = document.getElementById(containerId);
     if (!container || !data) return;
@@ -238,21 +339,7 @@ const Wizard = (() => {
       html += '</div>';
       area.items.forEach(item => {
         const scoreKey = containerId + '_' + item.id;
-        html += '<div class="diag-item" id="diag-item-' + scoreKey + '">';
-        html += '<div class="diag-item-text">' + item.text + '</div>';
-        html += '<div class="diag-scale">';
-        html += '<span class="diag-scale-label">' + item.min + '</span>';
-        html += '<div class="diag-scale-buttons">';
-        for (let s = 1; s <= 5; s++) {
-          html += '<button class="diag-score-btn" data-key="' + scoreKey + '" data-score="' + s + '" onclick="Wizard.setScore(\'' + scoreKey + '\',' + s + ',this)">' + s + '</button>';
-        }
-        html += '</div>';
-        html += '<span class="diag-scale-label">' + item.max + '</span>';
-        html += '</div>';
-        // 저장된 메모 복원
-        const savedMemo = diagMemos[scoreKey] || '';
-        html += '<textarea class="diag-memo" placeholder="💬 구체적 상황 메모 (선택)" onchange="Wizard.setMemo(\'' + scoreKey + '\',this.value)">' + savedMemo + '</textarea>';
-        html += '</div>';
+        html += _renderItemHtml(item, scoreKey);
       });
       html += '</div>';
     });
@@ -260,18 +347,53 @@ const Wizard = (() => {
     container.innerHTML = html;
   }
 
-  // 저장된 점수 UI 복원
+  // 저장된 점수 UI 복원 (bars / numeric / mixed 모두 처리)
   function restoreScores() {
+    const LABELS = ['', '🔴 위험', '🟠 취약', '🟡 보통', '🟢 강점', '🟢 최우수'];
     Object.keys(diagScores).forEach(key => {
       const saved = diagScores[key];
       if (!saved || !saved.score) return;
-      const buttons = document.querySelectorAll('[data-key="' + key + '"]');
-      buttons.forEach(btn => {
-        btn.classList.remove('selected');
-        if (parseInt(btn.dataset.score) === saved.score) {
-          btn.classList.add('selected');
-        }
+
+      // 공통: 숨겨진 버튼 selected 상태 복원
+      document.querySelectorAll('[data-key="' + key + '"]').forEach(btn => {
+        btn.classList.toggle('selected', parseInt(btn.dataset.score) === saved.score);
       });
+
+      // numeric 복원
+      if (saved.rawValue !== undefined && saved.rawValue !== '') {
+        const numEl = document.getElementById('num-' + key);
+        if (numEl) numEl.value = saved.rawValue;
+        const cls = saved.score >= 4 ? 'high' : saved.score >= 3 ? 'mid' : saved.score >= 2 ? 'low' : 'risk';
+        const resultEl = document.getElementById('numr-' + key);
+        if (resultEl) {
+          resultEl.className = 'diag-numeric-result ' + cls;
+          resultEl.textContent = '→ ' + saved.score + '점 (' + LABELS[saved.score] + ')';
+        }
+      }
+
+      // mixed 복원
+      if (saved.choices && saved.choices.length) {
+        const container = document.getElementById('mix-' + key);
+        if (container) {
+          const noneVal = container.dataset.none || '';
+          const cbs = container.querySelectorAll('input[type="checkbox"]');
+          cbs.forEach(cb => { cb.checked = saved.choices.includes(cb.value); });
+          const noneOnly = saved.choices.length === 1 && saved.choices[0] === noneVal;
+          const count    = saved.choices.filter(v => v !== noneVal).length;
+          const resultEl = document.getElementById('mixr-' + key);
+          if (resultEl) {
+            resultEl.textContent = noneOnly
+              ? '해당 없음 → 1점'
+              : count + '개 선택 → ' + saved.score + '점';
+          }
+        }
+      }
+
+      // BARS 앵커 복원
+      const anchorEl = document.getElementById('bars-anchor-' + key);
+      if (anchorEl && anchorEl.dataset.anchors) {
+        try { anchorEl.textContent = JSON.parse(anchorEl.dataset.anchors)[saved.score] || ''; } catch(e) {}
+      }
     });
   }
 
@@ -280,6 +402,101 @@ const Wizard = (() => {
     const buttons = btn.parentElement.querySelectorAll('.diag-score-btn');
     buttons.forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+
+    // BARS 앵커 텍스트 업데이트
+    const anchorEl = document.getElementById('bars-anchor-' + key);
+    if (anchorEl && anchorEl.dataset.anchors) {
+      try { anchorEl.textContent = JSON.parse(anchorEl.dataset.anchors)[score] || ''; } catch(e) {}
+    }
+
+    // numeric 폴백 수동 선택 시 result 표시 업데이트
+    const numResult = document.getElementById('numr-' + key);
+    if (numResult) {
+      const LABELS = ['', '🔴 위험', '🟠 취약', '🟡 보통', '🟢 강점', '🟢 최우수'];
+      const cls = score >= 4 ? 'high' : score >= 3 ? 'mid' : score >= 2 ? 'low' : 'risk';
+      numResult.className = 'diag-numeric-result ' + cls;
+      numResult.textContent = '→ ' + score + '점 (' + LABELS[score] + ') · 주관 선택';
+      // 숫자 입력란 초기화
+      const numInput = document.getElementById('num-' + key);
+      if (numInput) { numInput.value = ''; diagScores[key].rawValue = ''; }
+    }
+
+    updateDiagProgress();
+  }
+
+  /* ── numeric 핸들러 ── */
+  function setNumeric(key, rawValue) {
+    const wrap = document.getElementById('num-wrap-' + key);
+    let score = 0;
+    const val = parseFloat(rawValue);
+    if (!isNaN(val) && wrap && wrap.dataset.ranges) {
+      try {
+        const ranges = JSON.parse(wrap.dataset.ranges);
+        for (const [lo, hi, s] of ranges) {
+          if (val >= lo && val < hi) { score = s; break; }
+        }
+        // 마지막 범위 상한값 처리
+        if (score === 0 && ranges.length) {
+          const last = ranges[ranges.length - 1];
+          if (val >= last[0]) score = last[2];
+        }
+      } catch(e) {}
+    }
+
+    diagScores[key] = { score, rawValue, memo: diagScores[key]?.memo || '' };
+
+    const LABELS = ['', '🔴 위험', '🟠 취약', '🟡 보통', '🟢 강점', '🟢 최우수'];
+    const cls = score >= 4 ? 'high' : score >= 3 ? 'mid' : score >= 2 ? 'low' : score > 0 ? 'risk' : '';
+    const el = document.getElementById('numr-' + key);
+    if (el) {
+      el.className = 'diag-numeric-result ' + cls;
+      el.textContent = score > 0
+        ? '→ ' + score + '점 (' + LABELS[score] + ')'
+        : rawValue !== '' ? '유효 범위 밖 값입니다' : '값을 입력하면 점수가 자동 계산됩니다';
+    }
+    document.querySelectorAll('[data-key="' + key + '"]').forEach(btn => {
+      btn.classList.toggle('selected', parseInt(btn.dataset.score) === score);
+    });
+    updateDiagProgress();
+  }
+
+  /* ── mixed(체크박스) 핸들러 ── */
+  function setMixed(key, changedCb) {
+    const container = document.getElementById('mix-' + key);
+    if (!container) return;
+    const noneVal = container.dataset.none || '';
+    const cbs = container.querySelectorAll('input[type="checkbox"]');
+
+    // none 값과 일반 값 상호 배제
+    if (changedCb.checked) {
+      if (changedCb.value === noneVal) {
+        cbs.forEach(cb => { if (cb !== changedCb) cb.checked = false; });
+      } else {
+        cbs.forEach(cb => { if (cb.value === noneVal) cb.checked = false; });
+      }
+    }
+
+    const selected = Array.from(cbs).filter(cb => cb.checked).map(cb => cb.value);
+    const noneOnly = selected.length === 1 && selected[0] === noneVal;
+    const count = selected.filter(v => v !== noneVal).length;
+
+    let score = 0;
+    if (selected.length > 0) {
+      score = noneOnly ? 1 : count === 1 ? 2 : count === 2 ? 3 : count <= 4 ? 4 : 5;
+    }
+
+    diagScores[key] = { score, choices: selected, memo: diagScores[key]?.memo || '' };
+
+    const resultEl = document.getElementById('mixr-' + key);
+    if (resultEl) {
+      resultEl.textContent = selected.length === 0
+        ? '해당하는 항목을 모두 선택하세요'
+        : noneOnly ? '해당 없음 → 1점'
+        : count + '개 선택 → ' + score + '점';
+    }
+    document.querySelectorAll('[data-key="' + key + '"]').forEach(btn => {
+      btn.classList.toggle('selected', parseInt(btn.dataset.score) === score);
+    });
     updateDiagProgress();
   }
 
@@ -727,5 +944,5 @@ const Wizard = (() => {
     }
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart };
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart };
 })();

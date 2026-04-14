@@ -516,6 +516,157 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 }
 
 /* ================================================================
+   BARS 앵커 텍스트
+   ================================================================ */
+.bars-anchor-display {
+  font-size: 12px;
+  color: var(--gold, #F5C030);
+  background: rgba(245, 192, 48, 0.07);
+  border-left: 3px solid rgba(245, 192, 48, 0.35);
+  padding: 7px 12px;
+  margin-top: 8px;
+  border-radius: 0 6px 6px 0;
+  min-height: 30px;
+  line-height: 1.5;
+  font-style: italic;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* ================================================================
+   Numeric 입력 (실수치)
+   ================================================================ */
+.diag-numeric-wrap {
+  margin: 6px 0 4px;
+}
+.diag-numeric-label {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.diag-numeric-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diag-numeric-input {
+  flex: 0 0 auto;
+  width: 140px;
+  background: rgba(22, 32, 64, 0.85);
+  border: 1px solid rgba(245, 192, 48, 0.25);
+  border-radius: 8px;
+  color: var(--txt, #E8EDF5);
+  font-size: 17px;
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.2s;
+  -moz-appearance: textfield;
+}
+.diag-numeric-input::-webkit-inner-spin-button,
+.diag-numeric-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.diag-numeric-input:focus { border-color: var(--gold, #F5C030); }
+.diag-numeric-unit {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+.diag-numeric-result {
+  display: inline-block;
+  font-size: 12px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.2s;
+}
+.diag-numeric-result.high { background: rgba(74,222,128,.12); color: #4ADE80; }
+.diag-numeric-result.mid  { background: rgba(250,204,21,.12); color: #FACC15; }
+.diag-numeric-result.low  { background: rgba(251,146,60,.12); color: #FB923C; }
+.diag-numeric-result.risk { background: rgba(248,113,113,.12); color: #F87171; }
+.diag-numeric-fallback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.diag-fallback-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+/* fallback 버튼은 기본 diag-score-btn 공유, 크기만 소폭 축소 */
+.diag-numeric-fallback .diag-score-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+/* ================================================================
+   Mixed 체크박스
+   ================================================================ */
+.diag-mixed-wrap {
+  margin: 6px 0 4px;
+}
+.diag-mixed-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.diag-mixed-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  padding: 8px 10px;
+  background: rgba(22, 32, 64, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: border-color 0.15s, background 0.15s;
+  line-height: 1.4;
+}
+.diag-mixed-choice:hover {
+  border-color: rgba(245, 192, 48, 0.35);
+  background: rgba(245, 192, 48, 0.06);
+}
+.diag-mixed-choice input[type="checkbox"] {
+  accent-color: var(--gold, #F5C030);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.diag-mixed-choice.choice-none {
+  border-style: dashed;
+  color: rgba(255, 255, 255, 0.4);
+}
+.diag-mixed-result {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: rgba(245, 192, 48, 0.07);
+  color: rgba(245, 192, 48, 0.75);
+  border-left: 3px solid rgba(245, 192, 48, 0.3);
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .diag-mixed-choices { grid-template-columns: 1fr; }
+  .diag-numeric-input { width: 110px; font-size: 15px; }
+  .diag-numeric-fallback { gap: 6px; }
+}
+
+/* ================================================================
    DIAG-REVEAL — 진단유형 확인 화면
    ================================================================ */
 #diag-reveal {
