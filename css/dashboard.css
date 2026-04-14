@@ -369,6 +369,64 @@
   .gov-grid { grid-template-columns: 1fr; }
 }
 
+/* ===== 컨설팅 유형별 특화 분석 섹션 ===== */
+.spec-type-row{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:10px;
+}
+.spec-type-icon{font-size:22px;line-height:1}
+.spec-type-label{
+  font-size:13px;font-weight:700;
+  color:var(--gold);letter-spacing:.3px;
+}
+.spec-summary-text{
+  font-size:13.5px;line-height:1.85;
+  color:var(--txt2);margin-bottom:22px;
+  border-left:3px solid rgba(245,192,48,.35);
+  padding-left:14px;
+}
+.spec-blocks{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
+  gap:14px;
+}
+.spec-block{
+  background:rgba(22,32,64,0.55);
+  border:1px solid rgba(245,192,48,.14);
+  border-radius:10px;
+  padding:16px 18px;
+  transition:border-color .2s,background .2s;
+}
+.spec-block:hover{
+  border-color:rgba(245,192,48,.4);
+  background:rgba(22,32,64,0.8);
+}
+.spec-block-label{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:700;
+  color:var(--txt);margin-bottom:10px;
+  padding-bottom:8px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.spec-block-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:18px;height:18px;
+  background:rgba(245,192,48,.15);
+  border:1px solid rgba(245,192,48,.35);
+  border-radius:50%;
+  font-size:10px;font-weight:700;
+  color:var(--gold);flex-shrink:0;
+}
+.spec-block-content{
+  font-size:12.5px;line-height:1.8;
+  color:var(--txt2);
+}
+
+/* 모바일: 특화 분석 1열 */
+@media(max-width:768px){
+  .spec-blocks{grid-template-columns:1fr}
+}
+
 /* ===== 인쇄 ===== */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}

@@ -1,10 +1,52 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-13 최신)
+## 배포 상태 (2026-04-14 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: Phase 1 진단고도화 (진단유형 확인 화면)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: B-2 AI 솔루션 출력 구조 개선 (컨설팅 유형별 특화 분석)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-14)
+
+### B-2: AI 솔루션 출력 구조 개선 — 컨설팅 유형별 특화 분석 섹션 추가
+
+#### js/ai-engine.js
+- SYSTEM 프롬프트에 컨설팅 유형별 specializedAnalysis 프레임워크 지침 추가
+  - finance_strategy → BEP·현금흐름 분석 (4블록)
+  - growth_strategy → 비즈니스 모델 캔버스(BMC) 9블록
+  - differentiation_strategy → VRIO 경쟁우위 분석 (5블록)
+  - hr_strategy / structure_strategy → 맥킨지 7S 프레임워크 (7블록)
+  - digital_strategy → 디지털 전환 MVP 로드맵 (5블록)
+  - 그 외 유형 → 맞춤형 특화 처방 분석 (4~5블록)
+- JSON 구조에 `specializedAnalysis` 필드 추가: `{type, framework, summary, blocks[]}`
+- buildPrompt에 컨설팅 유형 specializedAnalysis 작성 지침 추가
+- `_fakeSpecialized(d)` 헬퍼 함수 추가 (6개 유형별 완전한 데모 데이터)
+- `fakeAnalysis()` 리턴에 `specializedAnalysis: _fakeSpecialized(d)` 추가
+
+#### index.html
+- 대시보드 목차에 `유형별 특화 분석` 항목 추가 (`sec-consulting`)
+- 경영 진단 섹션 바로 아래 `#sec-consulting` 섹션 추가
+  - `#specFrameworkBadge`: 프레임워크명 뱃지
+  - `#specSummary`: 컨설팅 유형 아이콘 + 요약 텍스트
+  - `#specBlocks`: 유형별 분석 블록 그리드
+
+#### js/dashboard.js
+- `renderSpecializedSection(data, fd)` 함수 추가
+  - `data.specializedAnalysis` 존재 여부 확인 후 `sec-consulting` 표시/숨김
+  - 컨설팅 유형 아이콘 매핑 (10종)
+  - 블록 그리드 렌더링 (번호 뱃지 + 레이블 + 내용)
+- `render()` 함수에서 `renderSpecializedSection()` 호출 추가
+- 스크롤 스파이 `secIds`에 `sec-consulting` 추가
+
+#### css/dashboard.css
+- `.spec-type-row`, `.spec-type-icon`, `.spec-type-label`: 상단 유형 표시
+- `.spec-summary-text`: 요약 텍스트 (골드 좌측 테두리)
+- `.spec-blocks`: 자동 반응형 그리드 (`auto-fit, minmax(270px, 1fr)`)
+- `.spec-block`: 개별 분석 블록 카드 (hover 골드 테두리)
+- `.spec-block-label`, `.spec-block-num`, `.spec-block-content`: 블록 내부 스타일
+- 모바일(768px): `.spec-blocks` 1열 전환
 
 ---
 

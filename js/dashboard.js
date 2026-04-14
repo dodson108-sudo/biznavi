@@ -23,6 +23,55 @@ const Dashboard = (() => {
     return '위험';
   }
 
+  function renderSpecializedSection(data, fd) {
+    const section = document.getElementById('sec-consulting');
+    if (!section) return;
+
+    const spec = data.specializedAnalysis;
+    if (!spec || !spec.blocks || spec.blocks.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    // 프레임워크 뱃지
+    const badge = document.getElementById('specFrameworkBadge');
+    if (badge) badge.textContent = spec.framework || '특화 분석';
+
+    // 컨설팅 유형 아이콘 매핑
+    const typeIconMap = {
+      finance_strategy:        '💰',
+      growth_strategy:         '🚀',
+      differentiation_strategy:'⚡',
+      hr_strategy:             '👥',
+      structure_strategy:      '🏗️',
+      digital_strategy:        '🖥️',
+      innovation_strategy:     '💡',
+      marketing_strategy:      '📣',
+      pivot_strategy:          '🔄',
+      cx_strategy:             '🤝',
+    };
+    const icon = typeIconMap[spec.type] || '🎯';
+
+    // 요약
+    const summaryEl = document.getElementById('specSummary');
+    if (summaryEl) {
+      summaryEl.innerHTML =
+        `<div class="spec-type-row"><span class="spec-type-icon">${icon}</span><span class="spec-type-label">${spec.framework}</span></div>` +
+        `<p class="spec-summary-text">${spec.summary || ''}</p>`;
+    }
+
+    // 블록 렌더링
+    const blocksEl = document.getElementById('specBlocks');
+    if (blocksEl) {
+      blocksEl.innerHTML = spec.blocks.map((b, i) => `
+        <div class="spec-block">
+          <div class="spec-block-label"><span class="spec-block-num">${i + 1}</span>${b.label}</div>
+          <div class="spec-block-content">${(b.content || '').replace(/\n/g, '<br>')}</div>
+        </div>`).join('');
+    }
+  }
+
   function renderGovSection(fd) {
     const section = document.getElementById('sec-gov');
     const grid    = document.getElementById('govGrid');
@@ -253,6 +302,9 @@ const Dashboard = (() => {
     // 진단 분석 섹션 (레이더 차트 + 취약 배너)
     renderDiagSection(fd);
 
+    // 컨설팅 유형별 특화 분석 섹션
+    renderSpecializedSection(data, fd);
+
     // 정부지원사업 매칭 섹션
     renderGovSection(fd);
 
@@ -301,7 +353,7 @@ const Dashboard = (() => {
     });
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록
-    const secIds = ['sec-summary','sec-diag','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-gov'];
+    const secIds = ['sec-summary','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-gov'];
     function onScroll() {
       const offset = 100;
       let activeId = secIds[0];
