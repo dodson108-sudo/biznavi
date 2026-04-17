@@ -839,3 +839,64 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   .dr-nav { flex-direction: column; gap: 12px; }
   .dr-proceed-btn { width: 100%; }
 }
+
+/* ===== BM 확인 화면 (bm-confirm) ===== */
+.bm-confirm-intro {
+  font-size: 14px; color: var(--txt2); line-height: 1.6;
+  margin-bottom: 20px;
+}
+.bmc-industry-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(245,192,48,.08); border: 1px solid rgba(245,192,48,.25);
+  border-radius: 8px; padding: 10px 16px; margin-bottom: 18px;
+}
+.bmc-ind-label { font-size: 12px; color: var(--txt3); white-space: nowrap; }
+.bmc-ind-val   { font-size: 15px; font-weight: 700; color: var(--gold); }
+.bmc-section-title {
+  font-size: 13px; font-weight: 600; color: var(--txt2);
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.bmc-options { display: flex; flex-direction: column; gap: 12px; }
+.bmc-option {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: rgba(15,22,41,0.7); border: 1px solid rgba(42,63,117,0.5);
+  border-radius: 12px; padding: 16px; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.bmc-option:hover { border-color: rgba(245,192,48,.4); background: rgba(245,192,48,.05); }
+.bmc-option input[type="radio"] { margin-top: 3px; accent-color: var(--gold); flex-shrink: 0; }
+.bmc-option.bmc-recommended {
+  border-color: rgba(245,192,48,.5);
+  background: rgba(245,192,48,.07);
+}
+.bmc-option-body { flex: 1; min-width: 0; }
+.bmc-option-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.bmc-option-icon { font-size: 20px; flex-shrink: 0; }
+.bmc-option-name { font-size: 14px; font-weight: 700; color: var(--txt); }
+.bmc-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  background: var(--gold); color: #0A0E1A;
+  border-radius: 20px; padding: 2px 8px; margin-left: auto;
+}
+.bmc-option-desc { font-size: 13px; color: var(--txt2); line-height: 1.55; margin-bottom: 6px; }
+.bmc-option-fit  { font-size: 12px; color: rgba(100,200,120,.8); line-height: 1.4; }
+
+/* 정부지원 멀티셀렉트 */
+.gov-check-group { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.gov-check-item  {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(15,22,41,0.5); border: 1px solid rgba(42,63,117,0.4);
+  border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: border-color .15s;
+}
+.gov-check-item:hover { border-color: rgba(245,192,48,.3); }
+.gov-check-item input[type="checkbox"] { margin-top: 2px; accent-color: var(--gold); flex-shrink: 0; }
+.gov-check-label { font-size: 13px; color: var(--txt); line-height: 1.45; }
+.gov-check-desc  { font-size: 11px; color: var(--txt3); margin-top: 2px; }
+
+@media (max-width: 768px) {
+  .bmc-option { padding: 12px; }
+  .bmc-option-name { font-size: 13px; }
+}

@@ -583,7 +583,7 @@
         </div>
         <div class="form-group">
           <label>업종 *<span class="field-check">✓</span></label>
-          <select id="industry" onchange="Wizard.onIndustryChange()">
+          <select id="industry">
             <option value="">업종 선택</option>
             <option value="제조업">뿌리 제조 및 부품가공업</option>
             <option value="식품/음료">식품 제조 및 가공업</option>
@@ -604,11 +604,8 @@
             <option value="기타">기타</option>
           </select>
         </div>
-        <div class="form-group" id="bm-infer-group">
-          <label>추론된 사업모델 <span style="color:#9BAAC8;font-size:11px">(업종·내용 기반 자동 추론)</span></label>
-          <div id="inferredBmDisplay" class="inferred-bm-display">업종을 선택하면 사업모델이 자동으로 추론됩니다</div>
-          <input type="hidden" id="bizModel" />
-        </div>
+        <input type="hidden" id="bizModel" />
+        <input type="hidden" id="bizModelKey" />
         <div class="form-group">
           <label>설립연도</label>
           <input type="number" id="foundedYear" placeholder="예: 2018" min="1900" max="2099" />
@@ -651,7 +648,18 @@
       </div>
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.showLanding()">← 처음으로</button>
-        <button class="btn btn-gold" onclick="App.goStep(2)">다음 단계 →</button>
+        <button class="btn btn-gold" onclick="App.showBmConfirm()">다음 단계 →</button>
+      </div>
+    </div>
+
+    <!-- BM 확인 화면 (Step 1.5) -->
+    <div id="bm-confirm" class="wiz-card hidden">
+      <h3 class="serif">💼 사업모델 확인 <span class="step-badge">STEP 2 / 5</span></h3>
+      <p class="bm-confirm-intro">입력하신 업종과 사업 내용을 분석했습니다.<br>아래 <strong>추천 사업모델</strong>이 맞으면 그대로 진행하시고, 다르면 다른 항목을 선택해주세요.</p>
+      <div id="bm-confirm-content"></div>
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" onclick="App.backToStep1()">← 업종 변경</button>
+        <button class="btn btn-gold" onclick="App.confirmBm()">이 사업모델로 진행 →</button>
       </div>
     </div>
 
@@ -919,18 +927,35 @@
           <input type="text" id="partnerships" placeholder="예: 회계법인 A사 제휴, 벤더 파트너 5개사, AWS 파트너" />
           <p class="hint">현재 사업에 도움이 되는 파트너·협력사·플랫폼 (없으면 공란)</p>
         </div>
-        <div class="form-group">
-          <label>정부지원사업 관심 분야</label>
-          <select id="govSupport">
-            <option value="">선택 (없으면 생략 가능)</option>
-            <option value="관심 있음 - 디지털 전환">디지털 전환 바우처 (IT 도구 도입 지원)</option>
-            <option value="관심 있음 - R&D">R&D 과제 (기술 개발 자금 지원)</option>
-            <option value="관심 있음 - 수출">수출 지원 (KOTRA·무역보험공사 등)</option>
-            <option value="관심 있음 - 고용">고용 지원 (청년·경력직 채용 장려금)</option>
-            <option value="관심 있음 - 전반">전반적으로 알고 싶음</option>
-            <option value="관심 없음">현재 관심 없음</option>
-          </select>
-          <p class="hint">선택하면 AI가 실행 로드맵에 해당 지원사업 신청 일정을 포함합니다</p>
+        <div class="form-group full">
+          <label>정부지원사업 관심 분야 <span style="font-weight:400;color:var(--txt3)">(복수 선택 가능)</span></label>
+          <div class="gov-check-group">
+            <label class="gov-check-item">
+              <input type="checkbox" name="govSupport" value="디지털 전환 바우처" />
+              <div><div class="gov-check-label">💻 디지털 전환 바우처</div><div class="gov-check-desc">IT 도구·소프트웨어 도입 비용 최대 3천만 원 지원</div></div>
+            </label>
+            <label class="gov-check-item">
+              <input type="checkbox" name="govSupport" value="R&D 과제" />
+              <div><div class="gov-check-label">🔬 R&D 과제</div><div class="gov-check-desc">기술 개발 자금 지원 (중소기업 기술혁신개발사업 등)</div></div>
+            </label>
+            <label class="gov-check-item">
+              <input type="checkbox" name="govSupport" value="수출 지원" />
+              <div><div class="gov-check-label">🌏 수출 지원</div><div class="gov-check-desc">KOTRA·무역보험공사·수출바우처 등 해외 진출 지원</div></div>
+            </label>
+            <label class="gov-check-item">
+              <input type="checkbox" name="govSupport" value="고용 지원" />
+              <div><div class="gov-check-label">👥 고용 지원</div><div class="gov-check-desc">청년·경력직 채용 장려금·일자리 안정 지원금</div></div>
+            </label>
+            <label class="gov-check-item">
+              <input type="checkbox" name="govSupport" value="창업·성장 지원" />
+              <div><div class="gov-check-label">🚀 창업·성장 지원</div><div class="gov-check-desc">TIPS·팁스·예비창업패키지·초기창업패키지</div></div>
+            </label>
+            <label class="gov-check-item">
+              <input type="checkbox" name="govSupport" value="정책 자금 융자" />
+              <div><div class="gov-check-label">💰 정책 자금 융자</div><div class="gov-check-desc">중진공·기업은행 저금리 정책 융자 (운전·시설 자금)</div></div>
+            </label>
+          </div>
+          <p class="hint">선택하면 AI가 실행 로드맵에 해당 지원사업 신청 일정을 포함합니다 (없으면 생략)</p>
         </div>
 
         <!-- ③ 기타 -->

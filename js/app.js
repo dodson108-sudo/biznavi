@@ -13,6 +13,7 @@ const App = (() => {
 
   /* ── SCREEN ── */
   const screens = ['landing', 'wizard', 'loading', 'diag-reveal', 'dashboard'];
+  let _confirmedBmKey = ''; // BM 확인 화면에서 최종 확정된 BM 키
 
   function show(id) {
     const current = screens.find(s => !document.getElementById(s).classList.contains('hidden'));
@@ -87,11 +88,41 @@ const App = (() => {
 
   /* ── WIZARD COORDINATION ── */
   function startWizard() {
-    // API 모달 없이 바로 위저드 시작
     mode = apiKey ? 'real' : 'demo';
     show('wizard');
   }
   function showLanding() { show('landing'); }
+
+  /* BM 확인 화면: Step 1 → BM confirm */
+  function showBmConfirm() {
+    if (!Wizard.validate(1)) return;
+    const industry    = document.getElementById('industry')?.value || '';
+    const industryKey = Wizard.getIndustryKey(industry);
+    const formData    = {
+      products:        document.getElementById('products')?.value        || '',
+      coreStrength:    document.getElementById('coreStrength')?.value    || '',
+      customerProblem: document.getElementById('customerProblem')?.value || '',
+      unfairAdvantage: document.getElementById('unfairAdvantage')?.value || ''
+    };
+    Wizard.populateBmConfirm(industryKey, industry, formData);
+    // bm-confirm은 wizard 카드 안의 div — step 전환 방식으로 처리
+    Wizard.showBmConfirmCard();
+  }
+
+  /* BM 확인 후 Step 2 진행 */
+  function confirmBm() {
+    const selected = document.querySelector('input[name="bmChoice"]:checked');
+    if (!selected) { alert('사업모델을 선택해주세요.'); return; }
+    _confirmedBmKey = selected.value;
+    Wizard.setBmKey(_confirmedBmKey);
+    Wizard.goStep(2);
+  }
+
+  /* BM 확인 → Step 1 복귀 */
+  function backToStep1() {
+    Wizard.hideBmConfirmCard();
+    Wizard.goStep(1);
+  }
 
   function restart() {
     if (!confirm('새로 분석하시겠습니까?\n입력하신 모든 정보를 처음부터 다시 입력해야 합니다.')) return;
@@ -198,7 +229,7 @@ const App = (() => {
     if (wizKeyEl && apiKey) wizKeyEl.value = apiKey;
   }, 200);
 
-  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag };
+  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1 };
 })();
 
 /* ===== LANDING PAGE JS ===== */

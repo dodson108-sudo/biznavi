@@ -205,13 +205,11 @@ const Wizard = (() => {
       return el ? el.value.trim() : '';
     };
     if (step === 1) {
-      if (!get('companyName'))     { alert('회사명을 입력해주세요.');              return false; }
-      if (!get('industry'))        { alert('업종을 선택해주세요.');               return false; }
-      if (!get('products'))        { alert('주요 제품/서비스를 입력해주세요.');    return false; }
-      if (!get('coreStrength'))    { alert('핵심 강점을 입력해주세요.');           return false; }
-      if (!get('customerProblem')) { alert('고객이 겪는 문제를 입력해주세요.');    return false; }
-      // 사업모델 추론 실행 (Step 2 진입 전 최신화)
-      onIndustryChange();
+      if (!get('companyName'))     { alert('회사명을 입력해주세요.');           return false; }
+      if (!get('industry'))        { alert('업종을 선택해주세요.');            return false; }
+      if (!get('products'))        { alert('주요 제품/서비스를 입력해주세요.'); return false; }
+      if (!get('coreStrength'))    { alert('핵심 강점을 입력해주세요.');        return false; }
+      if (!get('customerProblem')) { alert('고객이 겪는 문제를 입력해주세요.'); return false; }
     }
     if (step === 2) {
       const done = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
@@ -1016,7 +1014,7 @@ const Wizard = (() => {
       budget:              g('budget'),
       externalRisk:        g('externalRisk'),
       partnerships:        g('partnerships'),
-      govSupport:          g('govSupport'),
+      govSupport:          Array.from(document.querySelectorAll('input[name="govSupport"]:checked')).map(el => el.value).join(', '),
       notes:               g('notes'),
       diagScores:          diagScores,
     };
@@ -1058,16 +1056,123 @@ const Wizard = (() => {
   function reset() {
     curStep = 1;
     curDiagTab = 'common';
+    _inferredBmKey = '';
     Object.keys(diagScores).forEach(k => delete diagScores[k]);
     updateStepUI(1);
-    // step 카드 가시성 초기화: step1 표시, step2~4 숨김
     const step1 = document.getElementById('step1');
     if (step1) step1.classList.remove('hidden');
-    for (let i = 2; i <= 4; i++) {
-      const el = document.getElementById('step' + i);
+    ['bm-confirm', 'step2', 'step3', 'step4'].forEach(id => {
+      const el = document.getElementById(id);
       if (el) { el.classList.add('hidden'); el.classList.remove('slide-exit', 'slide-enter'); }
-    }
+    });
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange };
+  /* ── BM 확인 화면 관련 ── */
+
+  // 업종 키 반환 (app.js에서 호출)
+  function getIndustryKey(industry) {
+    return INDUSTRY_MAP[industry] || 'etc';
+  }
+
+  // 확정된 BM 키 저장 + hidden input 동기화
+  function setBmKey(key) {
+    _inferredBmKey = key;
+    const hiddenKey   = document.getElementById('bizModelKey');
+    const hiddenLabel = document.getElementById('bizModel');
+    if (hiddenKey)   hiddenKey.value   = key;
+    if (hiddenLabel) hiddenLabel.value = BM_LABELS[key] || key;
+  }
+
+  // BM 확인 카드 표시 (step1 숨기고 bm-confirm 표시)
+  function showBmConfirmCard() {
+    const step1   = document.getElementById('step1');
+    const confirm = document.getElementById('bm-confirm');
+    if (step1)   { step1.classList.add('slide-exit'); setTimeout(() => { step1.classList.add('hidden'); step1.classList.remove('slide-exit'); }, 250); }
+    if (confirm) { setTimeout(() => { confirm.classList.remove('hidden'); confirm.classList.add('slide-enter'); setTimeout(() => confirm.classList.remove('slide-enter'), 400); }, 260); }
+    window.scrollTo(0, 60);
+  }
+
+  // BM 확인 카드 숨기고 step1 복귀
+  function hideBmConfirmCard() {
+    const step1   = document.getElementById('step1');
+    const confirm = document.getElementById('bm-confirm');
+    if (confirm) confirm.classList.add('hidden');
+    if (step1)   step1.classList.remove('hidden');
+    window.scrollTo(0, 60);
+  }
+
+  // BM 확인 화면 내용 채우기
+  function populateBmConfirm(industryKey, industryLabel, formData) {
+    const result    = inferBizModel(industryKey, formData);
+    _inferredBmKey  = result.primary;
+    const candidates = INDUSTRY_BM_MAP[industryKey] || INDUSTRY_BM_MAP['etc'];
+
+    const BM_FULL_DESC = {
+      'b2b_saas':     { name: 'B2B SaaS (기업 대상 구독 소프트웨어)', icon: '☁️',
+        desc: '기업 고객에게 클라우드 소프트웨어를 월정액으로 제공합니다. 한번 도입하면 지속적으로 과금되어 안정적인 반복 수익(MRR)이 생깁니다.',
+        fit:  '지식 서비스·IT개발, 금융·핀테크, 의료·헬스케어, 교육 업종에 가장 많이 나타납니다.' },
+      'b2c_sub':      { name: 'B2C 구독 (소비자 대상 정기 구독)', icon: '🔄',
+        desc: '개인 소비자에게 콘텐츠·제품·서비스를 월정액으로 제공합니다. 고객이 취소하기 전까지 매달 자동 결제됩니다.',
+        fit:  '교육, 미디어·엔터, 패션·뷰티, 식품 구독박스 업종에서 많이 사용됩니다.' },
+      'b2b_solution': { name: 'B2B 솔루션 (기업 맞춤 시스템 공급)', icon: '🏗️',
+        desc: '기업 고객의 요구에 맞는 시스템·소프트웨어를 구축하고 납품합니다. 프로젝트 단위로 수주하거나 유지보수 계약을 맺습니다.',
+        fit:  '건설·인테리어, 지식 서비스·IT, 수출 중소기업, 환경·에너지 업종에 적합합니다.' },
+      'b2c_commerce': { name: 'B2C 커머스 (소비자 직접 판매)', icon: '🛒',
+        desc: '온라인·오프라인을 통해 소비자에게 직접 제품을 판매합니다. 스마트스토어, 쿠팡, 자사몰 등이 대표적입니다.',
+        fit:  '식품 제조·가공, 패션·뷰티, 농림·식품원료, 수출 중소기업 업종에 많습니다.' },
+      'platform':     { name: '플랫폼·마켓플레이스 (중개 수수료)', icon: '🔗',
+        desc: '공급자와 소비자를 연결하고 거래가 발생할 때 수수료를 받습니다. 양면 시장을 키울수록 네트워크 효과로 경쟁우위가 강화됩니다.',
+        fit:  '전문 유통·도소매, 금융·핀테크, 교육, 물류·운송 업종에서 나타납니다.' },
+      'franchise':    { name: '프랜차이즈 (가맹 시스템)', icon: '🏪',
+        desc: '검증된 브랜드와 운영 시스템을 가맹점에 제공하고 가맹비·로열티를 받습니다. 직접 운영 없이 빠른 확산이 가능합니다.',
+        fit:  '외식·음식업, 생활밀착형 서비스, 식품 제조·가공 업종에 주로 나타납니다.' },
+      'mfg_dist':     { name: '제조·유통 (생산 후 도·소매 판매)', icon: '🏭',
+        desc: '직접 제품을 생산하거나 소싱하여 도매·소매 채널을 통해 유통합니다. 마진은 원가와 판매가 차이에서 발생합니다.',
+        fit:  '뿌리 제조·부품가공, 식품 제조, 농림·식품원료, 수출 중소기업 업종의 기본 모델입니다.' },
+      'service':      { name: '서비스업 (전문 용역·서비스 제공)', icon: '🤝',
+        desc: '전문 지식이나 인력을 투입해 고객 문제를 해결하고 건당·시간당·월정액으로 수익을 올립니다.',
+        fit:  '생활밀착형 서비스, 건설·인테리어, 외식, 물류·운송 업종의 가장 일반적인 모델입니다.' },
+      'usage_based':  { name: '종량제·사용량기반 (쓴 만큼 과금)', icon: '📊',
+        desc: '고객이 실제 사용한 만큼만 요금을 냅니다. 초기 진입 장벽이 낮아 고객 확보가 쉽고, 사용량이 늘수록 수익도 증가합니다.',
+        fit:  '지식 서비스·IT, 금융·핀테크, 환경·에너지, 물류·운송 업종에서 나타납니다.' },
+      'advertising':  { name: '광고기반 (콘텐츠·트래픽 수익화)', icon: '📣',
+        desc: '사용자에게 무료로 콘텐츠를 제공하고 광고주로부터 수익을 올립니다. 트래픽(방문자)이 많을수록 광고 단가와 수익이 높아집니다.',
+        fit:  '미디어·엔터테인먼트 업종의 핵심 모델입니다.' },
+      'deeptech':     { name: '딥테크·바이오 (기술 사업화·라이선싱)', icon: '🔬',
+        desc: '원천기술·특허를 개발한 후 라이선싱, 기술이전, 또는 직접 제품화로 수익을 올립니다. 개발 기간이 길지만 성공 시 강력한 진입장벽이 생깁니다.',
+        fit:  '의료·헬스케어, 환경·에너지, 지식 서비스·IT 중 R&D 중심 기업에 해당합니다.' },
+      'etc':          { name: '기타 (복합 수익 구조)', icon: '📋',
+        desc: '위 유형이 명확히 해당되지 않거나, 여러 모델을 혼합한 복합적 수익 구조입니다.',
+        fit:  '업종과 수익 구조를 구체적으로 설명해주시면 AI가 맞춤 분석을 제공합니다.' }
+    };
+
+    const container = document.getElementById('bm-confirm-content');
+    if (!container) return;
+
+    let html = '<div class="bmc-industry-row"><span class="bmc-ind-label">선택 업종</span><span class="bmc-ind-val">' + industryLabel + '</span></div>';
+    html += '<p class="bmc-section-title">이 업종에서 가능한 사업모델을 선택해주세요</p>';
+    html += '<div class="bmc-options">';
+
+    candidates.forEach((bm, idx) => {
+      const info      = BM_FULL_DESC[bm] || BM_FULL_DESC['etc'];
+      const isDefault = (bm === result.primary);
+      html += '<label class="bmc-option' + (isDefault ? ' bmc-recommended' : '') + '">';
+      html += '<input type="radio" name="bmChoice" value="' + bm + '"' + (isDefault ? ' checked' : '') + '>';
+      html += '<div class="bmc-option-body">';
+      html += '<div class="bmc-option-header">';
+      html += '<span class="bmc-option-icon">' + info.icon + '</span>';
+      html += '<span class="bmc-option-name">' + info.name + '</span>';
+      if (isDefault) html += '<span class="bmc-badge">추천</span>';
+      html += '</div>';
+      html += '<p class="bmc-option-desc">' + info.desc + '</p>';
+      html += '<p class="bmc-option-fit">✔ ' + info.fit + '</p>';
+      html += '</div>';
+      html += '</label>';
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm };
 })();
