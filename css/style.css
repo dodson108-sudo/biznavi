@@ -886,15 +886,21 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 
 /* 정부지원 멀티셀렉트 */
 .gov-check-group { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
-.gov-check-item  {
-  display: flex; align-items: flex-start; gap: 10px;
+.gov-check-group .gov-check-item {
+  display: flex !important; align-items: flex-start; gap: 10px;
   background: rgba(15,22,41,0.5); border: 1px solid rgba(42,63,117,0.4);
-  border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: border-color .15s;
+  border-radius: 8px; padding: 10px 14px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+  font-size: 13px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--txt);
+  margin-bottom: 0;
 }
-.gov-check-item:hover { border-color: rgba(245,192,48,.3); }
-.gov-check-item input[type="checkbox"] { margin-top: 2px; accent-color: var(--gold); flex-shrink: 0; }
-.gov-check-label { font-size: 13px; color: var(--txt); line-height: 1.45; }
-.gov-check-desc  { font-size: 11px; color: var(--txt3); margin-top: 2px; }
+.gov-check-group .gov-check-item:hover { border-color: rgba(245,192,48,.3); }
+.gov-check-group .gov-check-item:has(input:checked) {
+  border-color: rgba(245,192,48,.6); background: rgba(245,192,48,.08);
+}
+.gov-check-group .gov-check-item input[type="checkbox"] { margin-top: 3px; accent-color: var(--gold); flex-shrink: 0; width: 15px; height: 15px; }
+.gov-check-label { font-size: 13px; color: var(--txt); line-height: 1.45; font-weight: 600; }
+.gov-check-desc  { font-size: 11px; color: var(--txt3); margin-top: 2px; font-weight: 400; }
 
 @media (max-width: 768px) {
   .bmc-option { padding: 12px; }
