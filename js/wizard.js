@@ -146,7 +146,7 @@ const Wizard = (() => {
     display.innerHTML = html;
   }
 
-  function goStep(n) {
+  function goStep(n, skipValidation) {
     // bm-confirm 화면은 항상 숨기고 이동
     const bmCard = document.getElementById('bm-confirm');
     if (bmCard) bmCard.classList.add('hidden');
@@ -163,7 +163,7 @@ const Wizard = (() => {
       }
     }
 
-    if (n > curStep && !validate(curStep)) return;
+    if (!skipValidation && n > curStep && !validate(curStep)) return;
     if (n === 2) loadDiagnosisUI();
 
     const prevStep = curStep;
