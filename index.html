@@ -704,35 +704,37 @@
           <textarea id="targetCustomer" placeholder="예: 직원 50~300명 규모 중소 제조기업의 생산관리 담당자. 월 학원비 30만원 이상 지출하는 수도권 중위권 고등학생 학부모"></textarea>
         </div>
         <div class="form-group">
-          <label>주요 고객 획득 경로</label>
-          <textarea id="customerAcquisition" placeholder="예: 지인 소개(40%), 블로그/SEO(30%), 유튜브 광고(20%), 전시회(10%)"></textarea>
+          <label>현재 주요 고객 유입 채널 (비중 포함)</label>
+          <textarea id="customerAcquisition" placeholder="예: 지인·소개(40%), 블로그·SEO(30%), 유튜브광고(20%), 전시회(10%)"></textarea>
+          <p class="hint">어떤 경로로 고객이 오는지 + 각 비중. 모르면 주요 2~3가지만 써주세요</p>
         </div>
         <div class="form-group">
-          <label>고객 획득비용(CAC) vs 생애가치(LTV)</label>
-          <input type="text" id="cacLtv" placeholder="예: CAC 30만원 / LTV 300만원 (10배) 또는 미파악" />
-          <p class="hint">모르면 '미파악'이라고 입력하세요. AI가 추정해드립니다.</p>
+          <label>고객 1명 획득비용(CAC) / 고객 평균 매출(LTV)</label>
+          <input type="text" id="cacLtv" placeholder="예: CAC 약 30만원 / LTV 약 300만원 → 10배 / 모름" />
+          <p class="hint">CAC = 신규 고객 1명 유치 비용, LTV = 한 고객이 평생 가져다 주는 매출. 모르면 '모름'으로 입력</p>
         </div>
 
         <!-- ② 시장 규모 -->
-        <div class="wiz-section-title">📊 시장 규모 (TAM / SAM / SOM)</div>
+        <div class="wiz-section-title">📊 시장 규모</div>
         <div class="form-group">
-          <label>TAM — 전체 시장 규모</label>
-          <input type="text" id="tam" placeholder="예: 국내 HR SaaS 시장 약 1조원" />
-          <p class="hint">내가 속한 산업 전체의 시장 크기</p>
+          <label>전체 시장 규모 (TAM)</label>
+          <input type="text" id="tam" placeholder="예: 국내 HR SaaS 시장 약 1조원 / 모름" />
+          <p class="hint">우리 업종·카테고리 전체의 시장 크기 (모르면 '모름')</p>
         </div>
         <div class="form-group">
-          <label>SAM — 실제 접근 가능 시장</label>
-          <input type="text" id="sam" placeholder="예: 직원 50~300명 중소기업 대상 약 2000억원" />
-          <p class="hint">우리가 실제로 공략할 수 있는 범위</p>
+          <label>실제 공략 가능 시장 (SAM)</label>
+          <input type="text" id="sam" placeholder="예: 직원 50~300명 중소기업 대상 약 2000억원 / 모름" />
+          <p class="hint">우리가 실제 타겟할 수 있는 세부 시장 크기</p>
         </div>
         <div class="form-group">
-          <label>SOM — 현실적 점유 목표</label>
-          <input type="text" id="som" placeholder="예: 3년 내 100억원 (SAM의 5%)" />
-          <p class="hint">목표 기간 내 달성 가능한 점유 규모</p>
+          <label>현실적 점유 목표 (SOM)</label>
+          <input type="text" id="som" placeholder="예: 3년 내 매출 100억원 목표 / 모름" />
+          <p class="hint">목표 기간 내 우리가 달성하려는 매출 또는 점유율</p>
         </div>
         <div class="form-group">
-          <label>시장 연 성장률(CAGR)</label>
-          <input type="text" id="marketGrowthRate" placeholder="예: 연 15% 성장 / 정체 / 모름" />
+          <label>시장 성장 추세</label>
+          <input type="text" id="marketGrowthRate" placeholder="예: 연 15% 성장 중 / 정체 / 축소 / 모름" />
+          <p class="hint">우리 시장이 성장하는지, 정체인지, 축소하는지</p>
         </div>
         <div class="form-group full">
           <label>주요 시장 트렌드 (1~2가지)</label>
@@ -887,21 +889,23 @@
           <textarea id="goals" placeholder="예: 12개월 내 MRR 500만원→2000만원 달성. 해지율 8%→3% 이하 유지. 영업 채널 3개 이상 다각화"></textarea>
         </div>
         <div class="form-group">
-          <label>목표 기간</label>
+          <label>목표 달성 기간</label>
           <select id="timeline">
             <option value="">선택</option>
             <option>3개월 (단기)</option><option>6개월</option>
             <option>1년</option><option>2년</option><option>3년 이상</option>
           </select>
+          <p class="hint">위에서 입력한 목표를 달성하려는 기간입니다</p>
         </div>
         <div class="form-group">
-          <label>가용 예산</label>
+          <label>사업 실행 가용 예산</label>
           <select id="budget">
             <option value="">선택</option>
             <option>1000만원 미만</option><option>1000~5000만원</option>
             <option>5000만원~1억원</option><option>1억~5억원</option>
             <option>5억원 이상</option><option>미정</option>
           </select>
+          <p class="hint">마케팅·채용·시스템 등 사업 실행에 투입 가능한 총 예산 (컨설팅 비용 제외)</p>
         </div>
 
         <!-- ② 리스크 및 제약 -->
@@ -913,18 +917,20 @@
         <div class="form-group">
           <label>핵심 파트너십 / 협력사</label>
           <input type="text" id="partnerships" placeholder="예: 회계법인 A사 제휴, 벤더 파트너 5개사, AWS 파트너" />
+          <p class="hint">현재 사업에 도움이 되는 파트너·협력사·플랫폼 (없으면 공란)</p>
         </div>
         <div class="form-group">
-          <label>정부지원사업 관심 여부</label>
+          <label>정부지원사업 관심 분야</label>
           <select id="govSupport">
-            <option value="">선택</option>
-            <option value="관심 있음 - 디지털 전환">관심 있음 — 디지털 전환 바우처</option>
-            <option value="관심 있음 - R&D">관심 있음 — R&D 과제</option>
-            <option value="관심 있음 - 수출">관심 있음 — 수출 지원</option>
-            <option value="관심 있음 - 고용">관심 있음 — 고용 지원</option>
-            <option value="관심 있음 - 전반">관심 있음 — 전반적으로 알고 싶음</option>
+            <option value="">선택 (없으면 생략 가능)</option>
+            <option value="관심 있음 - 디지털 전환">디지털 전환 바우처 (IT 도구 도입 지원)</option>
+            <option value="관심 있음 - R&D">R&D 과제 (기술 개발 자금 지원)</option>
+            <option value="관심 있음 - 수출">수출 지원 (KOTRA·무역보험공사 등)</option>
+            <option value="관심 있음 - 고용">고용 지원 (청년·경력직 채용 장려금)</option>
+            <option value="관심 있음 - 전반">전반적으로 알고 싶음</option>
             <option value="관심 없음">현재 관심 없음</option>
           </select>
+          <p class="hint">선택하면 AI가 실행 로드맵에 해당 지원사업 신청 일정을 포함합니다</p>
         </div>
 
         <!-- ③ 기타 -->

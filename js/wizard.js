@@ -282,8 +282,8 @@ const Wizard = (() => {
     if (bizModelData) renderDiagModule('diag-bizmodel-container', bizModelData);
 
     // ── 업종×사업모델 통합 교차 진단 영역 추가 ──
-    if (typeof CrossContext !== 'undefined' && industry && bizModel) {
-      const crossArea = CrossContext.buildCrossArea(industryKey, bizModelKey, industry, bizModel);
+    if (typeof CrossContext !== 'undefined' && industry && bizModelKey) {
+      const crossArea = CrossContext.buildCrossArea(industryKey, bizModelKey, industry, bizModelLabel);
       renderCrossArea('diag-bizmodel-container', crossArea);
     }
 
@@ -363,7 +363,18 @@ const Wizard = (() => {
     return html;
   }
 
+  // 점수별 기본 설명 (anchors 없는 항목에 공통 적용)
+  const GENERIC_ANCHORS = {
+    1: '🔴 1점 — 매우 미흡. 즉각적인 개선이 필요한 취약 수준입니다.',
+    2: '🟠 2점 — 미흡. 단기 내 보완 계획이 필요합니다.',
+    3: '🟡 3점 — 보통. 업계 평균 수준이나 추가 개선 여지가 있습니다.',
+    4: '🟢 4점 — 양호. 경쟁력 있는 수준으로 강점으로 활용 가능합니다.',
+    5: '🟢 5점 — 우수. 업계 최상위 수준의 핵심 역량입니다.'
+  };
+
   function _renderBars(item, scoreKey, savedScore) {
+    // anchors가 없으면 기본 설명으로 대체
+    const anchors = item.anchors || GENERIC_ANCHORS;
     let html = '<div class="diag-scale">';
     html += '<span class="diag-scale-label">' + (item.min || '') + '</span>';
     html += '<div class="diag-scale-buttons">';
@@ -374,11 +385,9 @@ const Wizard = (() => {
     html += '</div>';
     html += '<span class="diag-scale-label">' + (item.max || '') + '</span>';
     html += '</div>';
-    if (item.anchors) {
-      const initText = savedScore > 0 ? item.anchors[savedScore] : '💡 점수를 선택하면 행동 기준이 표시됩니다';
-      const anchorsEsc = JSON.stringify(item.anchors).replace(/\\/g, '\\\\').replace(/'/g, '&apos;');
-      html += '<div class="bars-anchor-display" id="bars-anchor-' + scoreKey + '" data-anchors=\'' + anchorsEsc + '\'>' + initText + '</div>';
-    }
+    const initText = savedScore > 0 ? anchors[savedScore] : '💡 점수를 선택하면 의미가 표시됩니다';
+    const anchorsEsc = JSON.stringify(anchors).replace(/\\/g, '\\\\').replace(/'/g, '&apos;');
+    html += '<div class="bars-anchor-display" id="bars-anchor-' + scoreKey + '" data-anchors=\'' + anchorsEsc + '\'>' + initText + '</div>';
     return html;
   }
 
