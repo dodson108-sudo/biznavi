@@ -86,6 +86,19 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 /* 특정 필드 배경 강제 고정 (autofill 외 다른 오버라이드 방지) */
 #marketSize,#marketShare{background:rgba(22,32,64,0.8) !important;color:#E8EDF5 !important}
 .hint{font-size:11px;color:var(--txt3);margin-top:5px}
+/* 추론된 사업모델 표시 */
+.inferred-bm-display{
+  background:rgba(245,192,48,.08);border:1px solid rgba(245,192,48,.25);
+  border-radius:8px;padding:11px 14px;font-size:13px;color:var(--txt);
+  min-height:42px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+}
+.bm-tag{
+  background:rgba(245,192,48,.15);border:1px solid rgba(245,192,48,.4);
+  border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;
+  color:var(--gold);white-space:nowrap;
+}
+.bm-tag.primary{background:rgba(245,192,48,.25);border-color:var(--gold)}
+.bm-infer-hint{font-size:11px;color:var(--txt3);margin-top:4px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 /* ===== 위저드 섹션 구분 ===== */
 .wiz-section-title{

@@ -10,35 +10,141 @@ const Wizard = (() => {
   const diagMemos = {};
 
   const INDUSTRY_MAP = {
-    '제조업': 'mfg_parts',
-    '식품/음료': 'food_mfg',
-    '서비스업': 'local_service',
-    '유통/물류': 'wholesale',
+    '제조업':           'mfg_parts',
+    '식품/음료':        'food_mfg',
+    '서비스업':         'local_service',
+    '유통/물류':        'wholesale',
     '외식 및 휴게음식업': 'restaurant',
-    'IT/소프트웨어': 'knowledge_it',
-    '건설/부동산': 'construction',
-    '의료/헬스케어': 'medical',
-    '금융/핀테크': 'finance',
-    '교육': 'education',
-    '패션/뷰티': 'fashion',
+    'IT/소프트웨어':    'knowledge_it',
+    '건설/부동산':      'construction',
+    '의료/헬스케어':    'medical',
+    '금융/핀테크':      'finance',
+    '교육':             'education',
+    '패션/뷰티':        'fashion',
     '미디어/엔터테인먼트': 'media',
-    '기타': 'etc'
+    '수출중소기업':     'export_sme',
+    '물류운송':         'logistics',
+    '환경에너지':       'energy',
+    '농림식품원료':     'agri_food',
+    '기타':             'etc'
   };
 
-  const BIZMODEL_MAP = {
-    'B2B SaaS': 'b2b_saas',
-    'B2C 구독': 'b2c_sub',
-    'B2B 솔루션': 'b2b_solution',
-    'B2C 커머스': 'b2c_commerce',
-    '플랫폼·마켓플레이스': 'platform',
-    '프랜차이즈': 'franchise',
-    '제조·유통': 'mfg_dist',
-    '서비스업': 'service',
-    '기타': 'etc'
+  // 업종 → 현실적으로 가능한 사업모델 후보 (우선순위 순)
+  const INDUSTRY_BM_MAP = {
+    'mfg_parts':     ['mfg_dist', 'b2b_solution', 'service'],
+    'food_mfg':      ['mfg_dist', 'b2c_commerce', 'b2c_sub', 'franchise'],
+    'local_service': ['service', 'franchise', 'b2c_sub'],
+    'wholesale':     ['mfg_dist', 'b2c_commerce', 'platform'],
+    'restaurant':    ['service', 'franchise', 'b2c_commerce'],
+    'knowledge_it':  ['b2b_saas', 'b2b_solution', 'service', 'usage_based'],
+    'construction':  ['service', 'b2b_solution'],
+    'medical':       ['service', 'b2c_sub', 'b2b_saas', 'deeptech'],
+    'finance':       ['b2b_saas', 'platform', 'service', 'usage_based'],
+    'education':     ['b2c_sub', 'b2b_saas', 'service', 'platform'],
+    'fashion':       ['b2c_commerce', 'mfg_dist', 'b2c_sub'],
+    'media':         ['advertising', 'b2c_sub', 'platform'],
+    'export_sme':    ['mfg_dist', 'b2b_solution', 'b2c_commerce'],
+    'logistics':     ['service', 'platform', 'b2b_solution', 'usage_based'],
+    'energy':        ['service', 'b2b_solution', 'mfg_dist', 'usage_based'],
+    'agri_food':     ['mfg_dist', 'b2c_commerce', 'b2c_sub'],
+    'etc':           ['service', 'b2b_solution', 'mfg_dist']
   };
+
+  // BM 키 → 표시 레이블
+  const BM_LABELS = {
+    'b2b_saas':     'B2B SaaS',
+    'b2c_sub':      'B2C 구독',
+    'b2b_solution': 'B2B 솔루션',
+    'b2c_commerce': 'B2C 커머스',
+    'platform':     '플랫폼·마켓플레이스',
+    'franchise':    '프랜차이즈',
+    'mfg_dist':     '제조·유통',
+    'service':      '서비스업',
+    'usage_based':  '종량제·사용량기반',
+    'advertising':  '광고기반',
+    'deeptech':     '딥테크·바이오',
+    'etc':          '기타'
+  };
+
+  // 저장된 추론 결과
+  let _inferredBmKey = '';
 
   // 탭 순서 정의
   const TAB_ORDER = ['common', 'industry', 'bizmodel'];
+
+  /* ── 업종 기반 사업모델 추론 ── */
+  function inferBizModel(industryKey, formData) {
+    const candidates = INDUSTRY_BM_MAP[industryKey] || INDUSTRY_BM_MAP['etc'];
+    if (!candidates || !candidates.length) return { primary: 'service', candidates: ['service'] };
+
+    const products  = (formData.products     || '').toLowerCase();
+    const strength  = (formData.coreStrength || '').toLowerCase();
+    const problem   = (formData.customerProblem || '').toLowerCase();
+    const advantage = (formData.unfairAdvantage || '').toLowerCase();
+    const all = products + ' ' + strength + ' ' + problem + ' ' + advantage;
+
+    // 키워드 → BM 키 점수 부여
+    const signals = {
+      b2b_saas:     ['saas', '구독', 'subscription', 'b2b', '월정액', '소프트웨어', '클라우드', '대시보드', 'api'],
+      b2c_sub:      ['구독', 'membership', '월정액', 'b2c', '정기', '회원권', '넷플릭스'],
+      b2b_solution: ['솔루션', 'erp', 'si', '시스템', 'b2b', '납품', '구축', '맞춤'],
+      b2c_commerce: ['쇼핑몰', '커머스', '이커머스', '판매', '온라인', '직구', '스마트스토어', '쿠팡'],
+      platform:     ['플랫폼', '마켓플레이스', '중개', '연결', '매칭', '앱', '마켓'],
+      franchise:    ['프랜차이즈', '가맹', '직영', '체인', '점포', '매장'],
+      mfg_dist:     ['제조', '생산', '공장', '도매', '유통', 'oem', '납품', '수출', '원자재'],
+      service:      ['서비스', '컨설팅', '대행', '위탁', '용역', '운영', '관리'],
+      usage_based:  ['사용량', '건당', '종량제', 'pay-as', '과금', '건별', '사용한만큼'],
+      advertising:  ['광고', '미디어', '콘텐츠', 'sns', '유튜브', '인플루언서', '뷰어', '트래픽'],
+      deeptech:     ['ai', '딥러닝', '바이오', '신약', '임상', '연구', '특허', '기술이전', '혁신']
+    };
+
+    const scores = {};
+    candidates.forEach(bm => { scores[bm] = 0; });
+    candidates.forEach(bm => {
+      (signals[bm] || []).forEach(kw => {
+        if (all.includes(kw)) scores[bm] += 2;
+      });
+    });
+
+    // 우선순위 순서(INDUSTRY_BM_MAP 인덱스)에 기본 가중치 부여
+    candidates.forEach((bm, idx) => { scores[bm] += (candidates.length - idx); });
+
+    const sorted = candidates.slice().sort((a, b) => (scores[b] || 0) - (scores[a] || 0));
+    return { primary: sorted[0], candidates: sorted.slice(0, Math.min(3, sorted.length)) };
+  }
+
+  function onIndustryChange() {
+    const industry   = document.getElementById('industry')?.value || '';
+    const industryKey = INDUSTRY_MAP[industry] || 'etc';
+    const formData   = {
+      products:        document.getElementById('products')?.value        || '',
+      coreStrength:    document.getElementById('coreStrength')?.value    || '',
+      customerProblem: document.getElementById('customerProblem')?.value || '',
+      unfairAdvantage: document.getElementById('unfairAdvantage')?.value || ''
+    };
+    const result = inferBizModel(industryKey, formData);
+    _inferredBmKey = result.primary;
+
+    // hidden 필드에 표시용 레이블 저장 (buildPrompt 연동)
+    const hiddenBm = document.getElementById('bizModel');
+    if (hiddenBm) hiddenBm.value = BM_LABELS[_inferredBmKey] || _inferredBmKey;
+
+    // 표시 업데이트
+    const display = document.getElementById('inferredBmDisplay');
+    if (!display) return;
+    if (!industry) {
+      display.innerHTML = '업종을 선택하면 사업모델이 자동으로 추론됩니다';
+      return;
+    }
+    let html = '';
+    result.candidates.forEach((bm, idx) => {
+      const label = BM_LABELS[bm] || bm;
+      html += '<span class="bm-tag' + (idx === 0 ? ' primary' : '') + '">' +
+              (idx === 0 ? '★ ' : '') + label + '</span>';
+    });
+    html += '<span class="bm-infer-hint">★ 1순위 적용 · 진단은 자동 연동됩니다</span>';
+    display.innerHTML = html;
+  }
 
   function goStep(n) {
     // STEP 2에서 다음 버튼 클릭 시 탭 순서대로 진행
@@ -99,11 +205,13 @@ const Wizard = (() => {
       return el ? el.value.trim() : '';
     };
     if (step === 1) {
-      if (!get('companyName'))  { alert('회사명을 입력해주세요.');           return false; }
-      if (!get('industry'))     { alert('업종을 선택해주세요.');             return false; }
-      if (!get('bizModel'))     { alert('비즈니스 모델을 선택해주세요.');     return false; }
-      if (!get('products'))     { alert('주요 제품/서비스를 입력해주세요.');  return false; }
-      if (!get('coreStrength')) { alert('핵심 강점 한 줄을 입력해주세요.');  return false; }
+      if (!get('companyName'))     { alert('회사명을 입력해주세요.');              return false; }
+      if (!get('industry'))        { alert('업종을 선택해주세요.');               return false; }
+      if (!get('products'))        { alert('주요 제품/서비스를 입력해주세요.');    return false; }
+      if (!get('coreStrength'))    { alert('핵심 강점을 입력해주세요.');           return false; }
+      if (!get('customerProblem')) { alert('고객이 겪는 문제를 입력해주세요.');    return false; }
+      // 사업모델 추론 실행 (Step 2 진입 전 최신화)
+      onIndustryChange();
     }
     if (step === 2) {
       const done = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
@@ -124,10 +232,11 @@ const Wizard = (() => {
   }
 
   function loadDiagnosisUI() {
-    const industry = document.getElementById('industry')?.value || '';
-    const bizModel = document.getElementById('bizModel')?.value || '';
+    const industry    = document.getElementById('industry')?.value || '';
     const industryKey = INDUSTRY_MAP[industry] || 'etc';
-    const bizModelKey = BIZMODEL_MAP[bizModel] || 'etc';
+    // 추론된 BM 사용 (onIndustryChange가 validate(1)에서 미리 실행됨)
+    const bizModelKey = _inferredBmKey || (INDUSTRY_BM_MAP[industryKey] && INDUSTRY_BM_MAP[industryKey][0]) || 'etc';
+    const bizModelLabel = BM_LABELS[bizModelKey] || bizModelKey;
 
     // 공통 모듈 렌더링
     renderDiagModule('diag-common-container', COMMON_DIAGNOSIS);
@@ -146,6 +255,10 @@ const Wizard = (() => {
       'education':     typeof INDUSTRY_EDUCATION    !== 'undefined' ? INDUSTRY_EDUCATION    : null,
       'fashion':       typeof INDUSTRY_FASHION      !== 'undefined' ? INDUSTRY_FASHION      : null,
       'media':         typeof INDUSTRY_MEDIA        !== 'undefined' ? INDUSTRY_MEDIA        : null,
+      'export_sme':    typeof INDUSTRY_EXPORT_SME   !== 'undefined' ? INDUSTRY_EXPORT_SME   : null,
+      'logistics':     typeof INDUSTRY_LOGISTICS    !== 'undefined' ? INDUSTRY_LOGISTICS    : null,
+      'energy':        typeof INDUSTRY_ENERGY       !== 'undefined' ? INDUSTRY_ENERGY       : null,
+      'agri_food':     typeof INDUSTRY_AGRI_FOOD    !== 'undefined' ? INDUSTRY_AGRI_FOOD    : null,
     };
     const industryData = industryVarMap[industryKey];
     if (industryData) renderDiagModule('diag-industry-container', industryData);
@@ -160,6 +273,9 @@ const Wizard = (() => {
       'franchise':    typeof BIZMODEL_FRANCHISE    !== 'undefined' ? BIZMODEL_FRANCHISE    : null,
       'mfg_dist':     typeof BIZMODEL_MFG_DIST     !== 'undefined' ? BIZMODEL_MFG_DIST     : null,
       'service':      typeof BIZMODEL_SERVICE      !== 'undefined' ? BIZMODEL_SERVICE      : null,
+      'usage_based':  typeof BIZMODEL_USAGE_BASED  !== 'undefined' ? BIZMODEL_USAGE_BASED  : null,
+      'advertising':  typeof BIZMODEL_ADVERTISING  !== 'undefined' ? BIZMODEL_ADVERTISING  : null,
+      'deeptech':     typeof BIZMODEL_DEEPTECH     !== 'undefined' ? BIZMODEL_DEEPTECH     : null,
       'etc':          typeof BIZMODEL_ETC          !== 'undefined' ? BIZMODEL_ETC          : null,
     };
     const bizModelData = bizModelVarMap[bizModelKey];
@@ -172,12 +288,12 @@ const Wizard = (() => {
     }
 
     // 탭 버튼 레이블 동적 업데이트 (업종·사업모델 반영)
-    const indLabel  = industry || '업종';
-    const bizLabel  = bizModel || '사업모델';
+    const indLabel  = industry     || '업종';
+    const bizLabel  = bizModelLabel || '사업모델';
     const tabIndustry = document.getElementById('diagTabBtn-industry');
     const tabBizmodel = document.getElementById('diagTabBtn-bizmodel');
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단';
-    if (tabBizmodel) tabBizmodel.textContent = '💼 ' + bizLabel + ' ✕ 통합 진단';
+    if (tabBizmodel) tabBizmodel.textContent = '💼 ' + bizLabel + ' 진단';
 
     // 진행률 카운터 총 항목 수 동적 갱신
     const totalItems = document.querySelectorAll('.diag-item').length || 52;
@@ -842,14 +958,14 @@ const Wizard = (() => {
     return {
       companyName:     g('companyName'),
       industry:        g('industry'),
-      bizModel:        g('bizModel'),
+      bizModel:        g('bizModel'),   // 추론된 BM 레이블 (hidden input)
+      bizModelKey:     _inferredBmKey,  // 추론된 BM 키
       foundedYear:     g('foundedYear'),
       employees:       g('employees'),
       revenue:         g('revenue'),
       region:          g('region'),
       products:        g('products'),
       coreStrength:    g('coreStrength'),
-      bizStrengths:    g('bizStrengths'),
       customerProblem: g('customerProblem'),
       unfairAdvantage: g('unfairAdvantage'),
       // STEP 3
@@ -944,5 +1060,5 @@ const Wizard = (() => {
     }
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart };
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange };
 })();

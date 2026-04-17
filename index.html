@@ -583,7 +583,7 @@
         </div>
         <div class="form-group">
           <label>업종 *<span class="field-check">✓</span></label>
-          <select id="industry">
+          <select id="industry" onchange="Wizard.onIndustryChange()">
             <option value="">업종 선택</option>
             <option value="제조업">뿌리 제조 및 부품가공업</option>
             <option value="식품/음료">식품 제조 및 가공업</option>
@@ -592,28 +592,22 @@
             <option value="외식 및 휴게음식업">외식 및 휴게음식업</option>
             <option value="IT/소프트웨어">지식 서비스 및 IT개발</option>
             <option value="건설/부동산">소규모 건설 및 인테리어</option>
-            <option value="의료/헬스케어">의료/헬스케어</option>
-            <option value="금융/핀테크">금융/핀테크</option>
-            <option value="교육">교육</option>
-            <option value="패션/뷰티">패션/뷰티</option>
-            <option value="미디어/엔터테인먼트">미디어/엔터테인먼트</option>
+            <option value="의료/헬스케어">의료·헬스케어</option>
+            <option value="금융/핀테크">금융·핀테크</option>
+            <option value="교육">교육·에듀테크</option>
+            <option value="패션/뷰티">패션·뷰티</option>
+            <option value="미디어/엔터테인먼트">미디어·엔터테인먼트</option>
+            <option value="수출중소기업">수출 중소기업 (제조·수출형)</option>
+            <option value="물류운송">물류·운송·택배업</option>
+            <option value="환경에너지">환경·에너지·자원순환</option>
+            <option value="농림식품원료">농림·식품원료·원물가공</option>
             <option value="기타">기타</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>비즈니스 모델 *<span class="field-check">✓</span></label>
-          <select id="bizModel">
-            <option value="">비즈니스 모델 선택</option>
-            <option value="B2B SaaS">B2B SaaS</option>
-            <option value="B2C 구독">B2C 구독</option>
-            <option value="B2B 솔루션">B2B 솔루션</option>
-            <option value="B2C 커머스">B2C 커머스</option>
-            <option value="플랫폼·마켓플레이스">플랫폼·마켓플레이스</option>
-            <option value="프랜차이즈">프랜차이즈</option>
-            <option value="제조·유통">제조·유통</option>
-            <option value="서비스업">서비스업</option>
-            <option value="기타">기타</option>
-          </select>
+        <div class="form-group" id="bm-infer-group">
+          <label>추론된 사업모델 <span style="color:#9BAAC8;font-size:11px">(업종·내용 기반 자동 추론)</span></label>
+          <div id="inferredBmDisplay" class="inferred-bm-display">업종을 선택하면 사업모델이 자동으로 추론됩니다</div>
+          <input type="hidden" id="bizModel" />
         </div>
         <div class="form-group">
           <label>설립연도</label>
@@ -643,20 +637,16 @@
           <textarea id="products" placeholder="예: B2B SaaS 인사관리 솔루션, HR 자동화 플랫폼"></textarea>
         </div>
         <div class="form-group full">
-          <label>핵심 강점 한 줄 요약 *<span class="field-check">✓</span></label>
-          <input type="text" id="coreStrength" placeholder="예: 국내 유일 실시간 재고 AI 자동화 기술 보유" maxlength="60" />
+          <label>우리 제품/서비스의 핵심 강점 *<span class="field-check">✓</span></label>
+          <input type="text" id="coreStrength" placeholder="예: 국내 유일 실시간 재고 AI 자동화 — 오차율 0.1% 이하 보장" maxlength="80" />
         </div>
         <div class="form-group full">
-          <label>핵심 경쟁력</label>
-          <textarea id="bizStrengths" placeholder="예: 독자 AI 알고리즘, 강력한 파트너 네트워크, 특허 기술 3건"></textarea>
+          <label>고객이 겪는 가장 큰 문제 *<span class="field-check">✓</span></label>
+          <textarea id="customerProblem" placeholder="예: 재고 수기 관리로 오차가 잦고 실시간 파악이 불가능해 손실이 발생합니다"></textarea>
         </div>
         <div class="form-group full">
-          <label>고객이 겪는 핵심 문제 *<span class="field-check">✓</span></label>
-          <textarea id="customerProblem" placeholder="예: 재고 관리가 수기로 이루어져 오차 발생 시 손실이 크고, 실시간 파악이 불가능합니다"></textarea>
-        </div>
-        <div class="form-group full">
-          <label>경쟁 우위 (모방 불가 강점)</label>
-          <input type="text" id="unfairAdvantage" placeholder="예: 특허 2건 + 대기업 독점 공급 계약, 5년 이상 축적된 고객 데이터" maxlength="100" />
+          <label>경쟁사가 따라하기 어려운 우리만의 차별화 요소</label>
+          <input type="text" id="unfairAdvantage" placeholder="예: 특허 2건 + 대기업 독점 공급 계약 + 5년 축적 고객 데이터" maxlength="100" />
         </div>
       </div>
       <div class="wiz-nav">
@@ -1240,6 +1230,10 @@
 <script src="js/diagnosis/industry/education.js"></script>
 <script src="js/diagnosis/industry/fashion.js"></script>
 <script src="js/diagnosis/industry/media.js"></script>
+<script src="js/diagnosis/industry/export_sme.js"></script>
+<script src="js/diagnosis/industry/logistics.js"></script>
+<script src="js/diagnosis/industry/energy.js"></script>
+<script src="js/diagnosis/industry/agri_food.js"></script>
 <script src="js/diagnosis/bizmodel/b2b_saas.js"></script>
 <script src="js/diagnosis/bizmodel/b2c_sub.js"></script>
 <script src="js/diagnosis/bizmodel/b2b_solution.js"></script>
@@ -1249,6 +1243,9 @@
 <script src="js/diagnosis/bizmodel/mfg_dist.js"></script>
 <script src="js/diagnosis/bizmodel/service.js"></script>
 <script src="js/diagnosis/bizmodel/etc.js"></script>
+<script src="js/diagnosis/bizmodel/usage_based.js"></script>
+<script src="js/diagnosis/bizmodel/advertising.js"></script>
+<script src="js/diagnosis/bizmodel/deeptech.js"></script>
 <script src="js/diagnosis/cross-context.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ticker.js"></script>
