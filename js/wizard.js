@@ -1023,6 +1023,29 @@ const Wizard = (() => {
     });
   }
 
+  /* ── BM 확인 → Step2 직접 전환 ── */
+  function goToStep2FromBm() {
+    // bm-confirm 숨기기
+    const bmCard = document.getElementById('bm-confirm');
+    if (bmCard) bmCard.classList.add('hidden');
+
+    // 진단 UI 렌더링
+    try { loadDiagnosisUI(); } catch(e) { console.error('loadDiagnosisUI 오류:', e); }
+
+    // 내부 상태 갱신
+    curStep = 2;
+    updateStepUI(2);
+
+    // step2 직접 표시
+    const step2 = document.getElementById('step2');
+    if (step2) {
+      step2.classList.remove('hidden');
+      step2.classList.add('slide-enter');
+      setTimeout(() => step2.classList.remove('slide-enter'), 400);
+    }
+    window.scrollTo(0, 60);
+  }
+
   /* ── BM 확인 화면 관련 ── */
 
   // 업종 키 반환 (app.js에서 호출)
@@ -1130,5 +1153,5 @@ const Wizard = (() => {
     container.innerHTML = html;
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm };
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm };
 })();

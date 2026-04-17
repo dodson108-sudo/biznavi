@@ -116,7 +116,7 @@ const App = (() => {
     if (!selected) { alert('사업모델을 선택해주세요.'); return; }
     _confirmedBmKey = selected.value;
     Wizard.setBmKey(_confirmedBmKey);
-    Wizard.goStep(2, true); // BM 확인 완료 후 진입 — step1 재검증 생략
+    Wizard.goToStep2FromBm();
   }
 
   /* BM 확인 → Step 1 복귀 */
