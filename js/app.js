@@ -315,15 +315,26 @@ const App = (() => {
   /* ── PUBLIC API ── */
   function showApiModal() { showModal(); }
 
-  // URL 해시 기반 개발 단축키 (#dev-2, #dev-3, #dev-dashboard 등)
-  setTimeout(() => {
-    const hash = location.hash;
-    if (!hash.startsWith('#dev-')) return;
-    const target = hash.replace('#dev-', '');
-    const map = { '2': 2, '3': 3, '4': 4, 'dashboard': 'dashboard', 'diag': 'diag' };
-    const t = map[target];
-    if (t !== undefined) devJump(t);
-  }, 500);
+  // 개발용 플로팅 패널 (localhost에서만 표시)
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    setTimeout(() => {
+      const panel = document.createElement('div');
+      panel.id = 'dev-panel';
+      panel.style.cssText = 'position:fixed;bottom:60px;left:8px;z-index:99999;background:#1a1a2e;border:1px solid #F5C030;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:4px;font-size:12px;';
+      const btns = [
+        ['Step 2', 2], ['Step 3', 3], ['Step 4', 4],
+        ['진단유형', 'diag'], ['대시보드', 'dashboard']
+      ];
+      btns.forEach(([label, target]) => {
+        const b = document.createElement('button');
+        b.textContent = '⚡ ' + label;
+        b.style.cssText = 'background:#F5C030;color:#0a0e1a;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-weight:700;font-size:11px;';
+        b.onclick = () => devJump(target);
+        panel.appendChild(b);
+      });
+      document.body.appendChild(panel);
+    }, 600);
+  }
 
   // Init on load
   setTimeout(() => Dashboard.initCountUp(), 400);
