@@ -217,124 +217,8 @@ const App = (() => {
     runAnalysis();
   }
 
-  /* ── DEV SHORTCUT ── */
-  async function devJump(target) {
-    // Step 1 더미 데이터 채우기
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-    set('company',         '테스트회사');
-    set('industry',        'IT/소프트웨어');
-    set('founded',         '2020');
-    set('employees',       '15');
-    set('revenue',         '5억');
-    set('products',        'B2B SaaS 영업관리 솔루션');
-    set('coreStrength',    '쉬운 UI와 빠른 도입');
-    set('customerProblem', '엑셀로 영업 현황을 관리하는 비효율');
-    set('unfairAdvantage', '업계 최저 도입 비용');
-
-    // Step 2 (진단) 더미 점수
-    const fillDiag = () => {
-      const keys = ['common_1_1','common_1_2','common_1_3','common_1_4','common_2_1','common_2_2','common_2_3','common_2_4','common_3_1','common_3_2','common_3_4','common_4_1','common_4_2','common_4_3','common_4_4','common_5_2','common_5_3'];
-      keys.forEach(k => { if (!Wizard.collect().diagScores?.[k]) { const btn = document.querySelector('[data-key="' + k + '"][data-score="3"]'); if (btn) btn.click(); } });
-    };
-
-    // Step 3 더미
-    const fillStep3 = () => {
-      set('targetCustomer',  '영업사원 10명 이상 중소기업 영업팀장');
-      set('competitors',     'Salesforce, 파이프드라이브');
-      set('tam',             '1조');
-      set('sam',             '300억');
-      set('som',             '30억');
-      set('marketGrowth',    '15');
-      set('growthChannel',   '콘텐츠 마케팅, 파트너십');
-      set('cacTarget',       '150');
-      set('ltvTarget',       '600');
-    };
-
-    // Step 4 더미
-    const fillStep4 = () => {
-      set('problems',     '영업 프로세스 표준화 부재, 마케팅-영업 연계 미흡');
-      set('goals',        '12개월 내 MRR 5천만원 달성');
-      set('timeline',     '12');
-      set('budget',       '5000');
-    };
-
-    show('wizard');
-    await new Promise(r => setTimeout(r, 100));
-
-    if (target === 1 || target === 'step1') return;
-
-    // BM 확정
-    Wizard.setBmKey('b2b_saas');
-
-    if (target === 'bm' || target === 'bm-confirm') {
-      const bmCard = document.getElementById('bm-confirm');
-      const s1 = document.getElementById('step1');
-      if (s1) s1.classList.add('hidden');
-      if (bmCard) { bmCard.classList.remove('hidden'); }
-      return;
-    }
-
-    Wizard.goStep(2);
-    await new Promise(r => setTimeout(r, 400));
-    fillDiag();
-    if (target === 2 || target === 'step2') return;
-
-    Wizard.goStep(3);
-    await new Promise(r => setTimeout(r, 300));
-    fillStep3();
-    if (target === 3 || target === 'step3') return;
-
-    Wizard.goStep(4);
-    await new Promise(r => setTimeout(r, 300));
-    fillStep4();
-    if (target === 4 || target === 'step4') return;
-
-    if (target === 'dashboard' || target === 'd') {
-      show('loading');
-      const data = Wizard.collect();
-      const result = await AIEngine.fakeAnalysis(data);
-      _pendingResult = result;
-      _pendingIsDemo = true;
-      const revealInfo = Wizard.showDiagReveal(data);
-      data.consultingType = revealInfo?.primary || '';
-      _pendingData = data;
-      Dashboard.render(result, data, true);
-      show('dashboard');
-    } else if (target === 'diag' || target === 'diag-reveal') {
-      show('loading');
-      const data = Wizard.collect();
-      const result = await AIEngine.fakeAnalysis(data);
-      _pendingResult = result;
-      _pendingIsDemo = true;
-      _pendingData = data;
-      Wizard.showDiagReveal(data);
-      show('diag-reveal');
-    }
-  }
-
   /* ── PUBLIC API ── */
   function showApiModal() { showModal(); }
-
-  // 개발용 플로팅 패널 (localhost에서만 표시)
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-    setTimeout(() => {
-      const panel = document.createElement('div');
-      panel.id = 'dev-panel';
-      panel.style.cssText = 'position:fixed;bottom:60px;left:8px;z-index:99999;background:#1a1a2e;border:1px solid #F5C030;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:4px;font-size:12px;';
-      const btns = [
-        ['Step 2', 2], ['Step 3', 3], ['Step 4', 4],
-        ['진단유형', 'diag'], ['대시보드', 'dashboard']
-      ];
-      btns.forEach(([label, target]) => {
-        const b = document.createElement('button');
-        b.textContent = '⚡ ' + label;
-        b.style.cssText = 'background:#F5C030;color:#0a0e1a;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-weight:700;font-size:11px;';
-        b.onclick = () => devJump(target);
-        panel.appendChild(b);
-      });
-      document.body.appendChild(panel);
-    }, 600);
-  }
 
   // Init on load
   setTimeout(() => Dashboard.initCountUp(), 400);
@@ -345,7 +229,7 @@ const App = (() => {
     if (wizKeyEl && apiKey) wizKeyEl.value = apiKey;
   }, 200);
 
-  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1, devJump };
+  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1 };
 })();
 
 /* ===== LANDING PAGE JS ===== */
