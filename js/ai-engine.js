@@ -502,7 +502,7 @@ ${d.externalRisk ? `- 외부 리스크(${d.externalRisk})에 대한 대응 전�
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 8000,
         system: SYSTEM,
         messages: [
