@@ -147,6 +147,10 @@ const Wizard = (() => {
   }
 
   function goStep(n) {
+    // bm-confirm 화면은 항상 숨기고 이동
+    const bmCard = document.getElementById('bm-confirm');
+    if (bmCard) bmCard.classList.add('hidden');
+
     // STEP 2에서 다음 버튼 클릭 시 탭 순서대로 진행
     if (curStep === 2 && n === 3) {
       if (!validateCurrentTab()) return;
@@ -279,12 +283,6 @@ const Wizard = (() => {
     const bizModelData = bizModelVarMap[bizModelKey];
     if (bizModelData) renderDiagModule('diag-bizmodel-container', bizModelData);
 
-    // ── 업종×사업모델 통합 교차 진단 영역 추가 ──
-    if (typeof CrossContext !== 'undefined' && industry && bizModelKey) {
-      const crossArea = CrossContext.buildCrossArea(industryKey, bizModelKey, industry, bizModelLabel);
-      renderCrossArea('diag-bizmodel-container', crossArea);
-    }
-
     // 탭 버튼 레이블 동적 업데이트 (업종·사업모델 반영)
     const indLabel  = industry     || '업종';
     const bizLabel  = bizModelLabel || '사업모델';
@@ -304,39 +302,6 @@ const Wizard = (() => {
 
     // 저장된 점수 복원
     restoreScores();
-  }
-
-  // 교차 진단 영역 추가 렌더링 (기존 컨테이너에 append)
-  function renderCrossArea(containerId, area) {
-    const container = document.getElementById(containerId);
-    if (!container || !area) return;
-
-    let html = '<div class="diag-cross-area">';
-    html += '<div class="diag-area">';
-    html += '<div class="diag-area-header diag-area-header--cross">';
-    html += '<h4 class="diag-area-title">' + area.title + '</h4>';
-    if (area.description) html += '<p class="diag-area-desc">' + area.description + '</p>';
-    html += '</div>';
-    area.items.forEach(item => {
-      const scoreKey = containerId + '_' + item.id;
-      html += '<div class="diag-item" id="diag-item-' + scoreKey + '">';
-      html += '<div class="diag-item-text">' + item.text + '</div>';
-      html += '<div class="diag-scale">';
-      html += '<span class="diag-scale-label">' + item.min + '</span>';
-      html += '<div class="diag-scale-buttons">';
-      for (let s = 1; s <= 5; s++) {
-        html += '<button class="diag-score-btn" data-key="' + scoreKey + '" data-score="' + s + '" onclick="Wizard.setScore(\'' + scoreKey + '\',' + s + ',this)">' + s + '</button>';
-      }
-      html += '</div>';
-      html += '<span class="diag-scale-label">' + item.max + '</span>';
-      html += '</div>';
-      const savedMemo = diagMemos[scoreKey] || '';
-      html += '<textarea class="diag-memo" placeholder="💬 구체적 상황 메모 (선택)" onchange="Wizard.setMemo(\'' + scoreKey + '\',this.value)">' + savedMemo + '</textarea>';
-      html += '</div>';
-    });
-    html += '</div>';
-    html += '</div>';
-    container.innerHTML += html;
   }
 
   /* ── 타입별 항목 렌더러 ── */
@@ -584,20 +549,11 @@ const Wizard = (() => {
   }
 
   /* ── mixed(체크박스) 핸들러 ── */
-  function setMixed(key, changedCb) {
+  function setMixed(key) {
     const container = document.getElementById('mix-' + key);
     if (!container) return;
     const noneVal = container.dataset.none || '';
     const cbs = container.querySelectorAll('input[type="checkbox"]');
-
-    // none 값과 일반 값 상호 배제
-    if (changedCb.checked) {
-      if (changedCb.value === noneVal) {
-        cbs.forEach(cb => { if (cb !== changedCb) cb.checked = false; });
-      } else {
-        cbs.forEach(cb => { if (cb.value === noneVal) cb.checked = false; });
-      }
-    }
 
     const selected = Array.from(cbs).filter(cb => cb.checked).map(cb => cb.value);
     const noneOnly = selected.length === 1 && selected[0] === noneVal;
@@ -1153,7 +1109,7 @@ const Wizard = (() => {
     html += '<p class="bmc-section-title">이 업종에서 가능한 사업모델을 선택해주세요</p>';
     html += '<div class="bmc-options">';
 
-    candidates.forEach((bm, idx) => {
+    candidates.forEach(bm => {
       const info      = BM_FULL_DESC[bm] || BM_FULL_DESC['etc'];
       const isDefault = (bm === result.primary);
       html += '<label class="bmc-option' + (isDefault ? ' bmc-recommended' : '') + '">';
