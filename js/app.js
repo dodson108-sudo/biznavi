@@ -315,6 +315,16 @@ const App = (() => {
   /* ── PUBLIC API ── */
   function showApiModal() { showModal(); }
 
+  // URL 해시 기반 개발 단축키 (#dev-2, #dev-3, #dev-dashboard 등)
+  setTimeout(() => {
+    const hash = location.hash;
+    if (!hash.startsWith('#dev-')) return;
+    const target = hash.replace('#dev-', '');
+    const map = { '2': 2, '3': 3, '4': 4, 'dashboard': 'dashboard', 'diag': 'diag' };
+    const t = map[target];
+    if (t !== undefined) devJump(t);
+  }, 500);
+
   // Init on load
   setTimeout(() => Dashboard.initCountUp(), 400);
   setTimeout(() => Dashboard.initInputChecks(), 100);
