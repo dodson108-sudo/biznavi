@@ -1,10 +1,52 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-14 최신)
+## 배포 상태 (2026-04-17 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: B-3 단계별 실행 가이드 구조화 (로드맵 프레임워크 배지 + 린 캔버스)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 16개 업종 + 12개 사업모델 자동추론 시스템 구축
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-17)
+
+### 16개 업종 + 12개 사업모델 자동추론 시스템
+
+#### index.html (Step 1 재설계)
+- 업종 드롭다운: 12개 → 16개 (수출중소기업·물류운송·환경에너지·농림식품원료 추가)
+- 비즈니스모델 드롭다운 **제거** → 추론 결과 표시 div (`#inferredBmDisplay`) + hidden input (`#bizModel`) 로 전환
+- `onchange="Wizard.onIndustryChange()"` 업종 선택 시 즉시 BM 추론·표시
+- 중복 질문 4개 → 3개로 정리:
+  - 삭제: `bizStrengths` (핵심 경쟁력 textarea — coreStrength와 중복)
+  - 유지/재명명: `coreStrength` / `customerProblem` / `unfairAdvantage`
+- script 태그 7개 추가 (신규 진단 파일)
+
+#### js/wizard.js
+- `INDUSTRY_MAP`: 16개 업종 키 매핑 (export_sme / logistics / energy / agri_food 추가)
+- `BIZMODEL_MAP` **삭제** (미사용 — BM_LABELS로 대체)
+- `INDUSTRY_BM_MAP`: 16개 업종 → 현실적 BM 후보 목록 (불가능한 조합 자동 제외)
+- `BM_LABELS`: BM 키 → 한국어 표시 레이블
+- `inferBizModel(industryKey, formData)`: 키워드 매칭 + 우선순위 기반 BM 추론
+- `onIndustryChange()`: 업종 변경 시 BM 추론 실행 + UI 업데이트
+- `validate(1)`: `bizModel` 필수 검사 제거, `customerProblem` 필수 추가, 이동 전 `onIndustryChange()` 실행
+- `collect()`: `bizStrengths` 제거, `bizModelKey` 추가 (추론된 BM 키)
+- `loadDiagnosisUI()`: `_inferredBmKey` 기반 BM 진단 로드, 4개 신규 업종 변수 추가
+- 신규 BM 변수 3개 (`BIZMODEL_USAGE_BASED` / `BIZMODEL_ADVERTISING` / `BIZMODEL_DEEPTECH`) 추가
+- 공개 API: `onIndustryChange` 추가
+
+#### 신규 진단 파일 (4 업종 + 3 BM = 7개)
+- `js/diagnosis/industry/export_sme.js` — 수출 중소기업 (바이어 다각화·인증·환율·수출지원)
+- `js/diagnosis/industry/logistics.js` — 물류·운송 (가동률·네트워크·안전·TMS)
+- `js/diagnosis/industry/energy.js` — 환경·에너지 (수주·인허가·정책금융·Backlog)
+- `js/diagnosis/industry/agri_food.js` — 농림·식품원료 (원물조달·HACCP·가공·판로)
+- `js/diagnosis/bizmodel/usage_based.js` — 종량제·사용량기반 (미터링·NRR·가격구조)
+- `js/diagnosis/bizmodel/advertising.js` — 광고기반 (MAU·CPM·콘텐츠·수익다각화)
+- `js/diagnosis/bizmodel/deeptech.js` — 딥테크·바이오 (특허·TRL·런웨이·사업화)
+
+#### css/style.css
+- `.inferred-bm-display`: 추론 결과 표시 컨테이너 (골드 테두리 배경)
+- `.bm-tag` / `.bm-tag.primary`: BM 후보 태그 (1순위 골드 강조)
+- `.bm-infer-hint`: 안내 텍스트
 
 ---
 
