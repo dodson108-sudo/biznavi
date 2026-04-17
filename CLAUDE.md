@@ -2,13 +2,22 @@
 
 ## 배포 상태 (2026-04-18 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 정부지원 체크박스 버그 수정 + 전문용어 쉬운 한국어 개선
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: AI API 모델 ID 수정 (claude-3-5-sonnet-20241022)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-18)
+
+### AI API 모델 ID 수정
+
+#### js/ai-engine.js
+- `model: 'claude-sonnet-4-6'` → `'claude-3-5-sonnet-20241022'` 로 변경
+- 원인: `claude-sonnet-4-6`은 Claude Code 내부 전용 ID — 일반 Anthropic API 계정으로 호출 시 "invalid x-api-key" 오류 발생
+- `claude-3-5-sonnet-20241022` (Claude 3.5 Sonnet): 모든 일반 API 계정에서 사용 가능한 정식 모델 ID
+
+---
 
 ### 버그 수정 + 진단 문항 품질 개선
 
