@@ -89,6 +89,7 @@ const App = (() => {
   /* ── WIZARD COORDINATION ── */
   function startWizard() {
     mode = apiKey ? 'real' : 'demo';
+    Wizard.reset();
     show('wizard');
   }
   function showLanding() { show('landing'); }

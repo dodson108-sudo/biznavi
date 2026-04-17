@@ -1053,7 +1053,7 @@ const Wizard = (() => {
     const step1   = document.getElementById('step1');
     const confirm = document.getElementById('bm-confirm');
     if (confirm) confirm.classList.add('hidden');
-    if (step1)   step1.classList.remove('hidden');
+    if (step1)   { step1.classList.remove('hidden', 'slide-exit'); }
     window.scrollTo(0, 60);
   }
 
