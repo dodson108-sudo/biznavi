@@ -1,10 +1,40 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-17 최신)
+## 배포 상태 (2026-04-18 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 16개 업종 + 12개 사업모델 자동추론 시스템 구축
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 정부지원 체크박스 버그 수정 + 전문용어 쉬운 한국어 개선
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-18)
+
+### 버그 수정 + 진단 문항 품질 개선
+
+#### css/style.css
+- `.gov-check-group .gov-check-item` 선택자 특이도 강화 (`display:flex !important`) — `.form-group label { display:block }` 과 충돌로 정부지원 체크박스 레이아웃 깨지던 버그 수정
+- 체크박스 선택 시 골드 테두리·배경 시각 피드백 추가 (`:has(input:checked)`)
+
+#### js/wizard.js
+- `loadDiagnosisUI()` 내 `COMMON_DIAGNOSIS` 직접 참조 → `typeof` 가드로 변경 (ReferenceError 방어)
+
+#### js/app.js
+- `devJump` 함수 및 localhost 개발 플로팅 패널 제거
+- `startWizard()`에 `Wizard.reset()` 추가 (재진입 시 Step1 미표시 버그 수정)
+- `confirmBm()` → `Wizard.goToStep2FromBm()` 전용 함수로 교체 (BM 확인 후 빈 화면 버그 수정)
+
+#### js/diagnosis/industry/mfg_parts.js — 전면 재작성
+- COPQ (Cost of Poor Quality: 불량 손실비), MTBF (Mean Time Between Failures: 평균 고장 간격), SMED (Single Minute Exchange of Die: 신속 교체법), 치공구(Jig), 가치사슬 위치(Tier) 등 **모든 전문용어 풀네이밍 + 쉬운 설명**으로 교체
+- 전 항목에 `type: "bars"` + 5단계 `anchors` (구체적 현장 상황 설명) 추가
+
+#### js/diagnosis/industry/food_mfg.js — 전면 재작성
+- HACCP (식품안전관리인증기준), CCP (핵심 관리 지점), FIFO (선입선출), 콜드체인 등 전문용어 쉬운 설명으로 교체
+- 전 항목에 `type: "bars"` + 5단계 `anchors` 추가
+
+#### js/diagnosis/industry/knowledge_it.js — 전면 재작성
+- M/M (공수: 1명이 1개월 일하는 업무량), Scope Creep (계약 외 추가 업무 범위 확대), MRR (월 반복 매출: Monthly Recurring Revenue), SOP (표준 업무 절차서) 등 전문용어 풀네이밍 + 쉬운 설명
+- 전 항목에 `type: "bars"` + 5단계 `anchors` 추가
 
 ---
 
