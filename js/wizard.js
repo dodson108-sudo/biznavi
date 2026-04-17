@@ -241,7 +241,7 @@ const Wizard = (() => {
     const bizModelLabel = BM_LABELS[bizModelKey] || bizModelKey;
 
     // 공통 모듈 렌더링
-    renderDiagModule('diag-common-container', COMMON_DIAGNOSIS);
+    renderDiagModule('diag-common-container', typeof COMMON_DIAGNOSIS !== 'undefined' ? COMMON_DIAGNOSIS : null);
 
     // 업종 특화 모듈 렌더링
     const industryVarMap = {
