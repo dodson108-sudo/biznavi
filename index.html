@@ -623,6 +623,14 @@
           <input type="text" id="revenue" placeholder="예: 10억 / 비공개" />
         </div>
         <div class="form-group">
+          <label>사업 규모 *<span class="field-check">✓</span></label>
+          <select id="bizScale">
+            <option value="">규모 선택</option>
+            <option value="micro">소상공인 (직원 5명 이하 / 연매출 10억 미만)</option>
+            <option value="sme">소기업·중소기업 (직원 6명 이상 또는 연매출 10억 이상)</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>사업 지역</label>
           <select id="region">
             <option value="">선택</option>
@@ -1119,20 +1127,9 @@
     <!-- 사이드바 + 콘텐츠 -->
     <div class="dash-layout">
 
-      <!-- 좌측 목차 네비게이션 -->
+      <!-- 좌측 목차 네비게이션 (JS가 동적으로 생성) -->
       <nav class="report-nav" id="reportNav">
         <div class="report-nav-title">목차</div>
-        <a href="#sec-summary"  class="nav-link active"><span class="nav-dot"></span>Executive Summary</a>
-        <a href="#sec-diag"       class="nav-link"><span class="nav-dot"></span>경영 진단</a>
-        <a href="#sec-consulting" class="nav-link"><span class="nav-dot"></span>유형별 특화 분석</a>
-        <a href="#sec-swot"       class="nav-link"><span class="nav-dot"></span>SWOT 분석</a>
-        <a href="#sec-stp"      class="nav-link"><span class="nav-dot"></span>STP 분석</a>
-        <a href="#sec-4p"       class="nav-link"><span class="nav-dot"></span>4P 마케팅</a>
-        <a href="#sec-strategy" class="nav-link"><span class="nav-dot"></span>핵심 전략</a>
-        <a href="#sec-kpi"      class="nav-link"><span class="nav-dot"></span>KPI 지표</a>
-        <a href="#sec-roadmap"     class="nav-link"><span class="nav-dot"></span>실행 로드맵</a>
-        <a href="#sec-lean-canvas" class="nav-link"><span class="nav-dot"></span>린 캔버스</a>
-        <a href="#sec-gov"         class="nav-link"><span class="nav-dot"></span>정부지원사업</a>
       </nav>
 
       <!-- 우측 리포트 콘텐츠 -->
@@ -1225,6 +1222,26 @@
           </div>
           <p class="lc-intro">고객 문제·해결책·가치 제안·수익 구조를 한눈에 파악할 수 있는 비즈니스 모델 요약입니다.</p>
           <div class="lc-grid" id="leanCanvasGrid"></div>
+        </div>
+
+        <!-- 도널드 밀러 6가지 비즈니스 시스템 (소상공인 모드) -->
+        <div class="section-card reveal" id="sec-six-systems" style="display:none">
+          <div class="sec-title">
+            <h3 class="serif">도널드 밀러 6가지 비즈니스 시스템</h3>
+            <span class="badge">사업 체질 개선</span>
+          </div>
+          <p class="six-sys-intro">건강한 사업체는 6가지 핵심 시스템이 유기적으로 작동합니다. 각 시스템의 현재 상태를 진단하고, 즉시 실행 가능한 개선 액션을 제시합니다.</p>
+          <div class="six-sys-grid" id="sixSysGrid"></div>
+        </div>
+
+        <!-- 90일 즉시 실행 플랜 (소상공인 모드) -->
+        <div class="section-card reveal" id="sec-plan90" style="display:none">
+          <div class="sec-title">
+            <h3 class="serif">90일 즉시 실행 플랜</h3>
+            <span class="badge">액션 플랜</span>
+          </div>
+          <p class="plan90-intro">지금 당장 실행에 옮길 수 있는 3개월 단계별 실행 계획입니다. 각 월별 핵심 과제와 기대 성과를 구체적으로 제시합니다.</p>
+          <div class="plan90-timeline" id="plan90Timeline"></div>
         </div>
 
         <!-- 정부지원사업 매칭 -->

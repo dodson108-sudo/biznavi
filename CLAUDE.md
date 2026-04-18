@@ -1,25 +1,57 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-18 최신)
+## 배포 상태 (2026-04-17 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: AI API 모델 ID 수정 (claude-3-5-sonnet-20241022)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 소상공인/소기업 이분법 대시보드 모드 분리 구현
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
-## 최근 수정 이력 (2026-04-18)
+## 최근 수정 이력 (2026-04-17)
 
-### AI API 모델 ID 수정
+### 소상공인/소기업 이분법 대시보드 모드 분리 구현
 
-#### js/ai-engine.js
-- `model: 'claude-sonnet-4-6'` → `'claude-3-5-sonnet-20241022'` 로 변경
-- 원인: `claude-sonnet-4-6`은 Claude Code 내부 전용 ID — 일반 Anthropic API 계정으로 호출 시 "invalid x-api-key" 오류 발생
-- `claude-3-5-sonnet-20241022` (Claude 3.5 Sonnet): 모든 일반 API 계정에서 사용 가능한 정식 모델 ID
+#### 개요
+- Step 1에 `bizScale` 선택 필드 추가 (소상공인 / 소기업·중소기업)
+- 선택한 규모에 따라 대시보드 목차·섹션 완전히 다르게 렌더링
+- **소상공인 모드**: 비즈니스 캔버스 + 도널드 밀러 6가지 시스템 + 90일 즉시 실행 플랜 중심
+- **소기업·중소기업 모드**: 기존 SWOT/STP/4P/핵심전략/KPI/실행로드맵 + 6가지 시스템/90일 플랜 추가
+
+#### index.html
+- Step 1 `employees`/`revenue` 아래 `bizScale` select 추가 (소상공인 / 소기업·중소기업, 필수)
+- `#reportNav` 내 정적 링크 제거 → JS 동적 생성으로 전환
+- `#sec-six-systems` 섹션 추가 (도널드 밀러 6가지 비즈니스 시스템)
+- `#sec-plan90` 섹션 추가 (90일 즉시 실행 플랜)
+
+#### wizard.js
+- `validate(1)`: `bizScale` 미선택 시 alert 추가
+- `collect()`: `bizScale: g('bizScale')` 수집 추가
+
+#### ai-engine.js
+- SYSTEM 프롬프트: `bizScale` 기준 모드 분기 지침 추가
+  - `micro` (소상공인): `sixSystems`·`plan90days` 최우선 집중 작성
+  - `sme` (소기업): 기존 전략 프레임워크 풍부하게 작성
+- JSON 템플릿에 `sixSystems` 6개 (리더십·마케팅·판매·제품·운영·재무) + `plan90days` 3개 (월별 액션 플랜) 구조 추가
+- `buildPrompt()`: 사업 규모 항목 추가
+- `fakeAnalysis()`: 두 모드 모두 풍부한 `sixSystems`·`plan90days` 데모 데이터 생성
+
+#### dashboard.js
+- `buildNav(isMicro)`: 모드별 동적 목차 생성 함수 추가
+- `renderSixSystems(data)`: 6가지 시스템 카드 렌더링 (상태 배지 + issue + 액션 3개 + 추천 자원)
+- `renderPlan90(data)`: 90일 플랜 타임라인 렌더링 (월별 목표·액션·기대효과·지원사업)
+- `render()`: `fd.bizScale` 기반 섹션 표시/숨김 제어, 소상공인 모드 시 린 캔버스 → 비즈니스 캔버스로 타이틀 변경
+- `initScrollReveal()`: 표시된 섹션만 스크롤 스파이에 포함
+
+#### css/dashboard.css
+- `.mode-badge-inline`: 모드 표시 초록 뱃지
+- `.six-sys-grid`, `.sys-card`, `.sys-status-*`: 6가지 시스템 카드 2열 그리드
+- `.plan90-timeline`, `.plan90-month`, `.plan90-num`: 타임라인 레이아웃 (세로 골드 라인 + 번호 원형)
+- 모바일(768px): `.six-sys-grid` 1열, `.plan90-timeline` 컴팩트 축소
 
 ---
 
-### 버그 수정 + 진단 문항 품질 개선
+### AI API 모델 ID 수정 + 버그 수정 + 진단 문항 품질 개선
 
 #### css/style.css
 - `.gov-check-group .gov-check-item` 선택자 특이도 강화 (`display:flex !important`) — `.form-group label { display:block }` 과 충돌로 정부지원 체크박스 레이아웃 깨지던 버그 수정

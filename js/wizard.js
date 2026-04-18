@@ -211,6 +211,7 @@ const Wizard = (() => {
     if (step === 1) {
       if (!get('companyName'))     { alert('회사명을 입력해주세요.');           return false; }
       if (!get('industry'))        { alert('업종을 선택해주세요.');            return false; }
+      if (!get('bizScale'))        { alert('사업 규모를 선택해주세요.');        return false; }
       if (!get('products'))        { alert('주요 제품/서비스를 입력해주세요.'); return false; }
       if (!get('coreStrength'))    { alert('핵심 강점을 입력해주세요.');        return false; }
       if (!get('customerProblem')) { alert('고객이 겪는 문제를 입력해주세요.'); return false; }
@@ -921,6 +922,7 @@ const Wizard = (() => {
     return {
       companyName:     g('companyName'),
       industry:        g('industry'),
+      bizScale:        g('bizScale'),   // 'micro' | 'sme'
       bizModel:        g('bizModel'),   // 추론된 BM 레이블 (hidden input)
       bizModelKey:     _inferredBmKey,  // 추론된 BM 키
       foundedYear:     g('foundedYear'),

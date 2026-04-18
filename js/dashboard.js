@@ -106,6 +106,114 @@ const Dashboard = (() => {
     }
   }
 
+  // ── 동적 목차 네비게이션 생성 ─────────────────────────────────
+  function buildNav(isMicro) {
+    const nav = document.getElementById('reportNav');
+    if (!nav) return;
+
+    const links = isMicro ? [
+      { href: 'sec-summary',      label: 'Executive Summary' },
+      { href: 'sec-diag',         label: '경영 진단' },
+      { href: 'sec-lean-canvas',  label: '비즈니스 캔버스' },
+      { href: 'sec-six-systems',  label: '6가지 시스템' },
+      { href: 'sec-plan90',       label: '90일 실행 플랜' },
+      { href: 'sec-gov',          label: '정부지원사업' },
+    ] : [
+      { href: 'sec-summary',      label: 'Executive Summary' },
+      { href: 'sec-diag',         label: '경영 진단' },
+      { href: 'sec-consulting',   label: '유형별 특화 분석' },
+      { href: 'sec-swot',         label: 'SWOT 분석' },
+      { href: 'sec-stp',          label: 'STP 분석' },
+      { href: 'sec-4p',           label: '4P 마케팅' },
+      { href: 'sec-strategy',     label: '핵심 전략' },
+      { href: 'sec-kpi',          label: 'KPI 지표' },
+      { href: 'sec-roadmap',      label: '실행 로드맵' },
+      { href: 'sec-lean-canvas',  label: '린 캔버스' },
+      { href: 'sec-six-systems',  label: '6가지 시스템' },
+      { href: 'sec-plan90',       label: '90일 플랜' },
+      { href: 'sec-gov',          label: '정부지원사업' },
+    ];
+
+    nav.innerHTML = '<div class="report-nav-title">목차</div>' +
+      links.map((l, i) =>
+        `<a href="#${l.href}" class="nav-link${i === 0 ? ' active' : ''}"><span class="nav-dot"></span>${l.label}</a>`
+      ).join('');
+
+    // 클릭 이벤트 바인딩
+    nav.querySelectorAll('.nav-link').forEach(a => {
+      a.onclick = (e) => {
+        e.preventDefault();
+        const target = document.getElementById(a.getAttribute('href').slice(1));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    });
+  }
+
+  // ── 6가지 시스템 섹션 렌더링 ─────────────────────────────────
+  function renderSixSystems(data) {
+    const section = document.getElementById('sec-six-systems');
+    const grid    = document.getElementById('sixSysGrid');
+    if (!section || !grid) return;
+
+    const systems = data.sixSystems;
+    if (!systems || systems.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    const statusCls = s =>
+      s === '강점' ? 'sys-status-strong' :
+      s === '보통' ? 'sys-status-ok' : 'sys-status-weak';
+    const statusIcon = s =>
+      s === '강점' ? '💪' : s === '보통' ? '⚡' : '⚠️';
+
+    grid.innerHTML = systems.map(sys => `
+      <div class="sys-card">
+        <div class="sys-card-header">
+          <span class="sys-icon">${sys.icon || ''}</span>
+          <span class="sys-name">${sys.name}</span>
+          <span class="sys-status ${statusCls(sys.status)}">${statusIcon(sys.status)} ${sys.status}</span>
+        </div>
+        <div class="sys-issue">${(sys.issue || '').replace(/\n/g, '<br>')}</div>
+        <div class="sys-actions-title">즉시 실행 액션</div>
+        <ol class="sys-actions">
+          ${(sys.actions || []).map(a => `<li>${a}</li>`).join('')}
+        </ol>
+        ${sys.resource ? `<div class="sys-resource">📌 ${sys.resource}</div>` : ''}
+      </div>`).join('');
+  }
+
+  // ── 90일 실행 플랜 섹션 렌더링 ───────────────────────────────
+  function renderPlan90(data) {
+    const section  = document.getElementById('sec-plan90');
+    const timeline = document.getElementById('plan90Timeline');
+    if (!section || !timeline) return;
+
+    const plan = data.plan90days;
+    if (!plan || plan.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    timeline.innerHTML = plan.map((month, i) => `
+      <div class="plan90-month">
+        <div class="plan90-num-wrap">
+          <span class="plan90-num">${i + 1}</span>
+        </div>
+        <div class="plan90-body">
+          <div class="plan90-month-top">
+            <span class="plan90-month-label">${month.month}</span>
+            <span class="plan90-theme">${month.theme || ''}</span>
+          </div>
+          <div class="plan90-goal">🎯 <strong>이달 목표:</strong> ${month.goal || ''}</div>
+          <div class="plan90-actions-title">핵심 실행 과제</div>
+          <ul class="plan90-actions">
+            ${(month.actions || []).map(a => `<li>${a}</li>`).join('')}
+          </ul>
+          <div class="plan90-meta">
+            ${month.expectedResult ? `<div class="plan90-result">✅ <strong>기대 효과:</strong> ${month.expectedResult}</div>` : ''}
+            ${month.govSupport    ? `<div class="plan90-gov">🏛️ <strong>활용 지원사업:</strong> ${month.govSupport}</div>` : ''}
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
   function renderGovSection(fd) {
     const section = document.getElementById('sec-gov');
     const grid    = document.getElementById('govGrid');
@@ -263,85 +371,120 @@ const Dashboard = (() => {
   }
 
   function render(data, fd, isDemo) {
+    const isMicro = fd.bizScale === 'micro';
+
+    // 동적 목차 생성
+    buildNav(isMicro);
+
+    // 소기업 모드 전용 섹션 표시 제어
+    const smeOnly = ['sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap'];
+    smeOnly.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isMicro ? 'none' : '';
+    });
+
+    // 소상공인 모드에서는 린 캔버스를 비즈니스 캔버스로 타이틀 변경
+    const lcTitle = document.querySelector('#sec-lean-canvas .sec-title h3');
+    if (lcTitle) lcTitle.textContent = isMicro ? '비즈니스 캔버스' : '린 캔버스 (Lean Canvas)';
+
     document.getElementById('dTitle').textContent = (fd.companyName || '기업') + ' 경영전략 분석 리포트';
     const dateStr = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
+    const modeBadge = isMicro ? '🏪 소상공인 모드' : '🏢 소기업·중소기업 모드';
     const badgeCls = isDemo ? 'demo-badge-inline' : 'real-badge-inline';
     const badgeTxt = isDemo ? '📊 DEMO DATA' : '🤖 AI 분석';
     document.getElementById('dSub').innerHTML =
-      '분석일: ' + dateStr + ' &nbsp;<span class="' + badgeCls + '">' + badgeTxt + '</span>';
+      '분석일: ' + dateStr + ' &nbsp;<span class="mode-badge-inline">' + modeBadge + '</span>&nbsp;<span class="' + badgeCls + '">' + badgeTxt + '</span>';
     document.getElementById('demoBadge').classList.add('hidden');
 
     // Executive Summary
     document.getElementById('execSummary').innerHTML =
       data.executiveSummary.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-    // SWOT
-    const ul = (id, arr) => {
-      document.getElementById(id).innerHTML = arr.map(t =>
+    // SWOT (항상 렌더링 — 소상공인 모드에선 섹션 자체가 hidden)
+    const renderSwotList = (id, arr) => {
+      const el = document.getElementById(id);
+      if (!el || !arr) return;
+      el.innerHTML = arr.map(t =>
         typeof t === 'object'
           ? `<li><strong>${t.item}</strong>${t.evidence ? `<span class="swot-evidence">${t.evidence}</span>` : ''}</li>`
           : `<li>${t}</li>`
       ).join('');
     };
-    ul('swotS', data.swot.strengths);
-    ul('swotW', data.swot.weaknesses);
-    ul('swotO', data.swot.opportunities);
-    ul('swotT', data.swot.threats);
+    renderSwotList('swotS', data.swot?.strengths);
+    renderSwotList('swotW', data.swot?.weaknesses);
+    renderSwotList('swotO', data.swot?.opportunities);
+    renderSwotList('swotT', data.swot?.threats);
 
     // STP
-    document.getElementById('stpS').textContent = data.stp.segmentation;
-    document.getElementById('stpT').textContent = data.stp.targeting;
-    document.getElementById('stpP').textContent = data.stp.positioning;
+    if (data.stp) {
+      document.getElementById('stpS').textContent = data.stp.segmentation || '';
+      document.getElementById('stpT').textContent = data.stp.targeting    || '';
+      document.getElementById('stpP').textContent = data.stp.positioning  || '';
+    }
 
     // 4P
-    document.getElementById('fpProduct').textContent   = data.fourP.product;
-    document.getElementById('fpPrice').textContent     = data.fourP.price;
-    document.getElementById('fpPlace').textContent     = data.fourP.place;
-    document.getElementById('fpPromotion').textContent = data.fourP.promotion;
+    if (data.fourP) {
+      document.getElementById('fpProduct').textContent   = data.fourP.product   || '';
+      document.getElementById('fpPrice').textContent     = data.fourP.price     || '';
+      document.getElementById('fpPlace').textContent     = data.fourP.place     || '';
+      document.getElementById('fpPromotion').textContent = data.fourP.promotion || '';
+    }
 
     // Strategies
-    document.getElementById('strategies').innerHTML = data.keyStrategies.map((s, i) => `
-      <div class="strat-item">
-        <div class="strat-num">${i+1}</div>
-        <div class="strat-body">
-          <span class="p-badge p-${s.priority}">${s.priority==='high'?'높음':s.priority==='medium'?'보통':'낮음'} 우선순위</span>
-          <h4>${s.title}</h4>
-          <p>${s.description}</p>
-          ${(s.owner || s.timeline) ? `<div class="strat-meta">${s.owner ? `<span>👤 ${s.owner}</span>` : ''}${s.timeline ? `<span>📅 ${s.timeline}</span>` : ''}</div>` : ''}
-        </div>
-      </div>`).join('');
+    if (data.keyStrategies) {
+      document.getElementById('strategies').innerHTML = data.keyStrategies.map((s, i) => `
+        <div class="strat-item">
+          <div class="strat-num">${i+1}</div>
+          <div class="strat-body">
+            <span class="p-badge p-${s.priority}">${s.priority==='high'?'높음':s.priority==='medium'?'보통':'낮음'} 우선순위</span>
+            <h4>${s.title}</h4>
+            <p>${s.description}</p>
+            ${(s.owner || s.timeline) ? `<div class="strat-meta">${s.owner ? `<span>👤 ${s.owner}</span>` : ''}${s.timeline ? `<span>📅 ${s.timeline}</span>` : ''}</div>` : ''}
+          </div>
+        </div>`).join('');
+    }
 
     // KPI
-    document.getElementById('kpiGrid').innerHTML = data.kpi.map(k => `
-      <div class="kpi-card">
-        <div class="kpi-metric">${k.metric}</div>
-        <div class="kpi-curr">${k.current}</div>
-        <div class="kpi-tgt">목표: ${k.target}</div>
-        <div class="kpi-bar"><div class="kpi-fill" data-pct="${k.progress||0}"></div></div>
-        <div class="kpi-time">${k.timeline}</div>
-        ${(k.method || k.owner) ? `<div class="kpi-meta">${k.owner ? `<span>👤 ${k.owner}</span>` : ''}${k.method ? `<span title="${k.method}">📏 측정방법 있음</span>` : ''}</div>` : ''}
-      </div>`).join('');
+    if (data.kpi) {
+      document.getElementById('kpiGrid').innerHTML = data.kpi.map(k => `
+        <div class="kpi-card">
+          <div class="kpi-metric">${k.metric}</div>
+          <div class="kpi-curr">${k.current}</div>
+          <div class="kpi-tgt">목표: ${k.target}</div>
+          <div class="kpi-bar"><div class="kpi-fill" data-pct="${k.progress||0}"></div></div>
+          <div class="kpi-time">${k.timeline}</div>
+          ${(k.method || k.owner) ? `<div class="kpi-meta">${k.owner ? `<span>👤 ${k.owner}</span>` : ''}${k.method ? `<span title="${k.method}">📏 측정방법 있음</span>` : ''}</div>` : ''}
+        </div>`).join('');
+    }
 
     // Roadmap
-    document.getElementById('roadmap').innerHTML = data.roadmap.map(r => `
-      <div class="rm-phase">
-        <div class="rm-hdr">
-          <span class="rm-name">${r.phase}</span>
-          <span class="rm-period">${r.period}</span>
-          ${r.budget ? `<span class="rm-budget">💰 ${r.budget}</span>` : ''}
-        </div>
-        ${r.framework ? `<div class="rm-framework">${r.framework}</div>` : ''}
-        <div class="rm-tasks">${r.tasks.map(t => `<span class="rm-task">${t}</span>`).join('')}</div>
-      </div>`).join('');
+    if (data.roadmap) {
+      document.getElementById('roadmap').innerHTML = data.roadmap.map(r => `
+        <div class="rm-phase">
+          <div class="rm-hdr">
+            <span class="rm-name">${r.phase}</span>
+            <span class="rm-period">${r.period}</span>
+            ${r.budget ? `<span class="rm-budget">💰 ${r.budget}</span>` : ''}
+          </div>
+          ${r.framework ? `<div class="rm-framework">${r.framework}</div>` : ''}
+          <div class="rm-tasks">${r.tasks.map(t => `<span class="rm-task">${t}</span>`).join('')}</div>
+        </div>`).join('');
+    }
 
     // 진단 분석 섹션 (레이더 차트 + 취약 배너)
     renderDiagSection(fd);
 
-    // 컨설팅 유형별 특화 분석 섹션
-    renderSpecializedSection(data, fd);
+    // 컨설팅 유형별 특화 분석 섹션 (소기업 모드)
+    if (!isMicro) renderSpecializedSection(data, fd);
 
-    // 린 캔버스 시각화 섹션
+    // 린 캔버스 시각화 섹션 (양쪽 모드 모두)
     renderLeanCanvas(data, fd);
+
+    // 6가지 시스템 섹션 (양쪽 모드 모두)
+    renderSixSystems(data);
+
+    // 90일 실행 플랜 섹션 (양쪽 모드 모두)
+    renderPlan90(data);
 
     // 정부지원사업 매칭 섹션
     renderGovSection(fd);
@@ -381,17 +524,14 @@ const Dashboard = (() => {
       rmObs.observe(roadmap);
     }
 
-    // ③ 목차 클릭 → 부드러운 스크롤 (최초 1회만 바인딩)
-    document.querySelectorAll('.report-nav .nav-link').forEach(a => {
-      a.onclick = (e) => {
-        e.preventDefault();
-        const target = document.getElementById(a.getAttribute('href').slice(1));
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      };
-    });
+    // ③ 목차 클릭은 buildNav()에서 이미 처리됨
 
-    // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록
-    const secIds = ['sec-summary','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-gov'];
+    // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록 (표시된 섹션만)
+    const allSecIds = ['sec-summary','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov'];
+    const secIds = allSecIds.filter(id => {
+      const el = document.getElementById(id);
+      return el && el.style.display !== 'none';
+    });
     function onScroll() {
       const offset = 100;
       let activeId = secIds[0];
