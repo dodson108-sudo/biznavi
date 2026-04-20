@@ -2,7 +2,7 @@
 
 ## 배포 상태 (2026-04-20 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 사업자등록번호 자동조회 → 업종 자동세팅 기능 추가
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 업태/종목 업종 자동매핑 정확도 개선 + 조회 메시지 개선
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
 
