@@ -576,6 +576,36 @@
     <!-- Step 1 -->
     <div id="step1" class="wiz-card">
       <h3 class="serif">📋 기업 기본 정보 <span class="step-badge">STEP 1 / 4</span></h3>
+
+      <!-- 사업자등록번호 자동조회 블록 -->
+      <div class="biz-lookup-block" id="bizLookupBlock">
+        <div class="biz-lookup-title">
+          <span>🔎 사업자등록번호로 업종 자동조회</span>
+          <span class="opt-badge">선택사항</span>
+          <button type="button" class="btn-text-skip" onclick="Wizard.skipBizLookup()">건너뛰기 →</button>
+        </div>
+        <div class="biz-lookup-row">
+          <input type="text" id="bizRegNo" placeholder="000-00-00000" maxlength="12"
+            oninput="Wizard.formatBizNo(this)" autocomplete="off" />
+          <input type="text" id="repName" placeholder="대표자명" maxlength="20" autocomplete="off" />
+          <button type="button" class="btn btn-outline-sm" onclick="Wizard.lookupBiz()">자동조회</button>
+        </div>
+        <div id="bizLookupStatus" class="biz-lookup-status hidden"></div>
+        <div class="biz-type-row" id="bizTypeRow" style="display:none">
+          <div class="biz-type-field">
+            <label>업태</label>
+            <input type="text" id="bizType" placeholder="예: 도소매" maxlength="30"
+              oninput="Wizard.inferIndustryFromType()" />
+          </div>
+          <div class="biz-type-field">
+            <label>종목</label>
+            <input type="text" id="bizItem" placeholder="예: 전자부품" maxlength="30"
+              oninput="Wizard.inferIndustryFromType()" />
+          </div>
+        </div>
+        <div id="bizInferResult" class="biz-infer-result hidden"></div>
+      </div>
+
       <div class="form-grid">
         <div class="form-group">
           <label>회사명 *<span class="field-check">✓</span></label>
