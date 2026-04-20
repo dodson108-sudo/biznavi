@@ -2,13 +2,50 @@
 
 ## 배포 상태 (2026-04-20 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 전 업종 진단 문항 BARS 5단계 앵커 + 구체적 현장 문항으로 전면 재작성
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 사업자등록번호 자동조회 → 업종 자동세팅 기능 추가
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-20)
+
+### 사업자등록번호 자동조회 → 업종 자동세팅 기능 추가
+
+#### 개요
+- Step 1 상단에 사업자등록번호 조회 블록 추가 (선택사항, 건너뛰기 가능)
+- 사업자번호 체크섬 검증 (클라이언트, 국세청 알고리즘)
+- Vercel Serverless Function (`/api/biz-lookup.js`) → 국세청 사업자 상태 조회
+- 업태/종목 텍스트 입력 → 16개 업종 키워드 매핑 → 업종 드롭다운 자동선택
+
+#### 구현 흐름
+1. 사업자번호 입력 → `###-##-#####` 자동 포맷 + 체크섬 실시간 유효성 표시
+2. 대표자명 입력 → [자동조회] 버튼 → `/api/biz-lookup` 호출
+3. 국세청 API 응답: 정상(active) / 휴업(suspended) / 폐업(closed)
+4. 업태·종목 입력란 표시 → 키워드 매핑으로 16개 업종 자동선택
+5. "✓ 업종 자동 설정: ○○" 배지 표시 + 수동 변경 항상 허용
+
+#### 신규/수정 파일
+- `api/biz-lookup.js` (신규): Vercel Serverless Function
+  - `NTS_SERVICE_KEY` 환경변수 필요 (Vercel Dashboard → Environment Variables)
+  - 미설정 시 `manual` 모드 fallback (업태/종목 직접 입력 유도)
+  - 공공데이터포털 API: https://www.data.go.kr/data/15081808/openapi.do
+- `index.html`: Step 1 상단 `.biz-lookup-block` 추가
+- `js/wizard.js`: `formatBizNo`, `validateBizNo`, `lookupBiz`, `inferIndustryFromType`, `skipBizLookup` 추가
+- `css/style.css`: `.biz-lookup-block`, `.biz-status-*`, `.biz-infer-*` 스타일 추가
+
+#### 향후 계획
+- 예비창업자 전용 플로우 추가 (사업자번호 없이 진행)
+- DART API 연동 → 재무제표 자동 입력 (Phase 9)
+- OCR 연동 → 사업자등록증 스캔으로 자동입력 (Phase 9)
+
+#### Vercel 환경변수 설정 방법
+```
+Vercel Dashboard → biznavi 프로젝트 → Settings → Environment Variables
+  NTS_SERVICE_KEY = [공공데이터포털에서 발급받은 서비스 키]
+```
+
+---
 
 ### 전 업종 진단 문항 BARS 5단계 앵커 + 구체적 현장 문항 전면 재작성
 
