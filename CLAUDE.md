@@ -1,10 +1,43 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-17 최신)
+## 배포 상태 (2026-04-20 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 소상공인/소기업 이분법 대시보드 모드 분리 구현
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 전 업종 진단 문항 BARS 5단계 앵커 + 구체적 현장 문항으로 전면 재작성
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-20)
+
+### 전 업종 진단 문항 BARS 5단계 앵커 + 구체적 현장 문항 전면 재작성
+
+#### 개요
+- `common.js` 구문 오류 수정 + 5개 역량 도메인 전면 재작성 (BARS 형식)
+- 13개 업종 진단 파일 전면 재작성 — 모든 문항 구체적 현장 상황 묘사로 교체
+- 전문용어 풀네이밍 + 쉬운 설명 삽입 (HACCP, MTBF, TMS, FDS, 공차율 등)
+- `app.js`: API 키 오류(`invalid x-api-key`) 시 localStorage 초기화 + `fillSavedKey()` 함수 추가
+- `wizard.js`: `bizScale` 필드 수집 + `fillSavedKey()` 연동
+
+#### 진단 문항 형식 통일 (BARS: Behaviorally Anchored Rating Scales)
+- 모든 문항: `type: "bars"` + 5단계 `anchors` (각 레벨별 구체적 현장 상황 묘사)
+- 질문 텍스트 구조: "왜 중요한지 설명 — 구체적 질문 내용"
+- 수치 입력 항목은 `type: "numeric"` + `scoreRanges` 구간별 점수 자동 계산
+
+#### 재작성된 파일 목록 (13개 업종)
+- `local_service.js`: 노쇼 방지·재방문율·네이버플레이스·BEP 등 생활밀착 서비스 특화
+- `wholesale.js`: 채널 집중도·CCC(현금전환사이클)·ROAS·재고회전율 등 유통 특화
+- `restaurant.js`: 식재료 원가율·임대료 비중·HACCP·배달 플랫폼 수익률 등 외식 특화
+- `construction.js`: 기성금·흑자 도산·나라장터·중대재해처벌법 등 건설 특화
+- `medical.js`: EMR·PACS·비급여·의료광고법 등 의료 특화
+- `education.js`: LMS·OJT·상담 전환율·스타 강사 의존도 등 교육 특화
+- `fashion.js`: SKU·OEM/ODM·ROAS·ER·D2C·QC 등 패션 특화
+- `media.js`: IP·OSMU·FDS·흑자 도산 등 미디어 특화
+- `logistics.js`: 공차율·TMS·WMS·DTG·km당 운송 원가 등 물류 특화
+- `energy.js`: Backlog·REC·VCM·탄소크레딧·RE100·ISMS 등 에너지 특화
+- `agri_food.js`: HACCP·GAP·CSA·수율·OEM 등 농림식품 특화
+- `export_sme.js`: CE·FDA·HS코드·FTA·환헤지(선물환)·CAC/LTV 등 수출중소기업 특화
+- `finance.js`: FDS·금소법·ISMS·BCP/DR·LTV/CAC·네팅 등 금융 특화
 
 ---
 
