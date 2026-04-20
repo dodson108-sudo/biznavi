@@ -138,6 +138,7 @@ const App = (() => {
 
   function goStep(n) {
     Wizard.goStep(n);
+    if (n === 4) setTimeout(fillSavedKey, 50);
   }
 
   /* ── ANALYSIS ── */
@@ -176,6 +177,24 @@ const App = (() => {
       _pendingData = data;
       show('diag-reveal');
     } catch (e) {
+      // invalid x-api-key: 저장된 키가 만료/잘못된 것 → 즉시 삭제 후 재입력 안내
+      if (e.message && (e.message.includes('invalid x-api-key') || e.message.includes('401'))) {
+        localStorage.removeItem('biznavi_key');
+        apiKey = '';
+        mode = 'demo';
+        const _k = document.getElementById('wizApiKey');
+        if (_k) _k.value = '';
+        show('wizard');
+        Wizard.goStep(4);
+        alert(
+          '⚠️ API 키가 유효하지 않습니다.\n\n' +
+          '저장된 키를 자동 삭제했습니다.\n' +
+          'Anthropic Console (console.anthropic.com) → API Keys 에서\n' +
+          '새 키를 발급받아 다시 입력해주세요.\n\n' +
+          '(키를 입력하지 않으면 샘플 데이터로 진행됩니다)'
+        );
+        return;
+      }
       alert('오류: ' + e.message + '\n\n샘플 데이터로 대체합니다.');
       const result = await AIEngine.fakeAnalysis(data);
       _pendingResult = result;
@@ -224,13 +243,13 @@ const App = (() => {
   // Init on load
   setTimeout(() => Dashboard.initCountUp(), 400);
   setTimeout(() => Dashboard.initInputChecks(), 100);
-  // 저장된 API 키가 있으면 STEP4 입력란에 자동 채우기
-  setTimeout(() => {
+  // 저장된 API 키가 있으면 STEP4 입력란에 자동 채우기 (유효성 체크 후)
+  function fillSavedKey() {
     const wizKeyEl = document.getElementById('wizApiKey');
-    if (wizKeyEl && apiKey) wizKeyEl.value = apiKey;
-  }, 200);
+    if (wizKeyEl && apiKey && apiKey.startsWith('sk-ant-')) wizKeyEl.value = apiKey;
+  }
 
-  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1 };
+  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1, fillSavedKey };
 })();
 
 /* ===== LANDING PAGE JS ===== */
