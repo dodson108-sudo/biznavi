@@ -295,7 +295,7 @@ const Wizard = (() => {
       } else {
         if (status) {
           status.className = 'biz-lookup-status biz-status-err';
-          status.textContent = '✗ 조회 결과를 확인할 수 없습니다. 업태·종목을 직접 입력해주세요.';
+          status.textContent = '아래 업태·종목을 직접 입력하시면 업종이 자동 설정됩니다.';
         }
         const typeRow = document.getElementById('bizTypeRow');
         if (typeRow) typeRow.style.display = 'flex';
@@ -303,7 +303,7 @@ const Wizard = (() => {
     } catch (e) {
       if (status) {
         status.className = 'biz-lookup-status biz-status-err';
-        status.textContent = '✗ 조회 중 오류가 발생했습니다. 업태·종목을 직접 입력해주세요.';
+        status.textContent = '아래 업태·종목을 직접 입력하시면 업종이 자동 설정됩니다.';
       }
       const typeRow = document.getElementById('bizTypeRow');
       if (typeRow) typeRow.style.display = 'flex';
