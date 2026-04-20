@@ -118,23 +118,89 @@ const Wizard = (() => {
   ═══════════════════════════════════════════════════════════ */
 
   // 업태/종목 키워드 → 16개 업종 매핑 테이블
+  // keywords: 업태/종목 텍스트에서 매칭할 키워드 목록
+  // itemKeywords: 종목에서만 우선 매칭 (가중치 3배 — 종목이 업태보다 구체적)
   const BIZ_TYPE_MAP = [
-    { keywords: ['제조', '가공', '금속', '기계', '부품', '주조', '단조', '열처리', '도금', '용접', '프레스', '반도체', '전자부품', '자동차부품'], industry: '제조업' },
-    { keywords: ['식품', '음료', '제과', '제빵', '육가공', '수산', '농산물가공', '식료품', '음식료품', '식재료', '김치', '장류', '음료제조'], industry: '식품/음료' },
-    { keywords: ['외식', '음식점', '식당', '요식', '카페', '베이커리', '치킨', '피자', '패스트푸드', '분식', '한식', '중식', '일식', '호프', '주점', '커피'], industry: '외식 및 휴게음식업' },
-    { keywords: ['소프트웨어', 'it', '정보통신', '컴퓨터', '웹', '앱', '개발', '플랫폼', '데이터', 'ai', 'saas', '정보기술', '통신', 'ict', '시스템개발', '솔루션개발'], industry: 'IT/소프트웨어' },
-    { keywords: ['건설', '인테리어', '시공', '토목', '철거', '리모델링', '도장', '설비', '전기공사', '소방', '조경', '건축'], industry: '건설/부동산' },
-    { keywords: ['도소매', '도매', '소매', '유통', '무역', '수입', '판매', '대리점', '중간유통', '卸'], industry: '유통/물류' },
-    { keywords: ['물류', '운송', '배송', '택배', '화물', '운반', '창고', '보관', '포워딩', '통관'], industry: '물류운송' },
-    { keywords: ['의료', '병원', '의원', '약국', '보건', '한의', '치과', '정형', '피부과', '헬스케어', '의약', '재활'], industry: '의료/헬스케어' },
-    { keywords: ['교육', '학원', '학습', '훈련', '강습', '컨설팅교육', '이러닝', '에듀', '직업훈련', '어학', '입시'], industry: '교육' },
-    { keywords: ['금융', '보험', '증권', '투자', '핀테크', '대출', '저축', '신용', '카드', '결제', '자산관리'], industry: '금융/핀테크' },
-    { keywords: ['패션', '의류', '섬유', '봉제', '뷰티', '화장품', '미용', '피부', '네일', '헤어', '잡화', '액세서리'], industry: '패션/뷰티' },
-    { keywords: ['미디어', '방송', '콘텐츠', '영상', '광고', '출판', '엔터테인먼트', '음악', '영화', '게임', '웹툰', '유튜브', 'sns'], industry: '미디어/엔터테인먼트' },
-    { keywords: ['수출', '해외', '무역', '수출중소기업', '글로벌', '수출제조', '해외영업', '바이어'], industry: '수출중소기업' },
-    { keywords: ['에너지', '환경', '재생에너지', '태양광', '풍력', '폐기물', '재활용', '탄소', '친환경', '수처리', 'ess', '전기차'], industry: '환경에너지' },
-    { keywords: ['농업', '임업', '축산', '수산', '원물', '농산물', '농림', '식품원료', '곡물', '과일', '채소', '가축', '양식'], industry: '농림식품원료' },
-    { keywords: ['서비스', '대행', '용역', '위탁', '관리', '청소', '경비', '세탁', '수선', '수리', '유지보수', '생활서비스'], industry: '서비스업' }
+    {
+      keywords:     ['제조', '가공', '금속', '기계', '부품', '주조', '단조', '열처리', '도금', '용접', '프레스', '반도체', '전자부품', '자동차부품', '사출', '압출', '판금', '금형'],
+      itemKeywords: ['부품', '금속가공', '기계부품', '전자부품', '자동차부품', '주조품', '단조품', '사출품', '반도체'],
+      industry: '제조업'
+    },
+    {
+      keywords:     ['식품', '음료', '제과', '제빵', '육가공', '수산', '농산물가공', '식료품', '음식료품', '식재료', '김치', '장류', '음료제조'],
+      itemKeywords: ['식품', '음료', '과자', '빵', '육류가공', '수산가공', '김치', '소스', '음식료'],
+      industry: '식품/음료'
+    },
+    {
+      keywords:     ['외식', '음식점', '식당', '요식', '카페', '베이커리', '치킨', '피자', '패스트푸드', '분식', '한식', '중식', '일식', '호프', '주점', '커피', '휴게음식'],
+      itemKeywords: ['음식점', '식당', '카페', '커피', '치킨', '피자', '분식', '한식', '중식', '일식', '호프', '주점'],
+      industry: '외식 및 휴게음식업'
+    },
+    {
+      keywords:     ['소프트웨어', 'it', '정보통신', '컴퓨터', '웹', '앱', '개발', '플랫폼', '데이터', 'ai', 'saas', '정보기술', '통신', 'ict', '시스템개발', '솔루션개발'],
+      itemKeywords: ['소프트웨어', '앱개발', '웹개발', '시스템개발', '솔루션', '플랫폼개발', '데이터분석', 'ai개발'],
+      industry: 'IT/소프트웨어'
+    },
+    {
+      keywords:     ['건설', '인테리어', '시공', '토목', '철거', '리모델링', '도장', '설비', '전기공사', '소방', '조경', '건축', '실내장식', '가구', '목공', '타일', '방수', '미장', '창호'],
+      itemKeywords: ['인테리어', '실내장식', '리모델링', '가구', '목공', '시공', '건축공사', '전기공사', '설비공사', '철거', '도장', '타일'],
+      industry: '건설/부동산'
+    },
+    {
+      keywords:     ['도소매', '도매', '소매', '유통', '판매', '대리점', '중간유통'],
+      itemKeywords: ['도매', '소매', '유통', '판매업', '대리점'],
+      industry: '유통/물류'
+    },
+    {
+      keywords:     ['물류', '운송', '배송', '택배', '화물', '운반', '창고', '보관', '포워딩', '통관'],
+      itemKeywords: ['운송', '택배', '화물', '창고보관', '포워딩'],
+      industry: '물류운송'
+    },
+    {
+      keywords:     ['의료', '병원', '의원', '약국', '보건', '한의', '치과', '정형', '피부과', '헬스케어', '의약', '재활'],
+      itemKeywords: ['병원', '의원', '약국', '한의원', '치과', '의료기기', '재활'],
+      industry: '의료/헬스케어'
+    },
+    {
+      keywords:     ['교육', '학원', '학습', '훈련', '강습', '이러닝', '에듀', '직업훈련', '어학', '입시'],
+      itemKeywords: ['학원', '교습', '훈련', '이러닝', '직업교육', '어학교육'],
+      industry: '교육'
+    },
+    {
+      keywords:     ['금융', '보험', '증권', '투자', '핀테크', '대출', '저축', '신용', '카드', '결제', '자산관리'],
+      itemKeywords: ['보험', '대출', '투자', '핀테크', '자산관리', '증권'],
+      industry: '금융/핀테크'
+    },
+    {
+      keywords:     ['패션', '의류', '섬유', '봉제', '뷰티', '화장품', '미용', '네일', '헤어', '잡화', '액세서리'],
+      itemKeywords: ['의류', '패션', '화장품', '미용', '봉제', '헤어', '네일'],
+      industry: '패션/뷰티'
+    },
+    {
+      keywords:     ['미디어', '방송', '콘텐츠', '영상', '광고', '출판', '엔터테인먼트', '음악', '영화', '게임', '웹툰', 'sns'],
+      itemKeywords: ['콘텐츠', '영상제작', '광고', '음악', '게임', '출판', '웹툰'],
+      industry: '미디어/엔터테인먼트'
+    },
+    {
+      keywords:     ['수출', '해외', '글로벌', '수출제조', '해외영업', '바이어'],
+      itemKeywords: ['수출', '해외판매', '수출제조'],
+      industry: '수출중소기업'
+    },
+    {
+      keywords:     ['에너지', '환경', '재생에너지', '태양광', '풍력', '폐기물', '재활용', '탄소', '친환경', '수처리', 'ess', '전기차'],
+      itemKeywords: ['태양광', '풍력', '폐기물처리', '재활용', '수처리', '탄소'],
+      industry: '환경에너지'
+    },
+    {
+      keywords:     ['농업', '임업', '축산', '수산', '원물', '농산물', '농림', '식품원료', '곡물', '과일', '채소', '가축', '양식'],
+      itemKeywords: ['농산물', '축산물', '수산물', '곡물', '원물', '식품원료'],
+      industry: '농림식품원료'
+    },
+    {
+      keywords:     ['서비스', '대행', '용역', '위탁', '관리', '청소', '경비', '세탁', '수선', '수리', '유지보수', '생활서비스'],
+      itemKeywords: ['청소', '경비', '세탁', '수리', '대행서비스'],
+      industry: '서비스업'
+    }
   ];
 
   // 사업자등록번호 포맷 (###-##-#####)
@@ -244,34 +310,52 @@ const Wizard = (() => {
     }
   }
 
-  // 업태/종목 텍스트 → 16개 업종 자동매핑
+  // 업태/종목 텍스트 → 16개 업종 자동매핑 (종목 가중치 3배)
   function inferIndustryFromType() {
     const bizType = (document.getElementById('bizType')?.value || '').toLowerCase();
     const bizItem = (document.getElementById('bizItem')?.value || '').toLowerCase();
-    const combined = bizType + ' ' + bizItem;
 
     const result = document.getElementById('bizInferResult');
     const industrySelect = document.getElementById('industry');
     if (!result || !industrySelect) return;
 
-    let best = null, bestScore = 0;
+    const scores = {};
     BIZ_TYPE_MAP.forEach(entry => {
       let score = 0;
-      entry.keywords.forEach(kw => { if (combined.includes(kw)) score++; });
-      if (score > bestScore) { bestScore = score; best = entry; }
+      // 업태 키워드 매칭 (가중치 1)
+      entry.keywords.forEach(kw => { if (bizType.includes(kw)) score += 1; });
+      // 종목 일반 키워드 매칭 (가중치 2)
+      entry.keywords.forEach(kw => { if (bizItem.includes(kw)) score += 2; });
+      // 종목 전용 키워드 매칭 (가중치 3 — 더 정확한 매칭)
+      (entry.itemKeywords || []).forEach(kw => { if (bizItem.includes(kw)) score += 3; });
+      if (score > 0) scores[entry.industry] = (scores[entry.industry] || 0) + score;
     });
 
-    if (best && bestScore > 0) {
-      industrySelect.value = best.industry;
-      result.className = 'biz-infer-result biz-infer-ok';
-      result.textContent = '✓ 업종 자동 설정: ' + best.industry + ' — 아래에서 확인 후 변경 가능합니다.';
-      result.classList.remove('hidden');
-      onIndustryChange(); // BM 추론도 연동
-    } else if (combined.trim().length > 0) {
-      result.className = 'biz-infer-result biz-infer-warn';
-      result.textContent = '⚠ 업종을 자동 판별하지 못했습니다. 아래 업종 드롭다운에서 직접 선택해주세요.';
-      result.classList.remove('hidden');
+    const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+    if (sorted.length === 0) {
+      if ((bizType + bizItem).trim().length > 0) {
+        result.className = 'biz-infer-result biz-infer-warn';
+        result.textContent = '⚠ 업종을 자동 판별하지 못했습니다. 아래 업종 드롭다운에서 직접 선택해주세요.';
+        result.classList.remove('hidden');
+      }
+      return;
     }
+
+    const [topIndustry, topScore] = sorted[0];
+    industrySelect.value = topIndustry;
+
+    // 2위 점수가 1위의 70% 이상이면 후보 2개 표시
+    let msg = '✓ 업종 자동 설정: ' + topIndustry;
+    if (sorted.length > 1 && sorted[1][1] >= topScore * 0.7) {
+      msg += ' (후보: ' + sorted[1][0] + ') — 아래에서 확인 후 변경 가능합니다.';
+    } else {
+      msg += ' — 아래에서 확인 후 변경 가능합니다.';
+    }
+    result.className = 'biz-infer-result biz-infer-ok';
+    result.textContent = msg;
+    result.classList.remove('hidden');
+    onIndustryChange();
   }
 
   // 사업자 조회 블록 건너뛰기
