@@ -362,6 +362,199 @@ const Wizard = (() => {
   function skipBizLookup() {
     const block = document.getElementById('bizLookupBlock');
     if (block) block.style.display = 'none';
+    const dartBlock = document.getElementById('dartLookupBlock');
+    if (dartBlock) dartBlock.classList.remove('hidden');
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     자동입력 탭 전환
+  ═══════════════════════════════════════════════════════════ */
+  function switchAutoTab(tab) {
+    const isBizno = tab === 'bizno';
+    document.getElementById('autoTabBizno').style.display = isBizno ? '' : 'none';
+    document.getElementById('autoTabOcr').style.display   = isBizno ? 'none' : '';
+    document.getElementById('tabBizNo').classList.toggle('active',  isBizno);
+    document.getElementById('tabOcr').classList.toggle('active',   !isBizno);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     OCR: 사업자등록증 이미지 → 자동입력
+  ═══════════════════════════════════════════════════════════ */
+  function handleOcrUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('ocrStatus');
+    const previewEl = document.getElementById('ocrPreview');
+
+    statusEl.className = 'biz-lookup-status biz-status-loading';
+    statusEl.textContent = '⏳ 이미지 인식 중...';
+    statusEl.classList.remove('hidden');
+    previewEl.classList.add('hidden');
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      // base64에서 data:image/...;base64, 접두사 제거
+      const base64 = e.target.result.split(',')[1];
+
+      try {
+        const res = await fetch('/api/ocr-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64 })
+        });
+        const data = await res.json();
+
+        if (data.status === 'no_key') {
+          statusEl.className = 'biz-lookup-status biz-status-warn';
+          statusEl.textContent = '⚠ OCR API 키가 설정되지 않았습니다. 직접 입력해주세요.';
+          return;
+        }
+        if (data.status !== 'success') {
+          statusEl.className = 'biz-lookup-status biz-status-err';
+          statusEl.textContent = '인식 결과가 없습니다. 더 선명한 이미지를 사용해주세요.';
+          return;
+        }
+
+        // 인식된 데이터를 폼에 자동입력
+        let filled = [];
+        if (data.bizRegNo) {
+          const el = document.getElementById('bizRegNo');
+          if (el) { el.value = data.bizRegNo; formatBizNo(el); filled.push('사업자번호'); }
+        }
+        if (data.companyName) {
+          const el = document.getElementById('companyName');
+          if (el) { el.value = data.companyName; onCompanyNameInput(el); filled.push('회사명'); }
+        }
+        if (data.repName) {
+          const el = document.getElementById('repName');
+          if (el) { el.value = data.repName; filled.push('대표자명'); }
+        }
+        if (data.foundedYear) {
+          const el = document.getElementById('foundedYear');
+          if (el) { el.value = data.foundedYear; filled.push('설립연도'); }
+        }
+        if (data.bizType) {
+          const el = document.getElementById('bizType');
+          if (el) {
+            el.value = data.bizType;
+            // 업태/종목 행 표시
+            const typeRow = document.getElementById('bizTypeRow');
+            if (typeRow) typeRow.style.display = 'flex';
+            filled.push('업태');
+          }
+        }
+        if (data.bizItem) {
+          const el = document.getElementById('bizItem');
+          if (el) { el.value = data.bizItem; filled.push('종목'); }
+        }
+        // 업태/종목이 있으면 업종 자동매핑
+        if (data.bizType || data.bizItem) inferIndustryFromType();
+
+        // 미리보기 표시
+        const lines = [
+          data.bizRegNo    ? `사업자번호: ${data.bizRegNo}` : null,
+          data.companyName ? `회사명: ${data.companyName}`  : null,
+          data.repName     ? `대표자: ${data.repName}`      : null,
+          data.bizType     ? `업태: ${data.bizType}`        : null,
+          data.bizItem     ? `종목: ${data.bizItem}`        : null,
+          data.foundedDate ? `개업일: ${data.foundedDate}`  : null,
+        ].filter(Boolean);
+
+        previewEl.innerHTML = '<div class="ocr-preview-title">✓ 인식된 정보</div>' +
+          lines.map(l => `<div class="ocr-preview-row">${l}</div>`).join('');
+        previewEl.classList.remove('hidden');
+
+        statusEl.className = 'biz-lookup-status biz-status-ok';
+        statusEl.textContent = `✓ ${filled.join(', ')} 자동입력 완료 — 아래에서 확인 후 수정 가능합니다.`;
+
+      } catch (err) {
+        statusEl.className = 'biz-lookup-status biz-status-err';
+        statusEl.textContent = 'OCR 처리 중 오류가 발생했습니다. 직접 입력해주세요.';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     DART: 회사명 → 재무제표 자동조회
+  ═══════════════════════════════════════════════════════════ */
+  function onCompanyNameInput(el) {
+    const dartBlock = document.getElementById('dartLookupBlock');
+    if (!dartBlock) return;
+    if (el.value.trim().length >= 2) {
+      dartBlock.classList.remove('hidden');
+    } else {
+      dartBlock.classList.add('hidden');
+    }
+  }
+
+  async function lookupDart() {
+    const companyName = (document.getElementById('companyName')?.value || '').trim();
+    const statusEl = document.getElementById('dartStatus');
+    const resultEl = document.getElementById('dartResult');
+
+    if (companyName.length < 2) { alert('회사명을 먼저 입력해주세요.'); return; }
+
+    statusEl.className = 'biz-lookup-status biz-status-loading';
+    statusEl.textContent = '⏳ DART에서 재무정보 조회 중...';
+    statusEl.classList.remove('hidden');
+    resultEl.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/dart-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName })
+      });
+      const data = await res.json();
+
+      if (data.status === 'no_key') {
+        statusEl.className = 'biz-lookup-status biz-status-warn';
+        statusEl.textContent = '⚠ DART API 키가 설정되지 않았습니다.';
+        return;
+      }
+      if (data.status === 'not_found' || data.status === 'no_financial') {
+        statusEl.className = 'biz-lookup-status biz-status-warn';
+        statusEl.textContent = `⚠ ${data.corpName ? '"' + data.corpName + '" ' : ''}DART 재무데이터가 없습니다. (소상공인·개인사업자는 미등록)`;
+        return;
+      }
+      if (data.status !== 'found') {
+        statusEl.className = 'biz-lookup-status biz-status-err';
+        statusEl.textContent = '조회에 실패했습니다.';
+        return;
+      }
+
+      // 결과 표시
+      statusEl.className = 'biz-lookup-status biz-status-ok';
+      statusEl.textContent = `✓ "${data.corpName}" ${data.year}년 재무데이터 조회 완료`;
+
+      const fmt = (v) => v !== null ? v.toLocaleString() + '억원' : '정보없음';
+      const debtRatioTxt = data.debtRatio !== null ? data.debtRatio + '%' : '정보없음';
+
+      resultEl.innerHTML = `
+        <div class="dart-result-grid">
+          <div class="dart-item"><span class="dart-label">매출액</span><span class="dart-value">${fmt(data.revenue?.eok)}</span></div>
+          <div class="dart-item"><span class="dart-label">영업이익</span><span class="dart-value">${fmt(data.operatingProfit?.eok)}</span></div>
+          <div class="dart-item"><span class="dart-label">당기순이익</span><span class="dart-value">${fmt(data.netIncome?.eok)}</span></div>
+          <div class="dart-item"><span class="dart-label">부채비율</span><span class="dart-value">${debtRatioTxt}</span></div>
+        </div>
+        <button type="button" class="btn-apply-dart" onclick="Wizard.applyDartRevenue(${data.revenue?.eok})">
+          매출액 ${fmt(data.revenue?.eok)} 적용하기
+        </button>`;
+      resultEl.classList.remove('hidden');
+
+    } catch (err) {
+      statusEl.className = 'biz-lookup-status biz-status-err';
+      statusEl.textContent = 'DART 조회 중 오류가 발생했습니다.';
+    }
+  }
+
+  function applyDartRevenue(eok) {
+    if (eok === null || eok === undefined) return;
+    const el = document.getElementById('revenue');
+    if (el) el.value = eok + '억';
+    alert(`연매출 ${eok.toLocaleString()}억원이 적용되었습니다.`);
   }
 
   function onIndustryChange() {
@@ -1407,5 +1600,5 @@ const Wizard = (() => {
     container.innerHTML = html;
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup };
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, onCompanyNameInput, lookupDart, applyDartRevenue };
 })();

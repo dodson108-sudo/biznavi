@@ -577,39 +577,74 @@
     <div id="step1" class="wiz-card">
       <h3 class="serif">📋 기업 기본 정보 <span class="step-badge">STEP 1 / 4</span></h3>
 
-      <!-- 사업자등록번호 자동조회 블록 -->
+      <!-- 자동입력 블록 (사업자등록번호 조회 + OCR 업로드) -->
       <div class="biz-lookup-block" id="bizLookupBlock">
         <div class="biz-lookup-title">
-          <span>🔎 사업자등록번호로 업종 자동조회</span>
+          <span>⚡ 기업 정보 자동입력</span>
           <span class="opt-badge">선택사항</span>
           <button type="button" class="btn-text-skip" onclick="Wizard.skipBizLookup()">건너뛰기 →</button>
         </div>
-        <div class="biz-lookup-row">
-          <input type="text" id="bizRegNo" placeholder="000-00-00000" maxlength="12"
-            oninput="Wizard.formatBizNo(this)" autocomplete="off" />
-          <input type="text" id="repName" placeholder="대표자명" maxlength="20" autocomplete="off" />
-          <button type="button" class="btn btn-outline-sm" onclick="Wizard.lookupBiz()">자동조회</button>
+
+        <!-- 탭 선택 -->
+        <div class="auto-input-tabs">
+          <button type="button" class="auto-tab active" id="tabBizNo" onclick="Wizard.switchAutoTab('bizno')">🔎 사업자번호 조회</button>
+          <button type="button" class="auto-tab" id="tabOcr" onclick="Wizard.switchAutoTab('ocr')">📷 사업자등록증 스캔</button>
         </div>
-        <div id="bizLookupStatus" class="biz-lookup-status hidden"></div>
-        <div class="biz-type-row" id="bizTypeRow" style="display:none">
-          <div class="biz-type-field">
-            <label>업태</label>
-            <input type="text" id="bizType" placeholder="예: 도소매" maxlength="30"
-              oninput="Wizard.inferIndustryFromType()" />
+
+        <!-- 탭1: 사업자번호 조회 -->
+        <div id="autoTabBizno">
+          <div class="biz-lookup-row">
+            <input type="text" id="bizRegNo" placeholder="000-00-00000" maxlength="12"
+              oninput="Wizard.formatBizNo(this)" autocomplete="off" />
+            <input type="text" id="repName" placeholder="대표자명" maxlength="20" autocomplete="off" />
+            <button type="button" class="btn btn-outline-sm" onclick="Wizard.lookupBiz()">자동조회</button>
           </div>
-          <div class="biz-type-field">
-            <label>종목</label>
-            <input type="text" id="bizItem" placeholder="예: 전자부품" maxlength="30"
-              oninput="Wizard.inferIndustryFromType()" />
+          <div id="bizLookupStatus" class="biz-lookup-status hidden"></div>
+          <div class="biz-type-row" id="bizTypeRow" style="display:none">
+            <div class="biz-type-field">
+              <label>업태</label>
+              <input type="text" id="bizType" placeholder="예: 도소매" maxlength="30"
+                oninput="Wizard.inferIndustryFromType()" />
+            </div>
+            <div class="biz-type-field">
+              <label>종목</label>
+              <input type="text" id="bizItem" placeholder="예: 전자부품" maxlength="30"
+                oninput="Wizard.inferIndustryFromType()" />
+            </div>
           </div>
+          <div id="bizInferResult" class="biz-infer-result hidden"></div>
         </div>
-        <div id="bizInferResult" class="biz-infer-result hidden"></div>
+
+        <!-- 탭2: OCR 사업자등록증 스캔 -->
+        <div id="autoTabOcr" style="display:none">
+          <div class="ocr-upload-area" id="ocrUploadArea" onclick="document.getElementById('ocrFileInput').click()">
+            <span class="ocr-upload-ico">📄</span>
+            <p class="ocr-upload-txt">사업자등록증 사진을 클릭하거나 드래그해서 업로드</p>
+            <p class="ocr-upload-hint">JPG · PNG · PDF — 선명할수록 인식률이 높아집니다</p>
+          </div>
+          <input type="file" id="ocrFileInput" accept="image/*,.pdf" style="display:none"
+            onchange="Wizard.handleOcrUpload(this)" />
+          <div id="ocrStatus" class="biz-lookup-status hidden"></div>
+          <div id="ocrPreview" class="ocr-preview hidden"></div>
+        </div>
+      </div>
+
+      <!-- DART 재무정보 조회 블록 (회사명 입력 후 표시) -->
+      <div class="dart-lookup-block hidden" id="dartLookupBlock">
+        <div class="dart-lookup-row">
+          <span class="dart-lookup-label">📊 DART 재무정보 자동조회</span>
+          <span class="opt-badge">선택사항</span>
+          <button type="button" class="btn btn-outline-sm" onclick="Wizard.lookupDart()">재무조회</button>
+        </div>
+        <div id="dartStatus" class="biz-lookup-status hidden"></div>
+        <div id="dartResult" class="dart-result hidden"></div>
       </div>
 
       <div class="form-grid">
         <div class="form-group">
           <label>회사명 *<span class="field-check">✓</span></label>
-          <input type="text" id="companyName" placeholder="예: (주)테크스타트" />
+          <input type="text" id="companyName" placeholder="예: (주)테크스타트"
+            oninput="Wizard.onCompanyNameInput(this)" />
         </div>
         <div class="form-group">
           <label>업종 *<span class="field-check">✓</span></label>

@@ -986,3 +986,74 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   .btn-outline-sm  { width: 100%; text-align: center; }
   .biz-type-row    { flex-direction: column; }
 }
+
+/* ── 자동입력 탭 ── */
+.auto-input-tabs {
+  display: flex; gap: 6px; margin-bottom: 14px;
+}
+.auto-tab {
+  flex: 1; padding: 8px 10px; font-size: 12px; font-weight: 600;
+  border-radius: 8px; cursor: pointer;
+  background: rgba(22,32,64,0.5);
+  border: 1px solid rgba(42,63,117,0.4);
+  color: var(--txt3); transition: all .15s;
+}
+.auto-tab.active {
+  background: rgba(245,192,48,0.12);
+  border-color: rgba(245,192,48,0.5);
+  color: var(--gold);
+}
+.auto-tab:hover:not(.active) { border-color: rgba(245,192,48,0.3); color: var(--txt); }
+
+/* ── OCR 업로드 영역 ── */
+.ocr-upload-area {
+  border: 2px dashed rgba(245,192,48,0.3);
+  border-radius: 10px; padding: 28px 20px;
+  text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.ocr-upload-area:hover { border-color: var(--gold); background: rgba(245,192,48,0.05); }
+.ocr-upload-ico  { font-size: 32px; display: block; margin-bottom: 8px; }
+.ocr-upload-txt  { font-size: 13px; color: var(--txt); margin: 0 0 4px; font-weight: 600; }
+.ocr-upload-hint { font-size: 11px; color: var(--txt3); margin: 0; }
+.ocr-preview {
+  margin-top: 12px; background: rgba(15,22,41,0.7);
+  border: 1px solid rgba(245,192,48,0.2); border-radius: 8px; padding: 12px 14px;
+}
+.ocr-preview.hidden { display: none; }
+.ocr-preview-title { font-size: 11px; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
+.ocr-preview-row   { font-size: 12px; color: var(--txt); line-height: 1.8; }
+
+/* ── DART 재무정보 블록 ── */
+.dart-lookup-block {
+  background: rgba(10,14,26,0.6);
+  border: 1px solid rgba(74,222,128,0.2);
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;
+}
+.dart-lookup-block.hidden { display: none; }
+.dart-lookup-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.dart-lookup-label { font-size: 13px; font-weight: 600; color: var(--txt); flex: 1; }
+.dart-result { margin-top: 12px; }
+.dart-result.hidden { display: none; }
+.dart-result-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;
+}
+.dart-item {
+  background: rgba(15,22,41,0.8); border-radius: 8px; padding: 10px 12px;
+  border: 1px solid rgba(42,63,117,0.3);
+}
+.dart-label { display: block; font-size: 10px; color: var(--txt3); margin-bottom: 4px; }
+.dart-value { font-size: 14px; font-weight: 700; color: #4ade80; }
+.btn-apply-dart {
+  width: 100%; padding: 9px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3);
+  color: #4ade80; cursor: pointer; transition: background .15s;
+}
+.btn-apply-dart:hover { background: rgba(74,222,128,0.2); }
+
+@media (max-width: 768px) {
+  .dart-result-grid { grid-template-columns: 1fr; }
+  .auto-input-tabs  { flex-direction: column; }
+}
