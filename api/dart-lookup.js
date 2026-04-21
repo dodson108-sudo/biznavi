@@ -2,14 +2,12 @@
  * Vercel Serverless Function: /api/dart-lookup
  * DART(금융감독원 전자공시) API로 기업 재무제표 조회
  *
- * 환경변수 설정 필요 (Vercel Dashboard → Settings → Environment Variables):
- *   DART_API_KEY = opendart.fss.or.kr 에서 발급받은 API 키
+ * 올바른 호출 순서:
+ *  1. list.json (공시목록) — corp_name으로 검색 → corp_code 획득
+ *  2. company.json        — corp_code로 업종코드·업종명 조회
+ *  3. fnlttSinglAcnt.json — corp_code로 재무제표 조회
  *
- * DART API 키 발급:
- *   https://opendart.fss.or.kr/ → 인증키 신청/관리 → 개발계정 신청
- *
- * 주의: 상장사 및 외부감사 대상 법인만 데이터 존재.
- *       소상공인/개인사업자는 조회 결과 없을 수 있음.
+ * 환경변수: DART_API_KEY (opendart.fss.or.kr에서 발급)
  */
 
 module.exports = async function handler(req, res) {
@@ -30,77 +28,98 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 회사명 변형 목록 생성 (주), ㈜, 주식회사 등 자동 처리
+    // 회사명 변형 목록 생성
     function getNameVariants(name) {
       const core = name
         .replace(/^\(주\)\s*/i, '').replace(/^㈜\s*/, '')
         .replace(/^주식회사\s+/i, '').replace(/\s*\(주\)$/i, '')
         .replace(/\s*㈜$/, '').trim();
-      return [...new Set([name, core, `주식회사 ${core}`, `㈜${core}`, `(주)${core}`])];
+      return [...new Set([core, name, `주식회사 ${core}`, `㈜${core}`, `(주)${core}`])];
     }
 
-    // 1단계: 회사명 변형 순서대로 시도
+    // ── 1단계: list.json으로 회사명 검색 → corp_code 획득 ──
     const variants = getNameVariants(companyName.trim());
-    let searchData = null;
+    let corpCode = null;
+    let corpNameFound = null;
+    let stockCode = null;
     let lastDartStatus = null;
-    let lastDartMessage = null;
+
     for (const variant of variants) {
-      const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}`;
-      console.log('[DART] searching variant:', variant);
-      const searchRes = await fetch(searchUrl);
-      const data = await searchRes.json();
-      lastDartStatus = data.status;
-      lastDartMessage = data.message;
-      console.log('[DART] response status:', data.status, '/ message:', data.message, '/ total_count:', data.total_count, '/ list length:', data.list?.length ?? 'no list', '/ keys:', Object.keys(data).join(','));
+      const listUrl = `https://opendart.fss.or.kr/api/list.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}&bgn_de=20220101&end_de=20251231&pblntf_ty=A&page_count=5`;
+      console.log('[DART] list.json 검색:', variant);
+      const listRes = await fetch(listUrl);
+      const listData = await listRes.json();
+      lastDartStatus = listData.status;
+      console.log('[DART] list.json 응답:', listData.status, '건수:', listData.list?.length ?? 0);
 
-      // API 키 오류면 더 이상 시도하지 않음
-      if (data.status === '010' || data.status === '011') {
-        return res.status(200).json({ status: 'api_key_error', dartStatus: data.status, message: `DART API 키 오류 (${data.status}): ${data.message || '인증키를 확인해주세요'}` });
+      // API 키 오류이면 즉시 반환
+      if (listData.status === '010' || listData.status === '011') {
+        return res.status(200).json({
+          status: 'api_key_error',
+          dartStatus: listData.status,
+          message: `DART API 키 오류 (${listData.status})`
+        });
       }
 
-      if (data.status === '000' && data.list && data.list.length > 0) {
-        searchData = data; break;
-      }
-      // list 없이 단일 객체로 응답하는 경우 처리
-      if (data.status === '000' && data.corp_code) {
-        searchData = { list: [data] }; break;
+      if (listData.status === '000' && listData.list && listData.list.length > 0) {
+        // 정확히 일치하는 회사명 우선, 없으면 첫 번째 결과
+        const exact = listData.list.find(item =>
+          item.corp_name.replace(/\s/g, '') === variant.replace(/\s/g, '')
+        );
+        const match = exact || listData.list[0];
+        corpCode = match.corp_code;
+        corpNameFound = match.corp_name;
+        stockCode = match.stock_code || '';
+        console.log('[DART] corp_code 획득:', corpCode, corpNameFound);
+        break;
       }
     }
 
-    if (!searchData) {
+    if (!corpCode) {
       return res.status(200).json({
         status: 'not_found',
         dartStatus: lastDartStatus,
-        dartMessage: lastDartMessage,
         message: 'DART에 등록된 기업 정보가 없습니다.'
       });
     }
 
-    // 첫 번째 결과 사용 (가장 유사한 회사명)
-    const corp = searchData.list[0];
-    const corpCode = corp.corp_code;
-    // DART company 검색 결과에 업종코드·업종명 포함됨
-    const indutyCode = corp.induty_code || '';
-    const indutyName = corp.induty_nm  || '';
+    // ── 2단계: company.json으로 업종코드·업종명 조회 (corp_code 사용) ──
+    let indutyCode = '';
+    let indutyName = '';
+    try {
+      const compUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_code=${corpCode}`;
+      const compRes = await fetch(compUrl);
+      const compData = await compRes.json();
+      console.log('[DART] company.json 응답:', compData.status, compData.induty_code, compData.induty_nm);
+      if (compData.status === '000') {
+        indutyCode = compData.induty_code || '';
+        indutyName = compData.induty_nm  || '';
+        if (!corpNameFound) corpNameFound = compData.corp_name;
+        if (!stockCode)    stockCode     = compData.stock_code || '';
+      }
+    } catch (e) {
+      console.warn('[DART] company.json 오류(업종 미조회):', e.message);
+    }
 
-    // 2단계: 최근 사업보고서 재무제표 조회 (전년도부터 최대 2년 시도)
+    // ── 3단계: 재무제표 조회 (최근 3개년 시도) ──
     const currentYear = new Date().getFullYear();
     let finData = null;
 
     for (let year = currentYear - 1; year >= currentYear - 3; year--) {
+      // 연결재무제표 우선
       const finUrl = `https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=CFS`;
       const finRes = await fetch(finUrl);
       const fin = await finRes.json();
-
+      console.log(`[DART] 재무(CFS) ${year}:`, fin.status, '건수:', fin.list?.length ?? 0);
       if (fin.status === '000' && fin.list && fin.list.length > 0) {
         finData = { year, list: fin.list };
         break;
       }
-
-      // 연결재무제표 없으면 별도재무제표 시도
+      // 별도재무제표 fallback
       const finUrl2 = `https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=OFS`;
       const finRes2 = await fetch(finUrl2);
       const fin2 = await finRes2.json();
+      console.log(`[DART] 재무(OFS) ${year}:`, fin2.status, '건수:', fin2.list?.length ?? 0);
       if (fin2.status === '000' && fin2.list && fin2.list.length > 0) {
         finData = { year, list: fin2.list };
         break;
@@ -110,21 +129,20 @@ module.exports = async function handler(req, res) {
     if (!finData) {
       return res.status(200).json({
         status: 'no_financial',
-        corpName: corp.corp_name,
-        stockCode: corp.stock_code,
+        corpName: corpNameFound,
+        stockCode,
         message: '기업은 검색되었으나 재무제표 데이터가 없습니다.'
       });
     }
 
-    // 3단계: 재무 항목 추출 (복수 계정과목명 매칭)
+    // ── 4단계: 재무 항목 추출 ──
     const items = finData.list;
-    console.log('DART items count:', items.length, '/ sample:', items.slice(0,3).map(i=>i.account_nm));
+    console.log('[DART] 재무항목 수:', items.length, '샘플:', items.slice(0, 3).map(i => i.account_nm));
 
-    // 여러 후보명 중 첫 번째 매칭 값 반환 (당기 없으면 전기 fallback)
     const get = (...names) => {
       for (const nm of names) {
-        const norm = nm.replace(/\s/g,'');
-        const found = items.find(i => i.account_nm && i.account_nm.replace(/\s/g,'').includes(norm));
+        const norm = nm.replace(/\s/g, '');
+        const found = items.find(i => i.account_nm && i.account_nm.replace(/\s/g, '').includes(norm));
         if (found) {
           const val = found.thstrm_amount || found.frmtrm_amount;
           if (val && val !== '0') return val;
@@ -133,48 +151,45 @@ module.exports = async function handler(req, res) {
       return null;
     };
 
-    // ── 재무상태표 (B/S) ──
+    // 재무상태표 (B/S)
     const currentAssets      = get('유동자산');
     const quickAssets        = get('당좌자산');
-    const cash               = get('현금및현금성자산','현금및단기금융상품','현금과예금');
-    const receivable         = get('매출채권및기타채권','매출채권','받을어음및매출채권');
+    const cash               = get('현금및현금성자산', '현금및단기금융상품', '현금과예금');
+    const receivable         = get('매출채권및기타채권', '매출채권', '받을어음및매출채권');
     const inventory          = get('재고자산');
     const nonCurrentAssets   = get('비유동자산');
     const tangibleAssets     = get('유형자산');
     const totalAssets        = get('자산총계');
     const currentLiabilities = get('유동부채');
-    const payable            = get('매입채무및기타채무','매입채무','미지급금');
+    const payable            = get('매입채무및기타채무', '매입채무', '미지급금');
     const nonCurrentLiab     = get('비유동부채');
-    const borrowings         = get('차입금','단기차입금'); // 장단기 합산은 아래서 처리
+    const borrowings         = get('차입금', '단기차입금');
     const totalDebt          = get('부채총계');
-    const equity             = get('자본총계','자기자본');
+    const equity             = get('자본총계', '자기자본');
 
-    // ── 손익계산서 (I/S) ──
-    const revenue            = get('매출액','영업수익','수익(매출액)','매출');
-    const grossProfit        = get('매출총이익','매출총손익');
-    const operatingProfit    = get('영업이익','영업손익');
-    const interestExpense    = get('이자비용','금융비용');
-    const netIncome          = get('당기순이익','당기순손익');
-    const laborCost          = get('인건비','급여','종업원급여','급여및임원보수');
+    // 손익계산서 (I/S)
+    const revenue            = get('매출액', '영업수익', '수익(매출액)', '매출');
+    const grossProfit        = get('매출총이익', '매출총손익');
+    const operatingProfit    = get('영업이익', '영업손익');
+    const interestExpense    = get('이자비용', '금융비용');
+    const netIncome          = get('당기순이익', '당기순손익');
+    const laborCost          = get('인건비', '급여', '종업원급여', '급여및임원보수');
 
-    // 억원 단위 변환
     const toEok = (val) => {
       if (!val) return null;
       const n = parseInt(val.replace(/,/g, ''), 10);
       if (isNaN(n)) return null;
       return Math.round(n / 100000000);
     };
-
     const r = (val) => val ? { raw: val, eok: toEok(val) } : null;
 
     return res.status(200).json({
       status: 'found',
-      corpName:   corp.corp_name,
-      stockCode:  corp.stock_code || '',
+      corpName:   corpNameFound,
+      stockCode,
       indutyCode,
       indutyName,
       year:       finData.year,
-      // B/S
       currentAssets:      r(currentAssets),
       quickAssets:        r(quickAssets),
       cash:               r(cash),
@@ -189,7 +204,6 @@ module.exports = async function handler(req, res) {
       borrowings:         r(borrowings),
       totalDebt:          r(totalDebt),
       equity:             r(equity),
-      // I/S
       revenue:            r(revenue),
       grossProfit:        r(grossProfit),
       operatingProfit:    r(operatingProfit),
@@ -197,12 +211,12 @@ module.exports = async function handler(req, res) {
       netIncome:          r(netIncome),
       laborCost:          r(laborCost),
       debtRatio: (totalAssets && totalDebt)
-        ? Math.round(parseInt(totalDebt.replace(/,/g,'')) / parseInt(totalAssets.replace(/,/g,'')) * 100)
+        ? Math.round(parseInt(totalDebt.replace(/,/g, '')) / parseInt(totalAssets.replace(/,/g, '')) * 100)
         : null
     });
 
   } catch (err) {
-    console.error('dart-lookup error:', err);
+    console.error('[DART] 오류:', err);
     return res.status(200).json({ status: 'error', message: '조회 중 오류가 발생했습니다.' });
   }
 };
