@@ -253,23 +253,32 @@ const FinWizard = (() => {
       }
     });
     window.scrollTo(0, 0);
-    // Step2 진입 시 DART 자동조회 → 자동입력
-    if (n === 2) _autoFillStep2();
   }
 
-  async function _autoFillStep2() {
+  function _validateStep1() {
     const name = document.getElementById('finCompanyName')?.value.trim();
-    if (!name || name.length < 2) return;
+    const code = document.getElementById('finIndustryCode')?.value.trim();
+    if (!name) { alert('회사명을 입력해주세요.'); return false; }
+    if (!code) { alert('업종을 검색하여 선택해주세요.'); return false; }
+    return true;
+  }
 
-    // 이미 DART 데이터 있으면 바로 입력
-    if (_dartData && _dartData.status === 'found') {
-      _tryDartAutoFill();
+  /* ── "다음 →" 버튼: 모드에 따라 분기 ── */
+  async function nextStep() {
+    if (!_validateStep1()) return;
+
+    if (_inputMode === 'manual') {
+      // 직접 입력: 바로 Step2, 필드 초기화
+      _clearStep2Fields();
+      _showStep2('직접 입력 모드 — 재무데이터를 직접 입력해주세요.');
       return;
     }
 
-    // DART 데이터 없으면 자동 조회
-    const notice = document.getElementById('finDartAutoFill');
-    if (notice) { notice.classList.remove('hidden'); notice.innerHTML = '<span>📡 DART에서 재무데이터를 불러오는 중...</span>'; }
+    // DART 자동조회 모드
+    const name = document.getElementById('finCompanyName')?.value.trim();
+    const btn = document.getElementById('finNextBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'DART 조회 중...'; }
+
     try {
       const res = await fetch('/api/dart-lookup', {
         method: 'POST',
@@ -277,26 +286,46 @@ const FinWizard = (() => {
         body: JSON.stringify({ companyName: name })
       });
       const data = await res.json();
+
       if (data.status === 'found') {
         _dartData = data;
+        _showStep2(`✅ DART 자동입력 완료 — ${data.corpName} (${data.year}년 기준) · 수정 가능합니다`);
         _tryDartAutoFill();
-        if (notice) notice.innerHTML = `<span>✅ DART 자동입력 완료 — ${data.corpName} (${data.year}년 기준) · 수정 가능합니다</span>`;
       } else if (data.status === 'no_key') {
-        if (notice) { notice.innerHTML = '<span style="color:var(--txt3)">⚠️ DART API 키 미설정 — 직접 입력해주세요.</span>'; }
+        _clearStep2Fields();
+        _showStep2('⚠️ DART API 키 미설정 — 직접 입력해주세요.');
       } else {
-        if (notice) { notice.innerHTML = '<span style="color:var(--txt3)">ℹ️ DART 등록 데이터 없음 (소상공인/개인사업자) — 직접 입력해주세요.</span>'; }
+        _clearStep2Fields();
+        _showStep2('ℹ️ DART 등록 데이터 없음 (소상공인/개인사업자 등) — 직접 입력해주세요.');
       }
     } catch (e) {
-      if (notice) { notice.innerHTML = '<span style="color:var(--txt3)">⚠️ DART 조회 실패 — 직접 입력해주세요.</span>'; }
+      _clearStep2Fields();
+      _showStep2('⚠️ DART 조회 실패 — 직접 입력해주세요.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '다음 →'; }
     }
   }
 
-  function _validateStep1() {
-    const name = document.getElementById('finCompanyName')?.value.trim();
-    const code = document.getElementById('finIndustryCode')?.value.trim();
-    if (!name) { alert('회사명을 입력해주세요.'); return false; }
-    if (!code) { alert('업종코드를 입력해주세요.\n(예: C2830)'); return false; }
-    return true;
+  function _showStep2(noticeMsg) {
+    _curStep = 2;
+    document.getElementById('finWizStep1')?.classList.add('hidden');
+    document.getElementById('finWizStep2')?.classList.remove('hidden');
+    [1, 2, 3].forEach(i => {
+      const el = document.getElementById('finStep' + i);
+      if (el) { el.classList.toggle('active', i === 2); el.classList.toggle('done', i < 2); }
+    });
+    const notice = document.getElementById('finDartAutoFill');
+    if (notice) { notice.classList.remove('hidden'); notice.innerHTML = `<span>${noticeMsg}</span>`; }
+    window.scrollTo(0, 0);
+  }
+
+  function _clearStep2Fields() {
+    ['fin_current_assets','fin_quick_assets','fin_cash','fin_receivable','fin_inventory',
+     'fin_noncurrent_assets','fin_tangible_assets','fin_total_assets','fin_current_liabilities',
+     'fin_payable','fin_noncurrent_liabilities','fin_borrowings','fin_total_liabilities',
+     'fin_equity','fin_revenue','fin_gross_profit','fin_operating_profit',
+     'fin_interest_expense','fin_net_income','fin_labor_cost','fin_employees','fin_prev_revenue'
+    ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   }
 
   /* ── 입력 모드 전환 ── */
@@ -644,7 +673,7 @@ const FinWizard = (() => {
 
   /* ── PUBLIC API ── */
   return {
-    goStep, switchInputMode, onCompanyInput, lookupDart, analyze,
+    goStep, nextStep, switchInputMode, onCompanyInput, lookupDart, analyze,
     searchIndustryCode, selectIndustryCode
   };
 })();
