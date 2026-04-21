@@ -12,7 +12,7 @@ const App = (() => {
   let _pendingIsDemo = false;
 
   /* ── SCREEN ── */
-  const screens = ['landing', 'wizard', 'loading', 'diag-reveal', 'dashboard'];
+  const screens = ['landing', 'mode-select', 'wizard', 'finance-wizard', 'finance-dashboard', 'loading', 'diag-reveal', 'dashboard'];
   let _confirmedBmKey = ''; // BM 확인 화면에서 최종 확정된 BM 키
 
   function show(id) {
@@ -86,12 +86,15 @@ const App = (() => {
     show('wizard');
   }
 
-  /* ── WIZARD COORDINATION ── */
+  /* ── MODE SELECT ── */
   function startWizard() {
     mode = apiKey ? 'real' : 'demo';
     Wizard.reset();
     show('wizard');
   }
+  function showModeSelect() { show('mode-select'); }
+  function startFinanceAnalysis() { show('finance-wizard'); FinWizard.goStep(1); }
+  function showFinanceDashboard() { show('finance-dashboard'); }
   function showLanding() { show('landing'); }
 
   /* BM 확인 화면: Step 1 → BM confirm */
@@ -249,7 +252,7 @@ const App = (() => {
     if (wizKeyEl && apiKey && apiKey.startsWith('sk-ant-')) wizKeyEl.value = apiKey;
   }
 
-  return { startWizard, showLanding, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1, fillSavedKey };
+  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceDashboard, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1, fillSavedKey };
 })();
 
 /* ===== LANDING PAGE JS ===== */
