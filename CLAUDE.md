@@ -1,10 +1,47 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-20 최신)
+## 배포 상태 (2026-04-21 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: DART 재무제표 자동조회 + 사업자등록증 OCR 자동입력 추가
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: DART 회사명 변형 자동시도 + ECOS 업종별 산업평균 동적 연동
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-21)
+
+### 재무분석 모듈 완성 — DART + ECOS + 리포트 연동
+
+#### DART 회사명 자동변형 검색 (api/dart-lookup.js)
+- `(주)`, `㈜`, `주식회사` 등 접두어 자동 제거 후 재검색
+- 원본명 → 핵심명 → `주식회사 XXX` → `㈜XXX` → `(주)XXX` 순서로 시도
+- 어떤 형식으로 입력해도 DART 검색 성공률 대폭 향상
+
+#### 한국은행 ECOS API 업종별 산업평균 동적 연동
+- `api/bok-avg.js` (신규): Vercel Serverless Function
+  - KSIC 대분류(A~S) → ECOS 기업경영분석 업종코드 매핑 (18개 업종)
+  - 통계표 008Y003 호출 → 재무비율 30여 항목 파싱
+  - 환경변수: `ECOS_API_KEY` (ecos.bok.or.kr에서 발급)
+- `js/finance-wizard.js` 수정:
+  - `_BOK_AVG_DEFAULT`: 제조업 기준 하드코딩 기본값 (fallback)
+  - `_bokAvg`: 분석 실행 시 ECOS에서 해당 업종 실제값으로 동적 교체
+  - `_fetchBokAvg()`: `/api/bok-avg` 호출, 실패 시 기본값 유지
+  - `_bokAvgSource`: 대시보드·리포트에 산업평균 출처 자동 표시
+  - `analyze()` 비동기화, 버튼 disabled 처리
+
+#### 재무분석 흐름 (완성)
+1. 회사명 입력 → DART 조회 (회사명 변형 자동시도)
+2. DART 성공: 업종코드 + 전체 재무데이터(B/S+I/S) 자동입력
+3. DART 실패: 직접 입력 모드 전환 + 업종 수동 선택
+4. 분석 실행 → ECOS API로 해당 업종 산업평균 조회
+5. 6대 재무비율 분석 대시보드 렌더링
+6. 재무분석 리포트 생성 (PDF 인쇄 가능)
+
+#### Vercel 환경변수 (필수)
+```
+DART_API_KEY  = [opendart.fss.or.kr 발급]
+ECOS_API_KEY  = [ecos.bok.or.kr 발급]
+```
 
 ---
 
