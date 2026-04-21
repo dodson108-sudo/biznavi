@@ -253,8 +253,42 @@ const FinWizard = (() => {
       }
     });
     window.scrollTo(0, 0);
-    // DART 자동조회 모드면 Step2 진입 시 자동 조회 시도
-    if (n === 2 && _inputMode === 'dart') _tryDartAutoFill();
+    // Step2 진입 시 DART 자동조회 → 자동입력
+    if (n === 2) _autoFillStep2();
+  }
+
+  async function _autoFillStep2() {
+    const name = document.getElementById('finCompanyName')?.value.trim();
+    if (!name || name.length < 2) return;
+
+    // 이미 DART 데이터 있으면 바로 입력
+    if (_dartData && _dartData.status === 'found') {
+      _tryDartAutoFill();
+      return;
+    }
+
+    // DART 데이터 없으면 자동 조회
+    const notice = document.getElementById('finDartAutoFill');
+    if (notice) { notice.classList.remove('hidden'); notice.innerHTML = '<span>📡 DART에서 재무데이터를 불러오는 중...</span>'; }
+    try {
+      const res = await fetch('/api/dart-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName: name })
+      });
+      const data = await res.json();
+      if (data.status === 'found') {
+        _dartData = data;
+        _tryDartAutoFill();
+        if (notice) notice.innerHTML = `<span>✅ DART 자동입력 완료 — ${data.corpName} (${data.year}년 기준) · 수정 가능합니다</span>`;
+      } else if (data.status === 'no_key') {
+        if (notice) { notice.innerHTML = '<span style="color:var(--txt3)">⚠️ DART API 키 미설정 — 직접 입력해주세요.</span>'; }
+      } else {
+        if (notice) { notice.innerHTML = '<span style="color:var(--txt3)">ℹ️ DART 등록 데이터 없음 (소상공인/개인사업자) — 직접 입력해주세요.</span>'; }
+      }
+    } catch (e) {
+      if (notice) { notice.innerHTML = '<span style="color:var(--txt3)">⚠️ DART 조회 실패 — 직접 입력해주세요.</span>'; }
+    }
   }
 
   function _validateStep1() {
