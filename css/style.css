@@ -1175,3 +1175,26 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   .fin-dash-header { flex-direction: column; }
   .fin-ratio-bar-bg { width: 60px; }
 }
+
+/* ===== 업종코드 검색 ===== */
+.industry-search-result {
+  position: absolute; z-index: 999; width: 100%;
+  background: #0F1629; border: 1px solid var(--gold);
+  border-radius: 8px; max-height: 280px; overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5); margin-top: 4px;
+}
+.industry-result-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer; transition: background .1s;
+  border-bottom: 1px solid rgba(42,63,117,.3);
+}
+.industry-result-item:last-child { border-bottom: none; }
+.industry-result-item:hover { background: rgba(245,192,48,.1); }
+.industry-code-badge {
+  font-size: 0.75rem; font-weight: 700; color: var(--gold);
+  background: rgba(245,192,48,.15); border-radius: 4px; padding: 2px 6px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.industry-code-name { font-size: 0.88rem; color: var(--txt); }
+.industry-no-result { padding: 12px 14px; font-size: 0.85rem; color: var(--txt3); }
+.form-group { position: relative; }

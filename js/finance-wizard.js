@@ -6,8 +6,235 @@
 const FinWizard = (() => {
   let _curStep = 1;
   let _inputMode = 'dart'; // 'dart' | 'manual'
-  let _dartData = null;    // DART에서 가져온 원본 데이터
-  let _finData = {};       // 최종 재무 데이터
+  let _dartData = null;
+  let _finData = {};
+
+  /* ── 업종코드 데이터 (국세청 업종코드 ↔ 표준산업분류 세분류) ── */
+  const INDUSTRY_CODES = [
+    // 농림어업
+    { code: 'A0100', ksic: 'A011', name: '식량작물 재배업' },
+    { code: 'A0110', ksic: 'A012', name: '채소·화훼작물 재배업' },
+    { code: 'A0120', ksic: 'A013', name: '과실·음료용 작물 재배업' },
+    { code: 'A0200', ksic: 'A021', name: '육우 사육업' },
+    { code: 'A0210', ksic: 'A022', name: '양돈업' },
+    { code: 'A0220', ksic: 'A023', name: '가금류 사육업' },
+    { code: 'A0300', ksic: 'A031', name: '연근해 어업' },
+    { code: 'A0310', ksic: 'A032', name: '내수면 어업' },
+    // 음식료품 제조
+    { code: 'C1010', ksic: 'C101', name: '도축·육류 가공업' },
+    { code: 'C1020', ksic: 'C102', name: '수산물 가공·저장처리업' },
+    { code: 'C1030', ksic: 'C103', name: '과실·채소 가공·저장처리업' },
+    { code: 'C1040', ksic: 'C104', name: '동물성·식물성 유지 제조업' },
+    { code: 'C1050', ksic: 'C105', name: '낙농제품 및 식용 빙과류 제조업' },
+    { code: 'C1061', ksic: 'C106', name: '곡물 가공품 제조업(밀가루 등)' },
+    { code: 'C1071', ksic: 'C107', name: '빵류·과자류 제조업' },
+    { code: 'C1080', ksic: 'C108', name: '조미료·식품 첨가물 제조업' },
+    { code: 'C1090', ksic: 'C109', name: '기타 식료품 제조업' },
+    { code: 'C1101', ksic: 'C110', name: '소주·위스키 등 주류 제조업' },
+    { code: 'C1102', ksic: 'C110', name: '맥주 제조업' },
+    { code: 'C1120', ksic: 'C112', name: '비알코올 음료·얼음 제조업' },
+    // 섬유·의복
+    { code: 'C1310', ksic: 'C131', name: '방적업(면·모·화섬 등)' },
+    { code: 'C1320', ksic: 'C132', name: '직물 제조업' },
+    { code: 'C1411', ksic: 'C141', name: '봉제의복 제조업' },
+    { code: 'C1420', ksic: 'C142', name: '모피제품 제조업' },
+    { code: 'C1510', ksic: 'C151', name: '가죽·가방·지갑 제조업' },
+    { code: 'C1520', ksic: 'C152', name: '신발 제조업' },
+    // 목재·종이
+    { code: 'C1610', ksic: 'C161', name: '제재·목재 가공업' },
+    { code: 'C1620', ksic: 'C162', name: '합판·강화목재 제조업' },
+    { code: 'C1630', ksic: 'C163', name: '목재 가구 제조업' },
+    { code: 'C1710', ksic: 'C171', name: '펄프·종이 제조업' },
+    { code: 'C1720', ksic: 'C172', name: '골판지·종이 용기 제조업' },
+    { code: 'C1811', ksic: 'C181', name: '인쇄업' },
+    // 석유·화학
+    { code: 'C1910', ksic: 'C191', name: '석유 정제품 제조업' },
+    { code: 'C2011', ksic: 'C201', name: '기초 화학물질 제조업' },
+    { code: 'C2020', ksic: 'C202', name: '비료·농약 제조업' },
+    { code: 'C2030', ksic: 'C203', name: '합성수지·플라스틱 제조업' },
+    { code: 'C2040', ksic: 'C204', name: '의약품 원료·완제 제조업' },
+    { code: 'C2051', ksic: 'C205', name: '화장품·샴푸 제조업' },
+    { code: 'C2060', ksic: 'C206', name: '세제·광택제 제조업' },
+    { code: 'C2090', ksic: 'C209', name: '기타 화학제품 제조업' },
+    { code: 'C2100', ksic: 'C210', name: '의약품 제조업' },
+    { code: 'C2211', ksic: 'C221', name: '타이어·튜브 제조업' },
+    { code: 'C2219', ksic: 'C221', name: '고무제품 제조업' },
+    { code: 'C2220', ksic: 'C222', name: '플라스틱 제품 제조업' },
+    // 비금속·금속
+    { code: 'C2310', ksic: 'C231', name: '유리·유리제품 제조업' },
+    { code: 'C2320', ksic: 'C232', name: '내화요업 제품 제조업' },
+    { code: 'C2330', ksic: 'C233', name: '도자기·요업제품 제조업' },
+    { code: 'C2341', ksic: 'C234', name: '시멘트·석회·석고 제조업' },
+    { code: 'C2390', ksic: 'C239', name: '기타 비금속광물 제조업' },
+    { code: 'C2411', ksic: 'C241', name: '1차 철강 제조업' },
+    { code: 'C2420', ksic: 'C242', name: '1차 비철금속 제조업' },
+    { code: 'C2431', ksic: 'C243', name: '금속 주조업' },
+    { code: 'C2511', ksic: 'C251', name: '구조용 금속제품 제조업' },
+    { code: 'C2590', ksic: 'C259', name: '기타 금속 가공품 제조업' },
+    // 기계·전기·전자
+    { code: 'C2610', ksic: 'C261', name: '반도체 제조업' },
+    { code: 'C2620', ksic: 'C262', name: '전자부품 제조업(PCB·LCD 등)' },
+    { code: 'C2630', ksic: 'C263', name: '컴퓨터·주변기기 제조업' },
+    { code: 'C2640', ksic: 'C264', name: '통신장비 제조업' },
+    { code: 'C2651', ksic: 'C265', name: '계측기·센서 제조업' },
+    { code: 'C2710', ksic: 'C271', name: '전동기·발전기 제조업' },
+    { code: 'C2720', ksic: 'C272', name: '전지·축전지 제조업' },
+    { code: 'C2730', ksic: 'C273', name: '절연선·케이블 제조업' },
+    { code: 'C2740', ksic: 'C274', name: '조명장치 제조업(LED 등)' },
+    { code: 'C2790', ksic: 'C279', name: '기타 전기장비 제조업' },
+    { code: 'C2811', ksic: 'C281', name: '일반 목적 기계 제조업' },
+    { code: 'C2812', ksic: 'C281', name: '반도체·LCD 제조용 기계 제조업' },
+    { code: 'C2820', ksic: 'C282', name: '특수 목적 기계 제조업' },
+    { code: 'C2830', ksic: 'C283', name: '산업용 냉동공조기계 제조업' },
+    { code: 'C2910', ksic: 'C291', name: '자동차 제조업' },
+    { code: 'C2920', ksic: 'C292', name: '자동차 차체·트레일러 제조업' },
+    { code: 'C2930', ksic: 'C293', name: '자동차 부품 제조업' },
+    { code: 'C3010', ksic: 'C301', name: '선박 건조업' },
+    { code: 'C3020', ksic: 'C302', name: '철도차량 제조업' },
+    { code: 'C3030', ksic: 'C303', name: '항공기 제조업' },
+    { code: 'C3110', ksic: 'C311', name: '가구 제조업' },
+    { code: 'C3190', ksic: 'C319', name: '기타 제품 제조업' },
+    // 건설
+    { code: 'F4111', ksic: 'F411', name: '건물 건설업(아파트·주택 등)' },
+    { code: 'F4112', ksic: 'F411', name: '비주거용 건물 건설업' },
+    { code: 'F4120', ksic: 'F412', name: '토목 건설업' },
+    { code: 'F4211', ksic: 'F421', name: '전기 공사업' },
+    { code: 'F4212', ksic: 'F421', name: '정보통신 공사업' },
+    { code: 'F4220', ksic: 'F422', name: '기계 설비 공사업' },
+    { code: 'F4230', ksic: 'F423', name: '실내 인테리어 공사업' },
+    { code: 'F4290', ksic: 'F429', name: '기타 전문 공사업' },
+    // 도소매
+    { code: 'G4511', ksic: 'G451', name: '자동차 판매업' },
+    { code: 'G4610', ksic: 'G461', name: '농축산물 도매업' },
+    { code: 'G4620', ksic: 'G462', name: '식품·음료 도매업' },
+    { code: 'G4630', ksic: 'G463', name: '섬유·의류·신발 도매업' },
+    { code: 'G4641', ksic: 'G464', name: '전기·전자 도매업' },
+    { code: 'G4649', ksic: 'G464', name: '기계·부품 도매업' },
+    { code: 'G4690', ksic: 'G469', name: '기타 전문 도매업' },
+    { code: 'G4710', ksic: 'G471', name: '종합소매업(대형마트 등)' },
+    { code: 'G4721', ksic: 'G472', name: '식품·음료 소매업(편의점 등)' },
+    { code: 'G4730', ksic: 'G473', name: '연료 소매업(주유소 등)' },
+    { code: 'G4741', ksic: 'G474', name: '의약품·의료기기 소매업' },
+    { code: 'G4751', ksic: 'G475', name: '섬유·의복·신발 소매업' },
+    { code: 'G4761', ksic: 'G476', name: '가전·전자 소매업' },
+    { code: 'G4771', ksic: 'G477', name: '스포츠·취미용품 소매업' },
+    { code: 'G4791', ksic: 'G479', name: '통신판매업(온라인쇼핑 등)' },
+    // 음식·숙박
+    { code: 'I5611', ksic: 'I561', name: '한식 음식점업' },
+    { code: 'I5612', ksic: 'I561', name: '외국식 음식점업(중식·일식·양식)' },
+    { code: 'I5613', ksic: 'I561', name: '기관구내식당업' },
+    { code: 'I5619', ksic: 'I561', name: '기타 음식점업(분식·포장마차 등)' },
+    { code: 'I5621', ksic: 'I562', name: '제과점업(베이커리 등)' },
+    { code: 'I5629', ksic: 'I562', name: '피자·치킨·햄버거 등 음식점' },
+    { code: 'I5630', ksic: 'I563', name: '주점업(호프·bar 등)' },
+    { code: 'I5640', ksic: 'I564', name: '비알코올 음료점업(카페 등)' },
+    { code: 'I5510', ksic: 'I551', name: '호텔업' },
+    { code: 'I5590', ksic: 'I559', name: '기타 숙박업(모텔·게스트하우스 등)' },
+    // 운수
+    { code: 'H4911', ksic: 'H491', name: '철도 운송업' },
+    { code: 'H4921', ksic: 'H492', name: '시내버스 운송업' },
+    { code: 'H4922', ksic: 'H492', name: '택시 운송업' },
+    { code: 'H4930', ksic: 'H493', name: '화물 운송업(트럭)' },
+    { code: 'H5010', ksic: 'H501', name: '해상 운송업' },
+    { code: 'H5110', ksic: 'H511', name: '항공 운송업' },
+    { code: 'H5210', ksic: 'H521', name: '창고·물류시설 운영업' },
+    { code: 'H5220', ksic: 'H522', name: '택배·배달 서비스업' },
+    // IT·통신
+    { code: 'J5811', ksic: 'J581', name: '소프트웨어 개발·공급업' },
+    { code: 'J5820', ksic: 'J582', name: '게임 소프트웨어 개발·공급업' },
+    { code: 'J6010', ksic: 'J601', name: '유선 통신업' },
+    { code: 'J6020', ksic: 'J602', name: '무선 통신업(이동통신)' },
+    { code: 'J6110', ksic: 'J611', name: '유선 방송업' },
+    { code: 'J6120', ksic: 'J612', name: '위성방송업·인터넷방송' },
+    { code: 'J6201', ksic: 'J620', name: '컴퓨터 프로그래밍·시스템 통합' },
+    { code: 'J6202', ksic: 'J620', name: 'IT 컨설팅·SI 서비스업' },
+    { code: 'J6311', ksic: 'J631', name: '자료 처리·호스팅·웹서비스업' },
+    { code: 'J6312', ksic: 'J631', name: '클라우드 컴퓨팅 서비스업' },
+    { code: 'J6391', ksic: 'J639', name: '포털·검색엔진 운영업' },
+    { code: 'J6399', ksic: 'J639', name: '기타 정보 서비스업' },
+    // 금융·보험
+    { code: 'K6411', ksic: 'K641', name: '중앙은행업' },
+    { code: 'K6419', ksic: 'K641', name: '일반 은행업' },
+    { code: 'K6491', ksic: 'K649', name: '신용협동조합업' },
+    { code: 'K6499', ksic: 'K649', name: '기타 금융업(할부·리스 등)' },
+    { code: 'K6611', ksic: 'K661', name: '생명보험업' },
+    { code: 'K6621', ksic: 'K662', name: '손해보험업' },
+    { code: 'K6630', ksic: 'K663', name: '연금기금업' },
+    { code: 'K6641', ksic: 'K664', name: '증권중개업' },
+    { code: 'K6649', ksic: 'K664', name: '기타 금융지원 서비스업' },
+    // 부동산
+    { code: 'L6811', ksic: 'L681', name: '부동산 임대업' },
+    { code: 'L6812', ksic: 'L681', name: '주거용 건물 개발·공급업' },
+    { code: 'L6820', ksic: 'L682', name: '부동산 중개·감정평가업' },
+    // 전문서비스
+    { code: 'M7010', ksic: 'M701', name: '법무·법률 서비스업' },
+    { code: 'M7020', ksic: 'M702', name: '회계·세무 서비스업' },
+    { code: 'M7031', ksic: 'M703', name: '광고업' },
+    { code: 'M7032', ksic: 'M703', name: '시장조사·여론조사업' },
+    { code: 'M7110', ksic: 'M711', name: '건축설계·엔지니어링 서비스업' },
+    { code: 'M7120', ksic: 'M712', name: '기술 시험·검사·인증업' },
+    { code: 'M7130', ksic: 'M713', name: 'R&D(연구개발업)' },
+    { code: 'M7200', ksic: 'M720', name: '경영컨설팅·기업진단업' },
+    // 교육
+    { code: 'P8511', ksic: 'P851', name: '유치원' },
+    { code: 'P8521', ksic: 'P852', name: '초·중·고등학교' },
+    { code: 'P8531', ksic: 'P853', name: '대학·대학원' },
+    { code: 'P8551', ksic: 'P855', name: '일반 교과 학원(입시·보습)' },
+    { code: 'P8552', ksic: 'P855', name: '예능·체육 학원(음악·미술·태권도 등)' },
+    { code: 'P8561', ksic: 'P856', name: '직업훈련기관·평생교육원' },
+    // 보건·의료
+    { code: 'Q8610', ksic: 'Q861', name: '병원(종합병원·전문병원)' },
+    { code: 'Q8620', ksic: 'Q862', name: '의원(내과·치과·한의원 등)' },
+    { code: 'Q8630', ksic: 'Q863', name: '요양병원·요양원' },
+    { code: 'Q8690', ksic: 'Q869', name: '기타 의료기관(산후조리원 등)' },
+    { code: 'Q8699', ksic: 'Q869', name: '의료기기·보건용품 판매업' },
+    // 예술·스포츠
+    { code: 'R9000', ksic: 'R900', name: '공연·예술·창작 서비스업' },
+    { code: 'R9111', ksic: 'R911', name: '스포츠시설 운영업(헬스장 등)' },
+    { code: 'R9112', ksic: 'R911', name: '골프장·스키장 운영업' },
+    { code: 'R9120', ksic: 'R912', name: '오락·유원시설 운영업' },
+    // 기타 서비스
+    { code: 'S9511', ksic: 'S951', name: '컴퓨터·가전 수리업' },
+    { code: 'S9601', ksic: 'S960', name: '세탁·세탁소업' },
+    { code: 'S9602', ksic: 'S960', name: '미용·이용업(헤어살롱 등)' },
+    { code: 'S9603', ksic: 'S960', name: '목욕탕·사우나업' },
+    { code: 'S9699', ksic: 'S969', name: '기타 개인 서비스업' },
+  ];
+
+  /* ── 업종코드 검색 ── */
+  function searchIndustryCode(query) {
+    const q = query.trim();
+    const resultEl = document.getElementById('industrySearchResult');
+    if (!resultEl) return;
+    if (q.length < 1) { resultEl.innerHTML = ''; resultEl.classList.add('hidden'); return; }
+    const matches = INDUSTRY_CODES.filter(item =>
+      item.name.includes(q) || item.code.toUpperCase().includes(q.toUpperCase()) || item.ksic.toUpperCase().includes(q.toUpperCase())
+    ).slice(0, 10);
+    if (!matches.length) {
+      resultEl.innerHTML = '<div class="industry-no-result">검색 결과 없음</div>';
+      resultEl.classList.remove('hidden');
+      return;
+    }
+    resultEl.innerHTML = matches.map(m => `
+      <div class="industry-result-item" onclick="FinWizard.selectIndustryCode('${m.ksic}', '${m.name}')">
+        <span class="industry-code-badge">${m.ksic}</span>
+        <span class="industry-code-name">${m.name}</span>
+      </div>`).join('');
+    resultEl.classList.remove('hidden');
+  }
+
+  function selectIndustryCode(code, name) {
+    const codeEl = document.getElementById('finIndustryCode');
+    const nameEl = document.getElementById('finIndustryName');
+    if (codeEl) codeEl.value = code;
+    if (nameEl) nameEl.value = name;
+    const searchEl = document.getElementById('industrySearchInput');
+    if (searchEl) searchEl.value = `${name} (${code})`;
+    const resultEl = document.getElementById('industrySearchResult');
+    if (resultEl) { resultEl.innerHTML = ''; resultEl.classList.add('hidden'); }
+    const selEl = document.getElementById('finIndustrySelected');
+    if (selEl) { selEl.textContent = `✓ 선택됨: ${name} — ${code}`; selEl.style.display = 'block'; }
+  }
 
   /* ── 스텝 이동 ── */
   function goStep(n) {
@@ -383,6 +610,7 @@ const FinWizard = (() => {
 
   /* ── PUBLIC API ── */
   return {
-    goStep, switchInputMode, onCompanyInput, lookupDart, analyze
+    goStep, switchInputMode, onCompanyInput, lookupDart, analyze,
+    searchIndustryCode, selectIndustryCode
   };
 })();

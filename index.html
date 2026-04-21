@@ -602,9 +602,13 @@
       </div>
 
       <div class="form-group">
-        <label>업종코드 (표준산업분류 세분류) <span class="req">*</span></label>
-        <input type="text" id="finIndustryCode" class="form-control" placeholder="예: C2830 (조명장치 제조업)">
-        <p class="form-hint">국세청 홈택스 → 업종코드 조회에서 확인 가능합니다</p>
+        <label>업종 검색 <span class="req">*</span></label>
+        <input type="text" id="industrySearchInput" class="form-control" placeholder="업종명 또는 코드 입력 (예: 음식점, 소프트웨어, C261...)" oninput="FinWizard.searchIndustryCode(this.value)" autocomplete="off">
+        <div id="industrySearchResult" class="industry-search-result hidden"></div>
+        <input type="hidden" id="finIndustryCode">
+        <input type="hidden" id="finIndustryName">
+        <p class="form-hint" id="finIndustrySelected" style="color:var(--gold);display:none"></p>
+        <p class="form-hint">업종명을 입력하면 자동으로 코드가 검색됩니다</p>
       </div>
 
       <div class="form-group">
