@@ -293,22 +293,28 @@ const FinWizard = (() => {
     if (!_validateStep1()) return;
 
     if (_inputMode === 'manual') {
-      // 직접 입력: 바로 Step2, 필드 초기화
       _clearStep2Fields();
       _showStep2('직접 입력 모드 — 재무데이터를 직접 입력해주세요.');
       return;
     }
 
-    // DART 자동조회 모드
     const name = document.getElementById('finCompanyName')?.value.trim();
+
+    // ★ 이미 lookupDart()로 조회된 데이터가 있으면 재사용 (중복 API 호출 방지)
+    if (_dartData && _dartData.status === 'found') {
+      _showStep2(`✅ DART 자동입력 완료 — ${_dartData.corpName} (${_dartData.year}년 기준) · 수정 가능합니다`);
+      _tryDartAutoFill();
+      return;
+    }
+
+    // 조회 버튼을 누르지 않고 바로 다음을 누른 경우 — DART 호출
     const btn = document.getElementById('finNextBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'DART 조회 중...'; }
 
     try {
       let data;
-      // localhost에서는 목업 데이터로 테스트
       if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-        await new Promise(r => setTimeout(r, 800)); // 조회 느낌
+        await new Promise(r => setTimeout(r, 800));
         data = _mockDartData(name);
       } else {
         const res = await fetch('/api/dart-lookup', {
@@ -328,7 +334,7 @@ const FinWizard = (() => {
         _showStep2('⚠️ DART API 키 미설정 — 직접 입력해주세요.');
       } else {
         _clearStep2Fields();
-        _showStep2('ℹ️ DART 등록 데이터 없음 (소상공인/개인사업자 등) — 직접 입력해주세요.');
+        _showStep2('ℹ️ DART 등록 데이터 없음 — 직접 입력해주세요.');
       }
     } catch (e) {
       _clearStep2Fields();

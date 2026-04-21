@@ -97,12 +97,17 @@ module.exports = async function handler(req, res) {
 
     // 3단계: 재무 항목 추출 (복수 계정과목명 매칭)
     const items = finData.list;
+    console.log('DART items count:', items.length, '/ sample:', items.slice(0,3).map(i=>i.account_nm));
 
-    // 여러 후보명 중 첫 번째 매칭 값 반환
+    // 여러 후보명 중 첫 번째 매칭 값 반환 (당기 없으면 전기 fallback)
     const get = (...names) => {
       for (const nm of names) {
-        const found = items.find(i => i.account_nm && i.account_nm.replace(/\s/g,'').includes(nm.replace(/\s/g,'')));
-        if (found && found.thstrm_amount) return found.thstrm_amount;
+        const norm = nm.replace(/\s/g,'');
+        const found = items.find(i => i.account_nm && i.account_nm.replace(/\s/g,'').includes(norm));
+        if (found) {
+          const val = found.thstrm_amount || found.frmtrm_amount;
+          if (val && val !== '0') return val;
+        }
       }
       return null;
     };
