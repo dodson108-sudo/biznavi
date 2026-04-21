@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/dart-lookup.js": { "regions": ["icn1"] },
+    "api/bok-avg.js":     { "regions": ["icn1"] },
+    "api/biz-lookup.js":  { "regions": ["icn1"] }
+  },
   "headers": [
     {
       "source": "/(.*)",
