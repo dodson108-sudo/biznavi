@@ -30,12 +30,28 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1단계: 회사명으로 corp_code 검색
-    const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(companyName.trim())}&page_count=5`;
-    const searchRes = await fetch(searchUrl);
-    const searchData = await searchRes.json();
+    // 회사명 변형 목록 생성 (주), ㈜, 주식회사 등 자동 처리
+    function getNameVariants(name) {
+      const core = name
+        .replace(/^\(주\)\s*/i, '').replace(/^㈜\s*/, '')
+        .replace(/^주식회사\s+/i, '').replace(/\s*\(주\)$/i, '')
+        .replace(/\s*㈜$/, '').trim();
+      return [...new Set([name, core, `주식회사 ${core}`, `㈜${core}`, `(주)${core}`])];
+    }
 
-    if (searchData.status !== '000' || !searchData.list || searchData.list.length === 0) {
+    // 1단계: 회사명 변형 순서대로 시도
+    const variants = getNameVariants(companyName.trim());
+    let searchData = null;
+    for (const variant of variants) {
+      const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}&page_count=5`;
+      const searchRes = await fetch(searchUrl);
+      const data = await searchRes.json();
+      if (data.status === '000' && data.list && data.list.length > 0) {
+        searchData = data; break;
+      }
+    }
+
+    if (!searchData) {
       return res.status(200).json({ status: 'not_found', message: 'DART에 등록된 기업 정보가 없습니다.' });
     }
 
