@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
     let lastDartStatus = null;
     let lastDartMessage = null;
     for (const variant of variants) {
-      const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}&page_no=1&page_count=10`;
+      const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}`;
       console.log('[DART] searching variant:', variant);
       const searchRes = await fetch(searchUrl);
       const data = await searchRes.json();
