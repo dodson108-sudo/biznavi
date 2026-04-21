@@ -9,6 +9,7 @@ const FinWizard = (() => {
   let _dartData = null;
   let _finData = {};
   let _lastRatios = null;
+  let _bokAvg = null; // 초기화 전 null → analyze() 에서 _bokAvg_DEFAULT 또는 ECOS 값으로 세팅
 
   /* ── 업종코드 데이터 (국세청 업종코드 ↔ 표준산업분류 세분류) ── */
   const INDUSTRY_CODES = [
@@ -523,16 +524,56 @@ const FinWizard = (() => {
   }
 
   /* ── 재무분석 실행 ── */
-  function analyze() {
+  async function analyze() {
     const d = _collectData();
     if (!d) return;
     _finData = d;
-    const ratios = _calcRatios(d);
-    _lastRatios = ratios;
-    const industryCode = document.getElementById('finIndustryCode')?.value.trim() || '';
-    _renderDashboard(ratios, d, industryCode);
-    App.showFinanceDashboard();
+
+    // 버튼 비활성화
+    const btn = document.querySelector('#finWizStep2 .fin-analyze-btn') || document.querySelector('[onclick*="FinWizard.analyze"]');
+    if (btn) { btn.disabled = true; btn.textContent = '분석 중...'; }
+
+    try {
+      // 한국은행 업종평균 fetch (ECOS API)
+      _bokAvg = { ..._BOK_AVG_DEFAULT }; // 기본값으로 초기화
+      _bokAvgSource = '제조업 전체 (한국은행 기업경영분석)'; // 소스 초기화
+      await _fetchBokAvg(d.industryCode);
+
+      const ratios = _calcRatios(d);
+      _lastRatios = ratios;
+      const industryCode = document.getElementById('finIndustryCode')?.value.trim() || '';
+      _renderDashboard(ratios, d, industryCode);
+      App.showFinanceDashboard();
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '재무분석 실행'; }
+    }
   }
+
+  /* ── 한국은행 ECOS 업종평균 fetch ── */
+  async function _fetchBokAvg(ksicCode) {
+    if (!ksicCode) return; // 업종코드 없으면 기본값 유지
+
+    // localhost 에서는 목업 없이 기본값 유지 (ECOS 키가 없으니 skip)
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+
+    try {
+      const res = await fetch('/api/bok-avg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ksicCode })
+      });
+      const data = await res.json();
+      if (data.status === 'found' && data.ratios && Object.keys(data.ratios).length >= 3) {
+        // ECOS 값이 있는 키만 덮어쓰기 (없는 키는 기본값 유지)
+        _bokAvg = { ..._BOK_AVG_DEFAULT, ...data.ratios };
+        _bokAvgSource = `${data.sectorName} (${data.year}년 한국은행 기업경영분석)`;
+      }
+    } catch (_) {
+      // 실패 시 기본값(_BOK_AVG_DEFAULT) 유지 — 사용자에게 별도 안내 없음
+    }
+  }
+
+  let _bokAvgSource = '제조업 전체 (한국은행 기업경영분석)';
 
   function _collectData() {
     const g = (id) => parseFloat(document.getElementById(id)?.value) || 0;
@@ -637,7 +678,7 @@ const FinWizard = (() => {
   }
 
   /* ── 한국은행 업종평균 (하드코딩 기준값, 제조업 C 기준) ── */
-  const _BOK_AVG = {
+  const _BOK_AVG_DEFAULT = {
     유동비율: 127, 당좌비율: 96, 현금비율: 16,
     부채비율: 142, 자기자본비율: 41, 순운전자본비율: 11,
     차입금의존도: 32, 차입금평균이자율: 6, 이자보상비율: 237,
@@ -667,7 +708,7 @@ const FinWizard = (() => {
   ]);
 
   function _evalVsAvg(key, val) {
-    const avg = _BOK_AVG[key];
+    const avg = _bokAvg[key];
     if (val === null || avg === undefined) return { label: '—', cls: '' };
     if (_HIGH_IS_GOOD.has(key)) {
       return val >= avg ? { label: '산업평균 이상', cls: 'fin-eval-good' } : { label: '산업평균 미달', cls: 'fin-eval-bad' };
@@ -716,7 +757,7 @@ const FinWizard = (() => {
       ${sections.map(s => _renderSection(s)).join('')}
 
       <div class="fin-note">
-        <p>※ 산업평균은 한국은행 기업경영분석 제조업(C) 기준입니다. 정확한 업종별 비교는 한국은행 ECOS(ecos.bok.or.kr)에서 해당 업종코드로 확인하세요.</p>
+        <p>※ 산업평균 기준: ${_bokAvgSource}</p>
         <p>※ 일부 항목은 입력 데이터가 없는 경우 계산되지 않을 수 있습니다.</p>
       </div>
     `;
@@ -741,7 +782,7 @@ const FinWizard = (() => {
 
   function _renderSection({ title, icon, desc, data }) {
     const rows = Object.entries(data).map(([key, val]) => {
-      const avg = _BOK_AVG[key];
+      const avg = _bokAvg[key];
       const ev = _evalVsAvg(key, val);
       const isTime = key.includes('회전율');
       const isDay = key.includes('기간');
@@ -815,7 +856,7 @@ const FinWizard = (() => {
       return `<span class="rpt-eval-${ev.cls === 'fin-eval-good' ? 'good' : 'bad'}">${txt}</span>`;
     }
     function avgStr(key) {
-      const avg = _BOK_AVG[key];
+      const avg = _bokAvg[key];
       if (avg === undefined) return '—';
       if (key.includes('회전율')) return `${avg}회`;
       if (key.includes('기간')) return `${avg}일`;
@@ -883,7 +924,7 @@ const FinWizard = (() => {
           <tr><td class="rpt-cover-key">업    종</td><td class="rpt-cover-val">${industryName}</td></tr>
           <tr><td class="rpt-cover-key">작 성 일</td><td class="rpt-cover-val">${todayStr}</td></tr>
         </table>
-        <div class="rpt-cover-note">※ 산업평균 : 한국은행 기업경영분석 기준</div>
+        <div class="rpt-cover-note">※ 산업평균 : ${_bokAvgSource}</div>
       </div>
     </div>
 
@@ -1026,14 +1067,14 @@ const FinWizard = (() => {
   /* ── 영역별 분석의견 자동생성 ── */
   function _buildLiquidityOpinion(liq, d) {
     const cr = liq.유동비율, qr = liq.당좌비율, cashr = liq.현금비율;
-    const crAvg = _BOK_AVG.유동비율;
+    const crAvg = _bokAvg.유동비율;
     const crStatus = cr !== null ? (cr >= crAvg ? '양호' : '미달') : '미산출';
     const crTxt = cr !== null ? `${cr}%` : '—';
 
     return {
       eval: `1. 유동비율: ${crTxt} (산업평균 ${crAvg}%) — ${cr !== null ? (cr >= crAvg ? '산업평균 이상으로 단기 채무 상환 능력 양호' : '산업평균 미달로 단기 지급능력 취약') : '데이터 부족'}\n` +
-            `2. 당좌비율: ${qr !== null ? qr+'%' : '—'} (산업평균 ${_BOK_AVG.당좌비율}%) — ${qr !== null ? (qr >= _BOK_AVG.당좌비율 ? '재고 제외 유동성 양호' : '재고 제외 즉시 지급능력 부족') : '—'}\n` +
-            `3. 현금비율: ${cashr !== null ? cashr+'%' : '—'} (산업평균 ${_BOK_AVG.현금비율}%) — ${cashr !== null ? (cashr >= _BOK_AVG.현금비율 ? '현금성 자산 충분' : '현금성 자산 확보 미흡') : '—'}`,
+            `2. 당좌비율: ${qr !== null ? qr+'%' : '—'} (산업평균 ${_bokAvg.당좌비율}%) — ${qr !== null ? (qr >= _bokAvg.당좌비율 ? '재고 제외 유동성 양호' : '재고 제외 즉시 지급능력 부족') : '—'}\n` +
+            `3. 현금비율: ${cashr !== null ? cashr+'%' : '—'} (산업평균 ${_bokAvg.현금비율}%) — ${cashr !== null ? (cashr >= _bokAvg.현금비율 ? '현금성 자산 충분' : '현금성 자산 확보 미흡') : '—'}`,
       diag: cr !== null && cr < crAvg
         ? '1. 유동부채 증가 또는 유동자산 감소로 운전자본 관리 취약\n2. 현금성 자산 비중 낮아 외부 충격 시 즉각 대응 곤란\n3. 매출채권 회수 지연 가능성 점검 필요'
         : '1. 단기 지급능력은 산업평균 수준 유지\n2. 현금 보유 비중 및 매출채권 회수 주기 지속 모니터링 필요',
@@ -1045,11 +1086,11 @@ const FinWizard = (() => {
 
   function _buildSafetyOpinion(saf, d) {
     const dr = saf.부채비율, er = saf.자기자본비율, icr = saf.이자보상비율;
-    const drAvg = _BOK_AVG.부채비율;
+    const drAvg = _bokAvg.부채비율;
     return {
       eval: `1. 부채비율: ${dr !== null ? dr+'%' : '—'} (산업평균 ${drAvg}%) — ${dr !== null ? (dr <= drAvg ? '재무구조 안정' : '부채 부담 과중') : '—'}\n` +
-            `2. 자기자본비율: ${er !== null ? er+'%' : '—'} (산업평균 ${_BOK_AVG.자기자본비율}%)\n` +
-            `3. 이자보상비율: ${icr !== null ? icr+'%' : '—'} (산업평균 ${_BOK_AVG.이자보상비율}%) — ${icr !== null ? (icr >= 100 ? '이자 감당 가능' : '영업이익으로 이자 미감당') : '—'}`,
+            `2. 자기자본비율: ${er !== null ? er+'%' : '—'} (산업평균 ${_bokAvg.자기자본비율}%)\n` +
+            `3. 이자보상비율: ${icr !== null ? icr+'%' : '—'} (산업평균 ${_bokAvg.이자보상비율}%) — ${icr !== null ? (icr >= 100 ? '이자 감당 가능' : '영업이익으로 이자 미감당') : '—'}`,
       diag: dr !== null && dr > drAvg
         ? '1. 외부 차입에 대한 의존도가 높아 금리 상승 시 재무부담 가중\n2. 자기자본 기반이 약해 장기 재무 안정성 취약\n3. 이자보상비율 저하는 영업 수익성 약화의 결과'
         : '1. 전반적인 레버리지 수준은 양호\n2. 향후 사업 확장 시 과도한 부채 의존 경계 필요',
@@ -1062,13 +1103,13 @@ const FinWizard = (() => {
   function _buildProfitabilityOpinion(prof, d) {
     const opm = prof.매출액영업이익율, npm = prof.매출액순이익율, roa = prof.총자본순이익율_ROA;
     return {
-      eval: `1. 매출총이익율: ${prof.매출총이익율 !== null ? prof.매출총이익율+'%' : '—'} (산업평균 ${_BOK_AVG.매출총이익율}%)\n` +
-            `2. 영업이익율: ${opm !== null ? opm+'%' : '—'} (산업평균 ${_BOK_AVG.매출액영업이익율}%) — ${opm !== null ? (opm >= _BOK_AVG.매출액영업이익율 ? '수익성 양호' : '영업 수익성 개선 필요') : '—'}\n` +
-            `3. ROA: ${roa !== null ? roa+'%' : '—'} (산업평균 ${_BOK_AVG.총자본순이익율_ROA}%) — ${roa !== null ? (roa >= _BOK_AVG.총자본순이익율_ROA ? '자본 효율성 양호' : '자산 대비 수익 창출 미흡') : '—'}`,
-      diag: opm !== null && opm < _BOK_AVG.매출액영업이익율
+      eval: `1. 매출총이익율: ${prof.매출총이익율 !== null ? prof.매출총이익율+'%' : '—'} (산업평균 ${_bokAvg.매출총이익율}%)\n` +
+            `2. 영업이익율: ${opm !== null ? opm+'%' : '—'} (산업평균 ${_bokAvg.매출액영업이익율}%) — ${opm !== null ? (opm >= _bokAvg.매출액영업이익율 ? '수익성 양호' : '영업 수익성 개선 필요') : '—'}\n` +
+            `3. ROA: ${roa !== null ? roa+'%' : '—'} (산업평균 ${_bokAvg.총자본순이익율_ROA}%) — ${roa !== null ? (roa >= _bokAvg.총자본순이익율_ROA ? '자본 효율성 양호' : '자산 대비 수익 창출 미흡') : '—'}`,
+      diag: opm !== null && opm < _bokAvg.매출액영업이익율
         ? '1. 원가율 상승 또는 판관비 증가로 영업이익 압박\n2. 고정비 대비 매출 규모 미흡\n3. 수익성 낮은 사업 포트폴리오 재검토 필요'
         : '1. 전반적 수익성 양호\n2. 원가 효율화 지속 및 판관비 관리 강화 필요',
-      rx: opm !== null && opm < _BOK_AVG.매출액영업이익율
+      rx: opm !== null && opm < _bokAvg.매출액영업이익율
         ? '1. 원가관리 강화: 손익분기점 분석 기반 프로젝트별 수익성 재구성\n2. 비수익 사업 정리 및 핵심역량 집중\n3. 고마진 제품·서비스 비중 확대 전략 수립'
         : '1. 현재 수익성 유지·강화 전략 지속\n2. 매출성장과 수익성 균형 있는 성장 추구\n3. 부가가치 높은 사업영역 개발'
     };
@@ -1077,13 +1118,13 @@ const FinWizard = (() => {
   function _buildActivityOpinion(act, d) {
     const atr = act.총자산회전율, rec = act.매출채권회전율;
     return {
-      eval: `1. 총자산회전율: ${atr !== null ? atr+'회' : '—'} (산업평균 ${_BOK_AVG.총자산회전율}회)\n` +
-            `2. 매출채권 회전율: ${rec !== null ? rec+'회' : '—'} (산업평균 ${_BOK_AVG.매출채권회전율}회) — ${rec !== null ? (rec >= _BOK_AVG.매출채권회전율 ? '채권 회수 빠름' : '채권 회수 지연') : '—'}\n` +
-            `3. 매출채권 회수기간: ${act.매출채권회수기간 !== null ? act.매출채권회수기간+'일' : '—'} (산업평균 ${_BOK_AVG.매출채권회수기간}일)`,
-      diag: rec !== null && rec < _BOK_AVG.매출채권회전율
+      eval: `1. 총자산회전율: ${atr !== null ? atr+'회' : '—'} (산업평균 ${_bokAvg.총자산회전율}회)\n` +
+            `2. 매출채권 회전율: ${rec !== null ? rec+'회' : '—'} (산업평균 ${_bokAvg.매출채권회전율}회) — ${rec !== null ? (rec >= _bokAvg.매출채권회전율 ? '채권 회수 빠름' : '채권 회수 지연') : '—'}\n` +
+            `3. 매출채권 회수기간: ${act.매출채권회수기간 !== null ? act.매출채권회수기간+'일' : '—'} (산업평균 ${_bokAvg.매출채권회수기간}일)`,
+      diag: rec !== null && rec < _bokAvg.매출채권회전율
         ? '1. 매출채권 회수 지연으로 운영자금 압박 가능성\n2. 매입채무 회전율 저하 시 공급업체 신뢰도 하락 위험\n3. 재고 과다 보유 여부 점검 필요'
         : '1. 전반적인 자산 운용 효율성 양호\n2. 매출채권 관리 수준 지속 유지 필요',
-      rx: rec !== null && rec < _BOK_AVG.매출채권회전율
+      rx: rec !== null && rec < _bokAvg.매출채권회전율
         ? '1. 매출채권 조기 회수 체계 강화 (팩토링, 어음 할인 활용)\n2. 거래처별 신용 등급 관리 및 한도 설정\n3. 재고 수준 최적화 및 불용 재고 처분'
         : '1. 현재 수준의 자산 회전율 유지\n2. 고객별 여신 한도 관리 지속\n3. 공급망 효율화를 통한 매입채무 관리'
     };
@@ -1091,7 +1132,7 @@ const FinWizard = (() => {
 
   function _buildGrowthOpinion(gro, d) {
     const mgr = gro.매출액증가율;
-    const avg = _BOK_AVG.매출액증가율;
+    const avg = _bokAvg.매출액증가율;
     return {
       eval: `1. 매출액 증가율: ${mgr !== null ? mgr+'%' : '전년도 데이터 미입력'} (산업평균 ${avg}%) — ${mgr !== null ? (mgr >= avg ? '산업평균 이상 성장' : '성장 둔화') : '전기 매출액 입력 시 산출 가능'}`,
       diag: mgr !== null && mgr < avg
@@ -1116,10 +1157,10 @@ const FinWizard = (() => {
         <div class="rpt-summary-score-label">재무건전성 종합점수<br><span style="color:${gradeColor};font-weight:700">${grade}</span> (산업평균 대비 ${goodCount.good}/${goodCount.total}개 항목 양호)</div>
       </div>
       <div class="rpt-summary-grid">
-        <div class="rpt-summary-item"><span class="rpt-eval-${r.liquidity.유동비율 >= _BOK_AVG.유동비율 ? 'good' : 'bad'}">●</span> 유동성: ${r.liquidity.유동비율 !== null ? r.liquidity.유동비율+'%' : '—'} (산업평균 ${_BOK_AVG.유동비율}%)</div>
-        <div class="rpt-summary-item"><span class="rpt-eval-${r.safety.부채비율 <= _BOK_AVG.부채비율 ? 'good' : 'bad'}">●</span> 안전성: 부채비율 ${r.safety.부채비율 !== null ? r.safety.부채비율+'%' : '—'} (산업평균 ${_BOK_AVG.부채비율}%)</div>
-        <div class="rpt-summary-item"><span class="rpt-eval-${r.profitability.매출액영업이익율 >= _BOK_AVG.매출액영업이익율 ? 'good' : 'bad'}">●</span> 수익성: 영업이익율 ${r.profitability.매출액영업이익율 !== null ? r.profitability.매출액영업이익율+'%' : '—'} (산업평균 ${_BOK_AVG.매출액영업이익율}%)</div>
-        <div class="rpt-summary-item"><span class="rpt-eval-${r.activity.총자산회전율 >= _BOK_AVG.총자산회전율 ? 'good' : 'bad'}">●</span> 활동성: 총자산회전율 ${r.activity.총자산회전율 !== null ? r.activity.총자산회전율+'회' : '—'} (산업평균 ${_BOK_AVG.총자산회전율}회)</div>
+        <div class="rpt-summary-item"><span class="rpt-eval-${r.liquidity.유동비율 >= _bokAvg.유동비율 ? 'good' : 'bad'}">●</span> 유동성: ${r.liquidity.유동비율 !== null ? r.liquidity.유동비율+'%' : '—'} (산업평균 ${_bokAvg.유동비율}%)</div>
+        <div class="rpt-summary-item"><span class="rpt-eval-${r.safety.부채비율 <= _bokAvg.부채비율 ? 'good' : 'bad'}">●</span> 안전성: 부채비율 ${r.safety.부채비율 !== null ? r.safety.부채비율+'%' : '—'} (산업평균 ${_bokAvg.부채비율}%)</div>
+        <div class="rpt-summary-item"><span class="rpt-eval-${r.profitability.매출액영업이익율 >= _bokAvg.매출액영업이익율 ? 'good' : 'bad'}">●</span> 수익성: 영업이익율 ${r.profitability.매출액영업이익율 !== null ? r.profitability.매출액영업이익율+'%' : '—'} (산업평균 ${_bokAvg.매출액영업이익율}%)</div>
+        <div class="rpt-summary-item"><span class="rpt-eval-${r.activity.총자산회전율 >= _bokAvg.총자산회전율 ? 'good' : 'bad'}">●</span> 활동성: 총자산회전율 ${r.activity.총자산회전율 !== null ? r.activity.총자산회전율+'회' : '—'} (산업평균 ${_bokAvg.총자산회전율}회)</div>
       </div>
       <div class="rpt-summary-text">
         <strong>□ 종합의견</strong><br>
