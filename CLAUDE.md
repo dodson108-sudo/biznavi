@@ -1,10 +1,33 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-21 최신)
+## 배포 상태 (2026-04-22 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: DART 회사명 변형 자동시도 + ECOS 업종별 산업평균 동적 연동
-- **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: DART API 호출 순서 전면 재작성 (list.json → corp_code → company.json → 재무조회)
+- **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-22)
+
+### DART API 근본 버그 수정 — list.json 기반 회사 검색으로 전환
+
+#### 문제 원인 분석 및 해결
+- **Vercel 서울 리전(icn1) 적용**: 한국 정부 API(DART/ECOS/국세청)의 해외 IP 차단 해결
+- **DART status 100 원인**: `company.json`은 `corp_code` 필수 파라미터 — `corp_name`으로 직접 검색 불가
+- **올바른 DART API 호출 순서** (전면 재작성):
+  1. `list.json?corp_name=...` — 공시목록 검색으로 corp_code 획득
+  2. `company.json?corp_code=...` — 업종코드·업종명 조회
+  3. `fnlttSinglAcnt.json?corp_code=...` — 재무제표 조회
+- **회사명 변형 자동시도**: 핵심명 → 주식회사XXX → ㈜XXX → (주)XXX 순
+
+#### 오류 진단 기능 추가
+- `api_key_error` 상태: DART status 010/011 시 즉시 반환 (API 키 오류 명확히 표시)
+- `not_found` 응답에 `dartStatus` 포함 (실제 DART 오류코드 화면 표시)
+
+#### 다음 세션에서 확인 필요
+- Vercel 배포 후 삼성전자/카카오 DART 자동조회 정상 작동 여부 테스트
+- ECOS 업종별 산업평균 연동 최종 확인
 
 ---
 
