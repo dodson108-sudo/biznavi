@@ -79,20 +79,41 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 3단계: 주요 재무 항목 추출
+    // 3단계: 재무 항목 추출 (복수 계정과목명 매칭)
     const items = finData.list;
-    const getAmount = (accountNm) => {
-      const found = items.find(i =>
-        i.account_nm && (i.account_nm.includes(accountNm) || accountNm.includes(i.account_nm))
-      );
-      return found ? found.thstrm_amount : null;
+
+    // 여러 후보명 중 첫 번째 매칭 값 반환
+    const get = (...names) => {
+      for (const nm of names) {
+        const found = items.find(i => i.account_nm && i.account_nm.replace(/\s/g,'').includes(nm.replace(/\s/g,'')));
+        if (found && found.thstrm_amount) return found.thstrm_amount;
+      }
+      return null;
     };
 
-    const revenue       = getAmount('매출액') || getAmount('영업수익') || getAmount('수익(매출액)');
-    const operatingProfit = getAmount('영업이익');
-    const netIncome     = getAmount('당기순이익');
-    const totalAssets   = getAmount('자산총계');
-    const totalDebt     = getAmount('부채총계');
+    // ── 재무상태표 (B/S) ──
+    const currentAssets      = get('유동자산');
+    const quickAssets        = get('당좌자산');
+    const cash               = get('현금및현금성자산','현금및단기금융상품','현금과예금');
+    const receivable         = get('매출채권및기타채권','매출채권','받을어음및매출채권');
+    const inventory          = get('재고자산');
+    const nonCurrentAssets   = get('비유동자산');
+    const tangibleAssets     = get('유형자산');
+    const totalAssets        = get('자산총계');
+    const currentLiabilities = get('유동부채');
+    const payable            = get('매입채무및기타채무','매입채무','미지급금');
+    const nonCurrentLiab     = get('비유동부채');
+    const borrowings         = get('차입금','단기차입금'); // 장단기 합산은 아래서 처리
+    const totalDebt          = get('부채총계');
+    const equity             = get('자본총계','자기자본');
+
+    // ── 손익계산서 (I/S) ──
+    const revenue            = get('매출액','영업수익','수익(매출액)','매출');
+    const grossProfit        = get('매출총이익','매출총손익');
+    const operatingProfit    = get('영업이익','영업손익');
+    const interestExpense    = get('이자비용','금융비용');
+    const netIncome          = get('당기순이익','당기순손익');
+    const laborCost          = get('인건비','급여','종업원급여','급여및임원보수');
 
     // 억원 단위 변환
     const toEok = (val) => {
@@ -102,7 +123,7 @@ module.exports = async function handler(req, res) {
       return Math.round(n / 100000000);
     };
 
-    const revenueEok = toEok(revenue);
+    const r = (val) => val ? { raw: val, eok: toEok(val) } : null;
 
     return res.status(200).json({
       status: 'found',
@@ -111,12 +132,29 @@ module.exports = async function handler(req, res) {
       indutyCode,
       indutyName,
       year:       finData.year,
-      revenue:    revenue       ? { raw: revenue,        eok: revenueEok }    : null,
-      operatingProfit: operatingProfit ? { raw: operatingProfit, eok: toEok(operatingProfit) } : null,
-      netIncome:  netIncome     ? { raw: netIncome,      eok: toEok(netIncome) }   : null,
-      totalAssets: totalAssets  ? { raw: totalAssets,    eok: toEok(totalAssets) } : null,
-      totalDebt:  totalDebt     ? { raw: totalDebt,      eok: toEok(totalDebt) }   : null,
-      debtRatio:  (totalAssets && totalDebt)
+      // B/S
+      currentAssets:      r(currentAssets),
+      quickAssets:        r(quickAssets),
+      cash:               r(cash),
+      receivable:         r(receivable),
+      inventory:          r(inventory),
+      nonCurrentAssets:   r(nonCurrentAssets),
+      tangibleAssets:     r(tangibleAssets),
+      totalAssets:        r(totalAssets),
+      currentLiabilities: r(currentLiabilities),
+      payable:            r(payable),
+      nonCurrentLiab:     r(nonCurrentLiab),
+      borrowings:         r(borrowings),
+      totalDebt:          r(totalDebt),
+      equity:             r(equity),
+      // I/S
+      revenue:            r(revenue),
+      grossProfit:        r(grossProfit),
+      operatingProfit:    r(operatingProfit),
+      interestExpense:    r(interestExpense),
+      netIncome:          r(netIncome),
+      laborCost:          r(laborCost),
+      debtRatio: (totalAssets && totalDebt)
         ? Math.round(parseInt(totalDebt.replace(/,/g,'')) / parseInt(totalAssets.replace(/,/g,'')) * 100)
         : null
     });

@@ -424,20 +424,38 @@ const FinWizard = (() => {
     }
   }
 
-  /* ── localhost 테스트용 목업 DART 데이터 ── */
+  /* ── localhost 테스트용 목업 DART 데이터 (전 항목) ── */
   function _mockDartData(name) {
+    const m = (원) => ({ raw: String(원).replace(/\B(?=(\d{3})+(?!\d))/g, ','), eok: Math.round(원/100000000) });
     return {
       status: 'found',
-      corpName: name || '테스트기업',
+      corpName: name || '테스트기업(주)',
       year: 2023,
-      indutyCode: 'J620',       // DART 응답의 업종코드 (정보서비스/IT)
+      indutyCode: 'J620',
       indutyName: 'IT서비스·시스템통합',
-      revenue:         { raw: '50,000,000,000', eok: 500 },
-      operatingProfit: { raw: '3,500,000,000',  eok: 35 },
-      netIncome:       { raw: '2,800,000,000',  eok: 28 },
-      totalAssets:     { raw: '80,000,000,000', eok: 800 },
-      totalDebt:       { raw: '45,000,000,000', eok: 450 },
-      debtRatio: 128
+      // B/S
+      currentAssets:       m(35_000_000_000),
+      quickAssets:         m(28_000_000_000),
+      cash:                m(12_000_000_000),
+      receivable:          m(15_000_000_000),
+      inventory:           m( 7_000_000_000),
+      nonCurrentAssets:    m(45_000_000_000),
+      tangibleAssets:      m(30_000_000_000),
+      totalAssets:         m(80_000_000_000),
+      currentLiabilities:  m(20_000_000_000),
+      payable:             m( 8_000_000_000),
+      nonCurrentLiab:      m(25_000_000_000),
+      borrowings:          m(18_000_000_000),
+      totalDebt:           m(45_000_000_000),
+      equity:              m(35_000_000_000),
+      // I/S
+      revenue:             m(50_000_000_000),
+      grossProfit:         m(18_000_000_000),
+      operatingProfit:     m( 3_500_000_000),
+      interestExpense:     m(   500_000_000),
+      netIncome:           m( 2_800_000_000),
+      laborCost:           m( 9_000_000_000),
+      debtRatio: 129
     };
   }
 
@@ -466,16 +484,36 @@ const FinWizard = (() => {
       const n = parseInt(raw.replace(/,/g, ''), 10);
       return isNaN(n) ? null : Math.round(n / 1000000);
     };
+    const f = (obj) => rawToMil(obj?.raw);
 
-    _setField('fin_revenue',          rawToMil(d.revenue?.raw));
-    _setField('fin_operating_profit', rawToMil(d.operatingProfit?.raw));
-    _setField('fin_net_income',       rawToMil(d.netIncome?.raw));
-    _setField('fin_total_assets',     rawToMil(d.totalAssets?.raw));
-    _setField('fin_total_liabilities',rawToMil(d.totalDebt?.raw));
-    // 자기자본 = 자산총계 - 부채총계
-    const ta = rawToMil(d.totalAssets?.raw);
-    const td = rawToMil(d.totalDebt?.raw);
-    if (ta && td) _setField('fin_equity', ta - td);
+    // ── B/S 전 항목 자동입력 ──
+    _setField('fin_current_assets',       f(d.currentAssets));
+    _setField('fin_quick_assets',         f(d.quickAssets));
+    _setField('fin_cash',                 f(d.cash));
+    _setField('fin_receivable',           f(d.receivable));
+    _setField('fin_inventory',            f(d.inventory));
+    _setField('fin_noncurrent_assets',    f(d.nonCurrentAssets));
+    _setField('fin_tangible_assets',      f(d.tangibleAssets));
+    _setField('fin_total_assets',         f(d.totalAssets));
+    _setField('fin_current_liabilities',  f(d.currentLiabilities));
+    _setField('fin_payable',              f(d.payable));
+    _setField('fin_noncurrent_liabilities',f(d.nonCurrentLiab));
+    _setField('fin_borrowings',           f(d.borrowings));
+    _setField('fin_total_liabilities',    f(d.totalDebt));
+    // 자기자본: DART 응답 우선, 없으면 자산-부채 계산
+    if (f(d.equity)) {
+      _setField('fin_equity', f(d.equity));
+    } else {
+      const ta = f(d.totalAssets), td = f(d.totalDebt);
+      if (ta && td) _setField('fin_equity', ta - td);
+    }
+    // ── I/S 전 항목 자동입력 ──
+    _setField('fin_revenue',          f(d.revenue));
+    _setField('fin_gross_profit',     f(d.grossProfit));
+    _setField('fin_operating_profit', f(d.operatingProfit));
+    _setField('fin_interest_expense', f(d.interestExpense));
+    _setField('fin_net_income',       f(d.netIncome));
+    _setField('fin_labor_cost',       f(d.laborCost));
   }
 
   function _setField(id, val) {
