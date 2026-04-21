@@ -42,12 +42,22 @@ module.exports = async function handler(req, res) {
     // 1단계: 회사명 변형 순서대로 시도
     const variants = getNameVariants(companyName.trim());
     let searchData = null;
+    let lastDartStatus = null;
+    let lastDartMessage = null;
     for (const variant of variants) {
       const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}&page_no=1&page_count=10`;
       console.log('[DART] searching variant:', variant);
       const searchRes = await fetch(searchUrl);
       const data = await searchRes.json();
-      console.log('[DART] response status:', data.status, '/ total_count:', data.total_count, '/ list length:', data.list?.length ?? 'no list', '/ keys:', Object.keys(data).join(','));
+      lastDartStatus = data.status;
+      lastDartMessage = data.message;
+      console.log('[DART] response status:', data.status, '/ message:', data.message, '/ total_count:', data.total_count, '/ list length:', data.list?.length ?? 'no list', '/ keys:', Object.keys(data).join(','));
+
+      // API 키 오류면 더 이상 시도하지 않음
+      if (data.status === '010' || data.status === '011') {
+        return res.status(200).json({ status: 'api_key_error', dartStatus: data.status, message: `DART API 키 오류 (${data.status}): ${data.message || '인증키를 확인해주세요'}` });
+      }
+
       if (data.status === '000' && data.list && data.list.length > 0) {
         searchData = data; break;
       }
@@ -58,7 +68,12 @@ module.exports = async function handler(req, res) {
     }
 
     if (!searchData) {
-      return res.status(200).json({ status: 'not_found', message: 'DART에 등록된 기업 정보가 없습니다.' });
+      return res.status(200).json({
+        status: 'not_found',
+        dartStatus: lastDartStatus,
+        dartMessage: lastDartMessage,
+        message: 'DART에 등록된 기업 정보가 없습니다.'
+      });
     }
 
     // 첫 번째 결과 사용 (가장 유사한 회사명)

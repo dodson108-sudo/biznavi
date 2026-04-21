@@ -423,8 +423,11 @@ const FinWizard = (() => {
           <p style="color:#4ADE80;font-size:0.85rem;margin-top:8px">✅ DART 재무데이터 확인 완료 — Step 2에서 자동입력됩니다</p>`;
       } else if (data.status === 'no_key') {
         resultEl.innerHTML = '<span style="color:var(--txt3)">DART API 키가 미설정되어 직접 입력이 필요합니다.</span>';
+      } else if (data.status === 'api_key_error') {
+        resultEl.innerHTML = `<span style="color:#F87171">⚠️ DART API 키 오류 (${data.dartStatus}) — Vercel 환경변수 DART_API_KEY를 확인해주세요.</span>`;
+        _dartData = null;
       } else {
-        resultEl.innerHTML = '<span style="color:var(--txt3)">DART 등록 데이터가 없습니다. 직접 입력해주세요.</span>';
+        resultEl.innerHTML = `<span style="color:var(--txt3)">DART 등록 데이터가 없습니다. 직접 입력해주세요. (DART응답: ${data.dartStatus || '없음'})</span>`;
         _dartData = null;
       }
     } catch (e) {
