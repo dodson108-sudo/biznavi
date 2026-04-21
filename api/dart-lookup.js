@@ -43,11 +43,17 @@ module.exports = async function handler(req, res) {
     const variants = getNameVariants(companyName.trim());
     let searchData = null;
     for (const variant of variants) {
-      const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}&page_count=5`;
+      const searchUrl = `https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_name=${encodeURIComponent(variant)}&page_no=1&page_count=10`;
+      console.log('[DART] searching variant:', variant);
       const searchRes = await fetch(searchUrl);
       const data = await searchRes.json();
+      console.log('[DART] response status:', data.status, '/ total_count:', data.total_count, '/ list length:', data.list?.length ?? 'no list', '/ keys:', Object.keys(data).join(','));
       if (data.status === '000' && data.list && data.list.length > 0) {
         searchData = data; break;
+      }
+      // list 없이 단일 객체로 응답하는 경우 처리
+      if (data.status === '000' && data.corp_code) {
+        searchData = { list: [data] }; break;
       }
     }
 
