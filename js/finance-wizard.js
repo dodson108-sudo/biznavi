@@ -139,7 +139,7 @@ const FinWizard = (() => {
     { code: 'H5110', ksic: 'H511', name: '항공 운송업' },
     { code: 'H5210', ksic: 'H521', name: '창고·물류시설 운영업' },
     { code: 'H5220', ksic: 'H522', name: '택배·배달 서비스업' },
-    // IT·통신
+    // IT·통신·네트워크
     { code: 'J5811', ksic: 'J581', name: '소프트웨어 개발·공급업' },
     { code: 'J5820', ksic: 'J582', name: '게임 소프트웨어 개발·공급업' },
     { code: 'J6010', ksic: 'J601', name: '유선 통신업' },
@@ -148,10 +148,20 @@ const FinWizard = (() => {
     { code: 'J6120', ksic: 'J612', name: '위성방송업·인터넷방송' },
     { code: 'J6201', ksic: 'J620', name: '컴퓨터 프로그래밍·시스템 통합' },
     { code: 'J6202', ksic: 'J620', name: 'IT 컨설팅·SI 서비스업' },
+    { code: 'J6203', ksic: 'J620', name: '네트워크 장비·인프라 공급·구축업' },
+    { code: 'J6204', ksic: 'J620', name: 'IT 인프라·서버·스토리지 구축업' },
+    { code: 'J6205', ksic: 'J620', name: '보안 시스템·솔루션 개발·공급업' },
+    { code: 'J6206', ksic: 'J620', name: 'ERP·그룹웨어·업무용 SW 개발업' },
     { code: 'J6311', ksic: 'J631', name: '자료 처리·호스팅·웹서비스업' },
     { code: 'J6312', ksic: 'J631', name: '클라우드 컴퓨팅 서비스업' },
     { code: 'J6391', ksic: 'J639', name: '포털·검색엔진 운영업' },
     { code: 'J6399', ksic: 'J639', name: '기타 정보 서비스업' },
+    // 복합업종·종합서비스 (제조+서비스+도소매+건설 등)
+    { code: 'G9900', ksic: 'G999', name: '복합업종(제조+도소매+서비스+건설 겸업)' },
+    { code: 'M9910', ksic: 'M999', name: '복합 IT 서비스업(SI+구축+유지보수 겸업)' },
+    { code: 'G4641', ksic: 'G464', name: '전기·전자·IT 장비 도매업' },
+    { code: 'G4649', ksic: 'G464', name: '네트워크·통신장비 도소매업' },
+    { code: 'G4690', ksic: 'G469', name: '기타 IT·사무기기 전문 도매업' },
     // 금융·보험
     { code: 'K6411', ksic: 'K641', name: '중앙은행업' },
     { code: 'K6419', ksic: 'K641', name: '일반 은행업' },
@@ -210,8 +220,15 @@ const FinWizard = (() => {
     const matches = INDUSTRY_CODES.filter(item =>
       item.name.includes(q) || item.code.toUpperCase().includes(q.toUpperCase()) || item.ksic.toUpperCase().includes(q.toUpperCase())
     ).slice(0, 10);
+    const directInputRow = `
+      <div class="industry-direct-input">
+        <span>코드 직접 입력:</span>
+        <input type="text" id="industryDirectCode" placeholder="예: J620" maxlength="10" style="width:90px;padding:4px 8px;border-radius:6px;border:1px solid var(--gold);background:#0f1629;color:#e8edf5;font-size:0.85rem">
+        <input type="text" id="industryDirectName" placeholder="업종명" maxlength="30" style="flex:1;padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:#0f1629;color:#e8edf5;font-size:0.85rem">
+        <button onclick="FinWizard.selectDirectCode()" style="padding:4px 12px;background:var(--gold);color:#0a0e1a;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;font-weight:700">선택</button>
+      </div>`;
     if (!matches.length) {
-      resultEl.innerHTML = '<div class="industry-no-result">검색 결과 없음</div>';
+      resultEl.innerHTML = '<div class="industry-no-result">검색 결과 없음 — 아래에서 직접 입력하세요</div>' + directInputRow;
       resultEl.classList.remove('hidden');
       return;
     }
@@ -219,8 +236,15 @@ const FinWizard = (() => {
       <div class="industry-result-item" onclick="FinWizard.selectIndustryCode('${m.ksic}', '${m.name}')">
         <span class="industry-code-badge">${m.ksic}</span>
         <span class="industry-code-name">${m.name}</span>
-      </div>`).join('');
+      </div>`).join('') + directInputRow;
     resultEl.classList.remove('hidden');
+  }
+
+  function selectDirectCode() {
+    const code = document.getElementById('industryDirectCode')?.value.trim().toUpperCase();
+    const name = document.getElementById('industryDirectName')?.value.trim();
+    if (!code) { alert('업종코드를 입력해주세요.'); return; }
+    selectIndustryCode(code, name || code);
   }
 
   function selectIndustryCode(code, name) {
@@ -257,9 +281,8 @@ const FinWizard = (() => {
 
   function _validateStep1() {
     const name = document.getElementById('finCompanyName')?.value.trim();
-    const code = document.getElementById('finIndustryCode')?.value.trim();
     if (!name) { alert('회사명을 입력해주세요.'); return false; }
-    if (!code) { alert('업종을 검색하여 선택해주세요.'); return false; }
+    // 업종코드는 선택사항 — DART 조회 시 자동세팅, 없으면 기본 업종평균 사용
     return true;
   }
 
@@ -356,18 +379,36 @@ const FinWizard = (() => {
     resultEl.classList.remove('hidden');
     resultEl.innerHTML = '<span class="dart-loading">DART 조회 중...</span>';
     try {
-      const res = await fetch('/api/dart-lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName: name })
-      });
-      const data = await res.json();
+      let data;
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        await new Promise(r => setTimeout(r, 800));
+        data = _mockDartData(name);
+      } else {
+        const res = await fetch('/api/dart-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: name })
+        });
+        data = await res.json();
+      }
       if (data.status === 'found') {
         _dartData = data;
+        // 업종코드 자동 세팅
+        if (data.indutyCode) {
+          const codeEl = document.getElementById('finIndustryCode');
+          const nameEl = document.getElementById('finIndustryName');
+          const searchEl = document.getElementById('industrySearchInput');
+          const selEl = document.getElementById('finIndustrySelected');
+          if (codeEl) codeEl.value = data.indutyCode;
+          if (nameEl) nameEl.value = data.indutyName || data.indutyCode;
+          if (searchEl) searchEl.value = `${data.indutyName || data.indutyCode} (${data.indutyCode})`;
+          if (selEl) { selEl.textContent = `✓ DART 자동세팅: ${data.indutyName || data.indutyCode}`; selEl.style.display = 'block'; }
+        }
         resultEl.innerHTML = `
           <div class="dart-result-grid">
             <div class="dart-item"><span class="dart-label">회사명</span><span class="dart-value">${data.corpName}</span></div>
             <div class="dart-item"><span class="dart-label">기준연도</span><span class="dart-value">${data.year}년</span></div>
+            ${data.indutyName ? `<div class="dart-item"><span class="dart-label">업종</span><span class="dart-value">${data.indutyName}</span></div>` : ''}
             ${data.revenue ? `<div class="dart-item"><span class="dart-label">매출액</span><span class="dart-value">${data.revenue.eok}억원</span></div>` : ''}
             ${data.totalAssets ? `<div class="dart-item"><span class="dart-label">자산총계</span><span class="dart-value">${data.totalAssets.eok}억원</span></div>` : ''}
           </div>
@@ -389,6 +430,8 @@ const FinWizard = (() => {
       status: 'found',
       corpName: name || '테스트기업',
       year: 2023,
+      indutyCode: 'J620',       // DART 응답의 업종코드 (정보서비스/IT)
+      indutyName: 'IT서비스·시스템통합',
       revenue:         { raw: '50,000,000,000', eok: 500 },
       operatingProfit: { raw: '3,500,000,000',  eok: 35 },
       netIncome:       { raw: '2,800,000,000',  eok: 28 },
@@ -405,8 +448,18 @@ const FinWizard = (() => {
     const notice = document.getElementById('finDartAutoFill');
     if (notice) notice.classList.remove('hidden');
 
-    // 억원 → 백만원 변환 함수
-    const toMil = (eok) => eok ? eok * 100 : null;
+    // DART 응답에 업종코드가 있으면 자동 세팅
+    if (d.indutyCode) {
+      const codeEl = document.getElementById('finIndustryCode');
+      const nameEl = document.getElementById('finIndustryName');
+      const searchEl = document.getElementById('industrySearchInput');
+      const selEl = document.getElementById('finIndustrySelected');
+      if (codeEl) codeEl.value = d.indutyCode;
+      if (nameEl) nameEl.value = d.indutyName || d.indutyCode;
+      if (searchEl) searchEl.value = `${d.indutyName || d.indutyCode} (${d.indutyCode})`;
+      if (selEl) { selEl.textContent = `✓ DART 자동세팅: ${d.indutyName || d.indutyCode} — ${d.indutyCode}`; selEl.style.display = 'block'; }
+    }
+
     // raw 값 (원 단위) → 백만원
     const rawToMil = (raw) => {
       if (!raw) return null;
@@ -696,6 +749,6 @@ const FinWizard = (() => {
   /* ── PUBLIC API ── */
   return {
     goStep, nextStep, switchInputMode, onCompanyInput, lookupDart, analyze,
-    searchIndustryCode, selectIndustryCode
+    searchIndustryCode, selectIndustryCode, selectDirectCode
   };
 })();

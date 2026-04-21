@@ -42,6 +42,9 @@ module.exports = async function handler(req, res) {
     // 첫 번째 결과 사용 (가장 유사한 회사명)
     const corp = searchData.list[0];
     const corpCode = corp.corp_code;
+    // DART company 검색 결과에 업종코드·업종명 포함됨
+    const indutyCode = corp.induty_code || '';
+    const indutyName = corp.induty_nm  || '';
 
     // 2단계: 최근 사업보고서 재무제표 조회 (전년도부터 최대 2년 시도)
     const currentYear = new Date().getFullYear();
@@ -105,6 +108,8 @@ module.exports = async function handler(req, res) {
       status: 'found',
       corpName:   corp.corp_name,
       stockCode:  corp.stock_code || '',
+      indutyCode,
+      indutyName,
       year:       finData.year,
       revenue:    revenue       ? { raw: revenue,        eok: revenueEok }    : null,
       operatingProfit: operatingProfit ? { raw: operatingProfit, eok: toEok(operatingProfit) } : null,
