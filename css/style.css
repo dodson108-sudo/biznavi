@@ -1198,3 +1198,153 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .industry-code-name { font-size: 0.88rem; color: var(--txt); }
 .industry-no-result { padding: 12px 14px; font-size: 0.85rem; color: var(--txt3); }
 .form-group { position: relative; }
+
+/* ================================================================
+   재무분석 리포트 스타일 (fin-report)
+   ================================================================ */
+.fin-report-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #1A2340;
+}
+
+/* ── 표지 ── */
+.rpt-cover {
+  background: #0A0E1A;
+  border: 2px solid #F5C030;
+  border-radius: 16px;
+  padding: 60px 48px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+.rpt-cover-inner { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.rpt-cover-badge {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #F5C030;
+  letter-spacing: 0.08em;
+}
+.rpt-cover-table { border-collapse: collapse; }
+.rpt-cover-key { color: rgba(255,255,255,.55); font-size: 0.95rem; padding: 6px 16px 6px 0; text-align: right; }
+.rpt-cover-val { color: #E8EDF5; font-size: 1rem; font-weight: 600; padding: 6px 0; text-align: left; }
+.rpt-cover-note { color: rgba(255,255,255,.35); font-size: 0.8rem; }
+
+/* ── 페이지 블록 ── */
+.rpt-page {
+  background: #fff;
+  border: 1px solid #D1D8E8;
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.rpt-page-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1A2340;
+  border-left: 4px solid #F5C030;
+  padding-left: 10px;
+  margin-bottom: 16px;
+}
+.rpt-opinion-main-title { border-left: none; border-bottom: 2px solid #F5C030; padding: 0 0 8px 0; margin-bottom: 20px; }
+.rpt-unit { font-size: 0.8rem; color: #666; text-align: right; margin: -8px 0 8px; }
+
+/* ── B/S, I/S 표 ── */
+.rpt-bs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.rpt-bs-table th {
+  background: #F5C030;
+  color: #0A0E1A;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 700;
+}
+.rpt-bs-table td { padding: 6px 12px; border-bottom: 1px solid #E8ECF4; }
+.rpt-bs-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.rpt-bs-head td { background: #F4F6FB; font-weight: 700; color: #1A2340; }
+.rpt-bs-sub td { font-weight: 600; }
+.rpt-bs-total td { background: #EEF1FA; font-weight: 700; border-top: 1px solid #B8C4DE; }
+.rpt-bs-grand td { background: #1A2340; color: #F5C030; font-weight: 700; }
+
+/* ── 재무비율 표 ── */
+.rpt-ratio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 8px;
+}
+.rpt-ratio-table th {
+  background: #1A2340;
+  color: #E8EDF5;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.rpt-ratio-table td { padding: 7px 12px; border-bottom: 1px solid #E8ECF4; }
+.rpt-ratio-table td:nth-child(2), .rpt-ratio-table td:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.rpt-td-label { color: #2D3E6B; }
+.rpt-td-num { text-align: right; }
+.rpt-td-eval { text-align: center; }
+.rpt-eval-good { color: #059669; font-weight: 700; background: #D1FAE5; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.rpt-eval-bad  { color: #DC2626; font-weight: 700; background: #FEE2E2; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.rpt-neutral   { color: #9BAAC8; }
+
+/* ── 분석의견 블록 ── */
+.rpt-opinion-block {
+  border: 1px solid #D1D8E8;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  background: #FAFBFD;
+}
+.rpt-opinion-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1A2340;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #E8ECF4;
+  padding-bottom: 8px;
+}
+.rpt-opinion-section { margin-bottom: 10px; }
+.rpt-opinion-label { font-weight: 700; color: #F5C030; font-size: 0.85rem; margin-bottom: 4px; }
+.rpt-opinion-text { font-size: 0.85rem; color: #2D3E6B; line-height: 1.7; white-space: pre-line; }
+
+/* ── 종합의견 ── */
+.rpt-summary-box { background: #F4F6FB; border-radius: 10px; padding: 24px 28px; }
+.rpt-summary-score-row { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+.rpt-summary-score-num { font-size: 3rem; font-weight: 900; line-height: 1; }
+.rpt-summary-score-label { font-size: 0.9rem; color: #2D3E6B; line-height: 1.6; }
+.rpt-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.rpt-summary-item { font-size: 0.85rem; color: #2D3E6B; }
+.rpt-summary-text { font-size: 0.85rem; color: #2D3E6B; line-height: 1.8; background: #fff; border-radius: 8px; padding: 14px 18px; }
+
+/* ── 직접입력 행 ── */
+.industry-direct-input {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(245,192,48,.3);
+  background: rgba(245,192,48,.06);
+  font-size: 0.85rem;
+  color: var(--txt3);
+  flex-wrap: wrap;
+}
+
+/* ── 인쇄 스타일 ── */
+@media print {
+  body { background: #fff !important; padding-bottom: 0 !important; }
+  .has-nav nav, .lp-ticker-wrap, #lpNav { display: none !important; }
+  .screen.hidden { display: none !important; }
+  #finance-report { display: block !important; }
+  .fin-report-wrap { max-width: 100%; padding: 0 12px; }
+  .rpt-cover { background: #1A2340 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-page { box-shadow: none; break-inside: avoid; }
+  .rpt-opinion-block { break-inside: avoid; }
+  .btn { display: none !important; }
+}
