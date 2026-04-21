@@ -2,7 +2,7 @@
 
 ## 배포 상태 (2026-04-20 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 업태/종목 업종 자동매핑 정확도 개선 + 조회 메시지 개선
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: DART 재무제표 자동조회 + 사업자등록증 OCR 자동입력 추가
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드)
 - **브랜치**: `main` (단일 브랜치 운영)
 
