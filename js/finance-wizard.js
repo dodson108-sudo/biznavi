@@ -280,12 +280,19 @@ const FinWizard = (() => {
     if (btn) { btn.disabled = true; btn.textContent = 'DART 조회 중...'; }
 
     try {
-      const res = await fetch('/api/dart-lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName: name })
-      });
-      const data = await res.json();
+      let data;
+      // localhost에서는 목업 데이터로 테스트
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        await new Promise(r => setTimeout(r, 800)); // 조회 느낌
+        data = _mockDartData(name);
+      } else {
+        const res = await fetch('/api/dart-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: name })
+        });
+        data = await res.json();
+      }
 
       if (data.status === 'found') {
         _dartData = data;
@@ -374,6 +381,21 @@ const FinWizard = (() => {
     } catch (e) {
       resultEl.innerHTML = '<span style="color:var(--txt3)">조회 중 오류. 직접 입력해주세요.</span>';
     }
+  }
+
+  /* ── localhost 테스트용 목업 DART 데이터 ── */
+  function _mockDartData(name) {
+    return {
+      status: 'found',
+      corpName: name || '테스트기업',
+      year: 2023,
+      revenue:         { raw: '50,000,000,000', eok: 500 },
+      operatingProfit: { raw: '3,500,000,000',  eok: 35 },
+      netIncome:       { raw: '2,800,000,000',  eok: 28 },
+      totalAssets:     { raw: '80,000,000,000', eok: 800 },
+      totalDebt:       { raw: '45,000,000,000', eok: 450 },
+      debtRatio: 128
+    };
   }
 
   /* ── Step2 진입 시 DART 데이터 자동입력 ── */
