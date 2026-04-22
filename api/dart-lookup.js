@@ -33,15 +33,21 @@ async function _loadCorpList(apiKey) {
 
   const xml = entry.getData().toString('utf-8');
   const map = new Map(); // corp_name → { corpCode, stockCode }
-  const re = /<corp_code>(\d+)<\/corp_code>\s*<corp_name>([^<]+)<\/corp_name>\s*<stock_code>([^<]*)<\/stock_code>/g;
-  let m;
-  while ((m = re.exec(xml)) !== null) {
-    const name = m[2].trim();
-    if (!map.has(name)) {
-      map.set(name, { corpCode: m[1], stockCode: m[3].trim() });
+
+  // <corp>...</corp> 블록 단위로 파싱 (단일 정규식 대비 강건)
+  const segments = xml.split('<corp>');
+  for (const seg of segments.slice(1)) {
+    const codeM  = seg.match(/<corp_code>\s*(\d+)\s*<\/corp_code>/);
+    const nameM  = seg.match(/<corp_name>\s*([^<]+?)\s*<\/corp_name>/);
+    const stockM = seg.match(/<stock_code>\s*([^<]*?)\s*<\/stock_code>/);
+    if (codeM && nameM) {
+      const name = nameM[1].trim();
+      if (!map.has(name)) {
+        map.set(name, { corpCode: codeM[1], stockCode: stockM?.[1]?.trim() || '' });
+      }
     }
   }
-  console.log('[DART] corpCode.xml 로드 완료:', map.size, '개 기업');
+  console.log('[DART] corpCode.xml 로드 완료:', map.size, '개 기업 / 샘플:', [...map.keys()].slice(0,3));
   _corpCache = map;
   _corpCacheTime = now;
   return map;
@@ -109,7 +115,11 @@ module.exports = async function handler(req, res) {
     console.log('[DART] 검색 결과:', corpCode, corpNameFound);
 
     if (!corpCode) {
-      return res.status(200).json({ status: 'not_found', message: 'DART에 등록된 기업 정보가 없습니다.' });
+      return res.status(200).json({
+        status: 'not_found',
+        corpListSize: corpList.size,
+        message: 'DART에 등록된 기업 정보가 없습니다.'
+      });
     }
 
     // ── 2단계: company.json으로 업종코드·업종명 조회 ──
