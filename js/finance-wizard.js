@@ -427,7 +427,8 @@ const FinWizard = (() => {
         resultEl.innerHTML = `<span style="color:#F87171">⚠️ DART API 키 오류 (${data.dartStatus}) — Vercel 환경변수 DART_API_KEY를 확인해주세요.</span>`;
         _dartData = null;
       } else {
-        resultEl.innerHTML = `<span style="color:var(--txt3)">DART 등록 데이터가 없습니다. 직접 입력해주세요. (기업목록: ${data.corpListSize ?? '?'}개 로드됨)</span>`;
+        const sampleStr = data.sample?.length ? ` / 샘플: ${data.sample.join(', ')}` : '';
+        resultEl.innerHTML = `<span style="color:var(--txt3)">DART 등록 데이터가 없습니다. (목록: ${data.corpListSize ?? '?'}개${sampleStr})</span>`;
         _dartData = null;
       }
     } catch (e) {

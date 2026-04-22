@@ -28,18 +28,24 @@ async function _loadCorpList(apiKey) {
   const buf = Buffer.from(await res.arrayBuffer());
 
   const zip = new AdmZip(buf);
-  const entry = zip.getEntries().find(e => /corpcode/i.test(e.entryName));
-  if (!entry) throw new Error('CORPCODE.xml not found in ZIP');
+  const entries = zip.getEntries();
+  const entryNames = entries.map(e => e.entryName);
+  console.log('[DART] ZIP 내 파일:', entryNames);
+
+  const entry = entries.find(e => /corpcode/i.test(e.entryName)) || entries[0];
+  if (!entry) throw new Error('ZIP 파일이 비어있습니다');
 
   const xml = entry.getData().toString('utf-8');
+  console.log('[DART] XML 첫 200자:', xml.slice(0, 200));
+
   const map = new Map(); // corp_name → { corpCode, stockCode }
 
-  // <corp>...</corp> 블록 단위로 파싱 (단일 정규식 대비 강건)
-  const segments = xml.split('<corp>');
+  // <corp>...</corp> 블록 단위로 파싱 (대소문자 무관)
+  const segments = xml.split(/<corp>/i);
   for (const seg of segments.slice(1)) {
-    const codeM  = seg.match(/<corp_code>\s*(\d+)\s*<\/corp_code>/);
-    const nameM  = seg.match(/<corp_name>\s*([^<]+?)\s*<\/corp_name>/);
-    const stockM = seg.match(/<stock_code>\s*([^<]*?)\s*<\/stock_code>/);
+    const codeM  = seg.match(/<corp_code>\s*(\d+)\s*<\/corp_code>/i);
+    const nameM  = seg.match(/<corp_name>\s*([^<]+?)\s*<\/corp_name>/i);
+    const stockM = seg.match(/<stock_code>\s*([^<]*?)\s*<\/stock_code>/i);
     if (codeM && nameM) {
       const name = nameM[1].trim();
       if (!map.has(name)) {
@@ -47,7 +53,7 @@ async function _loadCorpList(apiKey) {
       }
     }
   }
-  console.log('[DART] corpCode.xml 로드 완료:', map.size, '개 기업 / 샘플:', [...map.keys()].slice(0,3));
+  console.log('[DART] 파싱 완료:', map.size, '개 / 샘플:', [...map.keys()].slice(0, 3));
   _corpCache = map;
   _corpCacheTime = now;
   return map;
@@ -115,9 +121,11 @@ module.exports = async function handler(req, res) {
     console.log('[DART] 검색 결과:', corpCode, corpNameFound);
 
     if (!corpCode) {
+      const sample = corpList.size > 0 ? [...corpList.keys()].slice(0, 5) : [];
       return res.status(200).json({
         status: 'not_found',
         corpListSize: corpList.size,
+        sample,
         message: 'DART에 등록된 기업 정보가 없습니다.'
       });
     }
