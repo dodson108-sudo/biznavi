@@ -143,10 +143,15 @@ module.exports = async function handler(req, res) {
 
     if (!corpCode) {
       const sample = corpList.size > 0 ? [...corpList.keys()].slice(0, 5) : [];
+      const trimmed = companyName.trim();
+      const hasExact = corpList.has(trimmed);
+      const hasVariant0 = corpList.has(variants[0]);
+      console.log('[DART] 검색실패 디버그:', { trimmed, hasExact, hasVariant0, variants });
       return res.status(200).json({
         status: 'not_found',
         corpListSize: corpList.size,
         sample,
+        _debug: { trimmed, hasExact, hasVariant0, variants },
         message: 'DART에 등록된 기업 정보가 없습니다.'
       });
     }
