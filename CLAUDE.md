@@ -2,13 +2,59 @@
 
 ## 배포 상태 (2026-04-22 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: no_financial/not_found 메시지 분리
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 랜딩페이지 리뉴얼 + Step1 이전 버튼 수정
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
-## 최근 수정 이력 (2026-04-22) — 오후
+## 최근 수정 이력 (2026-04-22) — 오후 2차
+
+### 재무분석 직접입력 + 이전 버튼 네비게이션 수정
+
+#### 문제 및 해결
+- **Step2 직접입력 필드 불가**: `.fin-input-item input`이 `.form-group` 밖에 있어 다크테마 CSS 미적용 → 흰색 기본 input처럼 보여 비활성처럼 오인
+  - `style.css`에 `.fin-input-item input, .fin-input-item select` 다크테마 스타일 추가
+- **DART 실패 시 수동입력 전환**: DART 조회 실패(`nextStep()` else 분기)에서 `_inputMode = 'manual'` 자동 설정 → Step2 진입 즉시 입력 가능
+- **재무 대시보드 이전 버튼 추가**: 기존 "← 다시 분석"(Step1 초기화)과 분리
+  - `FinWizard.backToStep2()`: 대시보드 → Step2(재무입력)로 복귀
+  - `App.showFinanceWizard()`: finance-wizard 화면만 표시 (Step1 리셋 없음)
+  - 대시보드 nav: **← 이전**(Step2 복귀) + **↺ 처음부터**(Step1 초기화) 분리
+- **finance-wizard Step1 이전 버튼**: `App.showModeSelect()` → `App.showLanding()` 변경 (랜딩에서 직접 진입 시 뒤로가기가 서비스선택 화면으로 가던 문제 해결)
+
+---
+
+### 랜딩페이지 전면 리뉴얼 — 재무분석 모듈 반영
+
+#### 변경 내용
+- **Hero**: "재무상태 진단부터 경영전략 실행까지" + CTA 2개(재무분석/경영전략 분리), stat에 109,030개 기업 수치 추가
+- **섹션3(Value)**: 두 서비스를 카드 형태로 나란히 소개 (재무분석/경영전략 각 기능 4가지 명시)
+- **섹션4(Features)**: 재무분석 4개 카드 + 경영전략 6개 카드로 재구성
+  - 재무분석: DART 자동조회, 6대 비율, 한국은행 ECOS 벤치마크, PDF 출력
+  - 경영전략: 16개 업종 BARS 진단, 10대 컨설팅 유형, 규모별 맞춤 보고서, 90일 플랜, 경영서적 10권, 5대 역량 레이더 차트
+- **섹션6(Demo)**: 재무분석 대시보드 목업 추가 (6대 비율 카드 양호/주의/위험 수준 표시 + SWOT 통합)
+- **섹션5(Trust)**: 후기 업데이트 (경영지도사 재무진단 후기 포함), 통계 수치 현실화
+- **섹션7(Pricing)**: 각 플랜별 재무분석 포함 기능 업데이트
+- **섹션8(FAQ)**: DART 설명, 한국은행 업종평균 연동 방식, 16개 업종 지원 FAQ 추가 (총 6개)
+- **섹션9(CTA)**: 두 서비스 버튼 분리
+- **Footer**: © 2026, 이메일 dodson108@gmail.com 업데이트
+
+---
+
+## 다음 세션 예정 작업
+
+### 1. 로컬 테스트 환경 구축 (vercel dev)
+- `npm i -g vercel` → `vercel login` → `vercel link` → `.env.local` 작성 → `vercel dev`
+- localhost:3000에서 서버리스 함수(dart-lookup, bok-avg, biz-lookup) 포함 전체 테스트 가능
+- **주의**: finance-wizard.js에 `localhost` 체크 분기 있음 → vercel dev 사용 시 mock 대신 실제 API 호출되도록 확인 필요
+
+### 2. 사업자등록증 OCR 수정
+- wizard.js의 이미지 업로드 → Claude Vision API 호출 흐름 진단
+- 원인 파악 후 수정
+
+---
+
+## 최근 수정 이력 (2026-04-22) — 오전
 
 ### DART 기업목록 안정화 — corp-list.json 로컬 파일 방식으로 전환
 
