@@ -26,7 +26,7 @@
 <body>
 
 <!-- ══════════════════════════════════════════
-     LANDING (Version B — 신뢰 구축형)
+     LANDING
 ══════════════════════════════════════════ -->
 <section id="landing" class="screen">
 
@@ -63,24 +63,25 @@
 
   <!-- ── 섹션 1: HERO ── -->
   <section id="lp-hero" class="lp-section visible">
-    <div class="lp-hero-badge"><span class="dot"></span> 진단을 통한 실제전략 분석엔진</div>
-    <h1 class="lp-hero-h1">경영전략 수립과<br><span class="lp-accent">실행계획을 한번에!</span></h1>
-    <p class="lp-hero-sub">SWOT · STP · 4P 분석과 실행 로드맵을 30분 안에 자동 생성</p>
+    <div class="lp-hero-badge"><span class="dot"></span> 재무분석 + 경영전략, 두 가지를 한 곳에서</div>
+    <h1 class="lp-hero-h1">재무상태 진단부터<br><span class="lp-accent">경영전략 실행까지</span></h1>
+    <p class="lp-hero-sub">DART 10만개 기업 자동조회 · 6대 재무비율 · SWOT/STP/4P · 90일 실행 플랜</p>
     <div class="lp-hero-cta">
-      <button class="lp-btn-primary" onclick="App.showModeSelect()">진단 시작하기 →</button>
+      <button class="lp-btn-secondary" onclick="App.startFinanceAnalysis()">📊 재무분석 시작하기</button>
+      <button class="lp-btn-primary" onclick="App.startWizard()">🎯 경영전략 수립하기 →</button>
     </div>
     <div class="lp-hero-stats">
       <div class="lp-stat-item">
+        <div class="lp-stat-num">109,030개</div>
+        <div class="lp-stat-label">DART 기업 자동조회</div>
+      </div>
+      <div class="lp-stat-item">
         <div class="lp-stat-num">16개 업종</div>
-        <div class="lp-stat-label">맞춤 진단</div>
+        <div class="lp-stat-label">맞춤 경영진단</div>
       </div>
       <div class="lp-stat-item">
-        <div class="lp-stat-num">30분 완성</div>
-        <div class="lp-stat-label">전략 초안 생성</div>
-      </div>
-      <div class="lp-stat-item">
-        <div class="lp-stat-num">PDF 출력</div>
-        <div class="lp-stat-label">즉시 보고서 다운로드</div>
+        <div class="lp-stat-num">30분</div>
+        <div class="lp-stat-label">전략 보고서 완성</div>
       </div>
       <div class="lp-stat-item">
         <div class="lp-stat-num">무료 체험</div>
@@ -93,54 +94,60 @@
   <section id="lp-pain" class="lp-section" style="--lp-delay:0.1s">
     <div class="lp-container">
       <div class="lp-section-title">
-        <h2>전략 수립, 이렇게 힘드셨죠?</h2>
-        <p>중소기업과 스타트업이 매일 겪는 현실적인 어려움</p>
+        <h2>이런 어려움, 겪어보신 적 있으신가요?</h2>
+        <p>중소기업·소상공인·경영지도사가 매일 맞닥뜨리는 현실</p>
       </div>
       <div class="lp-pain-grid">
         <div class="lp-pain-card">
-          <span class="lp-pain-ico">💸</span>
-          <h3>컨설팅 비용이 너무 비쌉니다</h3>
-          <p>전문 전략 컨설팅은 수백만 원에서 수천만 원. 중소기업과 스타트업에게는 넘기 어려운 장벽입니다.</p>
+          <span class="lp-pain-ico">📋</span>
+          <h3>재무제표는 있는데 해석이 어렵습니다</h3>
+          <p>부채비율이 높은 건지 낮은 건지, 업종 평균과 비교해야 의미가 있는데 그 기준을 찾기가 막막합니다.</p>
         </div>
         <div class="lp-pain-card">
           <span class="lp-pain-ico">🌀</span>
-          <h3>어디서부터 시작해야 할지 막막합니다</h3>
-          <p>SWOT부터 해야 할까요, STP부터 해야 할까요? 프레임워크는 많은데 적용 방법을 모르면 시작조차 어렵습니다.</p>
+          <h3>전략 수립, 어디서부터 시작해야 할지 막막합니다</h3>
+          <p>SWOT, STP, 4P… 프레임워크는 많은데 우리 업종에 맞게 적용하는 방법을 모르면 시작조차 어렵습니다.</p>
         </div>
         <div class="lp-pain-card">
-          <span class="lp-pain-ico">🗃️</span>
-          <h3>만들어도 실행으로 이어지지 않습니다</h3>
-          <p>열심히 만든 전략 문서가 서랍 속에 잠들어 있습니다. 구체적인 KPI와 로드맵 없이는 실행이 불가능합니다.</p>
+          <span class="lp-pain-ico">💸</span>
+          <h3>컨설팅 비용이 너무 비쌉니다</h3>
+          <p>전문 컨설팅은 수백만 원에서 수천만 원. 중소기업과 소상공인에게는 접근하기 어려운 높은 장벽입니다.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── 섹션 3: 가치 제안 ── -->
+  <!-- ── 섹션 3: 두 가지 서비스 소개 ── -->
   <section id="lp-value" class="lp-section" style="--lp-delay:0.12s">
     <div class="lp-container">
       <div class="lp-section-title">
-        <h2>BizNavi AI가 해결합니다</h2>
-        <p>AI가 복잡한 전략 수립 과정을 단순하고 실행 가능하게 만듭니다</p>
+        <h2>BizNavi AI가 두 가지를 모두 해결합니다</h2>
+        <p>재무 분석과 경영 전략, 하나의 플랫폼에서 완결</p>
       </div>
-      <div class="lp-value-grid">
-        <div class="lp-value-card">
-          <span class="lp-value-ico">💰</span>
-          <div class="lp-value-num">1%</div>
-          <h3>비용 절감</h3>
-          <p>컨설팅 비용의 1% 이하로 동일한 수준의 전략 분석을 받아보세요</p>
+      <div class="lp-value-grid" style="grid-template-columns: repeat(2, 1fr)">
+        <div class="lp-value-card" style="border:1px solid rgba(245,192,48,.25);cursor:pointer" onclick="App.startFinanceAnalysis()">
+          <span class="lp-value-ico">📊</span>
+          <div class="lp-value-num" style="font-size:1.4rem">재무분석</div>
+          <h3>6대 재무비율 자동 계산</h3>
+          <p style="text-align:left;font-size:0.85rem;line-height:1.7;color:rgba(232,237,245,.7)">
+            ✓ DART 10만개 기업 자동조회<br>
+            ✓ 유동성·안전성·수익성·활동성·생산성·성장성<br>
+            ✓ 한국은행 ECOS 업종평균 벤치마크<br>
+            ✓ 재무분석 리포트 PDF 출력
+          </p>
+          <div style="margin-top:12px;font-size:0.8rem;color:var(--gold);font-weight:700">재무분석 시작하기 →</div>
         </div>
-        <div class="lp-value-card">
-          <span class="lp-value-ico">⚡</span>
-          <div class="lp-value-num">30분</div>
-          <h3>시간 단축</h3>
-          <p>수주 걸리던 전략 수립 과정을 30분 안에 완성. 지금 당장 시작하세요</p>
-        </div>
-        <div class="lp-value-card">
+        <div class="lp-value-card" style="border:1px solid rgba(245,192,48,.25);cursor:pointer" onclick="App.startWizard()">
           <span class="lp-value-ico">🎯</span>
-          <div class="lp-value-num">실행</div>
-          <h3>실행 가능</h3>
-          <p>구체적인 KPI와 3단계 로드맵까지. 전략이 아닌 실행 계획을 드립니다</p>
+          <div class="lp-value-num" style="font-size:1.4rem">경영전략</div>
+          <h3>AI 경영전략 자동 수립</h3>
+          <p style="text-align:left;font-size:0.85rem;line-height:1.7;color:rgba(232,237,245,.7)">
+            ✓ 16개 업종 × BARS 5단계 정밀 진단<br>
+            ✓ SWOT · STP · 4P · KPI · 실행 로드맵<br>
+            ✓ 10대 컨설팅 유형 자동 분류<br>
+            ✓ 90일 즉시 실행 플랜 자동 생성
+          </p>
+          <div style="margin-top:12px;font-size:0.8rem;color:var(--gold);font-weight:700">경영전략 수립하기 →</div>
         </div>
       </div>
     </div>
@@ -149,40 +156,72 @@
   <!-- ── 섹션 4: 기능 상세 ── -->
   <section id="lp-features" class="lp-section" style="--lp-delay:0.1s">
     <div class="lp-container">
-      <div class="lp-section-title">
-        <h2>사업 규모에 맞는 전략을 자동으로 설계합니다</h2>
-        <p>소상공인부터 중소기업까지 — 업종·규모·진단 점수 기반으로 맞춤 전략 보고서를 즉시 생성합니다</p>
+
+      <!-- 재무분석 모듈 -->
+      <div class="lp-section-title" style="margin-bottom:24px">
+        <div style="display:inline-block;background:rgba(245,192,48,.12);border:1px solid rgba(245,192,48,.3);border-radius:20px;padding:4px 16px;font-size:0.8rem;color:var(--gold);font-weight:700;margin-bottom:12px">📊 재무분석 모듈</div>
+        <h2>재무제표를 자동으로 조회하고 분석합니다</h2>
+        <p>DART 공시 데이터 + 한국은행 업종평균으로 우리 회사의 재무 건전성을 즉시 파악</p>
+      </div>
+      <div class="lp-feat-grid" style="margin-bottom:52px">
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">🏢</span>
+          <h3>DART 기업 자동조회</h3>
+          <p>금융감독원 전자공시(DART) 연동 — 109,030개 기업 재무제표를 회사명만 입력하면 자동으로 불러옵니다</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">📐</span>
+          <h3>6대 재무비율 자동 계산</h3>
+          <p>유동성·안전성·수익성·활동성·생산성·성장성 — 핵심 재무비율을 자동 계산하고 양호/주의/위험 수준으로 판단</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">🏦</span>
+          <h3>한국은행 업종평균 벤치마크</h3>
+          <p>한국은행 ECOS 기업경영분석 데이터로 업종별 산업평균과 우리 회사를 실시간 비교 분석합니다</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">📄</span>
+          <h3>재무분석 리포트 출력</h3>
+          <p>6대 비율 분석 결과, 업종 비교, 종합 의견까지 담긴 전문 재무분석 리포트를 PDF로 즉시 출력</p>
+        </div>
+      </div>
+
+      <!-- 경영전략 모듈 -->
+      <div class="lp-section-title" style="margin-bottom:24px">
+        <div style="display:inline-block;background:rgba(245,192,48,.12);border:1px solid rgba(245,192,48,.3);border-radius:20px;padding:4px 16px;font-size:0.8rem;color:var(--gold);font-weight:700;margin-bottom:12px">🎯 경영전략 수립 모듈</div>
+        <h2>업종과 규모에 맞는 전략을 자동으로 설계합니다</h2>
+        <p>소상공인부터 중소기업까지 — 진단 점수 기반으로 맞춤 전략 보고서를 30분 안에 생성</p>
       </div>
       <div class="lp-feat-grid">
         <div class="lp-feat-card">
-          <span class="lp-feat-ico">🏪</span>
-          <h3>규모별 맞춤 모드</h3>
-          <p>소상공인은 비즈니스 캔버스 + 6가지 시스템 + 90일 플랜 중심. 소기업은 SWOT·STP·4P·KPI 전략 보고서 자동 생성</p>
-        </div>
-        <div class="lp-feat-card">
           <span class="lp-feat-ico">🔍</span>
-          <h3>16개 업종 × 맞춤 진단</h3>
-          <p>뿌리제조·식품·IT·건설·외식 등 16개 업종별 특화 진단 문항으로 강점·약점을 정밀 분석</p>
+          <h3>16개 업종 × BARS 5단계 정밀 진단</h3>
+          <p>뿌리제조·식품·IT·건설·외식·물류·에너지 등 16개 업종별 현장 밀착 진단 문항으로 강점·약점을 정밀 분석</p>
         </div>
         <div class="lp-feat-card">
-          <span class="lp-feat-ico">👑</span>
-          <h3>도널드 밀러 6가지 시스템</h3>
-          <p>리더십·마케팅·판매·제품·운영·재무 — 6개 시스템 현황 진단 + 즉시 실행 가능한 액션 3개씩 제시</p>
+          <span class="lp-feat-ico">🧭</span>
+          <h3>10대 컨설팅 유형 자동 분류</h3>
+          <p>진단 결과를 기반으로 경영재무전략·사업화전략·차별화전략·디지털전환전략 등 10가지 유형 중 최적 전략 자동 추천</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">🏪</span>
+          <h3>규모별 맞춤 전략 보고서</h3>
+          <p>소상공인: 비즈니스 캔버스 + 도널드 밀러 6가지 시스템 중심. 소기업·중소기업: SWOT·STP·4P·KPI·로드맵 전체 제공</p>
         </div>
         <div class="lp-feat-card">
           <span class="lp-feat-ico">📅</span>
           <h3>90일 즉시 실행 플랜</h3>
-          <p>1개월차·2개월차·3개월차 단계별 핵심 과제. 업종·사업 내용 기반 구체적 액션 + 활용 가능 지원사업 제시</p>
+          <p>1·2·3개월차 단계별 핵심 과제와 구체적 액션 + 신청 가능한 정부지원사업을 로드맵에 자동 포함</p>
         </div>
         <div class="lp-feat-card">
-          <span class="lp-feat-ico">🏛️</span>
-          <h3>정부지원사업 자동 매칭</h3>
-          <p>업종·규모·관심 분야 기반으로 신청 가능한 지원사업을 자동 매칭. 로드맵에 신청 일정까지 포함</p>
-        </div>
-        <div class="lp-feat-card">
-          <span class="lp-feat-ico">🤖</span>
+          <span class="lp-feat-ico">📖</span>
           <h3>경영 서적 10권 프레임워크</h3>
-          <p>루멜트·도널드 밀러·린 스타트업·OKR·블루오션 등 검증된 프레임워크를 AI가 자동 적용</p>
+          <p>루멜트·도널드 밀러·린 스타트업·OKR·블루오션·포터·짐 콜린스 등 검증된 10가지 프레임워크를 AI가 자동 적용</p>
+        </div>
+        <div class="lp-feat-card">
+          <span class="lp-feat-ico">🔺</span>
+          <h3>5대 역량 레이더 차트</h3>
+          <p>재무·인사·사업모델·미래경쟁력·차별화 5개 역량 도메인을 시각화하고 취약 영역에 집중 처방 제시</p>
         </div>
       </div>
     </div>
@@ -192,56 +231,56 @@
   <section id="lp-trust" class="lp-section" style="--lp-delay:0.12s">
     <div class="lp-container">
       <div class="lp-section-title">
-        <h2>이미 많은 분들이 사용하고 있습니다</h2>
-        <p>실제 사용자들의 생생한 후기를 들어보세요</p>
+        <h2>현장에서 실제로 쓰이고 있습니다</h2>
+        <p>경영지도사, 대표, 컨설턴트들의 생생한 후기</p>
       </div>
       <div class="lp-review-grid">
         <div class="lp-review-card">
           <div class="lp-stars">★★★★★</div>
-          <p class="lp-review-text">"창업 3년차인데 처음으로 체계적인 전략을 갖게 됐습니다. 이제야 방향이 보이는 느낌입니다."</p>
-          <div class="lp-review-author">
-            <div class="lp-review-avatar">김</div>
-            <div class="lp-review-info">
-              <h4>김○○</h4>
-              <p>스타트업 대표 · 식품 O2O 서비스</p>
-            </div>
-          </div>
-        </div>
-        <div class="lp-review-card">
-          <div class="lp-stars">★★★★★</div>
-          <p class="lp-review-text">"경영지도사로서 초기 진단 업무 시간이 70% 줄었습니다. 클라이언트에게 훨씬 빠르게 가치를 전달하고 있어요."</p>
+          <p class="lp-review-text">"DART 조회로 재무제표를 자동으로 불러오고 업종 평균과 비교까지 해주니 초기 재무진단 시간이 확 줄었습니다. 고객 미팅 전날 30분 만에 준비가 끝납니다."</p>
           <div class="lp-review-author">
             <div class="lp-review-avatar">이</div>
             <div class="lp-review-info">
               <h4>이○○</h4>
-              <p>경영지도사 · 중소기업 컨설팅</p>
+              <p>경영지도사 · 중소기업 재무 컨설팅</p>
             </div>
           </div>
         </div>
         <div class="lp-review-card">
           <div class="lp-stars">★★★★★</div>
-          <p class="lp-review-text">"투자자 미팅 전날 만들었는데 반응이 정말 좋았어요. IR 자료 준비에 큰 도움이 됐습니다."</p>
+          <p class="lp-review-text">"창업 3년차인데 처음으로 우리 사업을 체계적으로 들여다보게 됐습니다. 16개 업종 진단이 현장과 딱 맞아서 놀랐어요. 90일 플랜대로 실행하고 있습니다."</p>
+          <div class="lp-review-author">
+            <div class="lp-review-avatar">김</div>
+            <div class="lp-review-info">
+              <h4>김○○</h4>
+              <p>외식업 대표 · 프랜차이즈 준비 중</p>
+            </div>
+          </div>
+        </div>
+        <div class="lp-review-card">
+          <div class="lp-stars">★★★★★</div>
+          <p class="lp-review-text">"투자자 미팅 전날 재무분석과 전략 보고서를 동시에 뽑았습니다. IR 자료 퀄리티가 훨씬 올라갔고 투자자 반응도 좋았어요."</p>
           <div class="lp-review-author">
             <div class="lp-review-avatar">박</div>
             <div class="lp-review-info">
               <h4>박○○</h4>
-              <p>IT기업 COO · Series A 준비 중</p>
+              <p>IT 스타트업 CFO · Series A 준비</p>
             </div>
           </div>
         </div>
       </div>
       <div class="lp-trust-stats">
         <div class="lp-trust-stat">
-          <div class="lp-trust-stat-num">1,200건+</div>
-          <div class="lp-trust-stat-label">누적 분석 건수</div>
+          <div class="lp-trust-stat-num">109,030개</div>
+          <div class="lp-trust-stat-label">DART 연동 기업 수</div>
+        </div>
+        <div class="lp-trust-stat">
+          <div class="lp-trust-stat-num">16개 업종</div>
+          <div class="lp-trust-stat-label">특화 진단 문항</div>
         </div>
         <div class="lp-trust-stat">
           <div class="lp-trust-stat-num">4.8/5</div>
           <div class="lp-trust-stat-label">평균 만족도</div>
-        </div>
-        <div class="lp-trust-stat">
-          <div class="lp-trust-stat-num">89%</div>
-          <div class="lp-trust-stat-label">재사용률</div>
         </div>
       </div>
     </div>
@@ -251,64 +290,65 @@
   <section id="lp-demo" class="lp-section" style="--lp-delay:0.1s">
     <div class="lp-container">
       <div class="lp-section-title">
-        <h2>실제 결과물을 확인해보세요</h2>
-        <p>입력 후 30분, 이런 전략 보고서가 자동으로 생성됩니다</p>
+        <h2>실제 결과물을 미리 확인해보세요</h2>
+        <p>입력 후 30분, 이런 분석 결과가 자동으로 생성됩니다</p>
       </div>
       <div class="lp-demo-layout">
-        <!-- 좌측: 목업 -->
+        <!-- 좌측: 재무분석 목업 -->
         <div class="lp-mockup">
           <div class="lp-mockup-top">
             <div class="lp-mockup-dot"></div>
             <div class="lp-mockup-dot"></div>
             <div class="lp-mockup-dot"></div>
-            <span class="lp-mockup-label">BizNavi AI — 전략 분석 결과</span>
+            <span class="lp-mockup-label">BizNavi AI — 재무분석 대시보드</span>
           </div>
-          <div style="font-size:11px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:8px">SWOT MATRIX</div>
-          <div class="lp-swot">
-            <div class="lp-swot-cell s">
-              <h4>STRENGTH 강점</h4>
-              <p>독자적 기술력, 강한 고객 충성도, 낮은 원가 구조</p>
+          <div style="font-size:10px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:10px">6대 재무비율 분석 · 업종 평균 비교</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:8px">
+              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">유동비율</div>
+              <div style="font-size:1.1rem;font-weight:700;color:#4ADE80">182%</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 150% ↑ 양호</div>
             </div>
-            <div class="lp-swot-cell w">
-              <h4>WEAKNESS 약점</h4>
-              <p>브랜드 인지도 부족, 마케팅 역량 미흡</p>
+            <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:8px">
+              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">부채비율</div>
+              <div style="font-size:1.1rem;font-weight:700;color:#4ADE80">98%</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 120% ↓ 양호</div>
             </div>
-            <div class="lp-swot-cell o">
-              <h4>OPPORTUNITY 기회</h4>
-              <p>시장 성장세, 디지털 전환 수요 증가</p>
+            <div style="background:rgba(245,192,48,.06);border:1px solid rgba(245,192,48,.2);border-radius:8px;padding:8px">
+              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">매출액순이익률</div>
+              <div style="font-size:1.1rem;font-weight:700;color:#F5C030">5.2%</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 4.8% ↑ 보통</div>
             </div>
-            <div class="lp-swot-cell t">
-              <h4>THREAT 위협</h4>
-              <p>대기업 진입, 경쟁 심화, 규제 강화</p>
+            <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:8px">
+              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">매출채권회전율</div>
+              <div style="font-size:1.1rem;font-weight:700;color:#F87171">4.1회</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 6.2회 ↓ 주의</div>
             </div>
           </div>
-          <div style="font-size:11px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:8px">KPI DASHBOARD</div>
-          <div class="lp-kpi-item">
-            <div class="lp-kpi-label"><span>매출 성장률</span><span style="color:#F5C030">+35%</span></div>
-            <div class="lp-kpi-bar"><div class="lp-kpi-fill" style="width:70%"></div></div>
-          </div>
-          <div class="lp-kpi-item">
-            <div class="lp-kpi-label"><span>고객 획득 비용</span><span style="color:#F5C030">-20%</span></div>
-            <div class="lp-kpi-bar"><div class="lp-kpi-fill" style="width:55%"></div></div>
-          </div>
-          <div class="lp-kpi-item">
-            <div class="lp-kpi-label"><span>시장 점유율</span><span style="color:#F5C030">15%</span></div>
-            <div class="lp-kpi-bar"><div class="lp-kpi-fill" style="width:40%"></div></div>
+          <div style="font-size:10px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:8px">SWOT 전략 분석</div>
+          <div class="lp-swot" style="font-size:10px">
+            <div class="lp-swot-cell s"><h4>강점</h4><p>독자 기술력·낮은 원가구조</p></div>
+            <div class="lp-swot-cell w"><h4>약점</h4><p>브랜드 인지도·마케팅 역량</p></div>
+            <div class="lp-swot-cell o"><h4>기회</h4><p>시장 성장세·디지털 전환</p></div>
+            <div class="lp-swot-cell t"><h4>위협</h4><p>대기업 진입·경쟁 심화</p></div>
           </div>
         </div>
         <!-- 우측: 설명 -->
         <div class="lp-demo-right">
-          <h3>완전한 전략 보고서가<br>자동으로 생성됩니다</h3>
-          <p>기업 정보와 시장 상황만 입력하면 Claude AI가 맞춤형 전략 분석을 즉시 생성합니다.</p>
+          <h3>재무 건전성부터<br>경영 전략까지<br>한 번에 완성됩니다</h3>
+          <p>회사명만 입력하면 DART에서 재무제표를 자동으로 조회하고, 한국은행 업종평균과 비교하여 재무 건전성을 즉시 파악합니다.</p>
           <ul class="lp-demo-features">
-            <li><span class="lp-check">✓</span> SWOT 4분할 매트릭스 자동 생성</li>
-            <li><span class="lp-check">✓</span> STP 전략 상세 분석</li>
-            <li><span class="lp-check">✓</span> 4P 마케팅 믹스 전략</li>
-            <li><span class="lp-check">✓</span> 실행 가능한 KPI 설계</li>
-            <li><span class="lp-check">✓</span> 3단계 실행 로드맵</li>
-            <li><span class="lp-check">✓</span> PDF 즉시 다운로드</li>
+            <li><span class="lp-check">✓</span> DART 재무제표 자동조회 (10만개+)</li>
+            <li><span class="lp-check">✓</span> 6대 재무비율 자동 계산 + 등급 판정</li>
+            <li><span class="lp-check">✓</span> 한국은행 업종평균 실시간 비교</li>
+            <li><span class="lp-check">✓</span> SWOT · STP · 4P 전략 자동 생성</li>
+            <li><span class="lp-check">✓</span> 5대 역량 레이더 차트 시각화</li>
+            <li><span class="lp-check">✓</span> 재무분석 + 전략 보고서 PDF 출력</li>
           </ul>
-          <button class="lp-btn-primary" onclick="App.showModeSelect()">지금 바로 체험하기 →</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="lp-btn-secondary" style="flex:1;min-width:140px" onclick="App.startFinanceAnalysis()">재무분석 →</button>
+            <button class="lp-btn-primary" style="flex:1;min-width:140px" onclick="App.startWizard()">경영전략 →</button>
+          </div>
         </div>
       </div>
     </div>
@@ -319,7 +359,7 @@
     <div class="lp-container">
       <div class="lp-section-title">
         <h2>합리적인 가격으로 시작하세요</h2>
-        <p>지금은 모든 기능을 무료로 체험할 수 있습니다</p>
+        <p>지금은 재무분석·경영전략 모든 기능을 무료로 체험할 수 있습니다</p>
       </div>
       <div class="lp-pricing-grid">
         <div class="lp-plan">
@@ -327,39 +367,39 @@
           <div class="lp-plan-price">₩0<span> /월</span></div>
           <div class="lp-plan-desc">지금 당장 무료로 시작하세요</div>
           <ul class="lp-plan-features">
-            <li>월 3회 AI 분석</li>
-            <li>SWOT / STP / 4P 기본 분석</li>
+            <li>재무분석 (DART 자동조회 포함)</li>
+            <li>경영전략 데모 모드 무제한</li>
+            <li>월 3회 AI 경영전략 분석</li>
             <li>PDF 출력</li>
-            <li>데모 모드 무제한</li>
           </ul>
-          <button class="lp-plan-btn" onclick="App.startWizard()">시작하기</button>
+          <button class="lp-plan-btn" onclick="App.showModeSelect()">무료로 시작하기</button>
         </div>
         <div class="lp-plan featured">
           <div class="lp-plan-badge">✦ 추천</div>
           <div class="lp-plan-name">PRO</div>
           <div class="lp-plan-price">₩29,000<span> /월</span></div>
-          <div class="lp-plan-desc">전문적인 전략 수립이 필요한 분께</div>
+          <div class="lp-plan-desc">전문적인 분석이 필요한 분께</div>
           <ul class="lp-plan-features">
-            <li>월 30회 AI 분석</li>
-            <li>전체 6가지 프레임워크</li>
+            <li>재무분석 무제한 (DART 연동)</li>
+            <li>월 30회 AI 경영전략 분석</li>
+            <li>한국은행 업종평균 자동 비교</li>
             <li>분석 히스토리 저장</li>
             <li>우선 고객 지원</li>
-            <li>고급 PDF 템플릿</li>
           </ul>
-          <button class="lp-plan-btn" onclick="App.startWizard()">시작하기</button>
+          <button class="lp-plan-btn" onclick="App.showModeSelect()">시작하기</button>
         </div>
         <div class="lp-plan">
           <div class="lp-plan-name">BUSINESS</div>
           <div class="lp-plan-price">₩99,000<span> /월</span></div>
-          <div class="lp-plan-desc">팀 단위 전략 수립이 필요한 기업</div>
+          <div class="lp-plan-desc">경영지도사·컨설팅 기업 전용</div>
           <ul class="lp-plan-features">
-            <li>무제한 AI 분석</li>
-            <li>팀 멤버 공유</li>
+            <li>재무분석·경영전략 무제한</li>
+            <li>멀티 클라이언트 관리</li>
+            <li>커스텀 브랜딩 리포트</li>
             <li>API 연동 지원</li>
             <li>전담 고객 지원</li>
-            <li>커스텀 브랜딩</li>
           </ul>
-          <button class="lp-plan-btn" onclick="App.startWizard()">시작하기</button>
+          <button class="lp-plan-btn" onclick="App.showModeSelect()">시작하기</button>
         </div>
       </div>
     </div>
@@ -374,45 +414,45 @@
       <div class="lp-faq-list">
         <div class="lp-faq-item">
           <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            재무분석에서 DART가 무엇인가요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">DART(금융감독원 전자공시시스템)는 상장사·대형 법인의 재무제표를 공시하는 정부 데이터베이스입니다. BizNavi는 109,030개 기업 목록을 연동하여 회사명만 입력하면 재무제표를 자동으로 불러옵니다. 비상장 중소기업은 공시 의무가 없어 DART에 재무데이터가 없을 수 있으며, 이 경우 직접 입력 모드로 진행하실 수 있습니다.</div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
+            한국은행 업종평균과 어떻게 비교하나요?
+            <span class="lp-faq-icon">+</span>
+          </button>
+          <div class="lp-faq-a">한국은행 ECOS(경제통계시스템)의 기업경영분석 데이터를 실시간으로 연동합니다. 분석 대상 기업의 업종코드를 기준으로 해당 업종의 산업평균 재무비율을 자동으로 가져와 비교합니다. 업종 데이터가 없는 경우 전체 제조업 평균을 기본값으로 사용합니다.</div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
             API 키 없이도 사용할 수 있나요?
             <span class="lp-faq-icon">+</span>
           </button>
-          <div class="lp-faq-a">네, 가능합니다. 데모 모드를 통해 API 키 없이도 SWOT · STP · 4P 분석 등 전체 기능을 체험하실 수 있습니다. 실제 AI 분석을 원하신다면 Anthropic Claude API 키를 등록하시면 됩니다.</div>
+          <div class="lp-faq-a">재무분석은 API 키 없이 완전히 사용 가능합니다. 경영전략 수립은 데모 모드로 샘플 분석 결과를 체험하실 수 있으며, 실제 맞춤형 AI 분석을 원하신다면 Anthropic Claude API 키를 등록하시면 됩니다.</div>
         </div>
         <div class="lp-faq-item">
           <button class="lp-faq-q" onclick="lpToggleFaq(this)">
-            생성된 전략 데이터는 어디에 저장되나요?
+            생성된 데이터는 어디에 저장되나요?
             <span class="lp-faq-icon">+</span>
           </button>
-          <div class="lp-faq-a">모든 데이터는 사용자의 브라우저(localStorage)에만 저장됩니다. 외부 서버로 전송되거나 저장되지 않으므로 기업 정보 보안 걱정 없이 사용하실 수 있습니다.</div>
+          <div class="lp-faq-a">모든 데이터는 사용자의 브라우저(localStorage)에만 저장됩니다. 외부 서버로 전송되거나 저장되지 않으므로 기업 재무 정보와 경영 전략 내용이 외부로 유출될 걱정 없이 사용하실 수 있습니다.</div>
         </div>
         <div class="lp-faq-item">
           <button class="lp-faq-q" onclick="lpToggleFaq(this)">
-            실제 AI 분석과 데모 모드의 차이는 무엇인가요?
+            PDF로 출력하면 어떤 내용이 포함되나요?
             <span class="lp-faq-icon">+</span>
           </button>
-          <div class="lp-faq-a">데모 모드는 미리 준비된 샘플 데이터로 결과를 보여주며, 실제 AI 분석은 입력하신 기업 정보를 바탕으로 Claude AI가 맞춤형 전략을 실시간으로 생성합니다. 실제 모드의 결과물이 훨씬 구체적이고 맞춤화된 내용을 담고 있습니다.</div>
+          <div class="lp-faq-a">재무분석 리포트: 6대 재무비율 분석표, 업종 평균 비교, 종합 의견이 포함됩니다. 경영전략 보고서: SWOT 매트릭스, STP 분석, 4P 전략, 5대 역량 레이더 차트, KPI 대시보드, 실행 로드맵, 90일 플랜이 포함됩니다. 브라우저 인쇄 기능으로 PDF 저장이 가능합니다.</div>
         </div>
         <div class="lp-faq-item">
           <button class="lp-faq-q" onclick="lpToggleFaq(this)">
-            PDF로 출력하면 어떤 형식으로 나오나요?
+            어떤 업종까지 지원하나요?
             <span class="lp-faq-icon">+</span>
           </button>
-          <div class="lp-faq-a">브라우저 인쇄 기능을 통해 PDF로 저장할 수 있습니다. SWOT 매트릭스, STP 분석, 4P 전략, KPI 대시보드, 실행 로드맵이 깔끔한 보고서 형식으로 출력됩니다.</div>
-        </div>
-        <div class="lp-faq-item">
-          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
-            모바일에서도 사용할 수 있나요?
-            <span class="lp-faq-icon">+</span>
-          </button>
-          <div class="lp-faq-a">네, 완전한 모바일 반응형으로 설계되어 있습니다. 스마트폰과 태블릿에서도 편리하게 전략 분석을 진행하고 결과를 확인하실 수 있습니다.</div>
-        </div>
-        <div class="lp-faq-item">
-          <button class="lp-faq-q" onclick="lpToggleFaq(this)">
-            환불 정책은 어떻게 되나요?
-            <span class="lp-faq-icon">+</span>
-          </button>
-          <div class="lp-faq-a">유료 플랜 결제 후 7일 이내에 환불을 요청하시면 전액 환불해 드립니다. 무료 체험 후 결정하시는 것을 권장합니다. 문의는 이메일로 연락 주세요.</div>
+          <div class="lp-faq-a">뿌리제조·식품제조·생활밀착서비스·전문유통도소매·외식·지식서비스IT·소규모건설·의료·교육·패션·미디어·물류운송·환경에너지·농림식품·수출중소기업·금융 등 16개 업종을 지원합니다. 각 업종마다 현장 상황에 맞는 BARS 5단계 앵커 진단 문항이 제공됩니다.</div>
         </div>
       </div>
     </div>
@@ -420,9 +460,12 @@
 
   <!-- ── 섹션 9: 2차 CTA ── -->
   <section id="lp-cta" class="lp-section" style="--lp-delay:0.15s">
-    <h2 class="lp-cta-h2">지금 바로 첫 번째<br>전략을 만들어보세요</h2>
-    <p class="lp-cta-sub">가입 없이 무료로 시작 · 30분이면 완성</p>
-    <button class="lp-btn-primary" onclick="App.startWizard()">진단 시작하기 →</button>
+    <h2 class="lp-cta-h2">재무분석과 경영전략,<br>지금 바로 시작해보세요</h2>
+    <p class="lp-cta-sub">가입 없이 무료 · 재무분석은 회사명만 입력하면 완료</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <button class="lp-btn-secondary" onclick="App.startFinanceAnalysis()">📊 재무분석 시작하기</button>
+      <button class="lp-btn-primary" onclick="App.startWizard()">🎯 경영전략 수립하기 →</button>
+    </div>
   </section>
 
   <!-- ── 섹션 10: FOOTER ── -->
@@ -431,7 +474,7 @@
       <div class="lp-footer-grid">
         <div>
           <div class="lp-footer-logo">BizNavi AI</div>
-          <p class="lp-footer-slogan">AI가 완성하는 경영전략.<br>30분 안에 실행 가능한 전략을 만드세요.</p>
+          <p class="lp-footer-slogan">재무분석부터 경영전략까지.<br>30분 안에 실행 가능한 전략을 만드세요.</p>
         </div>
         <div class="lp-footer-col">
           <h4>서비스</h4>
@@ -439,12 +482,12 @@
             <li><a href="#lp-features">서비스 소개</a></li>
             <li><a href="#lp-pricing">가격</a></li>
             <li><a href="#lp-faq">FAQ</a></li>
-            <li><a href="mailto:contact@biznavi.ai">문의하기</a></li>
+            <li><a href="mailto:dodson108@gmail.com">문의하기</a></li>
           </ul>
         </div>
         <div class="lp-footer-col">
           <h4>문의</h4>
-          <p class="lp-footer-email">이메일: <a href="mailto:contact@biznavi.ai">contact@biznavi.ai</a></p>
+          <p class="lp-footer-email">이메일: <a href="mailto:dodson108@gmail.com">dodson108@gmail.com</a></p>
           <div class="lp-footer-sns">
             <a class="lp-sns-btn" href="#" title="블로그">📝</a>
             <a class="lp-sns-btn" href="#" title="인스타그램">📸</a>
@@ -453,7 +496,7 @@
         </div>
       </div>
       <div class="lp-footer-bar">
-        <p>© 2024 BizNavi AI · Powered by Claude AI</p>
+        <p>© 2026 BizNavi AI · Powered by Claude AI</p>
         <p><a href="#">개인정보처리방침</a> · <a href="#">이용약관</a></p>
       </div>
     </div>
