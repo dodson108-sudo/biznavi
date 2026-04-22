@@ -174,6 +174,7 @@ module.exports = async function handler(req, res) {
     const items = finData.list;
     console.log('[DART] 재무항목 수:', items.length);
 
+    // 계정명 매칭: 포함 검색, 당기→전기 fallback
     const get = (...names) => {
       for (const nm of names) {
         const norm = nm.replace(/\s/g, '');
@@ -186,26 +187,29 @@ module.exports = async function handler(req, res) {
       return null;
     };
 
+    // 계정명 전체 목록 로그 (Vercel 로그에서 확인용)
+    console.log('[DART] 계정명 목록:', items.map(i => i.account_nm).join(' | '));
+
     const currentAssets      = get('유동자산');
-    const quickAssets        = get('당좌자산');
-    const cash               = get('현금및현금성자산', '현금및단기금융상품', '현금과예금');
-    const receivable         = get('매출채권및기타채권', '매출채권', '받을어음및매출채권');
-    const inventory          = get('재고자산');
+    const quickAssets        = get('당좌자산', '당좌및단기금융');
+    const cash               = get('현금및현금성자산', '현금및단기금융상품', '현금과예금', '현금성자산');
+    const receivable         = get('매출채권및기타채권', '매출채권', '받을어음및매출채권', '매출채권및어음');
+    const inventory          = get('재고자산', '상품및제품', '제품및상품');
     const nonCurrentAssets   = get('비유동자산');
     const tangibleAssets     = get('유형자산');
     const totalAssets        = get('자산총계');
     const currentLiabilities = get('유동부채');
-    const payable            = get('매입채무및기타채무', '매입채무', '미지급금');
+    const payable            = get('매입채무및기타채무', '매입채무', '미지급금', '매입채무및어음');
     const nonCurrentLiab     = get('비유동부채');
-    const borrowings         = get('차입금', '단기차입금');
+    const borrowings         = get('단기차입금', '차입금', '장단기차입금');
     const totalDebt          = get('부채총계');
     const equity             = get('자본총계', '자기자본');
     const revenue            = get('매출액', '영업수익', '수익(매출액)', '매출');
-    const grossProfit        = get('매출총이익', '매출총손익');
+    const grossProfit        = get('매출총이익', '매출총손익', '총이익');
     const operatingProfit    = get('영업이익', '영업손익');
-    const interestExpense    = get('이자비용', '금융비용');
+    const interestExpense    = get('이자비용', '금융비용', '이자및금융비용');
     const netIncome          = get('당기순이익', '당기순손익');
-    const laborCost          = get('인건비', '급여', '종업원급여', '급여및임원보수');
+    const laborCost          = get('인건비', '종업원급여', '급여', '급여및임원보수', '급여비용');
 
     const toEok = v => { if (!v) return null; const n = parseInt(v.replace(/,/g, ''), 10); return isNaN(n) ? null : Math.round(n / 100000000); };
     const r = v => v ? { raw: v, eok: toEok(v) } : null;
