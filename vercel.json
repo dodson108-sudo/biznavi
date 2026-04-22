@@ -1,6 +1,7 @@
 {
   "version": 2,
   "buildCommand": "node scripts/build-corp-list.js",
+  "outputDirectory": ".",
   "functions": {
     "api/dart-lookup.js": { "regions": ["icn1"] },
     "api/bok-avg.js":     { "regions": ["icn1"] },
