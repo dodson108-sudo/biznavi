@@ -12,16 +12,40 @@
  */
 
 const AdmZip = require('adm-zip');
+const fs = require('fs');
+const path = require('path');
 
 // 기업목록 인메모리 캐시 (Vercel warm start 활용)
 let _corpCache = null;
 let _corpCacheTime = 0;
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6시간
 
+// 빌드 시 생성된 로컬 JSON 파일 경로
+const LOCAL_CORP_JSON = path.join(__dirname, 'corp-list.json');
+
 async function _loadCorpList(apiKey) {
   const now = Date.now();
   if (_corpCache && now - _corpCacheTime < CACHE_TTL) return _corpCache;
 
+  // 1순위: 빌드 시 생성된 로컬 JSON 파일 읽기 (가장 빠르고 안정적)
+  if (fs.existsSync(LOCAL_CORP_JSON)) {
+    try {
+      console.log('[DART] 로컬 corp-list.json 읽기...');
+      const raw = fs.readFileSync(LOCAL_CORP_JSON, 'utf-8');
+      const obj = JSON.parse(raw);
+      const map = new Map(Object.entries(obj));
+      if (map.size > 0) {
+        console.log('[DART] 로컬 파일 로드 완료:', map.size, '개');
+        _corpCache = map;
+        _corpCacheTime = now;
+        return map;
+      }
+    } catch (e) {
+      console.warn('[DART] 로컬 파일 읽기 실패:', e.message);
+    }
+  }
+
+  // 2순위: DART API에서 직접 다운로드 (fallback)
   console.log('[DART] corpCode.xml 다운로드 시작...');
   const url = `https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key=${apiKey}`;
   const res = await fetch(url);
@@ -29,18 +53,12 @@ async function _loadCorpList(apiKey) {
 
   const zip = new AdmZip(buf);
   const entries = zip.getEntries();
-  const entryNames = entries.map(e => e.entryName);
-  console.log('[DART] ZIP 내 파일:', entryNames);
-
   const entry = entries.find(e => /corpcode/i.test(e.entryName)) || entries[0];
   if (!entry) throw new Error('ZIP 파일이 비어있습니다');
 
   const xml = entry.getData().toString('utf-8');
-  console.log('[DART] XML 첫 300자:', xml.slice(0, 300));
 
-  const map = new Map(); // corp_name → { corpCode, stockCode }
-
-  // corp_code / corp_name 을 순서대로 추출 — 외부 태그 구조와 무관
+  const map = new Map();
   const codes  = [...xml.matchAll(/<corp_code>\s*(\d+)\s*<\/corp_code>/gi)].map(m => m[1]);
   const names  = [...xml.matchAll(/<corp_name>\s*([^<]+?)\s*<\/corp_name>/gi)].map(m => m[1].trim());
   const stocks = [...xml.matchAll(/<stock_code>\s*([^<]*?)\s*<\/stock_code>/gi)].map(m => m[1].trim());
@@ -53,9 +71,8 @@ async function _loadCorpList(apiKey) {
       map.set(names[i], { corpCode: codes[i], stockCode: stocks[i] || '' });
     }
   }
-  console.log('[DART] 파싱 완료:', map.size, '개 / 샘플:', [...map.keys()].slice(0, 3));
+  console.log('[DART] 파싱 완료:', map.size, '개');
 
-  // 빈 맵은 캐시하지 않음 (오류 상황에서 6시간 고착 방지)
   if (map.size > 0) {
     _corpCache = map;
     _corpCacheTime = now;
