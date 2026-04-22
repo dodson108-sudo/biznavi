@@ -174,13 +174,14 @@ module.exports = async function handler(req, res) {
     const items = finData.list;
     console.log('[DART] 재무항목 수:', items.length);
 
-    // 계정명 매칭: 포함 검색, 당기→전기 fallback
+    // 계정명 매칭: 포함 검색, 여러 금액 필드 순서대로 fallback
     const get = (...names) => {
       for (const nm of names) {
         const norm = nm.replace(/\s/g, '');
         const found = items.find(i => i.account_nm?.replace(/\s/g, '').includes(norm));
         if (found) {
-          const val = found.thstrm_amount || found.frmtrm_amount;
+          const val = found.thstrm_amount || found.thstrm_add_amount
+                   || found.frmtrm_amount || found.frmtrm_add_amount;
           if (val && val !== '0') return val;
         }
       }
