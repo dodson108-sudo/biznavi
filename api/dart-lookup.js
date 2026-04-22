@@ -36,26 +36,30 @@ async function _loadCorpList(apiKey) {
   if (!entry) throw new Error('ZIP 파일이 비어있습니다');
 
   const xml = entry.getData().toString('utf-8');
-  console.log('[DART] XML 첫 200자:', xml.slice(0, 200));
+  console.log('[DART] XML 첫 300자:', xml.slice(0, 300));
 
   const map = new Map(); // corp_name → { corpCode, stockCode }
 
-  // <corp>...</corp> 블록 단위로 파싱 (대소문자 무관)
-  const segments = xml.split(/<corp>/i);
-  for (const seg of segments.slice(1)) {
-    const codeM  = seg.match(/<corp_code>\s*(\d+)\s*<\/corp_code>/i);
-    const nameM  = seg.match(/<corp_name>\s*([^<]+?)\s*<\/corp_name>/i);
-    const stockM = seg.match(/<stock_code>\s*([^<]*?)\s*<\/stock_code>/i);
-    if (codeM && nameM) {
-      const name = nameM[1].trim();
-      if (!map.has(name)) {
-        map.set(name, { corpCode: codeM[1], stockCode: stockM?.[1]?.trim() || '' });
-      }
+  // corp_code / corp_name 을 순서대로 추출 — 외부 태그 구조와 무관
+  const codes  = [...xml.matchAll(/<corp_code>\s*(\d+)\s*<\/corp_code>/gi)].map(m => m[1]);
+  const names  = [...xml.matchAll(/<corp_name>\s*([^<]+?)\s*<\/corp_name>/gi)].map(m => m[1].trim());
+  const stocks = [...xml.matchAll(/<stock_code>\s*([^<]*?)\s*<\/stock_code>/gi)].map(m => m[1].trim());
+
+  console.log('[DART] 추출된 corp_code 수:', codes.length, '/ corp_name 수:', names.length);
+
+  const len = Math.min(codes.length, names.length);
+  for (let i = 0; i < len; i++) {
+    if (!map.has(names[i])) {
+      map.set(names[i], { corpCode: codes[i], stockCode: stocks[i] || '' });
     }
   }
   console.log('[DART] 파싱 완료:', map.size, '개 / 샘플:', [...map.keys()].slice(0, 3));
-  _corpCache = map;
-  _corpCacheTime = now;
+
+  // 빈 맵은 캐시하지 않음 (오류 상황에서 6시간 고착 방지)
+  if (map.size > 0) {
+    _corpCache = map;
+    _corpCacheTime = now;
+  }
   return map;
 }
 
