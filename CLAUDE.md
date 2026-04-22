@@ -2,32 +2,37 @@
 
 ## 배포 상태 (2026-04-22 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: DART API 호출 순서 전면 재작성 (list.json → corp_code → company.json → 재무조회)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: no_financial/not_found 메시지 분리
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
-## 최근 수정 이력 (2026-04-22)
+## 최근 수정 이력 (2026-04-22) — 오후
 
-### DART API 근본 버그 수정 — list.json 기반 회사 검색으로 전환
+### DART 기업목록 안정화 — corp-list.json 로컬 파일 방식으로 전환
 
 #### 문제 원인 분석 및 해결
-- **Vercel 서울 리전(icn1) 적용**: 한국 정부 API(DART/ECOS/국세청)의 해외 IP 차단 해결
-- **DART status 100 원인**: `company.json`은 `corp_code` 필수 파라미터 — `corp_name`으로 직접 검색 불가
-- **올바른 DART API 호출 순서** (전면 재작성):
-  1. `list.json?corp_name=...` — 공시목록 검색으로 corp_code 획득
-  2. `company.json?corp_code=...` — 업종코드·업종명 조회
-  3. `fnlttSinglAcnt.json?corp_code=...` — 재무제표 조회
-- **회사명 변형 자동시도**: 핵심명 → 주식회사XXX → ㈜XXX → (주)XXX 순
+- **Vercel 인스턴스 간 캐시 불공유**: 각 콜드스타트 인스턴스가 corpCode.xml을 별도 다운로드 시도 → 실패 시 error 반환
+- **해결**: `scripts/build-corp-list.js`로 109,030개 기업목록을 `api/corp-list.json`으로 로컬 저장
+  - 로컬에서 `DART_API_KEY=... node scripts/build-corp-list.js` 실행 후 커밋
+  - dart-lookup.js가 JSON 파일 우선 읽기 → 실패 시만 DART 다운로드 fallback
+- **`vercel.json`**: `buildCommand` + `outputDirectory: "."` 추가 (빌드 시 스크립트 자동 실행)
 
-#### 오류 진단 기능 추가
-- `api_key_error` 상태: DART status 010/011 시 즉시 반환 (API 키 오류 명확히 표시)
-- `not_found` 응답에 `dartStatus` 포함 (실제 DART 오류코드 화면 표시)
+#### 상태별 메시지 개선 (finance-wizard.js)
+- `no_financial`: "DART에 등록된 기업이지만 공시된 재무제표가 없습니다. 직접 입력해주세요."
+- `not_found`: "DART 미등록 기업입니다. 직접 입력해주세요."
+- `error`: "조회 실패 — 직접 입력해주세요."
+
+#### 삼성전자 DART 조회 결과 (IFRS 대형기업 한계)
+- 반환 항목: 유동자산, 비유동자산, 자산총계, 유동부채, 비유동부채, 부채총계, 자본총계, 매출액, 영업이익, 당기순이익
+- **현금, 재고자산, 유형자산, 매출총이익, 이자비용, 인건비 = DART가 미제공** (IFRS 대형기업 특성)
+- 중소기업(K-GAAP)은 더 상세한 항목 반환 예상
 
 #### 다음 세션에서 확인 필요
-- Vercel 배포 후 삼성전자/카카오 DART 자동조회 정상 작동 여부 테스트
+- 벽산건설 등 K-GAAP 중소기업 DART 조회 정상 작동 여부 테스트
 - ECOS 업종별 산업평균 연동 최종 확인
+- _debugAccounts 임시 필드 제거 (테스트 완료 후)
 
 ---
 
