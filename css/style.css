@@ -1124,6 +1124,15 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .fin-input-item label { display: block; font-size: 0.82rem; color: var(--txt2); margin-bottom: 6px; }
 .fin-input-wrap { display: flex; align-items: center; gap: 6px; }
 .fin-input-wrap .form-control { flex: 1; }
+.fin-input-item input, .fin-input-item select {
+  width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 12px;
+  font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--txt);
+  transition: border-color .2s; outline: none; box-sizing: border-box;
+}
+.fin-input-item input:focus, .fin-input-item select:focus {
+  border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,192,48,.10);
+}
 .fin-unit { font-size: 0.8rem; color: var(--txt3); white-space: nowrap; }
 .fin-input-highlight { background: rgba(245,192,48,.05); border-radius: 8px; padding: 8px; border: 1px solid rgba(245,192,48,.2); }
 .fin-autofill-notice {

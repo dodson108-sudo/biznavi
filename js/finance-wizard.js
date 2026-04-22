@@ -330,15 +330,18 @@ const FinWizard = (() => {
         _showStep2(`✅ DART 자동입력 완료 — ${data.corpName} (${data.year}년 기준) · 수정 가능합니다`);
         _tryDartAutoFill();
       } else if (data.status === 'no_key') {
+        _inputMode = 'manual';
         _clearStep2Fields();
-        _showStep2('⚠️ DART API 키 미설정 — 직접 입력해주세요.');
+        _showStep2('⚠️ DART API 키 미설정 — 아래 항목을 직접 입력해주세요.');
       } else {
+        _inputMode = 'manual';
         _clearStep2Fields();
-        _showStep2('ℹ️ DART 등록 데이터 없음 — 직접 입력해주세요.');
+        _showStep2('ℹ️ DART 공시 데이터 없음 — 아래 항목을 직접 입력해주세요.');
       }
     } catch (e) {
+      _inputMode = 'manual';
       _clearStep2Fields();
-      _showStep2('⚠️ DART 조회 실패 — 직접 입력해주세요.');
+      _showStep2('⚠️ DART 조회 실패 — 아래 항목을 직접 입력해주세요.');
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '다음 →'; }
     }
@@ -1198,9 +1201,24 @@ const FinWizard = (() => {
     </div>`;
   }
 
+  /* ── 대시보드 → Step2 뒤로가기 ── */
+  function backToStep2() {
+    App.showFinanceWizard();
+    setTimeout(() => {
+      _curStep = 2;
+      document.getElementById('finWizStep1')?.classList.add('hidden');
+      document.getElementById('finWizStep2')?.classList.remove('hidden');
+      [1, 2, 3].forEach(i => {
+        const el = document.getElementById('finStep' + i);
+        if (el) { el.classList.toggle('active', i === 2); el.classList.toggle('done', i < 2); }
+      });
+      window.scrollTo(0, 0);
+    }, 350);
+  }
+
   /* ── PUBLIC API ── */
   return {
     goStep, nextStep, switchInputMode, onCompanyInput, lookupDart, analyze,
-    searchIndustryCode, selectIndustryCode, selectDirectCode, renderReport
+    searchIndustryCode, selectIndustryCode, selectDirectCode, renderReport, backToStep2
   };
 })();
