@@ -222,6 +222,7 @@ module.exports = async function handler(req, res) {
       indutyCode,
       indutyName,
       year: finData.year,
+      _debugAccounts: items.map(i => i.account_nm),
       currentAssets: r(currentAssets), quickAssets: r(quickAssets), cash: r(cash),
       receivable: r(receivable), inventory: r(inventory), nonCurrentAssets: r(nonCurrentAssets),
       tangibleAssets: r(tangibleAssets), totalAssets: r(totalAssets),
