@@ -1,10 +1,43 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-22 최신)
+## 배포 상태 (2026-04-23 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 랜딩페이지 리뉴얼 + Step1 이전 버튼 수정
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: vercel dev 로컬 테스트 환경 구축
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-23)
+
+### vercel dev 로컬 테스트 환경 구축
+
+#### 변경 내용
+- **finance-wizard.js**: localhost 분기 3곳 제거 (`location.hostname === 'localhost'` 체크 삭제)
+  - DART 조회, DART 버튼, ECOS API 모두 localhost/vercel 구분 없이 실제 API 호출
+  - `_mockDartData()` 함수는 코드에 남겨두되 더 이상 자동 호출되지 않음
+- **vercel.json**: `api/ocr-scan.js` 함수 목록에 추가 (누락 보완)
+- **.env.local** (gitignore됨, 로컬 전용): 환경변수 파일 생성
+  - `DART_API_KEY` 설정 완료
+  - `ECOS_API_KEY`, `NTS_SERVICE_KEY`, `GOOGLE_VISION_API_KEY` → 본인 키 입력 필요
+
+#### 로컬 테스트 방법 (vercel dev)
+```bash
+# 1. 프로젝트 루트에서 Vercel 로그인 (최초 1회)
+vercel login
+
+# 2. 프로젝트 연결 (최초 1회) — biznavi 선택
+vercel link
+
+# 3. 로컬 서버 실행
+vercel dev
+# → http://localhost:3000 으로 접속
+# → api/dart-lookup.js, api/bok-avg.js 등 serverless 함수 포함 전체 작동
+```
+
+#### 주의사항
+- `.env.local`에 `ECOS_API_KEY`, `NTS_SERVICE_KEY` 미입력 시 해당 기능(ECOS 업종평균, 사업자조회) fallback 모드로 동작
+- `vercel login` 및 `vercel link`는 터미널(PowerShell/CMD)에서 대화형으로 실행 필요
 
 ---
 
@@ -43,13 +76,15 @@
 
 ## 다음 세션 예정 작업
 
-### 1. 로컬 테스트 환경 구축 (vercel dev)
-- `npm i -g vercel` → `vercel login` → `vercel link` → `.env.local` 작성 → `vercel dev`
-- localhost:3000에서 서버리스 함수(dart-lookup, bok-avg, biz-lookup) 포함 전체 테스트 가능
-- **주의**: finance-wizard.js에 `localhost` 체크 분기 있음 → vercel dev 사용 시 mock 대신 실제 API 호출되도록 확인 필요
+### 1. vercel login + vercel link (터미널에서 직접 실행 필요)
+- `vercel login` (브라우저 인증)
+- `vercel link` (biznavi 프로젝트 선택)
+- 이후 `vercel dev` → http://localhost:3000
+- **localhost 분기는 이미 제거됨** — 실제 API 바로 호출됨
 
 ### 2. 사업자등록증 OCR 수정
-- wizard.js의 이미지 업로드 → Claude Vision API 호출 흐름 진단
+- wizard.js의 이미지 업로드 → Claude Vision API 호출 흐름 진단 (api/ocr-scan.js 확인)
+- `GOOGLE_VISION_API_KEY` 환경변수 설정 필요 여부 확인
 - 원인 파악 후 수정
 
 ---
