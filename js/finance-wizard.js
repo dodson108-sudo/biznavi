@@ -312,18 +312,12 @@ const FinWizard = (() => {
     if (btn) { btn.disabled = true; btn.textContent = 'DART 조회 중...'; }
 
     try {
-      let data;
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-        await new Promise(r => setTimeout(r, 800));
-        data = _mockDartData(name);
-      } else {
-        const res = await fetch('/api/dart-lookup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companyName: name })
-        });
-        data = await res.json();
-      }
+      const res = await fetch('/api/dart-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName: name })
+      });
+      const data = await res.json();
 
       if (data.status === 'found') {
         _dartData = data;
@@ -390,18 +384,12 @@ const FinWizard = (() => {
     resultEl.classList.remove('hidden');
     resultEl.innerHTML = '<span class="dart-loading">DART 조회 중...</span>';
     try {
-      let data;
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-        await new Promise(r => setTimeout(r, 800));
-        data = _mockDartData(name);
-      } else {
-        const res = await fetch('/api/dart-lookup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companyName: name })
-        });
-        data = await res.json();
-      }
+      const res = await fetch('/api/dart-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName: name })
+      });
+      const data = await res.json();
       if (data.status === 'found') {
         _dartData = data;
         // 업종코드 자동 세팅
@@ -571,9 +559,6 @@ const FinWizard = (() => {
   /* ── 한국은행 ECOS 업종평균 fetch ── */
   async function _fetchBokAvg(ksicCode) {
     if (!ksicCode) return; // 업종코드 없으면 기본값 유지
-
-    // localhost 에서는 목업 없이 기본값 유지 (ECOS 키가 없으니 skip)
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
 
     try {
       const res = await fetch('/api/bok-avg', {

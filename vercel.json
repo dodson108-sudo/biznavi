@@ -5,7 +5,8 @@
   "functions": {
     "api/dart-lookup.js": { "regions": ["icn1"] },
     "api/bok-avg.js":     { "regions": ["icn1"] },
-    "api/biz-lookup.js":  { "regions": ["icn1"] }
+    "api/biz-lookup.js":  { "regions": ["icn1"] },
+    "api/ocr-scan.js":    { "regions": ["icn1"] }
   },
   "headers": [
     {
