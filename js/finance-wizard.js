@@ -724,38 +724,57 @@ const FinWizard = (() => {
   }
 
   /* ── 레이더 차트 점수 계산 (50 = 산업평균, 0~100 범위) ── */
-  function _getRadarAxes(ratios) {
-    function norm(val, avg) {
-      if (val === null || val === undefined || !avg) return null;
-      return Math.min(Math.max(val / avg * 50, 0), 100);
-    }
-    return [
-      { label: '유동성', score: norm(ratios.liquidity.유동비율,              _bokAvg.유동비율) },
-      { label: '안전성', score: norm(ratios.safety.자기자본비율,             _bokAvg.자기자본비율) },
-      { label: '수익성', score: norm(ratios.profitability.매출액영업이익율,  _bokAvg.매출액영업이익율) },
-      { label: '활동성', score: norm(ratios.activity.총자산회전율,           _bokAvg.총자산회전율) },
-      { label: '생산성', score: norm(ratios.productivity.부가가치율,         _bokAvg.부가가치율) },
-      { label: '성장성', score: norm(ratios.growth.매출액증가율 !== null ? ratios.growth.매출액증가율 + 20 : null, (_bokAvg.매출액증가율 || 9) + 20) },
-    ];
+  /* ── 섹션별 레이더 축 계산 (50 = 산업평균, 0~100) ── */
+  const _RADAR_SHORT = {
+    유동비율:'유동비율', 당좌비율:'당좌비율', 현금비율:'현금비율',
+    부채비율:'부채비율', 자기자본비율:'자기자본', 순운전자본비율:'순운전자본',
+    차입금의존도:'차입금의존', 차입금평균이자율:'차입이자율',
+    이자보상비율:'이자보상', 고정비율:'고정비율', 고정장기적합율:'고정장기',
+    매출총이익율:'매출총이익', 매출액영업이익율:'영업이익률', 매출액순이익율:'순이익률',
+    총자본순이익율_ROA:'ROA', 자기자본순이익율_ROE:'ROE',
+    총자산회전율:'총자산', 자기자본회전율:'자기자본', 재고자산회전율:'재고자산',
+    매출채권회전율:'매출채권', 매출채권회수기간:'채권회수일',
+    매입채무회전율:'매입채무', 매입채무지급기간:'채무지급일',
+    부가가치율:'부가가치율', 노동생산성_1인당부가가치:'노동생산성',
+    인건비대매출액:'인건비율', 노동소득분배율:'노동분배율',
+    매출액증가율:'매출증가율',
+  };
+
+  function _getSectionAxes(data) {
+    return Object.entries(data).map(([key, val]) => {
+      const avg = _bokAvg[key];
+      const isHigh = _HIGH_IS_GOOD.has(key);
+      const isLow  = _LOW_IS_GOOD.has(key);
+      let score = null;
+      if (val !== null && val !== undefined && avg) {
+        if (isHigh) {
+          score = Math.min(Math.max(val / avg * 50, 0), 100);
+        } else if (isLow) {
+          // 낮을수록 좋은 항목: 산업평균 이하면 높은 점수
+          score = val <= 0 ? 100 : Math.min(Math.max(avg / val * 50, 0), 100);
+        }
+      }
+      return { key, label: _RADAR_SHORT[key] || key, score };
+    });
   }
 
-  /* ── 레이더 차트 그리기 (Canvas API) ── */
-  function _drawFinRadar(canvasId, ratios) {
+  /* ── 레이더 차트 그리기 (Canvas API, 범용) ── */
+  function _drawRadarAxes(canvasId, axes) {
     const canvas = document.getElementById(canvasId);
     if (!canvas || !canvas.getContext) return;
-    const ctx = canvas.getContext('2d');
-    const axes = _getRadarAxes(ratios);
     const N = axes.length;
+    if (N < 3) return; // 3개 미만은 레이더 불가
+    const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     const cx = W / 2, cy = H / 2;
-    const R = Math.min(cx, cy) - 44;
+    const R = Math.min(cx, cy) - 38;
 
     ctx.clearRect(0, 0, W, H);
 
     const angle = i => (i / N) * Math.PI * 2 - Math.PI / 2;
     const pt    = (i, r) => ({ x: cx + r * Math.cos(angle(i)), y: cy + r * Math.sin(angle(i)) });
 
-    // 그리드 (4단계: 25/50/75/100%)
+    // 그리드 4단계
     for (let lv = 1; lv <= 4; lv++) {
       ctx.beginPath();
       for (let i = 0; i < N; i++) {
@@ -763,8 +782,8 @@ const FinWizard = (() => {
         i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
       }
       ctx.closePath();
-      ctx.strokeStyle = lv === 2 ? 'rgba(245,192,48,0.35)' : 'rgba(255,255,255,0.08)';
-      ctx.lineWidth   = lv === 2 ? 1.5 : 1;
+      ctx.strokeStyle = lv === 2 ? 'rgba(245,192,48,0.3)' : 'rgba(255,255,255,0.07)';
+      ctx.lineWidth = lv === 2 ? 1.5 : 1;
       ctx.stroke();
     }
 
@@ -772,20 +791,20 @@ const FinWizard = (() => {
     for (let i = 0; i < N; i++) {
       const p = pt(i, R);
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p.x, p.y);
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke();
     }
 
-    // 산업평균 다각형 (50% 위치, 점선)
+    // 산업평균 다각형 (50% = 점선)
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const p = pt(i, R * 0.5);
       i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
     }
     ctx.closePath();
-    ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = 'rgba(148,163,184,0.65)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(148,163,184,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(148,163,184,0.07)'; ctx.fill();
+    ctx.fillStyle = 'rgba(148,163,184,0.06)'; ctx.fill();
 
     // 당사 다각형
     const scores = axes.map(a => a.score !== null ? a.score : 50);
@@ -795,32 +814,32 @@ const FinWizard = (() => {
       i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
     }
     ctx.closePath();
-    ctx.strokeStyle = '#F5C030'; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.fillStyle = 'rgba(245,192,48,0.18)'; ctx.fill();
+    ctx.strokeStyle = '#F5C030'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = 'rgba(245,192,48,0.16)'; ctx.fill();
 
     // 당사 점
     scores.forEach((s, i) => {
       const p = pt(i, R * s / 100);
-      ctx.beginPath(); ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
       ctx.fillStyle = '#F5C030'; ctx.fill();
       ctx.strokeStyle = '#0A0E1A'; ctx.lineWidth = 1.5; ctx.stroke();
     });
 
     // 라벨
-    const LBL_R = R + 26;
-    ctx.font = 'bold 12px "Noto Sans KR", sans-serif';
-    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    ctx.font = 'bold 11px "Noto Sans KR", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const LBL_R = R + 22;
     axes.forEach(({ label, score }, i) => {
-      const p   = pt(i, LBL_R);
-      const hasData = score !== null;
-      ctx.fillStyle = hasData ? '#E8EDF5' : '#6B7A99';
+      const p = pt(i, LBL_R);
+      ctx.fillStyle = score !== null ? '#E8EDF5' : '#5A6A8A';
       ctx.fillText(label, p.x, p.y);
     });
 
-    // 50% 위치에 '평균' 레이블
-    ctx.font = '10px "Noto Sans KR", sans-serif';
-    ctx.fillStyle = 'rgba(245,192,48,0.6)';
-    ctx.fillText('평균', cx + R * 0.5 * Math.cos(angle(0)) + 4, cy + R * 0.5 * Math.sin(angle(0)) - 10);
+    // '평균' 텍스트 (50% 선 위)
+    ctx.font = '9px "Noto Sans KR", sans-serif';
+    ctx.fillStyle = 'rgba(245,192,48,0.55)';
+    const avgPt = pt(0, R * 0.5);
+    ctx.fillText('평균', avgPt.x + 3, avgPt.y - 9);
   }
 
   /* ── 대시보드 렌더링 ── */
@@ -858,21 +877,6 @@ const FinWizard = (() => {
         ${_keyMetricCard('ROA', ratios.profitability.총자본순이익율_ROA, '%')}
       </div>
 
-      <div class="fin-radar-wrap">
-        <div class="fin-radar-box">
-          <div class="fin-radar-title">종합 재무역량 — 산업평균 대비</div>
-          <canvas id="finRadarChart" width="320" height="320"></canvas>
-          <div class="fin-radar-legend">
-            <span class="fin-radar-leg-item">
-              <span class="fin-radar-leg-dot" style="background:#F5C030"></span>당사
-            </span>
-            <span class="fin-radar-leg-item">
-              <span class="fin-radar-leg-dash"></span>산업평균
-            </span>
-          </div>
-        </div>
-      </div>
-
       ${sections.map(s => _renderSection(s)).join('')}
 
       <div class="fin-note">
@@ -881,7 +885,11 @@ const FinWizard = (() => {
       </div>
     `;
 
-    _drawFinRadar('finRadarChart', ratios);
+    // 각 섹션 레이더 차트 그리기
+    sections.forEach(s => {
+      const axes = _getSectionAxes(s.data);
+      _drawRadarAxes(`finRadar-${s.key}`, axes);
+    });
   }
 
   function _countEvals(ratios) {
@@ -901,32 +909,42 @@ const FinWizard = (() => {
     return `<div class="fin-key-card"><div class="fin-key-val">${display}</div><div class="fin-key-label">${label}</div></div>`;
   }
 
-  function _renderSection({ title, icon, desc, data }) {
-    const rows = Object.entries(data).map(([key, val]) => {
-      const avg = _bokAvg[key];
-      const ev = _evalVsAvg(key, val);
-      const isTime = key.includes('회전율');
-      const isDay = key.includes('기간');
-      const unit = isTime ? '회' : isDay ? '일' : isKey1인당(key) ? '백만원' : '%';
-      const display = val !== null ? `${val.toLocaleString()}${unit}` : '—';
-      const avgDisplay = avg !== undefined ? (isTime ? `${avg}회` : isDay ? `${avg}일` : isKey1인당(key) ? `${avg}백만원` : `${avg}%`) : '—';
+  function _renderSection({ key, title, icon, desc, data }) {
+    const rows = Object.entries(data).map(([k, val]) => {
+      const avg = _bokAvg[k];
+      const ev = _evalVsAvg(k, val);
+      const isTime = k.includes('회전율');
+      const isDay  = k.includes('기간');
+      const unit = isTime ? '회' : isDay ? '일' : isKey1인당(k) ? '백만원' : '%';
+      const display    = val !== null ? `${val.toLocaleString()}${unit}` : '—';
+      const avgDisplay = avg !== undefined ? (isTime ? `${avg}회` : isDay ? `${avg}일` : isKey1인당(k) ? `${avg}백만원` : `${avg}%`) : '—';
       const barWidth = val !== null && avg ? Math.min(Math.round(val / avg * 100), 200) : 0;
       const barColor = ev.cls === 'fin-eval-good' ? '#4ADE80' : ev.cls === 'fin-eval-bad' ? '#F87171' : '#9BAAC8';
 
       return `
         <tr class="fin-ratio-row">
-          <td class="fin-ratio-name">${key.replace(/_/g, ' ')}</td>
+          <td class="fin-ratio-name">${k.replace(/_/g, ' ')}</td>
           <td class="fin-ratio-val">${display}</td>
           <td class="fin-ratio-avg">${avgDisplay}</td>
           <td class="fin-ratio-bar-cell">
             <div class="fin-ratio-bar-bg">
-              <div class="fin-ratio-bar" style="width:${Math.min(barWidth, 100)}%;background:${barColor}"></div>
-              ${barWidth > 100 ? `<div class="fin-ratio-bar fin-ratio-bar-over" style="width:${barWidth - 100}%;background:${barColor}"></div>` : ''}
+              <div class="fin-ratio-bar" style="width:${Math.min(barWidth,100)}%;background:${barColor}"></div>
+              ${barWidth > 100 ? `<div class="fin-ratio-bar fin-ratio-bar-over" style="width:${barWidth-100}%;background:${barColor}"></div>` : ''}
             </div>
           </td>
           <td><span class="fin-eval ${ev.cls}">${ev.label}</span></td>
         </tr>`;
     }).join('');
+
+    const N = Object.keys(data).length;
+    const chartHtml = N >= 3 ? `
+      <div class="fin-section-chart">
+        <canvas id="finRadar-${key}" width="220" height="220"></canvas>
+        <div class="fin-radar-leg-row">
+          <span class="fin-radar-leg-item"><span class="fin-radar-leg-dot"></span>당사</span>
+          <span class="fin-radar-leg-item"><span class="fin-radar-leg-dash"></span>산업평균</span>
+        </div>
+      </div>` : '';
 
     return `
       <div class="fin-section-card">
@@ -937,12 +955,17 @@ const FinWizard = (() => {
             <div class="fin-section-desc">${desc}</div>
           </div>
         </div>
-        <table class="fin-ratio-table">
-          <thead><tr>
-            <th>항목</th><th>당사</th><th>산업평균</th><th>비교</th><th>평가</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+        <div class="fin-section-body${N >= 3 ? ' fin-section-body--chart' : ''}">
+          ${chartHtml}
+          <div class="fin-section-table-wrap">
+            <table class="fin-ratio-table">
+              <thead><tr>
+                <th>항목</th><th>당사</th><th>산업평균</th><th>비교</th><th>평가</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
       </div>`;
   }
 
