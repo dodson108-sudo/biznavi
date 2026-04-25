@@ -347,8 +347,9 @@ module.exports = async function handler(req, res) {
       _debugAccounts: items.map(i => ({ nm: i.account_nm, val: i.thstrm_amount || i.thstrm_add_amount || '' })),
       currentAssets:      r(get('유동자산')),
       quickAssets:        r(get('당좌자산', '당좌및단기금융')),
-      cash:               r(get('현금및현금성자산', '현금및단기금융상품', '현금과예금')),
-      receivable:         r(get('매출채권및기타채권', '매출채권', '받을어음및매출채권')),
+      // 금융업 fallback: 현금및예치금(은행), 상각후원가측정금융자산(카드채권)
+      cash:               r(get('현금및현금성자산', '현금및단기금융상품', '현금과예금', '현금및예치금')),
+      receivable:         r(get('매출채권및기타채권', '매출채권', '받을어음및매출채권', '상각후원가측정금융자산')),
       inventory:          r(get('재고자산', '상품및제품', '제품및상품')),
       nonCurrentAssets:   r(get('비유동자산')),
       tangibleAssets:     r(get('유형자산')),
@@ -356,11 +357,13 @@ module.exports = async function handler(req, res) {
       currentLiabilities: r(get('유동부채')),
       payable:            r(get('매입채무및기타채무', '매입채무', '미지급금')),
       nonCurrentLiab:     r(get('비유동부채')),
-      borrowings:         r(get('단기차입금', '차입금', '장단기차입금')),
+      // 금융업 fallback: 차입부채(카드·캐피탈사)
+      borrowings:         r(get('단기차입금', '차입금', '장단기차입금', '차입부채')),
       totalDebt:          r(get('부채총계')),
       equity:             r(get('자본총계', '자기자본')),
-      revenue:            r(get('매출액', '영업수익', '수익(매출액)', '매출')),
-      grossProfit:        r(get('매출총이익', '매출총손익', '총이익')),
+      // 금융업 fallback: 이자수익(카드·은행), 영업수익합계, 순이자손익+수수료 등
+      revenue:            r(get('매출액', '영업수익', '수익(매출액)', '매출', '이자수익', '순영업수익', '영업수익합계')),
+      grossProfit:        r(get('매출총이익', '매출총손익', '총이익', '순이자손익')),
       operatingProfit:    r(get('영업이익', '영업손익')),
       interestExpense:    r(get('이자비용', '금융비용')),
       netIncome:          r(get('당기순이익', '당기순손익')),
