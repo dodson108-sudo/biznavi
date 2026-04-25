@@ -70,40 +70,45 @@ async function _loadCorpList(apiKey) {
 
 /* ── XBRL 파싱 ── */
 function _parseXbrl(xml, year) {
-  const instantCtxIds = [];
-  const durationCtxIds = [];
+  // 컨텍스트 수집: 날짜를 파싱해서 instant/duration 분류
+  const instantMap = new Map(); // ctxId → 'YYYY-MM-DD'
+  const durationMap = new Map(); // ctxId → { start, end }
 
-  // 컨텍스트 파싱 (instant = 재무상태표, duration = 손익계산서)
   const ctxRe = /<(?:\w+:)?context\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/(?:\w+:)?context>/gi;
   let m;
   while ((m = ctxRe.exec(xml)) !== null) {
     const [, id, body] = m;
-    if (/scenario/i.test(body)) continue; // 비교기간 제외
+    if (/scenario/i.test(body)) continue; // 비교기간·시나리오 제외
 
-    if (new RegExp(`<(?:\\w+:)?instant>\\s*${year}-12-31\\s*<`).test(body)) {
-      instantCtxIds.push(id);
-    }
-    if (new RegExp(`<(?:\\w+:)?startDate>\\s*${year}-01-01`).test(body) &&
-        new RegExp(`<(?:\\w+:)?endDate>\\s*${year}-12-31`).test(body)) {
-      durationCtxIds.push(id);
-    }
+    const instM = body.match(/<(?:\w+:)?instant>\s*(\d{4}-\d{2}-\d{2})\s*</i);
+    if (instM) { instantMap.set(id, instM[1]); continue; }
+
+    const startM = body.match(/<(?:\w+:)?startDate>\s*(\d{4}-\d{2}-\d{2})\s*</i);
+    const endM   = body.match(/<(?:\w+:)?endDate>\s*(\d{4}-\d{2}-\d{2})\s*</i);
+    if (startM && endM) durationMap.set(id, { start: startM[1], end: endM[1] });
   }
 
-  // 회계연도가 1월 시작이 아닌 경우 fallback (3월/6월 결산법인)
-  if (durationCtxIds.length === 0) {
-    ctxRe.lastIndex = 0;
-    while ((m = ctxRe.exec(xml)) !== null) {
-      const [, id, body] = m;
-      if (/scenario/i.test(body)) continue;
-      if (new RegExp(`<(?:\\w+:)?endDate>\\s*${year}-`).test(body) &&
-          /<(?:\w+:)?startDate>/.test(body)) {
-        durationCtxIds.push(id);
-      }
-    }
-  }
+  // 당기 연도: year 또는 year+1 허용 (3월·6월 결산법인 대응)
+  const targetYears = [String(year), String(year + 1)];
 
-  console.log('[XBRL] instant contexts:', instantCtxIds.slice(0, 3).join(', '));
-  console.log('[XBRL] duration contexts:', durationCtxIds.slice(0, 3).join(', '));
+  // instant: 당기 연도말 날짜 기준 최신순
+  const instantCtxIds = [...instantMap.entries()]
+    .filter(([, d]) => targetYears.includes(d.slice(0, 4)))
+    .sort(([, a], [, b]) => b.localeCompare(a))
+    .map(([id]) => id);
+
+  // duration: 180일 이상 기간 & 당기 연도 종료 기준 최신순
+  const durationCtxIds = [...durationMap.entries()]
+    .filter(([, { start, end }]) => {
+      const days = (new Date(end) - new Date(start)) / 86400000;
+      return targetYears.includes(end.slice(0, 4)) && days > 180;
+    })
+    .sort(([, a], [, b]) => b.end.localeCompare(a.end))
+    .map(([id]) => id);
+
+  console.log('[XBRL] total contexts — instant:', instantMap.size, 'duration:', durationMap.size);
+  console.log('[XBRL] matched instant:', instantCtxIds.slice(0, 3).join(', '));
+  console.log('[XBRL] matched duration:', durationCtxIds.slice(0, 3).join(', '));
 
   function getVal(ctxIds, ...names) {
     for (const ctxId of ctxIds) {
@@ -118,15 +123,15 @@ function _parseXbrl(xml, year) {
 
   return {
     // 재무상태표 (instant)
-    cash:           getVal(instantCtxIds, 'CashAndCashEquivalents', 'CashAndBankDeposits'),
-    inventory:      getVal(instantCtxIds, 'Inventories', 'GoodsAndProducts'),
+    cash:           getVal(instantCtxIds, 'CashAndCashEquivalents', 'CashAndBankDeposits', 'CashAndDueFromBanks'),
+    inventory:      getVal(instantCtxIds, 'Inventories', 'GoodsAndProducts', 'FinishedGoodsAndGoods'),
     tangibleAssets: getVal(instantCtxIds, 'PropertyPlantAndEquipment', 'PropertyPlantAndEquipmentNet'),
-    receivable:     getVal(instantCtxIds, 'TradeAndOtherCurrentReceivables', 'TradeReceivablesNet', 'TradeReceivables'),
-    quickAssets:    getVal(instantCtxIds, 'CurrentFinancialAssets', 'ShortTermFinancialAssets'),
+    receivable:     getVal(instantCtxIds, 'TradeAndOtherCurrentReceivables', 'TradeReceivablesNet', 'TradeReceivables', 'TradeAndOtherReceivables'),
+    quickAssets:    getVal(instantCtxIds, 'CurrentFinancialAssets', 'ShortTermFinancialInstruments'),
     // 손익계산서 (duration)
     grossProfit:     getVal(durationCtxIds, 'GrossProfit'),
-    interestExpense: getVal(durationCtxIds, 'FinanceCosts', 'InterestExpense', 'FinanceExpenses'),
-    laborCost:       getVal(durationCtxIds, 'EmployeeBenefitsExpense', 'PersonnelExpenses', 'LaborCosts', 'WagesAndSalaries'),
+    interestExpense: getVal(durationCtxIds, 'FinanceCosts', 'InterestExpense', 'FinanceExpenses', 'FinancialCosts'),
+    laborCost:       getVal(durationCtxIds, 'EmployeeBenefitsExpense', 'PersonnelExpenses', 'LaborCosts', 'WagesAndSalaries', 'SalariesAndWages'),
   };
 }
 
