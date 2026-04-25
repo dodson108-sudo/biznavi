@@ -1,10 +1,45 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-23 최신)
+## 배포 상태 (2026-04-25 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: vercel dev 로컬 테스트 환경 구축
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 재무분석 섹션별 레이더 차트 + XBRL 안정화
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-25)
+
+### XBRL 재무데이터 보완 + 금융업 계정명 fallback + 섹션별 레이더 차트
+
+#### XBRL 구현 (api/dart-lookup.js)
+- `_parseXbrl(xml, year)`: XBRL ZIP 파싱 → 현금·재고·유형자산·매출채권·매출총이익·이자비용·인건비 추출
+- `_supplementWithXbrl()`: fnlttSinglAcnt 누락값을 XBRL로 보완 (null만 채움, 기존값 덮어쓰지 않음)
+- XBRL context 매칭: 3월·6월 결산법인 대응 (year, year+1 허용)
+- 방어 코드: AbortController 타임아웃(list.json 15초, XBRL 20초), ZIP 5MB 초과 시 스킵
+- `vercel.json`: `maxDuration: 45` 설정
+
+#### 금융업(카드·은행·캐피탈) 계정명 fallback
+- 하나카드 등 금융회사는 IAS 1.54 예외로 유동/비유동 구분 없음 — 아래 대체 계정 추가
+  - `revenue`: 이자수익·순영업수익·영업수익합계
+  - `grossProfit`: 순이자손익
+  - `cash`: 현금및예치금
+  - `receivable`: 상각후원가측정금융자산(카드채권)
+  - `borrowings`: 차입부채
+
+#### 재무분석 섹션별 레이더 차트 (js/finance-wizard.js)
+- 유동성·안전성·수익성·활동성·생산성·성장성 각 섹션 카드 안에 개별 레이더 차트 삽입
+- 차트(왼쪽 230px) + 테이블(오른쪽) 2열 레이아웃, 모바일은 1열
+- `_getSectionAxes(data)`: 섹션 데이터 → 0~100 정규화 (50=산업평균)
+  - LOW_IS_GOOD 항목(부채비율 등): 역방향 정규화 → 레이더 위 = 항상 좋음
+- `_drawRadarAxes(canvasId, axes)`: Canvas API 기반, 외부 라이브러리 없음
+- 성장성(항목 1개)은 레이더 미표시, 테이블만 표시
+- 요약 레이더 차트 제거, 섹션별 상세 차트로 대체
+
+#### 다음 세션 예정 작업
+- 사업자등록증 OCR 수정 (api/ocr-scan.js 확인)
+- K-GAAP 중소기업 DART 조회 추가 테스트
+- 인건비(판+제) XBRL 계정명 추가 발굴
 
 ---
 

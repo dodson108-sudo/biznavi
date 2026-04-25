@@ -140,8 +140,6 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data) {
   const needKeys = ['cash', 'inventory', 'tangibleAssets', 'receivable', 'grossProfit', 'interestExpense', 'laborCost'];
   if (needKeys.every(k => data[k])) return data; // 이미 모두 있으면 스킵
 
-  const xbrlDebug = { step: 'start', rcept_no: null, zipSize: 0, xbrlFile: null, xmlLen: 0, parsed: null, filled: [] };
-
   try {
     // list.json → rcept_no 취득 (타임아웃 15초)
     const listCtrl = new AbortController();
@@ -158,10 +156,8 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data) {
     // year에 맞는 사업보고서 우선, 없으면 최근 것
     const filing = listData.list?.find(f => f.reprt_code === '11011' && f.bsns_year === String(year))
                 || listData.list?.find(f => f.reprt_code === '11011');
-    if (!filing) { xbrlDebug.step = 'no_filing'; data._xbrlDebug = xbrlDebug; return data; }
+    if (!filing) { console.log('[XBRL] 사업보고서 공시 없음'); return data; }
 
-    xbrlDebug.rcept_no = filing.rcept_no;
-    xbrlDebug.filing_year = filing.bsns_year;
     console.log('[XBRL] rcept_no:', filing.rcept_no, '| 공시년도:', filing.bsns_year);
 
     // XBRL ZIP 다운로드 (타임아웃 20초)
@@ -173,40 +169,32 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data) {
         `https://opendart.fss.or.kr/api/fnlttXbrl.xml?crtfc_key=${apiKey}&rcept_no=${filing.rcept_no}&reprt_code=11011`,
         { signal: xbrlCtrl.signal }
       );
-      if (!xbrlRes.ok) { xbrlDebug.step = 'download_fail_' + xbrlRes.status; data._xbrlDebug = xbrlDebug; return data; }
+      if (!xbrlRes.ok) { console.warn('[XBRL] 다운로드 실패:', xbrlRes.status); return data; }
       buf = Buffer.from(await xbrlRes.arrayBuffer());
     } finally { clearTimeout(xbrlTimer); }
 
-    xbrlDebug.zipSize = buf.length;
     console.log('[XBRL] ZIP 크기:', buf.length, 'bytes');
 
     // 5MB 초과 시 스킵 (메모리·시간 보호)
     if (buf.length > 5 * 1024 * 1024) {
-      xbrlDebug.step = 'skip_too_large';
-      console.warn('[XBRL] ZIP 너무 큼 → 스킵:', buf.length);
-      data._xbrlDebug = xbrlDebug;
+      console.warn('[XBRL] ZIP 너무 큼 → 스킵');
       return data;
     }
 
     const zip = new AdmZip(buf);
     const entries = zip.getEntries();
-    console.log('[XBRL] ZIP 목록:', entries.map(e => e.entryName).join(', '));
 
     // 가장 큰 .xbrl 파일 = 재무제표 본문
     const xbrlEntry = entries
       .filter(e => e.entryName.toLowerCase().endsWith('.xbrl'))
       .sort((a, b) => (b.header.compressedSize || b.getData().length) - (a.header.compressedSize || a.getData().length))[0];
 
-    if (!xbrlEntry) { xbrlDebug.step = 'no_xbrl_file'; data._xbrlDebug = xbrlDebug; return data; }
+    if (!xbrlEntry) { console.warn('[XBRL] .xbrl 파일 없음'); return data; }
 
-    xbrlDebug.xbrlFile = xbrlEntry.entryName;
     const xml = xbrlEntry.getData().toString('utf-8');
-    xbrlDebug.xmlLen = xml.length;
     console.log('[XBRL] 파싱 중:', xbrlEntry.entryName, '크기:', xml.length);
 
     const xbrl = _parseXbrl(xml, year);
-    xbrlDebug.parsed = xbrl;
-    xbrlDebug.step = 'parsed';
     console.log('[XBRL] 파싱 결과:', JSON.stringify(xbrl));
 
     // 기존 data에 XBRL 값으로 누락 보완 (null만 채움, 기존값 절대 덮어쓰지 않음)
@@ -216,19 +204,13 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data) {
     for (const key of needKeys) {
       if (!merged[key] && xbrl[key]) {
         merged[key] = { raw: parseInt(xbrl[key]).toLocaleString('ko-KR'), eok: toEok(xbrl[key]) };
-        xbrlDebug.filled.push(key);
         console.log(`[XBRL] ${key} 보완:`, merged[key].eok, '억');
       }
     }
-    xbrlDebug.step = 'done';
-    merged._xbrlDebug = xbrlDebug;
     return merged;
 
   } catch (e) {
-    xbrlDebug.step = 'error';
-    xbrlDebug.error = e.message;
     console.warn('[XBRL] 보완 실패:', e.message);
-    data._xbrlDebug = xbrlDebug;
     return data;
   }
 }
@@ -344,7 +326,6 @@ module.exports = async function handler(req, res) {
       indutyCode,
       indutyName,
       year: finData.year,
-      _debugAccounts: items.map(i => ({ nm: i.account_nm, val: i.thstrm_amount || i.thstrm_add_amount || '' })),
       currentAssets:      r(get('유동자산')),
       quickAssets:        r(get('당좌자산', '당좌및단기금융')),
       // 금융업 fallback: 현금및예치금(은행), 상각후원가측정금융자산(카드채권)
