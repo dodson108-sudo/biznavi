@@ -723,6 +723,106 @@ const FinWizard = (() => {
     return { label: '—', cls: '' };
   }
 
+  /* ── 레이더 차트 점수 계산 (50 = 산업평균, 0~100 범위) ── */
+  function _getRadarAxes(ratios) {
+    function norm(val, avg) {
+      if (val === null || val === undefined || !avg) return null;
+      return Math.min(Math.max(val / avg * 50, 0), 100);
+    }
+    return [
+      { label: '유동성', score: norm(ratios.liquidity.유동비율,              _bokAvg.유동비율) },
+      { label: '안전성', score: norm(ratios.safety.자기자본비율,             _bokAvg.자기자본비율) },
+      { label: '수익성', score: norm(ratios.profitability.매출액영업이익율,  _bokAvg.매출액영업이익율) },
+      { label: '활동성', score: norm(ratios.activity.총자산회전율,           _bokAvg.총자산회전율) },
+      { label: '생산성', score: norm(ratios.productivity.부가가치율,         _bokAvg.부가가치율) },
+      { label: '성장성', score: norm(ratios.growth.매출액증가율 !== null ? ratios.growth.매출액증가율 + 20 : null, (_bokAvg.매출액증가율 || 9) + 20) },
+    ];
+  }
+
+  /* ── 레이더 차트 그리기 (Canvas API) ── */
+  function _drawFinRadar(canvasId, ratios) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext('2d');
+    const axes = _getRadarAxes(ratios);
+    const N = axes.length;
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+    const R = Math.min(cx, cy) - 44;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const angle = i => (i / N) * Math.PI * 2 - Math.PI / 2;
+    const pt    = (i, r) => ({ x: cx + r * Math.cos(angle(i)), y: cy + r * Math.sin(angle(i)) });
+
+    // 그리드 (4단계: 25/50/75/100%)
+    for (let lv = 1; lv <= 4; lv++) {
+      ctx.beginPath();
+      for (let i = 0; i < N; i++) {
+        const p = pt(i, R * lv / 4);
+        i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = lv === 2 ? 'rgba(245,192,48,0.35)' : 'rgba(255,255,255,0.08)';
+      ctx.lineWidth   = lv === 2 ? 1.5 : 1;
+      ctx.stroke();
+    }
+
+    // 축선
+    for (let i = 0; i < N; i++) {
+      const p = pt(i, R);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p.x, p.y);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    // 산업평균 다각형 (50% 위치, 점선)
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const p = pt(i, R * 0.5);
+      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = 'rgba(148,163,184,0.65)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(148,163,184,0.07)'; ctx.fill();
+
+    // 당사 다각형
+    const scores = axes.map(a => a.score !== null ? a.score : 50);
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const p = pt(i, R * scores[i] / 100);
+      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = '#F5C030'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = 'rgba(245,192,48,0.18)'; ctx.fill();
+
+    // 당사 점
+    scores.forEach((s, i) => {
+      const p = pt(i, R * s / 100);
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#F5C030'; ctx.fill();
+      ctx.strokeStyle = '#0A0E1A'; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+
+    // 라벨
+    const LBL_R = R + 26;
+    ctx.font = 'bold 12px "Noto Sans KR", sans-serif';
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    axes.forEach(({ label, score }, i) => {
+      const p   = pt(i, LBL_R);
+      const hasData = score !== null;
+      ctx.fillStyle = hasData ? '#E8EDF5' : '#6B7A99';
+      ctx.fillText(label, p.x, p.y);
+    });
+
+    // 50% 위치에 '평균' 레이블
+    ctx.font = '10px "Noto Sans KR", sans-serif';
+    ctx.fillStyle = 'rgba(245,192,48,0.6)';
+    ctx.fillText('평균', cx + R * 0.5 * Math.cos(angle(0)) + 4, cy + R * 0.5 * Math.sin(angle(0)) - 10);
+  }
+
   /* ── 대시보드 렌더링 ── */
   function _renderDashboard(ratios, d, industryCode) {
     const wrap = document.getElementById('finDashContent');
@@ -758,6 +858,21 @@ const FinWizard = (() => {
         ${_keyMetricCard('ROA', ratios.profitability.총자본순이익율_ROA, '%')}
       </div>
 
+      <div class="fin-radar-wrap">
+        <div class="fin-radar-box">
+          <div class="fin-radar-title">종합 재무역량 — 산업평균 대비</div>
+          <canvas id="finRadarChart" width="320" height="320"></canvas>
+          <div class="fin-radar-legend">
+            <span class="fin-radar-leg-item">
+              <span class="fin-radar-leg-dot" style="background:#F5C030"></span>당사
+            </span>
+            <span class="fin-radar-leg-item">
+              <span class="fin-radar-leg-dash"></span>산업평균
+            </span>
+          </div>
+        </div>
+      </div>
+
       ${sections.map(s => _renderSection(s)).join('')}
 
       <div class="fin-note">
@@ -765,6 +880,8 @@ const FinWizard = (() => {
         <p>※ 일부 항목은 입력 데이터가 없는 경우 계산되지 않을 수 있습니다.</p>
       </div>
     `;
+
+    _drawFinRadar('finRadarChart', ratios);
   }
 
   function _countEvals(ratios) {
