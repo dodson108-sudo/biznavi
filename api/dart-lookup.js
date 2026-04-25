@@ -137,8 +137,9 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data) {
 
   try {
     // list.json → rcept_no 취득
+    // 사업보고서(11011)는 해당 사업연도 다음해 3월에 접수됨 → 날짜 범위 없이 최신순 조회
     const listRes = await fetch(
-      `https://opendart.fss.or.kr/api/list.json?crtfc_key=${apiKey}&corp_code=${corpCode}&pblntf_ty=A&bgn_de=${year}0101&end_de=${year}1231&page_count=10`
+      `https://opendart.fss.or.kr/api/list.json?crtfc_key=${apiKey}&corp_code=${corpCode}&pblntf_ty=A&page_count=20`
     );
     const listData = await listRes.json();
     const filing = listData.list?.find(f => f.reprt_code === '11011');
