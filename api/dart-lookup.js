@@ -75,106 +75,85 @@ async function _loadCorpList(apiKey) {
 }
 
 /* ── XBRL 파싱 ── */
+// DART XBRL 컨텍스트 ID 표준: CFY{year}=당기, PFY=전기, BPFY=전전기
+// scenario 필터는 IFRS 연결/별도 explicitMember까지 걸러내므로 사용 안 함
+// 대신 contextRef ID의 CFY 패턴으로 당기 데이터만 추출
 function _parseXbrl(xml, year) {
-  const instantMap = new Map();
-  const durationMap = new Map();
+  // 당기 패턴 (12월 결산: CFY2024, 3·6월 결산법인: CFY year+1 허용)
+  const cfyPat  = `CFY${year}`;
+  const cfyPat2 = `CFY${year + 1}`;
 
-  const ctxRe = /<(?:\w+:)?context\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/(?:\w+:)?context>/gi;
-  let m;
-  while ((m = ctxRe.exec(xml)) !== null) {
-    const [, id, body] = m;
-    if (/scenario/i.test(body)) continue;
-    const instM = body.match(/<(?:\w+:)?instant>\s*(\d{4}-\d{2}-\d{2})\s*</i);
-    if (instM) { instantMap.set(id, instM[1]); continue; }
-    const startM = body.match(/<(?:\w+:)?startDate>\s*(\d{4}-\d{2}-\d{2})\s*</i);
-    const endM   = body.match(/<(?:\w+:)?endDate>\s*(\d{4}-\d{2}-\d{2})\s*</i);
-    if (startM && endM) durationMap.set(id, { start: startM[1], end: endM[1] });
-  }
-
-  const targetYears = [String(year), String(year + 1)];
-
-  const instantCtxIds = [...instantMap.entries()]
-    .filter(([, d]) => targetYears.includes(d.slice(0, 4)))
-    .sort(([, a], [, b]) => b.localeCompare(a))
-    .map(([id]) => id);
-
-  const durationCtxIds = [...durationMap.entries()]
-    .filter(([, { start, end }]) => {
-      const days = (new Date(end) - new Date(start)) / 86400000;
-      return targetYears.includes(end.slice(0, 4)) && days > 180;
-    })
-    .sort(([, a], [, b]) => b.end.localeCompare(a.end))
-    .map(([id]) => id);
-
-  console.log('[XBRL] contexts — instant:', instantMap.size, 'duration:', durationMap.size,
-    '| matched:', instantCtxIds.length, durationCtxIds.length);
-
-  function getVal(ctxIds, ...names) {
-    for (const ctxId of ctxIds) {
-      for (const name of names) {
-        const re = new RegExp(`<[\\w-]*:${name}[^>]*contextRef="${ctxId}"[^>]*>(-?[\\d]+)<`, 'i');
-        const found = xml.match(re);
-        if (found && found[1] !== '0') return found[1];
+  function getVal(...names) {
+    // new RegExp()의 \\w 이스케이프 문제 회피 → indexOf 기반 문자열 탐색
+    // IFRS: contextRef에 CFY{year} 패턴, K-GAAP: 날짜 기반 컨텍스트(D20240101T20241231 등)
+    const patterns = [cfyPat, cfyPat2, String(year), String(year + 1)];
+    for (const name of names) {
+      for (const pat of patterns) {
+        let pos = 0;
+        while (pos < xml.length) {
+          const idx = xml.indexOf(':' + name, pos);
+          if (idx < 0) break;
+          const tagStart = xml.lastIndexOf('<', idx);
+          const tagEnd = xml.indexOf('>', tagStart);
+          if (tagEnd < 0 || tagEnd < idx) { pos = idx + 1; continue; }
+          const tag = xml.slice(tagStart, tagEnd + 1);
+          if (!tag.includes('contextRef')) { pos = idx + 1; continue; }
+          if (!tag.includes(pat)) { pos = idx + 1; continue; }
+          if (tag.endsWith('/>')) { pos = idx + 1; continue; } // xsi:nil 자기닫힘 태그
+          const valueStart = tagEnd + 1;
+          const valueEnd = xml.indexOf('<', valueStart);
+          if (valueEnd < 0) { pos = idx + 1; continue; }
+          const value = xml.slice(valueStart, valueEnd).trim();
+          if (value && /^-?\d+$/.test(value) && value !== '0') return value;
+          pos = idx + 1;
+        }
       }
     }
     return null;
   }
 
-  // 두 값을 합산 (K-GAAP 판관비+제조원가 인건비 합산용)
-  function sumVals(ctxIds, ...namePairs) {
+  // K-GAAP 판관비+제조원가 인건비 합산
+  function sumVals(...namePairs) {
     let total = 0, found = false;
     for (const names of namePairs) {
-      const v = getVal(ctxIds, ...names);
+      const v = getVal(...names);
       if (v) { total += Math.abs(parseInt(v)); found = true; }
     }
     return found ? String(total) : null;
   }
 
-  const laborCostXbrl =
-    // 총 인건비 단일 태그 우선
-    getVal(durationCtxIds,
-      'EmployeeBenefitsExpense', 'PersonnelExpenses', 'LaborCosts', 'LaborCost',
-      'WagesAndSalaries', 'SalariesAndWages', 'Salaries', 'PersonnelCost',
-      'StaffCosts', 'EmployeeCosts'
-    ) ||
-    // K-GAAP: 판관비+제조원가 인건비 합산
-    sumVals(durationCtxIds,
+  const laborCost =
+    getVal('EmployeeBenefitsExpense', 'PersonnelExpenses', 'LaborCosts', 'LaborCost',
+           'WagesAndSalaries', 'SalariesAndWages', 'Salaries', 'PersonnelCost',
+           'StaffCosts', 'EmployeeCosts') ||
+    sumVals(
       ['SellingAndAdministrativeLaborCosts', 'SellingLaborCosts', 'AdministrativeLaborCosts'],
       ['ManufacturingLaborCosts', 'CostOfSalesLaborCosts', 'ProductionLaborCosts']
     );
 
-  const costOfSalesXbrl = getVal(durationCtxIds,
-    'CostOfSales', 'CostOfGoodsSold', 'CostOfRevenue',
-    'CostOfSalesAndServices', 'ManufacturingCost', 'TotalCostOfSales'
-  );
-
-  return {
-    // 재무상태표 (instant)
-    cash:           getVal(instantCtxIds,
-                      'CashAndCashEquivalents', 'CashAndBankDeposits', 'CashAndDueFromBanks',
-                      'CashAndShortTermInvestments', 'CashEquivalents'),
-    inventory:      getVal(instantCtxIds,
-                      'Inventories', 'GoodsAndProducts', 'FinishedGoodsAndGoods',
-                      'TotalInventories', 'InventoriesNet'),
-    tangibleAssets: getVal(instantCtxIds,
-                      'PropertyPlantAndEquipment', 'PropertyPlantAndEquipmentNet',
-                      'TangibleAssets', 'PropertyPlantEquipmentAndBearerPlants'),
-    receivable:     getVal(instantCtxIds,
-                      'TradeAndOtherCurrentReceivables', 'TradeReceivablesNet',
-                      'TradeReceivables', 'TradeAndOtherReceivables', 'AccountsReceivable'),
-    quickAssets:    getVal(instantCtxIds,
-                      'CurrentFinancialAssets', 'ShortTermFinancialInstruments',
-                      'QuickAssets', 'CurrentAssetsExcludingInventories'),
-    // 손익계산서 (duration)
-    costOfSales:     costOfSalesXbrl,
-    grossProfit:     getVal(durationCtxIds,
-                      'GrossProfit', 'SalesGrossProfit', 'GrossProfitFromSales',
-                      'GrossProfitLoss'),
-    interestExpense: getVal(durationCtxIds,
-                      'FinanceCosts', 'InterestExpense', 'FinanceExpenses',
-                      'FinancialCosts', 'InterestExpenseOnBorrowings'),
-    laborCost:       laborCostXbrl,
+  const result = {
+    cash:           getVal('CashAndCashEquivalents', 'CashAndBankDeposits', 'CashAndDueFromBanks',
+                           'CashAndShortTermInvestments', 'CashEquivalents'),
+    inventory:      getVal('Inventories', 'GoodsAndProducts', 'FinishedGoodsAndGoods',
+                           'TotalInventories', 'InventoriesNet'),
+    tangibleAssets: getVal('PropertyPlantAndEquipment', 'PropertyPlantAndEquipmentNet',
+                           'TangibleAssets', 'PropertyPlantEquipmentAndBearerPlants'),
+    receivable:     getVal('TradeAndOtherCurrentReceivables', 'TradeReceivablesNet',
+                           'TradeReceivables', 'TradeAndOtherReceivables', 'AccountsReceivable'),
+    quickAssets:    getVal('CurrentFinancialAssets', 'ShortTermFinancialInstruments',
+                           'QuickAssets', 'CurrentAssetsExcludingInventories'),
+    costOfSales:    getVal('CostOfSales', 'CostOfGoodsSold', 'CostOfRevenue',
+                           'CostOfSalesAndServices', 'ManufacturingCost', 'TotalCostOfSales'),
+    grossProfit:    getVal('GrossProfit', 'SalesGrossProfit', 'GrossProfitFromSales', 'GrossProfitLoss'),
+    interestExpense:getVal('FinanceCosts', 'InterestExpense', 'FinanceExpenses',
+                           'FinancialCosts', 'InterestExpenseOnBorrowings'),
+    laborCost,
   };
+
+  console.log('[XBRL] 파싱 결과:', JSON.stringify(
+    Object.fromEntries(Object.entries(result).map(([k,v])=>[k, v ? Math.round(parseInt(v)/100000000)+'억' : null]))
+  ));
+  return result;
 }
 
 /* ── XBRL 보완 (fnlttSinglAcnt 누락값 채우기) ── */
@@ -183,21 +162,33 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data) {
   if (needKeys.every(k => data[k])) return data; // 이미 모두 있으면 스킵
 
   try {
-    // list.json → rcept_no 취득 (타임아웃 15초)
+    // list.json → rcept_no 취득
+    // ※ pblntf_ty=A + bgn_de 필수 (없으면 DART가 013 반환)
+    // ※ list.json은 reprt_code·bsns_year 미반환 → report_nm으로 사업보고서 식별
     const listCtrl = new AbortController();
     const listTimer = setTimeout(() => listCtrl.abort(), 15000);
     let listData;
     try {
       const listRes = await fetch(
-        `https://opendart.fss.or.kr/api/list.json?crtfc_key=${apiKey}&corp_code=${corpCode}&pblntf_ty=A&page_count=20`,
+        `https://opendart.fss.or.kr/api/list.json?crtfc_key=${apiKey}&corp_code=${corpCode}&pblntf_ty=A&bgn_de=20200101&page_count=20`,
         { signal: listCtrl.signal }
       );
       listData = await listRes.json();
     } finally { clearTimeout(listTimer); }
 
-    // year에 맞는 사업보고서 우선, 없으면 최근 것
-    const filing = listData.list?.find(f => f.reprt_code === '11011' && f.bsns_year === String(year))
-                || listData.list?.find(f => f.reprt_code === '11011');
+    if (listData.status !== '000' || !listData.list?.length) {
+      console.log('[XBRL] 공시목록 없음:', listData.status);
+      return data;
+    }
+
+    // 12월 결산법인: year 사업보고서는 year+1 년도에 제출
+    // 3·6월 결산법인: year+1 제출일 기준으로도 허용
+    const nextYear = String(year + 1);
+    const filing =
+      listData.list.find(f => f.report_nm?.includes('사업보고서') && f.rcept_dt?.startsWith(nextYear)) ||
+      listData.list.find(f => f.report_nm?.includes('사업보고서') && !f.report_nm?.startsWith('[기재정정]')) ||
+      listData.list.find(f => f.report_nm?.includes('사업보고서'));
+
     if (!filing) { console.log('[XBRL] 사업보고서 공시 없음'); return data; }
 
     console.log('[XBRL] rcept_no:', filing.rcept_no, '| 공시년도:', filing.bsns_year);
