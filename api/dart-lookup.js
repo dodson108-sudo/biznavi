@@ -4,9 +4,15 @@
  *
  * 조회 순서:
  *  1. corp-list.json(로컬) 또는 corpCode.xml(DART) → corp_code 검색
- *  2. company.json → 업종코드·업종명
- *  3. fnlttSinglAcnt → 주요계정 (~12개)
- *  4. fnlttXbrl.xml  → XBRL로 누락 항목 보완 (현금·재고·유형자산 등)
+ *  2. company.json → 업종코드·업종명·corp_cls
+ *     corp_cls=E(비상장·상장폐지) → 즉시 no_financial 반환
+ *  3. fnlttSinglAcnt → 주요계정 (K-GAAP: ~15개, IFRS: ~12개)
+ *     - K-GAAP: 매출원가·매출총이익·판관비인건비·제조노무비 등 추출
+ *     - grossProfit 없으면 매출액-매출원가로 파생 계산
+ *     - 인건비: 판관비+제조원가 합산 시도
+ *  4. fnlttXbrl.xml  → XBRL로 누락 항목 보완
+ *     - K-GAAP/IFRS 혼합 태그명 지원
+ *     - costOfSales·laborCost K-GAAP 태그 추가
  *
  * 환경변수: DART_API_KEY (opendart.fss.or.kr에서 발급)
  */
@@ -70,34 +76,28 @@ async function _loadCorpList(apiKey) {
 
 /* ── XBRL 파싱 ── */
 function _parseXbrl(xml, year) {
-  // 컨텍스트 수집: 날짜를 파싱해서 instant/duration 분류
-  const instantMap = new Map(); // ctxId → 'YYYY-MM-DD'
-  const durationMap = new Map(); // ctxId → { start, end }
+  const instantMap = new Map();
+  const durationMap = new Map();
 
   const ctxRe = /<(?:\w+:)?context\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/(?:\w+:)?context>/gi;
   let m;
   while ((m = ctxRe.exec(xml)) !== null) {
     const [, id, body] = m;
-    if (/scenario/i.test(body)) continue; // 비교기간·시나리오 제외
-
+    if (/scenario/i.test(body)) continue;
     const instM = body.match(/<(?:\w+:)?instant>\s*(\d{4}-\d{2}-\d{2})\s*</i);
     if (instM) { instantMap.set(id, instM[1]); continue; }
-
     const startM = body.match(/<(?:\w+:)?startDate>\s*(\d{4}-\d{2}-\d{2})\s*</i);
     const endM   = body.match(/<(?:\w+:)?endDate>\s*(\d{4}-\d{2}-\d{2})\s*</i);
     if (startM && endM) durationMap.set(id, { start: startM[1], end: endM[1] });
   }
 
-  // 당기 연도: year 또는 year+1 허용 (3월·6월 결산법인 대응)
   const targetYears = [String(year), String(year + 1)];
 
-  // instant: 당기 연도말 날짜 기준 최신순
   const instantCtxIds = [...instantMap.entries()]
     .filter(([, d]) => targetYears.includes(d.slice(0, 4)))
     .sort(([, a], [, b]) => b.localeCompare(a))
     .map(([id]) => id);
 
-  // duration: 180일 이상 기간 & 당기 연도 종료 기준 최신순
   const durationCtxIds = [...durationMap.entries()]
     .filter(([, { start, end }]) => {
       const days = (new Date(end) - new Date(start)) / 86400000;
@@ -106,9 +106,8 @@ function _parseXbrl(xml, year) {
     .sort(([, a], [, b]) => b.end.localeCompare(a.end))
     .map(([id]) => id);
 
-  console.log('[XBRL] total contexts — instant:', instantMap.size, 'duration:', durationMap.size);
-  console.log('[XBRL] matched instant:', instantCtxIds.slice(0, 3).join(', '));
-  console.log('[XBRL] matched duration:', durationCtxIds.slice(0, 3).join(', '));
+  console.log('[XBRL] contexts — instant:', instantMap.size, 'duration:', durationMap.size,
+    '| matched:', instantCtxIds.length, durationCtxIds.length);
 
   function getVal(ctxIds, ...names) {
     for (const ctxId of ctxIds) {
@@ -121,23 +120,66 @@ function _parseXbrl(xml, year) {
     return null;
   }
 
+  // 두 값을 합산 (K-GAAP 판관비+제조원가 인건비 합산용)
+  function sumVals(ctxIds, ...namePairs) {
+    let total = 0, found = false;
+    for (const names of namePairs) {
+      const v = getVal(ctxIds, ...names);
+      if (v) { total += Math.abs(parseInt(v)); found = true; }
+    }
+    return found ? String(total) : null;
+  }
+
+  const laborCostXbrl =
+    // 총 인건비 단일 태그 우선
+    getVal(durationCtxIds,
+      'EmployeeBenefitsExpense', 'PersonnelExpenses', 'LaborCosts', 'LaborCost',
+      'WagesAndSalaries', 'SalariesAndWages', 'Salaries', 'PersonnelCost',
+      'StaffCosts', 'EmployeeCosts'
+    ) ||
+    // K-GAAP: 판관비+제조원가 인건비 합산
+    sumVals(durationCtxIds,
+      ['SellingAndAdministrativeLaborCosts', 'SellingLaborCosts', 'AdministrativeLaborCosts'],
+      ['ManufacturingLaborCosts', 'CostOfSalesLaborCosts', 'ProductionLaborCosts']
+    );
+
+  const costOfSalesXbrl = getVal(durationCtxIds,
+    'CostOfSales', 'CostOfGoodsSold', 'CostOfRevenue',
+    'CostOfSalesAndServices', 'ManufacturingCost', 'TotalCostOfSales'
+  );
+
   return {
     // 재무상태표 (instant)
-    cash:           getVal(instantCtxIds, 'CashAndCashEquivalents', 'CashAndBankDeposits', 'CashAndDueFromBanks'),
-    inventory:      getVal(instantCtxIds, 'Inventories', 'GoodsAndProducts', 'FinishedGoodsAndGoods'),
-    tangibleAssets: getVal(instantCtxIds, 'PropertyPlantAndEquipment', 'PropertyPlantAndEquipmentNet'),
-    receivable:     getVal(instantCtxIds, 'TradeAndOtherCurrentReceivables', 'TradeReceivablesNet', 'TradeReceivables', 'TradeAndOtherReceivables'),
-    quickAssets:    getVal(instantCtxIds, 'CurrentFinancialAssets', 'ShortTermFinancialInstruments'),
+    cash:           getVal(instantCtxIds,
+                      'CashAndCashEquivalents', 'CashAndBankDeposits', 'CashAndDueFromBanks',
+                      'CashAndShortTermInvestments', 'CashEquivalents'),
+    inventory:      getVal(instantCtxIds,
+                      'Inventories', 'GoodsAndProducts', 'FinishedGoodsAndGoods',
+                      'TotalInventories', 'InventoriesNet'),
+    tangibleAssets: getVal(instantCtxIds,
+                      'PropertyPlantAndEquipment', 'PropertyPlantAndEquipmentNet',
+                      'TangibleAssets', 'PropertyPlantEquipmentAndBearerPlants'),
+    receivable:     getVal(instantCtxIds,
+                      'TradeAndOtherCurrentReceivables', 'TradeReceivablesNet',
+                      'TradeReceivables', 'TradeAndOtherReceivables', 'AccountsReceivable'),
+    quickAssets:    getVal(instantCtxIds,
+                      'CurrentFinancialAssets', 'ShortTermFinancialInstruments',
+                      'QuickAssets', 'CurrentAssetsExcludingInventories'),
     // 손익계산서 (duration)
-    grossProfit:     getVal(durationCtxIds, 'GrossProfit'),
-    interestExpense: getVal(durationCtxIds, 'FinanceCosts', 'InterestExpense', 'FinanceExpenses', 'FinancialCosts'),
-    laborCost:       getVal(durationCtxIds, 'EmployeeBenefitsExpense', 'PersonnelExpenses', 'LaborCosts', 'WagesAndSalaries', 'SalariesAndWages'),
+    costOfSales:     costOfSalesXbrl,
+    grossProfit:     getVal(durationCtxIds,
+                      'GrossProfit', 'SalesGrossProfit', 'GrossProfitFromSales',
+                      'GrossProfitLoss'),
+    interestExpense: getVal(durationCtxIds,
+                      'FinanceCosts', 'InterestExpense', 'FinanceExpenses',
+                      'FinancialCosts', 'InterestExpenseOnBorrowings'),
+    laborCost:       laborCostXbrl,
   };
 }
 
 /* ── XBRL 보완 (fnlttSinglAcnt 누락값 채우기) ── */
 async function _supplementWithXbrl(apiKey, corpCode, year, data) {
-  const needKeys = ['cash', 'inventory', 'tangibleAssets', 'receivable', 'grossProfit', 'interestExpense', 'laborCost'];
+  const needKeys = ['cash', 'inventory', 'tangibleAssets', 'receivable', 'costOfSales', 'grossProfit', 'interestExpense', 'laborCost'];
   if (needKeys.every(k => data[k])) return data; // 이미 모두 있으면 스킵
 
   try {
@@ -344,6 +386,15 @@ module.exports = async function handler(req, res) {
     const toEok = v => { if (!v) return null; const n = parseInt(v.replace(/,/g, ''), 10); return isNaN(n) ? null : Math.round(n / 100000000); };
     const r = v => v ? { raw: v, eok: toEok(v) } : null;
 
+    // K-GAAP: 판관비 인건비 + 제조원가 인건비 합산
+    const laborSGA = get('인건비', '급여', '종업원급여', '임직원급여', '직원급여', '급여및임원보수', '인건비및복리후생비');
+    const laborMfg = get('노무비', '제조원가인건비', '제조인건비');
+    let laborCombined = null;
+    if (laborSGA && laborMfg) {
+      const combined = parseInt(laborSGA.replace(/,/g, '')) + parseInt(laborMfg.replace(/,/g, ''));
+      laborCombined = combined.toLocaleString('ko-KR');
+    }
+
     let result = {
       status: 'found',
       corpName: corpNameFound,
@@ -352,32 +403,57 @@ module.exports = async function handler(req, res) {
       indutyName,
       year: finData.year,
       currentAssets:      r(get('유동자산')),
-      quickAssets:        r(get('당좌자산', '당좌및단기금융')),
-      // 금융업 fallback: 현금및예치금(은행), 상각후원가측정금융자산(카드채권)
+      quickAssets:        r(get('당좌자산', '당좌및단기금융자산', '단기금융상품및현금성자산')),
+      // 금융업 fallback: 현금및예치금(은행)
       cash:               r(get('현금및현금성자산', '현금및단기금융상품', '현금과예금', '현금및예치금')),
       receivable:         r(get('매출채권및기타채권', '매출채권', '받을어음및매출채권', '상각후원가측정금융자산')),
-      inventory:          r(get('재고자산', '상품및제품', '제품및상품')),
+      // K-GAAP: 상품·제품·재공품·원재료 포함
+      inventory:          r(get('재고자산', '상품및제품', '제품및상품', '상품', '제품')),
       nonCurrentAssets:   r(get('비유동자산')),
       tangibleAssets:     r(get('유형자산')),
       totalAssets:        r(get('자산총계')),
       currentLiabilities: r(get('유동부채')),
-      payable:            r(get('매입채무및기타채무', '매입채무', '미지급금')),
+      payable:            r(get('매입채무및기타채무', '매입채무', '미지급금', '지급어음및매입채무')),
       nonCurrentLiab:     r(get('비유동부채')),
-      // 금융업 fallback: 차입부채(카드·캐피탈사)
+      // 금융업 fallback: 차입부채
       borrowings:         r(get('단기차입금', '차입금', '장단기차입금', '차입부채')),
       totalDebt:          r(get('부채총계')),
       equity:             r(get('자본총계', '자기자본')),
-      // 금융업 fallback: 이자수익(카드·은행), 영업수익합계, 순이자손익+수수료 등
+      // 금융업 fallback: 이자수익 등
       revenue:            r(get('매출액', '영업수익', '수익(매출액)', '매출', '이자수익', '순영업수익', '영업수익합계')),
-      grossProfit:        r(get('매출총이익', '매출총손익', '총이익', '순이자손익')),
+      // K-GAAP: 매출원가 별도 추출 (grossProfit 파생에 사용)
+      costOfSales:        r(get('매출원가', '제조원가', '매출원가및제조원가')),
+      grossProfit:        r(get('매출총이익', '매출총손익', '매출이익', '총이익', '순이자손익')),
       operatingProfit:    r(get('영업이익', '영업손익')),
-      interestExpense:    r(get('이자비용', '금융비용')),
+      interestExpense:    r(get('이자비용', '금융비용', '이자비용(금융원가)')),
       netIncome:          r(get('당기순이익', '당기순손익')),
-      laborCost:          r(get('인건비', '종업원급여', '급여', '급여및임원보수')),
+      // K-GAAP: 판관비+제조원가 인건비 합산 우선, 단일 항목 fallback
+      laborCost:          laborCombined ? r(laborCombined) : r(laborSGA),
     };
+
+    // K-GAAP: grossProfit 없고 revenue·costOfSales 있으면 파생 계산
+    if (!result.grossProfit && result.revenue && result.costOfSales) {
+      const rev = parseInt(result.revenue.raw.replace(/,/g, ''));
+      const cos = parseInt(result.costOfSales.raw.replace(/,/g, ''));
+      if (!isNaN(rev) && !isNaN(cos) && rev > cos) {
+        const derived = rev - cos;
+        result.grossProfit = { raw: derived.toLocaleString('ko-KR'), eok: Math.round(derived / 100000000) };
+        console.log('[DART] grossProfit 파생:', result.grossProfit.eok, '억 (매출액-매출원가)');
+      }
+    }
 
     // ── 5단계: XBRL로 누락 항목 보완 ──
     result = await _supplementWithXbrl(apiKey, corpCode, finData.year, result);
+
+    // XBRL 보완 후에도 grossProfit 없으면 costOfSales로 재시도
+    if (!result.grossProfit && result.revenue && result.costOfSales) {
+      const rev = parseInt(result.revenue.raw.replace(/,/g, ''));
+      const cos = parseInt(result.costOfSales.raw.replace(/,/g, ''));
+      if (!isNaN(rev) && !isNaN(cos) && rev > cos) {
+        const derived = rev - cos;
+        result.grossProfit = { raw: derived.toLocaleString('ko-KR'), eok: Math.round(derived / 100000000) };
+      }
+    }
 
     // 부채비율 계산
     const td = result.totalDebt?.raw, ta = result.totalAssets?.raw;
