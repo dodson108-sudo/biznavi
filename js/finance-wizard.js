@@ -418,11 +418,18 @@ const FinWizard = (() => {
         resultEl.innerHTML = `<span style="color:#F87171">⚠️ DART API 키 오류 (${data.dartStatus}) — Vercel 환경변수 DART_API_KEY를 확인해주세요.</span>`;
         _dartData = null;
       } else if (data.status === 'no_financial') {
-        resultEl.innerHTML = `<span style="color:var(--txt3)">⚠️ ${data.corpName || companyName.trim()} — DART에 등록된 기업이지만 공시된 재무제표가 없습니다. 직접 입력해주세요.</span>`;
+        let reason = '';
+        if (data.corpCls === 'E') {
+          reason = data.stockCode
+            ? '상장폐지 기업 — DART 재무공시 의무 없음'
+            : '비상장 기업 — DART 재무공시 의무 없음';
+        } else {
+          reason = '공시된 재무제표 없음';
+        }
+        resultEl.innerHTML = `<span style="color:var(--txt3)">⚠️ ${data.corpName || companyName.trim()} — ${reason}. 직접 입력해주세요.</span>`;
         _dartData = null;
       } else if (data.status === 'not_found') {
-        const sampleStr = data.sample?.length ? ` (예: ${data.sample.slice(0,3).join(', ')})` : '';
-        resultEl.innerHTML = `<span style="color:var(--txt3)">DART 미등록 기업입니다${sampleStr}. 직접 입력해주세요.</span>`;
+        resultEl.innerHTML = `<span style="color:var(--txt3)">DART 미등록 기업입니다. 직접 입력해주세요.</span>`;
         _dartData = null;
       } else {
         resultEl.innerHTML = `<span style="color:var(--txt3)">조회 실패 — 직접 입력해주세요.</span>`;

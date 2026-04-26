@@ -264,38 +264,51 @@ module.exports = async function handler(req, res) {
     if (!corpCode) {
       return res.status(200).json({
         status: 'not_found',
-        corpListSize: corpList.size,
-        message: 'DART에 등록된 기업 정보가 없습니다.',
-        _debug: { triedVariants: variants }
+        message: 'DART 기업 목록에 없는 회사입니다.'
       });
     }
 
     // ── 2단계: 업종코드 조회 ──
-    let indutyCode = '', indutyName = '';
+    let indutyCode = '', indutyName = '', corpCls = '';
     try {
       const compRes = await fetch(`https://opendart.fss.or.kr/api/company.json?crtfc_key=${apiKey}&corp_code=${corpCode}`);
       const compData = await compRes.json();
       if (compData.status === '000') {
         indutyCode = compData.induty_code || '';
         indutyName = compData.induty_nm  || '';
+        corpCls    = compData.corp_cls   || '';
         if (!corpNameFound) corpNameFound = compData.corp_name;
       }
     } catch (e) { console.warn('[DART] company.json 오류:', e.message); }
 
     // ── 3단계: fnlttSinglAcnt 주요계정 조회 ──
+    // corp_cls: Y=유가증권, K=코스닥, N=코넥스, E=기타(비상장·상장폐지)
+    // E 등급은 fnlttSinglAcnt API 미지원 → 즉시 no_financial 반환
+    if (corpCls === 'E') {
+      const reason = stockCode
+        ? '상장폐지 기업으로 DART 재무공시 의무가 없습니다.'
+        : '비상장 기업으로 DART 재무공시 의무가 없습니다.';
+      return res.status(200).json({
+        status: 'no_financial',
+        corpName: corpNameFound,
+        stockCode,
+        indutyCode,
+        indutyName,
+        corpCls,
+        message: reason
+      });
+    }
+
     let finData = null;
     const currentYear = new Date().getFullYear();
-    const _apiResults = [];
 
     for (let year = currentYear - 1; year >= currentYear - 5; year--) {
       const cfsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=CFS`);
       const cfs = await cfsRes.json();
-      _apiResults.push({ year, type: 'CFS', status: cfs.status, count: cfs.list?.length || 0, msg: cfs.message || '' });
       if (cfs.status === '000' && cfs.list?.length > 0) { finData = { year, list: cfs.list }; break; }
 
       const ofsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=OFS`);
       const ofs = await ofsRes.json();
-      _apiResults.push({ year, type: 'OFS', status: ofs.status, count: ofs.list?.length || 0, msg: ofs.message || '' });
       if (ofs.status === '000' && ofs.list?.length > 0) { finData = { year, list: ofs.list }; break; }
     }
 
@@ -304,8 +317,10 @@ module.exports = async function handler(req, res) {
         status: 'no_financial',
         corpName: corpNameFound,
         stockCode,
-        message: '기업은 검색되었으나 재무제표 데이터가 없습니다.',
-        _debug: { corpCode, corpNameFound, stockCode, apiResults: _apiResults }
+        indutyCode,
+        indutyName,
+        corpCls,
+        message: '공시된 재무제표 데이터가 없습니다.'
       });
     }
 
