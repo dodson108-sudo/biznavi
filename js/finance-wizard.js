@@ -527,7 +527,7 @@ const FinWizard = (() => {
         const raw = el.value.replace(/,/g, '').trim();
         if (raw === '' || raw === '-') return;
         const n = parseFloat(raw);
-        if (!isNaN(n)) el.value = Math.round(n).toLocaleString('ko-KR');
+        if (!isNaN(n)) el.value = _fmtComma(n);
       });
     });
   }
@@ -589,15 +589,21 @@ const FinWizard = (() => {
     _setField('fin_labor_cost',       f(d.laborCost));
   }
 
+  function _fmtComma(n) {
+    const abs = Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return n < 0 ? '-' + abs : abs;
+  }
+
   function _setField(id, val) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (val !== null && val !== undefined) {
-      // 천단위 콤마 포맷 (음수 포함)
-      const n = Math.round(Number(val));
-      el.value = isNaN(n) ? '' : n.toLocaleString('ko-KR');
+    if (val !== null && val !== undefined && val !== '') {
+      const n = +val;
+      el.value = isNaN(n) ? '' : _fmtComma(n);
+      el.placeholder = '0'; // 값 있을 때는 기본 placeholder
     } else {
-      el.value = ''; // 미조회 항목은 빈칸 (0 아님)
+      el.value = '';
+      el.placeholder = 'N/A'; // 미조회 항목임을 명확히 표시
     }
   }
 

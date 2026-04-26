@@ -1161,6 +1161,9 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .fin-input-item label { display: block; font-size: 0.82rem; color: var(--txt2); margin-bottom: 6px; }
 .fin-input-wrap { display: flex; align-items: center; gap: 6px; }
 .fin-input-wrap .form-control { flex: 1; }
+/* N/A placeholder — 미조회 항목 시각적 구분 */
+.fin-input-wrap .form-control::placeholder { color: rgba(255,255,255,0.2); font-style: italic; }
+.fin-input-wrap .form-control:placeholder-shown { background: rgba(10,14,26,0.4); }
 .fin-input-item input, .fin-input-item select {
   width: 100%; background: var(--bg-input); border: 1px solid var(--border);
   border-radius: 8px; padding: 9px 12px;
