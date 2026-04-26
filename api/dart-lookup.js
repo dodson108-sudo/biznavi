@@ -287,7 +287,7 @@ module.exports = async function handler(req, res) {
     const currentYear = new Date().getFullYear();
     const _apiResults = [];
 
-    for (let year = currentYear - 1; year >= currentYear - 3; year--) {
+    for (let year = currentYear - 1; year >= currentYear - 5; year--) {
       const cfsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=CFS`);
       const cfs = await cfsRes.json();
       _apiResults.push({ year, type: 'CFS', status: cfs.status, count: cfs.list?.length || 0, msg: cfs.message || '' });
