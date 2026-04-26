@@ -1,10 +1,48 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-25 최신)
+## 배포 상태 (2026-04-26 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 재무분석 섹션별 레이더 차트 + XBRL 안정화
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: XBRL getVal regex 버그 수정 + DART 확인화면 전 계정 표시
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-26)
+
+### XBRL 파싱 완전 수정 + DART 확인화면 전 계정 표시
+
+#### XBRL getVal 핵심 버그 수정 (api/dart-lookup.js)
+- `new RegExp('[\\w-]*')` → `[\w-]*` 백슬래시 손실 버그 → 네임스페이스 prefix 매칭 실패
+- **수정**: `indexOf` 기반 문자열 탐색으로 완전 교체 (`new RegExp` 제거)
+- **K-GAAP 날짜 컨텍스트 대응**: `CFY{year}` 외에 `String(year)` 패턴 추가
+  → K-GAAP 날짜 기반 contextRef (`D20240101T20241231` 등) 지원
+- `xsi:nil` 자기닫힘 태그(`/>`) 건너뜀 처리 추가
+- XBRL 추출 항목 확대: `payable`(매입채무), `borrowings`(차입금) 추가
+  → `TradeAndOtherCurrentPayables`, `Borrowings`, `ShortTermBorrowings` 등
+
+#### XBRL 보완 파이프라인 실제 작동 확인
+- 빛과전자(KOSDAQ): cash/inventory/tangibleAssets/receivable/payable/borrowings/costOfSales/grossProfit/interestExpense 모두 추출 ✓
+- 대한광통신(KOSPI): cash/inventory/tangibleAssets/borrowings/costOfSales/grossProfit/interestExpense 추출 ✓
+- `laborCost`: IFRS 기능별 표시 상장사는 손익계산서에 인건비 항목 없음 — 구조적 한계 (null 정상)
+
+#### DART 확인 화면 전 계정 표시 (js/finance-wizard.js)
+- Step1 DART 조회 결과: 매출액·자산총계 2개 → 재무상태표·손익계산서 **전 계정 2열 그리드**
+- 금액 형식: `1,394억원` (천단위 콤마)
+- 미조회 항목: `N/A` 흐린 이탤릭 표시
+- 합계 행(자산·부채·자본·매출·순이익): 굵은 초록 강조
+
+#### Step2 재무입력 필드 개선 (index.html + js/finance-wizard.js)
+- `type="number"` → `type="text" inputmode="numeric"` (22개 필드 전환)
+- `_setField()`: null → `el.value=''` + `el.placeholder='N/A'`, 값 있으면 천단위 콤마 적용
+- `_fmtComma()`: regex 기반 천단위 포맷 (`toLocaleString` 의존 제거)
+- blur/focus 이벤트: 편집 시 콤마 제거, 이탈 시 콤마 재적용
+- `_collectData()`: `.replace(/,/g,'')` 후 parseFloat — 콤마 있어도 정상 계산
+- **미완료**: Step2 입력 필드 콤마/N/A 표시 — 배포는 됐으나 브라우저 캐시 등 이슈로 다음 세션에 재확인
+
+#### 다음 세션 예정 작업
+- Step2 천단위 콤마 + N/A placeholder 표시 재확인 (Ctrl+Shift+R 후 테스트)
+- 사업자등록증 OCR 수정 (api/ocr-scan.js 확인)
 
 ---
 
