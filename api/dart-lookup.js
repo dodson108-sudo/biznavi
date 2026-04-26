@@ -265,7 +265,8 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         status: 'not_found',
         corpListSize: corpList.size,
-        message: 'DART에 등록된 기업 정보가 없습니다.'
+        message: 'DART에 등록된 기업 정보가 없습니다.',
+        _debug: { triedVariants: variants }
       });
     }
 
@@ -284,19 +285,28 @@ module.exports = async function handler(req, res) {
     // ── 3단계: fnlttSinglAcnt 주요계정 조회 ──
     let finData = null;
     const currentYear = new Date().getFullYear();
+    const _apiResults = [];
 
     for (let year = currentYear - 1; year >= currentYear - 3; year--) {
       const cfsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=CFS`);
       const cfs = await cfsRes.json();
+      _apiResults.push({ year, type: 'CFS', status: cfs.status, count: cfs.list?.length || 0, msg: cfs.message || '' });
       if (cfs.status === '000' && cfs.list?.length > 0) { finData = { year, list: cfs.list }; break; }
 
       const ofsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=OFS`);
       const ofs = await ofsRes.json();
+      _apiResults.push({ year, type: 'OFS', status: ofs.status, count: ofs.list?.length || 0, msg: ofs.message || '' });
       if (ofs.status === '000' && ofs.list?.length > 0) { finData = { year, list: ofs.list }; break; }
     }
 
     if (!finData) {
-      return res.status(200).json({ status: 'no_financial', corpName: corpNameFound, stockCode, message: '기업은 검색되었으나 재무제표 데이터가 없습니다.' });
+      return res.status(200).json({
+        status: 'no_financial',
+        corpName: corpNameFound,
+        stockCode,
+        message: '기업은 검색되었으나 재무제표 데이터가 없습니다.',
+        _debug: { corpCode, corpNameFound, stockCode, apiResults: _apiResults }
+      });
     }
 
     // ── 4단계: 주요계정 추출 ──
