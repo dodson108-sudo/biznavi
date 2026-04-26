@@ -123,12 +123,22 @@ function _parseXbrl(xml, year) {
   }
 
   const laborCost =
-    getVal('EmployeeBenefitsExpense', 'PersonnelExpenses', 'LaborCosts', 'LaborCost',
-           'WagesAndSalaries', 'SalariesAndWages', 'Salaries', 'PersonnelCost',
-           'StaffCosts', 'EmployeeCosts') ||
+    // 단일 인건비 태그 (IFRS / K-GAAP / DART 공통 taxonomy 변형)
+    getVal(
+      'EmployeeBenefitsExpense', 'EmployeeBenefitExpense',
+      'PersonnelExpenses', 'PersonnelExpense', 'PersonnelCost', 'PersonnelCosts',
+      'LaborCosts', 'LaborCost', 'LabourCosts', 'LabourCost',
+      'WagesAndSalaries', 'SalariesAndWages', 'Salaries', 'SalaryAndAllowances',
+      'EmployeeSalaries', 'WageAndSalary', 'SalaryExpense',
+      'StaffCosts', 'EmployeeCosts', 'CompensationOfEmployees',
+      'LaborExpenses', 'LaborExpense'
+    ) ||
+    // K-GAAP 별도 집계: 판관비인건비 + 제조원가인건비
     sumVals(
-      ['SellingAndAdministrativeLaborCosts', 'SellingLaborCosts', 'AdministrativeLaborCosts'],
-      ['ManufacturingLaborCosts', 'CostOfSalesLaborCosts', 'ProductionLaborCosts']
+      ['SellingAndAdministrativeLaborCosts', 'SellingLaborCosts', 'AdministrativeLaborCosts',
+       'AdministrativeExpensesLaborCosts', 'SellingExpensesLaborCosts'],
+      ['ManufacturingLaborCosts', 'CostOfSalesLaborCosts', 'ProductionLaborCosts',
+       'ManufacturingCostLaborCosts', 'DirectLaborCosts']
     );
 
   const result = {
@@ -140,8 +150,10 @@ function _parseXbrl(xml, year) {
                            'TangibleAssets', 'PropertyPlantEquipmentAndBearerPlants'),
     receivable:     getVal('TradeAndOtherCurrentReceivables', 'TradeReceivablesNet',
                            'TradeReceivables', 'TradeAndOtherReceivables', 'AccountsReceivable'),
-    quickAssets:    getVal('CurrentFinancialAssets', 'ShortTermFinancialInstruments',
-                           'QuickAssets', 'CurrentAssetsExcludingInventories'),
+    payable:        getVal('TradeAndOtherCurrentPayables', 'TradePayables',
+                           'TradeAndOtherPayables', 'AccountsPayable', 'TradePayablesAndOtherCurrentLiabilities'),
+    borrowings:     getVal('Borrowings', 'ShortTermBorrowings', 'ShorttermBorrowings',
+                           'CurrentBorrowings', 'BorrowingsAndDebts', 'BankLoansAndBorrowings'),
     costOfSales:    getVal('CostOfSales', 'CostOfGoodsSold', 'CostOfRevenue',
                            'CostOfSalesAndServices', 'ManufacturingCost', 'TotalCostOfSales'),
     grossProfit:    getVal('GrossProfit', 'SalesGrossProfit', 'GrossProfitFromSales', 'GrossProfitLoss'),
@@ -158,7 +170,7 @@ function _parseXbrl(xml, year) {
 
 /* ── XBRL 보완 (fnlttSinglAcnt 누락값 채우기) ── */
 async function _supplementWithXbrl(apiKey, corpCode, year, data) {
-  const needKeys = ['cash', 'inventory', 'tangibleAssets', 'receivable', 'costOfSales', 'grossProfit', 'interestExpense', 'laborCost'];
+  const needKeys = ['cash', 'inventory', 'tangibleAssets', 'receivable', 'payable', 'borrowings', 'costOfSales', 'grossProfit', 'interestExpense', 'laborCost'];
   if (needKeys.every(k => data[k])) return data; // 이미 모두 있으면 스킵
 
   try {
