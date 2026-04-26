@@ -403,15 +403,44 @@ const FinWizard = (() => {
           if (searchEl) searchEl.value = `${data.indutyName || data.indutyCode} (${data.indutyCode})`;
           if (selEl) { selEl.textContent = `✓ DART 자동세팅: ${data.indutyName || data.indutyCode}`; selEl.style.display = 'block'; }
         }
+        const _fmt = (obj) => obj?.eok != null
+          ? `${(+obj.eok).toLocaleString()}억원`
+          : `<span style="color:rgba(200,212,232,0.25);font-style:italic">N/A</span>`;
         resultEl.innerHTML = `
-          <div class="dart-result-grid">
-            <div class="dart-item"><span class="dart-label">회사명</span><span class="dart-value">${data.corpName}</span></div>
-            <div class="dart-item"><span class="dart-label">기준연도</span><span class="dart-value">${data.year}년</span></div>
-            ${data.indutyName ? `<div class="dart-item"><span class="dart-label">업종</span><span class="dart-value">${data.indutyName}</span></div>` : ''}
-            ${data.revenue ? `<div class="dart-item"><span class="dart-label">매출액</span><span class="dart-value">${data.revenue.eok}억원</span></div>` : ''}
-            ${data.totalAssets ? `<div class="dart-item"><span class="dart-label">자산총계</span><span class="dart-value">${data.totalAssets.eok}억원</span></div>` : ''}
+          <div class="dart-result-summary">
+            <span class="dart-corp-name">${data.corpName}</span>
+            <span class="dart-year-badge">${data.year}년 기준</span>
+            ${data.indutyName ? `<span class="dart-industry">${data.indutyName}</span>` : ''}
           </div>
-          <p style="color:#4ADE80;font-size:0.85rem;margin-top:8px">✅ DART 재무데이터 확인 완료 — Step 2에서 자동입력됩니다</p>`;
+          <div class="dart-accounts-grid">
+            <div class="dart-accounts-section">
+              <div class="dart-accounts-title">재무상태표</div>
+              <div class="dart-account-row"><span>유동자산</span><span>${_fmt(data.currentAssets)}</span></div>
+              <div class="dart-account-row"><span>현금및현금성자산</span><span>${_fmt(data.cash)}</span></div>
+              <div class="dart-account-row"><span>매출채권</span><span>${_fmt(data.receivable)}</span></div>
+              <div class="dart-account-row"><span>재고자산</span><span>${_fmt(data.inventory)}</span></div>
+              <div class="dart-account-row"><span>비유동자산</span><span>${_fmt(data.nonCurrentAssets)}</span></div>
+              <div class="dart-account-row"><span>유형자산</span><span>${_fmt(data.tangibleAssets)}</span></div>
+              <div class="dart-account-row dart-account-total"><span>자산총계</span><span>${_fmt(data.totalAssets)}</span></div>
+              <div class="dart-account-row"><span>유동부채</span><span>${_fmt(data.currentLiabilities)}</span></div>
+              <div class="dart-account-row"><span>매입채무</span><span>${_fmt(data.payable)}</span></div>
+              <div class="dart-account-row"><span>차입금</span><span>${_fmt(data.borrowings)}</span></div>
+              <div class="dart-account-row"><span>비유동부채</span><span>${_fmt(data.nonCurrentLiab)}</span></div>
+              <div class="dart-account-row dart-account-total"><span>부채총계</span><span>${_fmt(data.totalDebt)}</span></div>
+              <div class="dart-account-row dart-account-total"><span>자본총계</span><span>${_fmt(data.equity)}</span></div>
+            </div>
+            <div class="dart-accounts-section">
+              <div class="dart-accounts-title">손익계산서</div>
+              <div class="dart-account-row dart-account-total"><span>매출액</span><span>${_fmt(data.revenue)}</span></div>
+              <div class="dart-account-row"><span>매출원가</span><span>${_fmt(data.costOfSales)}</span></div>
+              <div class="dart-account-row"><span>매출총이익</span><span>${_fmt(data.grossProfit)}</span></div>
+              <div class="dart-account-row"><span>영업이익</span><span>${_fmt(data.operatingProfit)}</span></div>
+              <div class="dart-account-row"><span>이자비용</span><span>${_fmt(data.interestExpense)}</span></div>
+              <div class="dart-account-row dart-account-total"><span>당기순이익</span><span>${_fmt(data.netIncome)}</span></div>
+              <div class="dart-account-row"><span>인건비</span><span>${_fmt(data.laborCost)}</span></div>
+            </div>
+          </div>
+          <p style="color:#4ADE80;font-size:0.85rem;margin-top:10px">✅ DART 재무데이터 확인 완료 — Step 2에서 자동입력됩니다. N/A 항목은 직접 입력하세요.</p>`;
       } else if (data.status === 'no_key') {
         resultEl.innerHTML = '<span style="color:var(--txt3)">DART API 키가 미설정되어 직접 입력이 필요합니다.</span>';
       } else if (data.status === 'api_key_error') {
