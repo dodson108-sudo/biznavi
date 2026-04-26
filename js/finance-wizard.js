@@ -351,6 +351,7 @@ const FinWizard = (() => {
     });
     const notice = document.getElementById('finDartAutoFill');
     if (notice) { notice.classList.remove('hidden'); notice.innerHTML = `<span>${noticeMsg}</span>`; }
+    _initFinInputFormat(); // 천단위 콤마 blur/focus 이벤트 등록
     window.scrollTo(0, 0);
   }
 
@@ -504,6 +505,33 @@ const FinWizard = (() => {
     };
   }
 
+  /* ── 재무입력 필드 천단위 콤마 자동 포맷 ── */
+  function _initFinInputFormat() {
+    const ids = [
+      'fin_current_assets','fin_quick_assets','fin_cash','fin_receivable','fin_inventory',
+      'fin_noncurrent_assets','fin_tangible_assets','fin_total_assets',
+      'fin_current_liabilities','fin_payable','fin_noncurrent_liabilities',
+      'fin_borrowings','fin_total_liabilities','fin_equity',
+      'fin_revenue','fin_gross_profit','fin_operating_profit',
+      'fin_interest_expense','fin_net_income','fin_labor_cost','fin_prev_revenue'
+    ];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('focus', () => {
+        // 포커스 시 콤마 제거 → 숫자만 편집
+        el.value = el.value.replace(/,/g, '');
+      });
+      el.addEventListener('blur', () => {
+        // 포커스 해제 시 천단위 콤마 재적용
+        const raw = el.value.replace(/,/g, '').trim();
+        if (raw === '' || raw === '-') return;
+        const n = parseFloat(raw);
+        if (!isNaN(n)) el.value = Math.round(n).toLocaleString('ko-KR');
+      });
+    });
+  }
+
   /* ── Step2 진입 시 DART 데이터 자동입력 ── */
   function _tryDartAutoFill() {
     if (!_dartData || _dartData.status !== 'found') return;
@@ -563,7 +591,14 @@ const FinWizard = (() => {
 
   function _setField(id, val) {
     const el = document.getElementById(id);
-    if (el && val !== null && val !== undefined) el.value = val;
+    if (!el) return;
+    if (val !== null && val !== undefined) {
+      // 천단위 콤마 포맷 (음수 포함)
+      const n = Math.round(Number(val));
+      el.value = isNaN(n) ? '' : n.toLocaleString('ko-KR');
+    } else {
+      el.value = ''; // 미조회 항목은 빈칸 (0 아님)
+    }
   }
 
   /* ── 재무분석 실행 ── */
@@ -616,7 +651,7 @@ const FinWizard = (() => {
   let _bokAvgSource = '제조업 전체 (한국은행 기업경영분석)';
 
   function _collectData() {
-    const g = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+    const g = (id) => parseFloat((document.getElementById(id)?.value || '').replace(/,/g, '')) || 0;
     const revenue = g('fin_revenue');
     const totalAssets = g('fin_total_assets');
     const totalLiabilities = g('fin_total_liabilities');
