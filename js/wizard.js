@@ -70,7 +70,7 @@ const Wizard = (() => {
   let _inferredBmKey = '';
 
   // 탭 순서 정의
-  const TAB_ORDER = ['common', 'industry', 'bizmodel'];
+  const TAB_ORDER = ['common', 'industry'];
 
   /* ── 업종 기반 사업모델 추론 ── */
   function inferBizModel(industryKey, formData) {
@@ -711,31 +711,10 @@ const Wizard = (() => {
     const industryData = industryVarMap[industryKey];
     if (industryData) renderDiagModule('diag-industry-container', industryData);
 
-    // 사업모델 특화 모듈 렌더링
-    const bizModelVarMap = {
-      'b2b_saas':     typeof BIZMODEL_B2B_SAAS     !== 'undefined' ? BIZMODEL_B2B_SAAS     : null,
-      'b2c_sub':      typeof BIZMODEL_B2C_SUB      !== 'undefined' ? BIZMODEL_B2C_SUB      : null,
-      'b2b_solution': typeof BIZMODEL_B2B_SOLUTION !== 'undefined' ? BIZMODEL_B2B_SOLUTION : null,
-      'b2c_commerce': typeof BIZMODEL_B2C_COMMERCE !== 'undefined' ? BIZMODEL_B2C_COMMERCE : null,
-      'platform':     typeof BIZMODEL_PLATFORM     !== 'undefined' ? BIZMODEL_PLATFORM     : null,
-      'franchise':    typeof BIZMODEL_FRANCHISE    !== 'undefined' ? BIZMODEL_FRANCHISE    : null,
-      'mfg_dist':     typeof BIZMODEL_MFG_DIST     !== 'undefined' ? BIZMODEL_MFG_DIST     : null,
-      'service':      typeof BIZMODEL_SERVICE      !== 'undefined' ? BIZMODEL_SERVICE      : null,
-      'usage_based':  typeof BIZMODEL_USAGE_BASED  !== 'undefined' ? BIZMODEL_USAGE_BASED  : null,
-      'advertising':  typeof BIZMODEL_ADVERTISING  !== 'undefined' ? BIZMODEL_ADVERTISING  : null,
-      'deeptech':     typeof BIZMODEL_DEEPTECH     !== 'undefined' ? BIZMODEL_DEEPTECH     : null,
-      'etc':          typeof BIZMODEL_ETC          !== 'undefined' ? BIZMODEL_ETC          : null,
-    };
-    const bizModelData = bizModelVarMap[bizModelKey];
-    if (bizModelData) renderDiagModule('diag-bizmodel-container', bizModelData);
-
-    // 탭 버튼 레이블 동적 업데이트 (업종·사업모델 반영)
-    const indLabel  = industry     || '업종';
-    const bizLabel  = bizModelLabel || '사업모델';
+    // 탭 버튼 레이블 동적 업데이트 (업종 반영)
+    const indLabel  = industry || '업종';
     const tabIndustry = document.getElementById('diagTabBtn-industry');
-    const tabBizmodel = document.getElementById('diagTabBtn-bizmodel');
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단';
-    if (tabBizmodel) tabBizmodel.textContent = '💼 ' + bizLabel + ' 진단';
 
     // 진행률 카운터 총 항목 수 동적 갱신
     const totalItems = document.querySelectorAll('.diag-item').length || 52;
