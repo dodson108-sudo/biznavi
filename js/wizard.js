@@ -717,7 +717,7 @@ const Wizard = (() => {
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단';
 
     // 진행률 카운터 총 항목 수 동적 갱신
-    const totalItems = document.querySelectorAll('.diag-item').length || 52;
+    const totalItems = document.querySelectorAll('.diag-item').length || 15;
     const progressText = document.getElementById('diag-progress-text');
     if (progressText) progressText.textContent = '0 / ' + totalItems + ' 항목 완료';
 
