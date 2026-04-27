@@ -660,10 +660,13 @@ const Wizard = (() => {
       else if (i === n) { c.classList.add('active'); c.textContent = i; lb.classList.add('active'); }
       else              { c.textContent = i; }
     }
-    document.getElementById('ln1').classList.toggle('done', n > 1);
-    document.getElementById('ln2').classList.toggle('done', n > 2);
-    document.getElementById('ln3').classList.toggle('done', n > 3);
-    const pct = n === 1 ? 25 : n === 2 ? 50 : n === 3 ? 75 : 100;
+    const ln1 = document.getElementById('ln1');
+    const ln2 = document.getElementById('ln2');
+    const ln3 = document.getElementById('ln3');
+    if (ln1) ln1.classList.toggle('done', n > 1);
+    if (ln2) ln2.classList.toggle('done', n > 2);
+    if (ln3) ln3.classList.toggle('done', n > 3);
+    const pct = n === 1 ? 33 : n === 2 ? 66 : 100;
     document.getElementById('wizProgressFill').style.width = pct + '%';
   }
 
@@ -673,12 +676,9 @@ const Wizard = (() => {
       return el ? el.value.trim() : '';
     };
     if (step === 1) {
-      if (!get('companyName'))     { alert('회사명을 입력해주세요.');           return false; }
-      if (!get('industry'))        { alert('업종을 선택해주세요.');            return false; }
-      if (!get('bizScale'))        { alert('사업 규모를 선택해주세요.');        return false; }
-      if (!get('products'))        { alert('주요 제품/서비스를 입력해주세요.'); return false; }
-      if (!get('coreStrength'))    { alert('핵심 강점을 입력해주세요.');        return false; }
-      if (!get('customerProblem')) { alert('고객이 겪는 문제를 입력해주세요.'); return false; }
+      if (!get('companyName')) { alert('상호명을 입력해주세요.'); return false; }
+      if (!get('bizType'))     { alert('업태를 입력해주세요.\n(사업자등록증의 업태 — 예: 서비스, 제조, 음식점)'); return false; }
+      if (!get('bizItem'))     { alert('종목을 입력해주세요.\n(사업자등록증의 종목 — 예: 미용업, 한식, 자동차부품)'); return false; }
     }
     if (step === 2) {
       const done = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
