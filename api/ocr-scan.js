@@ -1,15 +1,7 @@
 /**
  * Vercel Serverless Function: /api/ocr-scan
- * 사업자등록증 이미지 → Google Vision API OCR → 필드 자동추출
- *
- * 환경변수 설정 필요:
- *   GOOGLE_VISION_API_KEY = Google Cloud Console에서 발급한 API 키
- *
- * Google Vision API 키 발급:
- *   1. https://console.cloud.google.com/ → 프로젝트 생성
- *   2. Cloud Vision API 활성화
- *   3. API 및 서비스 → 사용자 인증 정보 → API 키 생성
- *   (월 1,000건 무료, 초과 시 $1.50/1000건)
+ * 사업자등록증 이미지 → Claude Vision API → 필드 자동추출
+ * Google Vision API 불필요 — ANTHROPIC_API_KEY 하나로 동작
  */
 
 module.exports = async function handler(req, res) {
@@ -19,141 +11,70 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageBase64 } = req.body || {};
+  const { imageBase64, mimeType = 'image/jpeg' } = req.body || {};
   if (!imageBase64) return res.status(400).json({ error: '이미지 데이터가 없습니다.' });
 
-  const apiKey = process.env.GOOGLE_VISION_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(200).json({ status: 'no_key', message: 'Google Vision API 키가 설정되지 않았습니다.' });
+    return res.status(500).json({ status: 'error', message: 'API 키가 설정되지 않았습니다.' });
   }
 
+  // 지원 MIME 타입 검증 (Claude Vision 지원 형식)
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const safeMime = allowedTypes.includes(mimeType) ? mimeType : 'image/jpeg';
+
+  const extractPrompt = `이 사업자등록증 이미지에서 정보를 추출하여 JSON 형식으로만 응답하세요.
+찾을 수 없는 항목은 null로 표시하세요. JSON 이외의 텍스트는 절대 포함하지 마세요.
+
+{
+  "bizRegNo": "사업자등록번호 (XXX-XX-XXXXX 형식, 하이픈 포함)",
+  "companyName": "상호명 (법인명 또는 상호)",
+  "repName": "대표자 성명",
+  "bizType": "업태 (예: 서비스, 제조, 도소매, 음식점 등 — 사업자등록증에 기재된 그대로)",
+  "bizItem": "종목 (예: 미용업, 음식점업, 자동차부품, 소프트웨어개발 등 — 사업자등록증에 기재된 그대로)",
+  "foundedDate": "개업연월일 문자열 (예: 2019년 3월 15일)",
+  "foundedYear": "개업연도 4자리 숫자 문자열 (예: 2019)"
+}`;
+
   try {
-    // Google Vision API TEXT_DETECTION 호출
-    const visionUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
-    const visionRes = await fetch(visionUrl, {
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
       body: JSON.stringify({
-        requests: [{
-          image: { content: imageBase64 },
-          features: [{ type: 'TEXT_DETECTION', maxResults: 1 }]
+        model: 'claude-sonnet-4-6',
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: safeMime, data: imageBase64 }
+            },
+            { type: 'text', text: extractPrompt }
+          ]
         }]
       })
     });
 
-    const visionData = await visionRes.json();
-    if (visionData.error) throw new Error(visionData.error.message);
+    const data = await claudeRes.json();
+    if (data.error) throw new Error(data.error.message);
 
-    const fullText = visionData.responses?.[0]?.fullTextAnnotation?.text || '';
-    if (!fullText) {
-      return res.status(200).json({ status: 'no_text', message: '텍스트를 인식하지 못했습니다. 더 선명한 이미지를 사용해주세요.' });
-    }
+    const text = data.content?.[0]?.text || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('응답에서 JSON을 찾지 못했습니다.');
 
-    // 사업자등록증 파싱
-    const parsed = parseBizRegistration(fullText);
-
-    return res.status(200).json({
-      status: 'success',
-      ...parsed,
-      rawText: fullText.substring(0, 500) // 디버깅용 (앞 500자만)
-    });
+    const parsed = JSON.parse(jsonMatch[0]);
+    return res.status(200).json({ status: 'success', ...parsed });
 
   } catch (err) {
-    console.error('ocr-scan error:', err);
-    return res.status(200).json({ status: 'error', message: 'OCR 처리 중 오류가 발생했습니다.' });
+    console.error('ocr-scan error:', err.message);
+    return res.status(200).json({
+      status: 'error',
+      message: 'OCR 처리 중 오류가 발생했습니다. 직접 입력을 이용해주세요.'
+    });
   }
 };
-
-/**
- * OCR 텍스트에서 사업자등록증 필드 추출
- * 사업자등록증 레이아웃:
- *   등록번호: XXX-XX-XXXXX
- *   법인명(단체명) 또는 상호: ...
- *   대표자: ...
- *   개업연월일: YYYY년 MM월 DD일
- *   사업장 소재지: ...
- *   업태: ... 종목: ...
- */
-function parseBizRegistration(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const result = {
-    bizRegNo:    null,  // 사업자등록번호
-    companyName: null,  // 상호
-    repName:     null,  // 대표자명
-    bizType:     null,  // 업태
-    bizItem:     null,  // 종목
-    foundedDate: null,  // 개업연월일
-    foundedYear: null   // 개업연도 (4자리)
-  };
-
-  const fullText = text.replace(/\n/g, ' ');
-
-  // 사업자등록번호 (XXX-XX-XXXXX 패턴)
-  const bizNoMatch = fullText.match(/(\d{3}[-\s]\d{2}[-\s]\d{5})/);
-  if (bizNoMatch) {
-    result.bizRegNo = bizNoMatch[1].replace(/\s/g, '-');
-  }
-
-  // 상호 추출
-  const corpPatterns = [
-    /(?:법인명|단체명|상\s*호)[^\S\n]*[:\s：]+\s*([^\n,（(]{2,30})/,
-    /상\s*호\s*[:\s：]*\s*([^\n]{2,30})/
-  ];
-  for (const pat of corpPatterns) {
-    const m = fullText.match(pat);
-    if (m) { result.companyName = m[1].trim().replace(/\s+/g, ' '); break; }
-  }
-
-  // 대표자명 추출
-  const repPatterns = [
-    /(?:성\s*명|대\s*표\s*자)[^\S\n]*[:\s：]+\s*([가-힣a-zA-Z]{2,10})/,
-    /대표[:\s：]*([가-힣]{2,5})/
-  ];
-  for (const pat of repPatterns) {
-    const m = fullText.match(pat);
-    if (m) { result.repName = m[1].trim(); break; }
-  }
-
-  // 개업연월일 추출
-  const datePatterns = [
-    /개업\s*연월일[:\s：]*(\d{4})[년\s\.]+(\d{1,2})[월\s\.]+(\d{1,2})/,
-    /개업[:\s：]*(\d{4})[.\-년](\d{1,2})[.\-월](\d{1,2})/,
-    /(\d{4})[년\s]+(\d{1,2})[월\s]+(\d{1,2})[일]?\s*개업/
-  ];
-  for (const pat of datePatterns) {
-    const m = fullText.match(pat);
-    if (m) {
-      result.foundedDate = `${m[1]}년 ${m[2]}월 ${m[3]}일`;
-      result.foundedYear = m[1];
-      break;
-    }
-  }
-
-  // 업태 추출
-  const bizTypePatterns = [
-    /업\s*태[:\s：]+([^종\n,]+)/,
-    /업태\s*([^\n,종목]{2,20})/
-  ];
-  for (const pat of bizTypePatterns) {
-    const m = fullText.match(pat);
-    if (m) {
-      result.bizType = m[1].trim().replace(/\s+/g, ' ').substring(0, 30);
-      break;
-    }
-  }
-
-  // 종목 추출
-  const bizItemPatterns = [
-    /종\s*목[:\s：]+([^\n,]{2,30})/,
-    /종목\s*([^\n,]{2,30})/
-  ];
-  for (const pat of bizItemPatterns) {
-    const m = fullText.match(pat);
-    if (m) {
-      result.bizItem = m[1].trim().replace(/\s+/g, ' ').substring(0, 30);
-      break;
-    }
-  }
-
-  return result;
-}

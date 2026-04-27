@@ -1435,3 +1435,69 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   .rpt-opinion-block { break-inside: avoid; }
   .btn { display: none !important; }
 }
+
+/* ══════════════════════════════════════════════
+   사업자 정보 입력 Step 1 — 새 구조
+══════════════════════════════════════════════ */
+
+/* OCR 업로드 섹션 */
+.ocr-section { margin-bottom: 20px; }
+.ocr-section-label { font-size: 0.9rem; color: var(--gold); font-weight: 600; margin-bottom: 10px; }
+.ocr-upload-area {
+  border: 2px dashed rgba(245,192,48,.4);
+  border-radius: 10px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: rgba(245,192,48,.04);
+}
+.ocr-upload-area:hover { border-color: var(--gold); background: rgba(245,192,48,.08); }
+.ocr-upload-ico { font-size: 2rem; display: block; margin-bottom: 8px; }
+.ocr-upload-txt { color: var(--txt1); font-size: 0.95rem; margin: 0 0 4px; }
+.ocr-upload-hint { color: var(--txt3); font-size: 0.78rem; margin: 0; }
+
+/* 구분선 */
+.form-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 20px 0; color: var(--txt3); font-size: 0.82rem;
+}
+.form-divider::before, .form-divider::after {
+  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.1);
+}
+
+/* 필드 힌트 */
+.field-hint { font-size: 0.75rem; color: var(--txt3); font-weight: 400; margin-left: 6px; }
+
+/* ── biz-context 맥락 확인 화면 ── */
+.biz-ctx-card {
+  background: rgba(22,32,64,.6);
+  border: 1px solid rgba(245,192,48,.25);
+  border-radius: 12px;
+  padding: 24px;
+}
+.biz-ctx-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.biz-ctx-name { font-size: 1.25rem; font-weight: 700; color: var(--txt1); }
+.biz-ctx-type-badge {
+  background: rgba(245,192,48,.18); color: var(--gold);
+  border: 1px solid rgba(245,192,48,.35);
+  border-radius: 20px; padding: 3px 12px; font-size: 0.82rem; font-weight: 600;
+}
+.biz-ctx-desc {
+  font-size: 1rem; color: var(--txt1); line-height: 1.65;
+  border-left: 3px solid var(--gold); padding-left: 14px;
+  margin-bottom: 16px; font-style: italic;
+}
+.biz-ctx-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.biz-ctx-meta span { font-size: 0.88rem; color: var(--txt3); background: rgba(255,255,255,.06); border-radius: 6px; padding: 4px 10px; }
+.biz-ctx-areas-title { font-size: 0.9rem; font-weight: 600; color: var(--gold); margin-bottom: 8px; }
+.biz-ctx-areas ul { margin: 0; padding-left: 18px; }
+.biz-ctx-areas li { font-size: 0.92rem; color: var(--txt2); line-height: 1.8; }
+.biz-ctx-note { margin-top: 16px; padding: 10px 14px; background: rgba(245,192,48,.06); border-radius: 8px; font-size: 0.85rem; color: var(--txt3); border-left: 3px solid rgba(245,192,48,.4); }
+
+/* Step 2 상단 맥락 미니배너 */
+.biz-ctx-mini {
+  background: rgba(245,192,48,.08); border: 1px solid rgba(245,192,48,.2);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
+  font-size: 0.85rem; color: var(--txt3); line-height: 1.5;
+}

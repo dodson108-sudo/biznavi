@@ -99,36 +99,73 @@ const App = (() => {
   function showFinanceReport() { show('finance-report'); }
   function showLanding() { show('landing'); }
 
-  /* BM 확인 화면: Step 1 → BM confirm */
-  function showBmConfirm() {
-    if (!Wizard.validate(1)) return;
-    const industry    = document.getElementById('industry')?.value || '';
-    const industryKey = Wizard.getIndustryKey(industry);
-    const formData    = {
-      products:        document.getElementById('products')?.value        || '',
-      coreStrength:    document.getElementById('coreStrength')?.value    || '',
-      customerProblem: document.getElementById('customerProblem')?.value || '',
-      unfairAdvantage: document.getElementById('unfairAdvantage')?.value || ''
-    };
-    Wizard.populateBmConfirm(industryKey, industry, formData);
-    // bm-confirm은 wizard 카드 안의 div — step 전환 방식으로 처리
-    Wizard.showBmConfirmCard();
+  /* ── AI 업종 분석 (Step 1 → biz-context) ── */
+  async function analyzeBiz() {
+    const companyName = document.getElementById('companyName')?.value.trim() || '';
+    const bizType     = document.getElementById('bizType')?.value.trim() || '';
+    const bizItem     = document.getElementById('bizItem')?.value.trim() || '';
+    const foundedYear = document.getElementById('foundedYear')?.value.trim() || '';
+    const employees   = document.getElementById('employees')?.value || '';
+    const revenue     = document.getElementById('revenue')?.value.trim() || '';
+
+    if (!companyName) { alert('상호명을 입력해주세요.'); return; }
+    if (!bizType)     { alert('업태를 입력해주세요.\n(사업자등록증에 기재된 그대로 — 예: 서비스, 제조, 음식점)'); return; }
+    if (!bizItem)     { alert('종목을 입력해주세요.\n(사업자등록증에 기재된 그대로 — 예: 미용업, 한식, 자동차부품)'); return; }
+
+    const btn = document.getElementById('btnAnalyzeBiz');
+    if (btn) { btn.disabled = true; btn.textContent = '분석 중…'; }
+
+    try {
+      const res = await fetch('/api/analyze-biz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bizType, bizItem, companyName, foundedYear, employees, revenue })
+      });
+      const data = await res.json();
+
+      if (data.status !== 'success') throw new Error(data.message || '분석 실패');
+
+      // 결과 hidden 필드에 저장
+      document.getElementById('aiIndustryKey').value  = data.industry_key  || '';
+      document.getElementById('aiBusinessDesc').value = data.business_description || '';
+      document.getElementById('bizScale').value       = data.biz_scale     || '';
+
+      // biz-context 화면 렌더링
+      Wizard.showBizContext(data, companyName, foundedYear);
+      Wizard.hideAllCards();
+      document.getElementById('biz-context').classList.remove('hidden');
+
+    } catch (err) {
+      alert('업종 분석 중 오류: ' + err.message + '\n\n잠시 후 다시 시도해주세요.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'AI 업종 분석 시작 →'; }
+    }
   }
 
-  /* BM 확인 후 Step 2 진행 */
-  function confirmBm() {
-    const selected = document.querySelector('input[name="bmChoice"]:checked');
-    if (!selected) { alert('사업모델을 선택해주세요.'); return; }
-    _confirmedBmKey = selected.value;
-    Wizard.setBmKey(_confirmedBmKey);
-    Wizard.goToStep2FromBm();
+  /* biz-context 확인 → 진단 시작 */
+  function startDiagnosis() {
+    const industryKey = document.getElementById('aiIndustryKey')?.value || 'local_service';
+    const bizDesc     = document.getElementById('aiBusinessDesc')?.value || '';
+    const bizScale    = document.getElementById('bizScale')?.value || 'micro';
+    Wizard.loadDiagnosisUI(industryKey);
+    Wizard.goStep(2);
+    // Step 2 상단에 맥락 미니배너 표시
+    const mini = document.getElementById('biz-context-mini');
+    if (mini) {
+      mini.textContent = '📋 ' + bizDesc;
+      mini.classList.remove('hidden');
+    }
   }
 
-  /* BM 확인 → Step 1 복귀 */
+  /* Step 1으로 복귀 */
   function backToStep1() {
-    Wizard.hideBmConfirmCard();
+    document.getElementById('biz-context').classList.add('hidden');
     Wizard.goStep(1);
   }
+
+  /* 레거시 호환 — 더 이상 사용 안 함 */
+  function showBmConfirm() { analyzeBiz(); }
+  function confirmBm()     { startDiagnosis(); }
 
   function restart() {
     if (!confirm('새로 분석하시겠습니까?\n입력하신 모든 정보를 처음부터 다시 입력해야 합니다.')) return;
@@ -138,7 +175,7 @@ const App = (() => {
 
   function prevFromDash() {
     show('wizard');
-    Wizard.goStep(4);
+    Wizard.goStep(2);
   }
 
   function goStep(n) {
@@ -218,10 +255,10 @@ const App = (() => {
     show('dashboard');
   }
 
-  /* 진단 수정: 위저드 STEP 4로 돌아가기 */
+  /* 진단 수정: 위저드 STEP 2(진단)로 돌아가기 */
   function goBackToDiag() {
     show('wizard');
-    Wizard.goStep(4);
+    Wizard.goStep(2);
   }
 
   /* API 키 저장 후 분석 시작 (API 박스 확인 버튼) */
@@ -254,7 +291,7 @@ const App = (() => {
     if (wizKeyEl && apiKey && apiKey.startsWith('sk-ant-')) wizKeyEl.value = apiKey;
   }
 
-  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, showBmConfirm, confirmBm, backToStep1, fillSavedKey };
+  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, fillSavedKey };
 })();
 
 /* ===== LANDING PAGE JS ===== */

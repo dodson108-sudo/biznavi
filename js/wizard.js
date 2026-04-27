@@ -416,57 +416,20 @@ const Wizard = (() => {
           return;
         }
 
-        // 인식된 데이터를 폼에 자동입력
+        // 인식된 데이터를 새 폼에 자동입력
         let filled = [];
-        if (data.bizRegNo) {
-          const el = document.getElementById('bizRegNo');
-          if (el) { el.value = data.bizRegNo; formatBizNo(el); filled.push('사업자번호'); }
-        }
-        if (data.companyName) {
-          const el = document.getElementById('companyName');
-          if (el) { el.value = data.companyName; onCompanyNameInput(el); filled.push('회사명'); }
-        }
-        if (data.repName) {
-          const el = document.getElementById('repName');
-          if (el) { el.value = data.repName; filled.push('대표자명'); }
-        }
-        if (data.foundedYear) {
-          const el = document.getElementById('foundedYear');
-          if (el) { el.value = data.foundedYear; filled.push('설립연도'); }
-        }
-        if (data.bizType) {
-          const el = document.getElementById('bizType');
-          if (el) {
-            el.value = data.bizType;
-            // 업태/종목 행 표시
-            const typeRow = document.getElementById('bizTypeRow');
-            if (typeRow) typeRow.style.display = 'flex';
-            filled.push('업태');
-          }
-        }
-        if (data.bizItem) {
-          const el = document.getElementById('bizItem');
-          if (el) { el.value = data.bizItem; filled.push('종목'); }
-        }
-        // 업태/종목이 있으면 업종 자동매핑
-        if (data.bizType || data.bizItem) inferIndustryFromType();
-
-        // 미리보기 표시
-        const lines = [
-          data.bizRegNo    ? `사업자번호: ${data.bizRegNo}` : null,
-          data.companyName ? `회사명: ${data.companyName}`  : null,
-          data.repName     ? `대표자: ${data.repName}`      : null,
-          data.bizType     ? `업태: ${data.bizType}`        : null,
-          data.bizItem     ? `종목: ${data.bizItem}`        : null,
-          data.foundedDate ? `개업일: ${data.foundedDate}`  : null,
-        ].filter(Boolean);
-
-        previewEl.innerHTML = '<div class="ocr-preview-title">✓ 인식된 정보</div>' +
-          lines.map(l => `<div class="ocr-preview-row">${l}</div>`).join('');
-        previewEl.classList.remove('hidden');
+        const fill = (id, val, label) => {
+          if (!val) return;
+          const el = document.getElementById(id);
+          if (el) { el.value = val; filled.push(label); }
+        };
+        fill('companyName', data.companyName, '상호명');
+        fill('bizType',     data.bizType,     '업태');
+        fill('bizItem',     data.bizItem,     '종목');
+        fill('foundedYear', data.foundedYear, '개업연도');
 
         statusEl.className = 'biz-lookup-status biz-status-ok';
-        statusEl.textContent = `✓ ${filled.join(', ')} 자동입력 완료 — 아래에서 확인 후 수정 가능합니다.`;
+        statusEl.textContent = `✓ ${filled.join(', ')} 자동입력 완료 — 아래에서 확인하고 수정하세요. 이상 없으면 [AI 업종 분석 시작]을 눌러주세요.`;
 
       } catch (err) {
         statusEl.className = 'biz-lookup-status biz-status-err';
@@ -590,8 +553,64 @@ const Wizard = (() => {
     display.innerHTML = html;
   }
 
+  /* ── biz-context 화면 렌더링 ── */
+  function showBizContext(data, companyName, foundedYear) {
+    const currentYear = new Date().getFullYear();
+    const years = foundedYear ? currentYear - parseInt(foundedYear) : null;
+    const scaleLabel = data.biz_scale === 'micro' ? '소상공인' : '소기업·중소기업';
+
+    const areasHtml = (data.critical_areas || [])
+      .map(a => `<li>${a}</li>`).join('');
+
+    const noteHtml = data.diagnosis_note
+      ? `<div class="biz-ctx-note">⚠️ 진단 시 유의: ${data.diagnosis_note}</div>` : '';
+
+    document.getElementById('biz-context-content').innerHTML = `
+      <div class="biz-ctx-card">
+        <div class="biz-ctx-header">
+          <div class="biz-ctx-name">🏪 ${companyName || '입력하신 사업체'}</div>
+          <div class="biz-ctx-type-badge">${data.industry_label || data.industry_key}</div>
+        </div>
+        <div class="biz-ctx-desc">"${data.business_description || ''}"</div>
+        <div class="biz-ctx-meta">
+          ${years ? `<span>⏱ 업력 ${years}년차 (${foundedYear}년 개업)</span>` : ''}
+          <span>📊 ${scaleLabel}</span>
+        </div>
+        <div class="biz-ctx-areas">
+          <div class="biz-ctx-areas-title">🎯 이 업종의 핵심 진단 영역</div>
+          <ul>${areasHtml}</ul>
+        </div>
+        ${noteHtml}
+      </div>
+    `;
+  }
+
+  /* 모든 wizard 카드 숨기기 */
+  function hideAllCards() {
+    ['step1', 'step1-extra', 'step2', 'step3', 'step4', 'bm-confirm', 'biz-context'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+  }
+
+  /* 드래그&드롭 OCR 핸들러 */
+  function handleOcrDrop(event) {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const input = document.getElementById('ocrFileInput');
+    if (input) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      handleOcrUpload(input);
+    }
+  }
+
   function goStep(n, skipValidation) {
-    // bm-confirm 화면은 항상 숨기고 이동
+    // biz-context / bm-confirm 화면은 항상 숨기고 이동
+    const bizCtx = document.getElementById('biz-context');
+    if (bizCtx) bizCtx.classList.add('hidden');
     const bmCard = document.getElementById('bm-confirm');
     if (bmCard) bmCard.classList.add('hidden');
 
@@ -679,12 +698,11 @@ const Wizard = (() => {
     return true;
   }
 
-  function loadDiagnosisUI() {
+  function loadDiagnosisUI(forceIndustryKey) {
+    // AI 분석 결과 key 우선, 없으면 드롭다운(레거시), 없으면 etc
     const industry    = document.getElementById('industry')?.value || '';
-    const industryKey = INDUSTRY_MAP[industry] || 'etc';
-    // 추론된 BM 사용 (onIndustryChange가 validate(1)에서 미리 실행됨)
-    const bizModelKey = _inferredBmKey || (INDUSTRY_BM_MAP[industryKey] && INDUSTRY_BM_MAP[industryKey][0]) || 'etc';
-    const bizModelLabel = BM_LABELS[bizModelKey] || bizModelKey;
+    const industryKey = forceIndustryKey || INDUSTRY_MAP[industry] || 'local_service';
+    const bizModelKey = _inferredBmKey || 'etc';
 
     // 공통 모듈 렌더링
     renderDiagModule('diag-common-container', typeof COMMON_DIAGNOSIS !== 'undefined' ? COMMON_DIAGNOSIS : null);
@@ -712,9 +730,9 @@ const Wizard = (() => {
     if (industryData) renderDiagModule('diag-industry-container', industryData);
 
     // 탭 버튼 레이블 동적 업데이트 (업종 반영)
-    const indLabel  = industry || '업종';
+    const indLabel  = document.getElementById('bizItem')?.value || industry || '업종';
     const tabIndustry = document.getElementById('diagTabBtn-industry');
-    if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단';
+    if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단 (5문항)';
 
     // 진행률 카운터 총 항목 수 동적 갱신
     const totalItems = document.querySelectorAll('.diag-item').length || 15;
@@ -1579,5 +1597,5 @@ const Wizard = (() => {
     container.innerHTML = html;
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, onCompanyNameInput, lookupDart, applyDartRevenue };
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI };
 })();

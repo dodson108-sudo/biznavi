@@ -888,7 +888,7 @@
     <div class="progress">
       <div class="step-ind">
         <div class="step-circ active" id="c1">1</div>
-        <div class="step-lbl active" id="l1">기업 정보</div>
+        <div class="step-lbl active" id="l1">사업자 정보</div>
       </div>
       <div class="step-line" id="ln1"></div>
       <div class="step-ind">
@@ -898,181 +898,114 @@
       <div class="step-line" id="ln2"></div>
       <div class="step-ind">
         <div class="step-circ" id="c3">3</div>
-        <div class="step-lbl" id="l3">시장 분석</div>
-      </div>
-      <div class="step-line" id="ln3"></div>
-      <div class="step-ind">
-        <div class="step-circ" id="c4">4</div>
-        <div class="step-lbl" id="l4">문제/목표</div>
+        <div class="step-lbl" id="l3">분석 실행</div>
       </div>
     </div>
 
-    <!-- Step 1 -->
+    <!-- Step 1: 사업자 정보 입력 -->
     <div id="step1" class="wiz-card">
-      <h3 class="serif">📋 기업 기본 정보 <span class="step-badge">STEP 1 / 4</span></h3>
+      <h3 class="serif">📋 사업자 정보 입력 <span class="step-badge">STEP 1 / 3</span></h3>
 
-      <!-- 자동입력 블록 (사업자등록번호 조회 + OCR 업로드) -->
-      <div class="biz-lookup-block" id="bizLookupBlock">
-        <div class="biz-lookup-title">
-          <span>⚡ 기업 정보 자동입력</span>
-          <span class="opt-badge">선택사항</span>
-          <button type="button" class="btn-text-skip" onclick="Wizard.skipBizLookup()">건너뛰기 →</button>
+      <!-- OCR 업로드 -->
+      <div class="ocr-section">
+        <div class="ocr-section-label">📷 사업자등록증으로 자동입력 <span class="opt-badge">권장</span></div>
+        <div class="ocr-upload-area" id="ocrUploadArea"
+          onclick="document.getElementById('ocrFileInput').click()"
+          ondragover="event.preventDefault()" ondrop="Wizard.handleOcrDrop(event)">
+          <span class="ocr-upload-ico">📄</span>
+          <p class="ocr-upload-txt">사업자등록증 사진을 클릭하거나 드래그해서 업로드</p>
+          <p class="ocr-upload-hint">JPG · PNG — 선명할수록 인식률이 높습니다</p>
         </div>
-
-        <!-- 탭 선택 -->
-        <div class="auto-input-tabs">
-          <button type="button" class="auto-tab active" id="tabBizNo" onclick="Wizard.switchAutoTab('bizno')">🔎 사업자번호 조회</button>
-          <button type="button" class="auto-tab" id="tabOcr" onclick="Wizard.switchAutoTab('ocr')">📷 사업자등록증 스캔</button>
-        </div>
-
-        <!-- 탭1: 사업자번호 조회 -->
-        <div id="autoTabBizno">
-          <div class="biz-lookup-row">
-            <input type="text" id="bizRegNo" placeholder="000-00-00000" maxlength="12"
-              oninput="Wizard.formatBizNo(this)" autocomplete="off" />
-            <input type="text" id="repName" placeholder="대표자명" maxlength="20" autocomplete="off" />
-            <button type="button" class="btn btn-outline-sm" onclick="Wizard.lookupBiz()">자동조회</button>
-          </div>
-          <div id="bizLookupStatus" class="biz-lookup-status hidden"></div>
-          <div class="biz-type-row" id="bizTypeRow" style="display:none">
-            <div class="biz-type-field">
-              <label>업태</label>
-              <input type="text" id="bizType" placeholder="예: 도소매" maxlength="30"
-                oninput="Wizard.inferIndustryFromType()" />
-            </div>
-            <div class="biz-type-field">
-              <label>종목</label>
-              <input type="text" id="bizItem" placeholder="예: 전자부품" maxlength="30"
-                oninput="Wizard.inferIndustryFromType()" />
-            </div>
-          </div>
-          <div id="bizInferResult" class="biz-infer-result hidden"></div>
-        </div>
-
-        <!-- 탭2: OCR 사업자등록증 스캔 -->
-        <div id="autoTabOcr" style="display:none">
-          <div class="ocr-upload-area" id="ocrUploadArea" onclick="document.getElementById('ocrFileInput').click()">
-            <span class="ocr-upload-ico">📄</span>
-            <p class="ocr-upload-txt">사업자등록증 사진을 클릭하거나 드래그해서 업로드</p>
-            <p class="ocr-upload-hint">JPG · PNG · PDF — 선명할수록 인식률이 높아집니다</p>
-          </div>
-          <input type="file" id="ocrFileInput" accept="image/*,.pdf" style="display:none"
-            onchange="Wizard.handleOcrUpload(this)" />
-          <div id="ocrStatus" class="biz-lookup-status hidden"></div>
-          <div id="ocrPreview" class="ocr-preview hidden"></div>
-        </div>
+        <input type="file" id="ocrFileInput" accept="image/*" style="display:none"
+          onchange="Wizard.handleOcrUpload(this)" />
+        <div id="ocrStatus" class="biz-lookup-status hidden"></div>
       </div>
 
-      <!-- DART 재무정보 조회 블록 (회사명 입력 후 표시) -->
-      <div class="dart-lookup-block hidden" id="dartLookupBlock">
-        <div class="dart-lookup-row">
-          <span class="dart-lookup-label">📊 DART 재무정보 자동조회</span>
-          <span class="opt-badge">선택사항</span>
-          <button type="button" class="btn btn-outline-sm" onclick="Wizard.lookupDart()">재무조회</button>
-        </div>
-        <div id="dartStatus" class="biz-lookup-status hidden"></div>
-        <div id="dartResult" class="dart-result hidden"></div>
-      </div>
+      <div class="form-divider"><span>또는 직접 입력</span></div>
 
+      <!-- 직접 입력 폼 -->
       <div class="form-grid">
-        <div class="form-group">
-          <label>회사명 *<span class="field-check">✓</span></label>
-          <input type="text" id="companyName" placeholder="예: (주)테크스타트"
-            oninput="Wizard.onCompanyNameInput(this)" />
+        <div class="form-group full">
+          <label>상호명 *</label>
+          <input type="text" id="companyName" placeholder="예: 민지헤어샵, (주)테크솔루션" />
         </div>
         <div class="form-group">
-          <label>업종 *<span class="field-check">✓</span></label>
-          <select id="industry">
-            <option value="">업종 선택</option>
-            <option value="제조업">뿌리 제조 및 부품가공업</option>
-            <option value="식품/음료">식품 제조 및 가공업</option>
-            <option value="서비스업">생활밀착형 서비스업</option>
-            <option value="유통/물류">전문 유통 및 도소매업</option>
-            <option value="외식 및 휴게음식업">외식 및 휴게음식업</option>
-            <option value="IT/소프트웨어">지식 서비스 및 IT개발</option>
-            <option value="건설/부동산">소규모 건설 및 인테리어</option>
-            <option value="의료/헬스케어">의료·헬스케어</option>
-            <option value="금융/핀테크">금융·핀테크</option>
-            <option value="교육">교육·에듀테크</option>
-            <option value="패션/뷰티">패션·뷰티</option>
-            <option value="미디어/엔터테인먼트">미디어·엔터테인먼트</option>
-            <option value="수출중소기업">수출 중소기업 (제조·수출형)</option>
-            <option value="물류운송">물류·운송·택배업</option>
-            <option value="환경에너지">환경·에너지·자원순환</option>
-            <option value="농림식품원료">농림·식품원료·원물가공</option>
-            <option value="기타">기타</option>
-          </select>
+          <label>업태 * <span class="field-hint">사업자등록증 그대로</span></label>
+          <input type="text" id="bizType" placeholder="예: 서비스, 제조, 음식점" maxlength="30" />
         </div>
-        <input type="hidden" id="bizModel" />
-        <input type="hidden" id="bizModelKey" />
         <div class="form-group">
-          <label>설립연도</label>
-          <input type="number" id="foundedYear" placeholder="예: 2018" min="1900" max="2099" />
+          <label>종목 * <span class="field-hint">사업자등록증 그대로</span></label>
+          <input type="text" id="bizItem" placeholder="예: 미용업, 자동차부품, 한식" maxlength="40" />
+        </div>
+        <div class="form-group">
+          <label>개업연도</label>
+          <input type="number" id="foundedYear" placeholder="예: 2019" min="1900" max="2099" />
         </div>
         <div class="form-group">
           <label>직원 수</label>
           <select id="employees">
             <option value="">선택</option>
             <option>1~5명</option><option>6~10명</option><option>11~50명</option>
-            <option>51~100명</option><option>101~300명</option><option>301~1000명</option><option>1000명 이상</option>
+            <option>51~100명</option><option>101~300명</option><option>301~1000명</option>
           </select>
         </div>
         <div class="form-group">
-          <label>연매출 (억원)</label>
-          <input type="text" id="revenue" placeholder="예: 10억 / 비공개" />
-        </div>
-        <div class="form-group">
-          <label>사업 규모 *<span class="field-check">✓</span></label>
-          <select id="bizScale">
-            <option value="">규모 선택</option>
-            <option value="micro">소상공인 (직원 5명 이하 / 연매출 10억 미만)</option>
-            <option value="sme">소기업·중소기업 (직원 6명 이상 또는 연매출 10억 이상)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>사업 지역</label>
-          <select id="region">
-            <option value="">선택</option>
-            <option>국내(수도권)</option><option>국내(전국)</option><option>아시아</option><option>글로벌</option>
-          </select>
+          <label>연매출</label>
+          <input type="text" id="revenue" placeholder="예: 3억 / 비공개" />
         </div>
         <div class="form-group full">
-          <label>주요 제품/서비스 *<span class="field-check">✓</span></label>
-          <textarea id="products" placeholder="예: B2B SaaS 인사관리 솔루션, HR 자동화 플랫폼"></textarea>
+          <label>주요 제품·서비스</label>
+          <textarea id="products" placeholder="예: 헤어 커트·펌·염색 시술, 두피 관리 프로그램"></textarea>
         </div>
         <div class="form-group full">
-          <label>우리 제품/서비스의 핵심 강점 *<span class="field-check">✓</span></label>
-          <input type="text" id="coreStrength" placeholder="예: 국내 유일 실시간 재고 AI 자동화 — 오차율 0.1% 이하 보장" maxlength="80" />
+          <label>우리만의 핵심 강점</label>
+          <input type="text" id="coreStrength" placeholder="예: 20년 경력 디자이너 3인, 두피 전문 시술" maxlength="100" />
         </div>
         <div class="form-group full">
-          <label>고객이 겪는 가장 큰 문제 *<span class="field-check">✓</span></label>
-          <textarea id="customerProblem" placeholder="예: 재고 수기 관리로 오차가 잦고 실시간 파악이 불가능해 손실이 발생합니다"></textarea>
-        </div>
-        <div class="form-group full">
-          <label>경쟁사가 따라하기 어려운 우리만의 차별화 요소</label>
-          <input type="text" id="unfairAdvantage" placeholder="예: 특허 2건 + 대기업 독점 공급 계약 + 5년 축적 고객 데이터" maxlength="100" />
+          <label>고객이 겪는 가장 큰 문제</label>
+          <textarea id="customerProblem" placeholder="예: 원하는 스타일이 잘 안 나오고, 예약 후 대기시간이 너무 깁니다"></textarea>
         </div>
       </div>
+
+      <!-- hidden: AI 분석 결과 저장용 -->
+      <input type="hidden" id="bizModel" />
+      <input type="hidden" id="bizModelKey" />
+      <input type="hidden" id="bizScale" />
+      <input type="hidden" id="aiIndustryKey" />
+      <input type="hidden" id="aiBusinessDesc" />
+
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.showLanding()">← 처음으로</button>
-        <button class="btn btn-gold" onclick="App.showBmConfirm()">다음 단계 →</button>
+        <button class="btn btn-gold" id="btnAnalyzeBiz" onclick="App.analyzeBiz()">AI 업종 분석 시작 →</button>
       </div>
     </div>
 
-    <!-- BM 확인 화면 (Step 1.5) -->
-    <div id="bm-confirm" class="wiz-card hidden">
-      <h3 class="serif">💼 사업모델 확인 <span class="step-badge">STEP 2 / 5</span></h3>
-      <p class="bm-confirm-intro">입력하신 업종과 사업 내용을 분석했습니다.<br>아래 <strong>추천 사업모델</strong>이 맞으면 그대로 진행하시고, 다르면 다른 항목을 선택해주세요.</p>
-      <div id="bm-confirm-content"></div>
+    <!-- biz-context: AI 맥락 분석 결과 확인 -->
+    <div id="biz-context" class="wiz-card hidden">
+      <h3 class="serif">🤖 AI 업종 분석 결과</h3>
+      <div id="biz-context-content"></div>
       <div class="wiz-nav">
-        <button class="btn btn-ghost" onclick="App.backToStep1()">← 업종 변경</button>
-        <button class="btn btn-gold" onclick="App.confirmBm()">이 사업모델로 진행 →</button>
+        <button class="btn btn-ghost" onclick="App.backToStep1()">← 정보 수정</button>
+        <button class="btn btn-gold" onclick="App.startDiagnosis()">이 내용으로 진단 시작 →</button>
       </div>
     </div>
 
-    <!-- Step 2 (신규: 업종별 맞춤 진단) -->
+    <!-- 삭제된 Step 1 하단 영역 — 아래는 원래 step1 내부였지만 이제 biz-context 이후 별도 div로 -->
+    <div id="step1-extra" class="hidden">
+      <div class="form-group">
+        <label>사업 규모</label>
+        <select id="bizScaleSelect">
+          <option value="">선택</option>
+          <option value="micro">소상공인 (직원 5명 이하 / 연매출 10억 미만)</option>
+          <option value="sme">소기업·중소기업 (직원 6명 이상 또는 연매출 10억 이상)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 2: 맞춤 진단 -->
     <div id="step2" class="wiz-card hidden">
-      <h3 class="serif">🔍 업종별 맞춤 진단 <span class="step-badge">STEP 2 / 4</span></h3>
+      <h3 class="serif">🔍 맞춤 진단 <span class="step-badge">STEP 2 / 3</span></h3>
+      <div id="biz-context-mini" class="biz-ctx-mini hidden"></div>
 
       <!-- 탭 네비게이션 -->
       <div class="diag-tabs">
@@ -1102,7 +1035,7 @@
       <!-- 버튼 -->
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="Wizard.prevDiagTab()">← 이전</button>
-        <button class="btn btn-gold" onclick="App.goStep(3)">다음 단계 →</button>
+        <button class="btn btn-gold" onclick="App.goStep(4)">분석 실행 →</button>
       </div>
     </div>
 
