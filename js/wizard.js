@@ -699,9 +699,10 @@ const Wizard = (() => {
   }
 
   function loadDiagnosisUI(forceIndustryKey) {
-    // AI 분석 결과 key 우선, 없으면 드롭다운(레거시), 없으면 etc
+    // AI 분석 결과 key 우선 → hidden input(aiIndustryKey) → 드롭다운(레거시) → 기본값
     const industry    = document.getElementById('industry')?.value || '';
-    const industryKey = forceIndustryKey || INDUSTRY_MAP[industry] || 'local_service';
+    const aiKey       = document.getElementById('aiIndustryKey')?.value || '';
+    const industryKey = forceIndustryKey || aiKey || INDUSTRY_MAP[industry] || 'local_service';
     const bizModelKey = _inferredBmKey || 'etc';
 
     // 공통 모듈 렌더링
@@ -1363,6 +1364,10 @@ const Wizard = (() => {
     };
     return {
       companyName:     g('companyName'),
+      bizType:         g('bizType'),         // 업태 (사업자등록증 — 예: 서비스)
+      bizItem:         g('bizItem'),         // 종목 (사업자등록증 — 예: 미용업)
+      industryKey:     g('aiIndustryKey'),   // AI 분석 업종 키
+      aiBusinessDesc:  g('aiBusinessDesc'),  // AI 분석 사업 설명
       industry:        g('industry'),
       bizScale:        g('bizScale'),   // 'micro' | 'sme'
       bizModel:        g('bizModel'),   // 추론된 BM 레이블 (hidden input)

@@ -499,7 +499,10 @@ const AIEngine = (() => {
 ## 1. 기업 기본 정보
 - 회사명: ${d.companyName}
 - 사업 규모: ${d.bizScale === 'micro' ? '소상공인 (직원 5명 이하 / 연매출 10억 미만) — 소상공인 특화 모드' : d.bizScale === 'sme' ? '소기업·중소기업 — 성장전략 모드' : '미입력'}
-- 업종: ${d.industry}
+- 업태 (사업자등록증): ${d.bizType || d.industry || '미입력'}
+- 종목 (사업자등록증): ${d.bizItem || '미입력'}
+- AI 분류 업종: ${d.industryKey || d.industry || '미입력'}
+- AI 사업 정의: ${d.aiBusinessDesc || '미입력'}
 - 비즈니스 모델: ${d.bizModel || '미입력'}
 - 설립연도: ${d.foundedYear || '미입력'}
 - 직원 수: ${d.employees || '미입력'}
@@ -544,14 +547,14 @@ ${ d.diagScores && Object.keys(d.diagScores).length > 0 ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${buildDiagSummary(d.diagScores)}
 ` : '' }
-${ (d.industry || d.bizModel) ? `
+${ (d.industryKey || d.industry || d.bizModel) ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 7. 업종별 전문 처방 방향 (필수 반영)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${buildInsightsSummary(d.industry, d.bizModel)}
+${buildInsightsSummary(d.industryKey || d.industry, d.bizModel)}
 ` : '' }
-${ (typeof IndustryTrends !== 'undefined' && d.industry) ? (() => {
-  const block = IndustryTrends.buildPromptBlock(d.industry);
+${ (typeof IndustryTrends !== 'undefined' && (d.industryKey || d.industry)) ? (() => {
+  const block = IndustryTrends.buildPromptBlock(d.industryKey || d.industry);
   return block ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 8-1. 업종 시장 트렌드 데이터 (2025~2026)
