@@ -397,12 +397,18 @@ const Wizard = (() => {
       // base64에서 data:image/...;base64, 접두사 제거
       const base64 = e.target.result.split(',')[1];
 
+      // 30초 타임아웃
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
       try {
         const res = await fetch('/api/ocr-scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64 })
+          body: JSON.stringify({ imageBase64: base64 }),
+          signal: controller.signal
         });
+        clearTimeout(timeout);
         const data = await res.json();
 
         if (data.status === 'no_key') {
@@ -423,17 +429,23 @@ const Wizard = (() => {
           const el = document.getElementById(id);
           if (el) { el.value = val; filled.push(label); }
         };
+        // foundedYear: 날짜형(20101116) → 연도(2010)만 추출
+        const rawYear = String(data.foundedYear || '');
+        const yearOnly = rawYear.length >= 4 ? rawYear.substring(0, 4) : rawYear;
         fill('companyName', data.companyName, '상호명');
         fill('bizType',     data.bizType,     '업태');
         fill('bizItem',     data.bizItem,     '종목');
-        fill('foundedYear', data.foundedYear, '개업연도');
+        fill('foundedYear', yearOnly || data.foundedYear, '개업연도');
 
         statusEl.className = 'biz-lookup-status biz-status-ok';
         statusEl.textContent = `✓ ${filled.join(', ')} 자동입력 완료 — 아래에서 확인하고 수정하세요. 이상 없으면 [AI 업종 분석 시작]을 눌러주세요.`;
 
       } catch (err) {
+        clearTimeout(timeout);
         statusEl.className = 'biz-lookup-status biz-status-err';
-        statusEl.textContent = 'OCR 처리 중 오류가 발생했습니다. 직접 입력해주세요.';
+        statusEl.textContent = err.name === 'AbortError'
+          ? '⏱ OCR 시간 초과 (30초). 직접 입력해주세요.'
+          : 'OCR 처리 중 오류가 발생했습니다. 직접 입력해주세요.';
       }
     };
     reader.readAsDataURL(file);
@@ -614,8 +626,8 @@ const Wizard = (() => {
     const bmCard = document.getElementById('bm-confirm');
     if (bmCard) bmCard.classList.add('hidden');
 
-    // STEP 2에서 다음 버튼 클릭 시 탭 순서대로 진행
-    if (curStep === 2 && n === 3) {
+    // STEP 2에서 다음 버튼 클릭 시 탭 순서대로 진행 (n===3 또는 n===4 모두 처리)
+    if (curStep === 2 && n > 2) {
       if (!validateCurrentTab()) return;
       const currentTabIndex = TAB_ORDER.indexOf(curDiagTab);
       if (currentTabIndex < TAB_ORDER.length - 1) {
@@ -681,9 +693,10 @@ const Wizard = (() => {
       if (!get('bizItem'))     { alert('종목을 입력해주세요.\n(사업자등록증의 종목 — 예: 미용업, 한식, 자동차부품)'); return false; }
     }
     if (step === 2) {
-      const done = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
-      if (done < 10) {
-        alert('진단 항목을 최소 10개 이상 입력해주세요. (현재 ' + done + '개)');
+      const total = document.querySelectorAll('.diag-item').length || 13;
+      const done  = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
+      if (done < total) {
+        alert('진단 항목을 모두 입력해주세요. (' + done + ' / ' + total + '개 완료)');
         return false;
       }
     }

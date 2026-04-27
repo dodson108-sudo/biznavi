@@ -29,7 +29,9 @@ module.exports = async function handler(req, res) {
   }
 
   const currentYear = new Date().getFullYear();
-  const yearsInBusiness = foundedYear ? currentYear - parseInt(foundedYear) : null;
+  // foundedYear가 날짜형(20101116)으로 넘어올 경우 앞 4자리만 사용
+  const yearStr = foundedYear ? String(foundedYear).substring(0, 4) : null;
+  const yearsInBusiness = yearStr ? currentYear - parseInt(yearStr) : null;
 
   const prompt = `당신은 한국 소상공인·중소기업 경영 컨설턴트입니다.
 사업자등록증의 업태와 종목을 보고 이 사업체의 본질을 정의하고 진단 방향을 설정하세요.
