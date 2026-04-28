@@ -2,13 +2,33 @@
 
 ## 배포 상태 (2026-04-29 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: consultingType 사전계산 + 진단유형별 솔루션 특화 (digital_strategy 전면 특화)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: reference-db.js — 16개 업종 벤치마크 준거 데이터 + AI 프롬프트 통합
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-29)
+
+### Reference DB + Chain of Consulting 통합 (배포 완료)
+
+#### js/reference-db.js 신규 (ReferenceDB 모듈)
+- 16개 업종 벤치마크 준거 데이터 (한국은행 기업경영분석 2023, 소상공인진흥공단 2023, 통계청 기업생멸통계 2023)
+- 업종별 핵심 재무 지표: 영업이익률·부채비율·매출성장률·3/5년 생존율·디지털화율
+- 업종별 특화 KPI: 건설(수주성공률·원가초과율·외주비율), IT(이탈률·가동률·RFP수주율), 외식(식재료비율·좌석회전율·1인건비), 제조(설비가동률·불량률·납기준수율), 의료(재방문율·비급여비율·예약완료율) 등
+- `buildPromptBlock(industryKey)`: AI 프롬프트용 구조화 텍스트 자동 생성
+- `getBench(industryKey)`: 원시 벤치마크 객체 반환
+- `evalMargin(industryKey, actual)`: 실제값 vs 벤치마크 수준 평가 (high/ok/warn/danger)
+
+#### js/ai-engine.js buildPrompt() 통합
+- 섹션9 추가: `ReferenceDB.buildPromptBlock()` 호출 → AI가 실제 업종 평균 수치와 비교하여 진단·전략 제시
+- IndustryTrends(8-1) → GovSupport(8-2) → **ReferenceDB(9)** → buildCausalChain → _ctGuidance 순서
+
+#### buildCausalChain() — Chain of Consulting (이전 세션 완료)
+- 5개 도메인 점수 + 업종×BM 패턴으로 인과관계 내러티브 자동 생성
+- 건설(흑자도산 구조), IT/SaaS(ARR 누적 실패), 외식(박마진×운영취약), 물류(고정비×공차율), 의료·교육·생활서비스(재방문율 붕괴) 등 특화 시나리오
+
+---
 
 ### consultingType 사전계산 + 진단유형별 솔루션 특화
 
