@@ -148,6 +148,7 @@ const App = (() => {
     const bizDesc     = document.getElementById('aiBusinessDesc')?.value || '';
     const bizScale    = document.getElementById('bizScale')?.value || 'micro';
     Wizard.loadDiagnosisUI(industryKey);
+    Wizard.updateRiskPlaceholder(industryKey);
     Wizard.goStep(2);
     // Step 2 상단에 맥락 미니배너 표시
     const mini = document.getElementById('biz-context-mini');
@@ -157,10 +158,10 @@ const App = (() => {
     }
   }
 
-  /* Step 1으로 복귀 */
+  /* Step 1으로 복귀 — reset()으로 step1 명시적 표시 (goStep(1)은 curStep===1이면 hidden 해제 안 됨) */
   function backToStep1() {
     document.getElementById('biz-context').classList.add('hidden');
-    Wizard.goStep(1);
+    Wizard.reset();
   }
 
   /* 레거시 호환 — 더 이상 사용 안 함 */
@@ -185,7 +186,7 @@ const App = (() => {
 
   /* ── ANALYSIS ── */
   async function runAnalysis() {
-    if (!Wizard.validate(3)) return;
+    if (!Wizard.validate(4)) return;
 
     // STEP 4 API 키 입력란에서 키 읽기
     const wizKeyEl = document.getElementById('wizApiKey');

@@ -1222,18 +1222,18 @@
 
     <!-- Step 4: 문제/목표/리스크 -->
     <div id="step4" class="wiz-card hidden">
-      <h3 class="serif">🎯 목표 및 실행 조건 <span class="step-badge">STEP 4 / 4</span></h3>
+      <h3 class="serif">🎯 목표 및 실행 조건 <span class="step-badge">STEP 3 / 3</span></h3>
       <div class="form-grid">
 
         <!-- ① 문제와 목표 -->
         <div class="wiz-section-title">🚨 현재 문제 및 목표</div>
         <div class="form-group full">
           <label>현재 직면한 핵심 문제 *<span class="field-check">✓</span></label>
-          <textarea id="problems" placeholder="예: 신규 고객 유치 비용이 월 200만원인데 전환율 3%에 그침. 기존 고객 해지율 월 8%로 매출이 정체 중. 영업 담당자 1명이 전체 매출 60% 담당해 리스크 큼"></textarea>
+          <textarea id="problems" placeholder="예: 신규 고객이 없어 지인 소개에만 의존하고 있음. 매출은 있는데 월말마다 자금이 부족함. 혼자 영업·운영·회계까지 모두 담당해 체력 한계. 매출의 80%가 단골 2~3명에 집중돼 리스크 큼"></textarea>
         </div>
         <div class="form-group full">
           <label>달성하고 싶은 목표 *<span class="field-check">✓</span></label>
-          <textarea id="goals" placeholder="예: 12개월 내 MRR 500만원→2000만원 달성. 해지율 8%→3% 이하 유지. 영업 채널 3개 이상 다각화"></textarea>
+          <textarea id="goals" placeholder="예: 6개월 내 월 매출 2,000만원 달성. 신규 고객 월 10명 이상 유입 구조 만들기. 직원 1명 채용해 대표 혼자 일하는 구조 탈피. 재방문율 60% 이상 유지"></textarea>
         </div>
         <div class="form-group">
           <label>목표 달성 기간</label>
@@ -1258,12 +1258,13 @@
         <!-- ② 리스크 및 제약 -->
         <div class="wiz-section-title">⚠️ 리스크 및 제약 조건</div>
         <div class="form-group full">
-          <label>최대 리스크 요인 (외부 환경)</label>
-          <textarea id="externalRisk" placeholder="예: 내년 중 대형 경쟁사가 저가 요금제 출시 예정. 개인정보보호법 강화로 마케팅 데이터 활용 제한 가능. 경기 침체로 IT 투자 예산 삭감 우려"></textarea>
+          <label>우리 사업의 가장 큰 외부 위협은 무엇인가요?</label>
+          <p class="hint" style="margin-bottom:6px">임대료·원가·경쟁·규제·인력 등 내가 통제할 수 없는 외부 요인을 적어주세요. AI가 업종별 대응 전략을 제안합니다.</p>
+          <textarea id="externalRisk" placeholder="예: 근처에 동종 업체가 새로 생겼음. 원자재 가격이 30% 올랐음. 최저임금 인상으로 인건비 부담이 커짐. 건물 임대료 계약 만료가 다가옴"></textarea>
         </div>
         <div class="form-group">
           <label>핵심 파트너십 / 협력사</label>
-          <input type="text" id="partnerships" placeholder="예: 회계법인 A사 제휴, 벤더 파트너 5개사, AWS 파트너" />
+          <input type="text" id="partnerships" placeholder="예: 단골 거래처 3곳, 납품 공급사 A업체, 세무사 B씨 (없으면 공란)" />
           <p class="hint">현재 사업에 도움이 되는 파트너·협력사·플랫폼 (없으면 공란)</p>
         </div>
         <div class="form-group full">
@@ -1301,11 +1302,11 @@
         <div class="wiz-section-title">📝 추가 참고사항</div>
         <div class="form-group full">
           <label>기타 참고사항</label>
-          <textarea id="notes" placeholder="예: 최근 시리즈A 투자 유치 완료(5억원). 신제품 출시 3개월 내 예정. 해외 진출(동남아) 검토 중. 공동창업자 간 역할 분리 필요"></textarea>
+          <textarea id="notes" placeholder="예: 대표자 혼자 영업·운영·회계 모두 담당 (원맨 구조). 핵심 직원 1명 곧 퇴사 예정. 올해 매장 이전 또는 리모델링 계획 있음. 가족 경영으로 역할 분리 불명확. 사장님 없으면 가게가 안 돌아가는 구조. 특정 단골 2~3명이 매출의 절반 이상"></textarea>
         </div>
       </div>
       <div class="wiz-nav">
-        <button class="btn btn-ghost" onclick="App.goStep(3)">← 이전</button>
+        <button class="btn btn-ghost" onclick="App.goStep(2)">← 이전</button>
         <button class="btn btn-gold" onclick="App.runAnalysis()">AI 분석 시작 →</button>
       </div>
       <!-- API 키 입력 (선택) — 버튼 아래 배치 -->
@@ -1595,26 +1596,26 @@
 <script src="js/industry-trends.js"></script>
 <script src="js/ai-engine.js"></script>
 <script src="js/dashboard.js"></script>
-<script src="js/wizard.js?v=20260428"></script>
-<script src="js/diagnosis/common.js?v=20260428"></script>
-<script src="js/diagnosis/industry/mfg_parts.js?v=20260428"></script>
-<script src="js/diagnosis/industry/food_mfg.js?v=20260428"></script>
-<script src="js/diagnosis/industry/local_service.js?v=20260428"></script>
-<script src="js/diagnosis/industry/wholesale.js?v=20260428"></script>
-<script src="js/diagnosis/industry/restaurant.js?v=20260428"></script>
-<script src="js/diagnosis/industry/knowledge_it.js?v=20260428"></script>
-<script src="js/diagnosis/industry/construction.js?v=20260428"></script>
-<script src="js/diagnosis/industry/medical.js?v=20260428"></script>
-<script src="js/diagnosis/industry/finance.js?v=20260428"></script>
-<script src="js/diagnosis/industry/education.js?v=20260428"></script>
-<script src="js/diagnosis/industry/fashion.js?v=20260428"></script>
-<script src="js/diagnosis/industry/media.js?v=20260428"></script>
-<script src="js/diagnosis/industry/export_sme.js?v=20260428"></script>
-<script src="js/diagnosis/industry/logistics.js?v=20260428"></script>
-<script src="js/diagnosis/industry/energy.js?v=20260428"></script>
-<script src="js/diagnosis/industry/agri_food.js?v=20260428"></script>
-<script src="js/app.js?v=20260428"></script>
-<script src="js/finance-wizard.js?v=20260428"></script>
+<script src="js/wizard.js?v=20260429"></script>
+<script src="js/diagnosis/common.js?v=20260429"></script>
+<script src="js/diagnosis/industry/mfg_parts.js?v=20260429"></script>
+<script src="js/diagnosis/industry/food_mfg.js?v=20260429"></script>
+<script src="js/diagnosis/industry/local_service.js?v=20260429"></script>
+<script src="js/diagnosis/industry/wholesale.js?v=20260429"></script>
+<script src="js/diagnosis/industry/restaurant.js?v=20260429"></script>
+<script src="js/diagnosis/industry/knowledge_it.js?v=20260429"></script>
+<script src="js/diagnosis/industry/construction.js?v=20260429"></script>
+<script src="js/diagnosis/industry/medical.js?v=20260429"></script>
+<script src="js/diagnosis/industry/finance.js?v=20260429"></script>
+<script src="js/diagnosis/industry/education.js?v=20260429"></script>
+<script src="js/diagnosis/industry/fashion.js?v=20260429"></script>
+<script src="js/diagnosis/industry/media.js?v=20260429"></script>
+<script src="js/diagnosis/industry/export_sme.js?v=20260429"></script>
+<script src="js/diagnosis/industry/logistics.js?v=20260429"></script>
+<script src="js/diagnosis/industry/energy.js?v=20260429"></script>
+<script src="js/diagnosis/industry/agri_food.js?v=20260429"></script>
+<script src="js/app.js?v=20260429"></script>
+<script src="js/finance-wizard.js?v=20260429"></script>
 <script src="js/ticker.js"></script>
 <script src="js/hero-canvas.js"></script>
 </body>

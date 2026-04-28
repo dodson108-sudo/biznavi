@@ -1656,5 +1656,32 @@ const Wizard = (() => {
     container.innerHTML = html;
   }
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI };
+  /* ── 업종별 외부 리스크 placeholder 동적 업데이트 ── */
+  const _RISK_PLACEHOLDER = {
+    local_service: '예: 임대료 계약 만료 임박 (집주인 인상 요구). 최저임금 인상으로 알바 인건비 부담. 근처에 동종 프랜차이즈 새로 입점. 매출의 대부분이 단골 3~5명에 집중',
+    restaurant:    '예: 식재료 원가 급등 (채소·육류 30% 이상 상승). 배달 플랫폼 수수료 인상 (15%→20%). 주변 신규 음식점 대거 오픈. 건물 임대료 계약 만료 예정',
+    wholesale:     '예: 주요 납품처 1~2곳에 매출 집중 (거래 중단 시 위기). 유통 플랫폼 수수료 인상. 중국산 저가 경쟁 제품 유입. 환율 변동으로 수입 원가 상승',
+    construction:  '예: 자재비 급등 (철근·시멘트 가격 상승). 인건비 상승으로 공사 원가 압박. 중대재해처벌법 강화로 안전 관리 비용 증가. 발주처 공사 지연으로 기성금 회수 차질',
+    knowledge_it:  '예: 핵심 개발자·전문인력 이직으로 유출 위험. AI 도구 확산으로 서비스 차별화 약화. 대형 IT기업의 유사 서비스 무료화. 프로젝트 수주 불규칙으로 매출 변동 심함',
+    mfg_parts:     '예: 원자재(금속·수지) 가격 급등. 중국산 저가 경쟁 제품 유입. 주요 납품처 1~2곳에 의존 (단가 인하 압력). 장비 노후화로 불량률 증가 우려',
+    food_mfg:      '예: 식품 원재료 가격 급등. HACCP 인증 갱신 및 위생 점검 강화. 유통기한 관리 실수로 반품·리콜 리스크. 대형마트·편의점 납품 단가 인하 압력',
+    medical:       '예: 비급여 수가 인하 또는 급여화 전환. 의료광고 규제 강화로 마케팅 제한. 핵심 의료진 이직·개원으로 인력 공백. 근처 의료기관 신규 개원으로 경쟁 심화',
+    finance:       '예: 금융 당국 규제 강화 (대부업법·금소법 개정). 고금리 지속으로 대출 수요 감소. 핀테크 플랫폼의 시장 잠식. 연체율 상승으로 대손 충당금 부담 증가',
+    education:     '예: 학령인구 감소로 수강생 모집 어려움. 유튜브·클래스101 등 무료·저가 콘텐츠와 가격 경쟁. 스타 강사 이직 또는 독립 개원. 정부 공공 교육기관 무료 프로그램 확대',
+    fashion:       '예: 시즌 재고 소진 실패로 자금 압박. 알리·테무 등 중국 직구 저가 경쟁 심화. 트렌드 변화 속도 빨라 재고 기획 미스 위험. 원단·부자재 가격 상승',
+    media:         '예: SNS 알고리즘 변경으로 노출량 급감. 광고 단가 하락 (CPC·CPM 감소). AI 생성 콘텐츠 확산으로 차별화 약화. 구독자·시청자 이탈로 수익 불안정',
+    logistics:     '예: 유류비 급등으로 운송 원가 상승. 화물 단가 인하 압력 (대형 물류기업 진입). 운전 인력 부족 및 인건비 상승. 차량 노후화에 따른 유지보수 비용 증가',
+    energy:        '예: 정부 보조금 정책 변경 또는 축소. 계통연계 대기 기간 장기화. 태양광 패널 가격 경쟁 심화 (중국산). 인허가 지연으로 사업 일정 차질',
+    agri_food:     '예: 기후변화로 원물 수급 불안정 (작황 부진). 수입 농산물 가격 경쟁 심화. GAP·HACCP 인증 유지 비용 부담. 유통채널 납품 단가 인하 압력',
+    export_sme:    '예: 환율 변동 (원화 강세 시 수출 채산성 악화). 바이어 1~2곳 집중으로 납품 중단 리스크. 수출 대상국 규제·인증 변경 (CE·FDA 갱신). 중국·동남아 경쟁 업체 저가 공세'
+  };
+
+  function updateRiskPlaceholder(industryKey) {
+    const el = document.getElementById('externalRisk');
+    if (!el) return;
+    const ph = _RISK_PLACEHOLDER[industryKey];
+    if (ph) el.placeholder = ph;
+  }
+
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };
 })();
