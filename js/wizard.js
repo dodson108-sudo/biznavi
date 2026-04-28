@@ -1127,7 +1127,14 @@ const Wizard = (() => {
   function prevDiagTab() {
     const currentIndex = TAB_ORDER.indexOf(curDiagTab);
     if (currentIndex === 0) {
-      goStep(1);
+      // 첫 탭에서 이전 → biz-context 확인 화면으로 복귀 (Step1 폼이 아님)
+      const step2El = document.getElementById('step2');
+      if (step2El) step2El.classList.add('hidden');
+      const bcEl = document.getElementById('biz-context');
+      if (bcEl) bcEl.classList.remove('hidden');
+      const mini = document.getElementById('biz-context-mini');
+      if (mini) mini.classList.add('hidden');
+      window.scrollTo(0, 0);
     } else {
       const prevTab = TAB_ORDER[currentIndex - 1];
       switchDiagTab(prevTab);
@@ -1307,6 +1314,40 @@ const Wizard = (() => {
     };
   }
 
+  /* ── 5대 역량 도메인 해설 ── */
+  const DOMAIN_EXPLAIN = {
+    finance: {
+      icon: '💰',
+      what: '매출 성장성·수익률·원가 관리·현금흐름을 진단한 결과입니다.',
+      high: '수익 구조가 안정적입니다. 이익을 성장 투자와 비상 자금 확보에 균형 있게 배분하세요.',
+      low:  '매출 대비 이익률이 낮거나 자금 관리에 취약점이 있습니다. 손익분기점(BEP) 파악과 고정비 절감이 1순위입니다.'
+    },
+    hr: {
+      icon: '👥',
+      what: '조직 운영·직원 역량·채용·교육 훈련 수준을 측정한 결과입니다.',
+      high: '인력 운영이 안정적입니다. 핵심 직원 이탈 방지 체계를 갖추고 역할 분리를 더욱 명확히 하세요.',
+      low:  '대표자 혼자 모든 업무를 담당하거나 인력 역량 개발이 부족합니다. 업무 매뉴얼화와 권한 위임이 성장의 전제 조건입니다.'
+    },
+    bm: {
+      icon: '📈',
+      what: '고객 획득·재구매율·수익 모델의 다양성과 지속 가능성을 진단한 결과입니다.',
+      high: '고객 확보와 수익 모델이 안정적으로 작동하고 있습니다. 채널 다각화로 매출 집중 리스크를 줄이세요.',
+      low:  '신규 고객 유입이 제한적이거나 특정 고객·채널에 매출이 집중되어 있습니다. 고객 확보 채널 다각화가 시급합니다.'
+    },
+    future: {
+      icon: '🔮',
+      what: '디지털 도구 활용 수준·시장 트렌드 대응력·신사업 준비도를 측정한 결과입니다.',
+      high: '변화에 민감하게 대응하고 있습니다. 현재 디지털 역량을 고객 경험 향상과 운영 효율화에 더욱 연결하세요.',
+      low:  '업종 트렌드 변화에 대응이 늦거나 디지털 전환이 미흡합니다. 단계적 디지털화 계획 수립이 필요합니다.'
+    },
+    differentiation: {
+      icon: '⚡',
+      what: '경쟁사 대비 독자적 강점·모방하기 어려운 요소·고객이 반복 선택하는 이유를 진단한 결과입니다.',
+      high: '명확한 차별화 요소를 보유하고 있습니다. 이를 핵심 마케팅 메시지로 일관되게 전달하면 더 효과적입니다.',
+      low:  '경쟁사 대비 차별점이 불명확합니다. 고객이 우리를 반복 선택하는 진짜 이유를 발굴하고 강화하는 것이 성장 핵심입니다.'
+    }
+  };
+
   /* ── 진단유형 확인 화면 렌더링 ── */
   function showDiagReveal(data) {
     const scores = data.diagScores || diagScores;
@@ -1332,6 +1373,25 @@ const Wizard = (() => {
           '<span class="dr-score-label">' + d.label + '</span>' +
           '<div class="dr-score-bar-wrap"><div class="dr-score-bar ' + cls + '" style="width:' + pct + '%"></div></div>' +
           '<span class="dr-score-val ' + cls + '">' + (d.avg > 0 ? d.avg.toFixed(1) : '—') + ' <small>' + lbl + '</small></span>' +
+          '</div>';
+      }).join('');
+    }
+
+    // 도메인별 해설 카드 채우기
+    const elGuide = document.getElementById('drDomainGuide');
+    if (elGuide) {
+      elGuide.innerHTML = Object.entries(domainScores).map(function(pair) {
+        var key = pair[0], d = pair[1];
+        if (d.avg === 0) return '';
+        var info = DOMAIN_EXPLAIN[key] || {};
+        var isLow = d.avg < 3.0;
+        var cls = d.avg >= 4 ? 'guide-high' : d.avg >= 3 ? 'guide-ok' : 'guide-low';
+        var statusIcon = d.avg >= 4 ? '✅' : d.avg >= 3 ? '📊' : '⚠️';
+        var msg = isLow ? (info.low || '') : (info.high || '');
+        return '<div class="dr-guide-item ' + cls + '">' +
+          '<div class="dr-guide-label">' + (info.icon || '') + ' ' + (d.label || key) + ' &nbsp;<small style="font-weight:400;opacity:.6">' + d.avg.toFixed(1) + '점</small></div>' +
+          '<div class="dr-guide-what">' + (info.what || '') + '</div>' +
+          '<div class="dr-guide-msg">' + statusIcon + ' ' + msg + '</div>' +
           '</div>';
       }).join('');
     }

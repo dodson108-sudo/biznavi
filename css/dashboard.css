@@ -212,6 +212,20 @@
 .diag-strong-pills{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
 .diag-strong-label{font-size:11px;font-weight:700;color:#4ADE80;margin-right:2px}
 
+/* 영역별 상세 분석 카드 */
+.diag-area-cards{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.diag-area-card{padding:14px 16px;border-radius:10px;border-left:3px solid rgba(255,255,255,.15);background:rgba(255,255,255,.03)}
+.diag-area-card.acard-high{border-left-color:#4ADE80}
+.diag-area-card.acard-ok  {border-left-color:#FACC15}
+.diag-area-card.acard-low {border-left-color:#FB923C}
+.dac-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.dac-label{font-size:0.85rem;font-weight:700;color:#E8EDF5}
+.dac-score{font-size:0.82rem}
+.dac-bar-wrap{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.dac-bar{height:100%;border-radius:3px;transition:width .6s ease}
+.dac-bar.high{background:#4ADE80}.dac-bar.mid{background:#FACC15}.dac-bar.low{background:#FB923C}.dac-bar.risk{background:#F87171}
+.dac-insight{font-size:0.82rem;color:rgba(255,255,255,.7);line-height:1.55;margin:0}
+
 @media(max-width:768px){
   .diag-dash-wrap{flex-direction:column}
   .diag-radar-wrap{width:100%;height:240px}

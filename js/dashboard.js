@@ -315,6 +315,46 @@ const Dashboard = (() => {
     });
   }
 
+  const AREA_INSIGHTS = {
+    '재무건전성': {
+      high: '매출 대비 수익률이 안정적입니다. 현재 원가 관리 수준을 유지하면서 잉여 수익을 성장 투자에 단계적으로 배분하세요.',
+      ok:   '재무 구조는 안정적이나 개선 여지가 있습니다. 월간 손익 리뷰를 정례화하고 고정비 구조를 점검하면 이익률을 높일 수 있습니다.',
+      low:  '매출 대비 이익이 낮거나 현금흐름이 불안정합니다. 손익분기점(BEP)을 명확히 파악하고, 비효율 지출을 정리하는 것이 최우선 과제입니다.'
+    },
+    '조직·인력': {
+      high: '인력 구조가 안정적입니다. 핵심 직원 이탈 방지를 위한 인센티브 체계와 권한 위임으로 대표 의존도를 지속적으로 낮추세요.',
+      ok:   '조직 운영은 양호하나, 대표 부재 시에도 운영이 가능한 업무 매뉴얼화가 필요합니다. 핵심 업무 3가지를 표준화하는 것부터 시작하세요.',
+      low:  '대표자 1인 의존도가 높거나 인력 역량 개발이 부족합니다. 핵심 업무 매뉴얼화와 단계적 권한 위임이 사업 성장의 전제 조건입니다.'
+    },
+    '고객·매출': {
+      high: '고객 유입과 재방문 구조가 탄탄합니다. 특정 채널 또는 단골에 대한 의존도를 확인하고, 채널 다각화로 리스크를 분산하세요.',
+      ok:   '고객 획득은 되고 있으나 재구매율 향상의 여지가 있습니다. 기존 고객 관리(문자·SNS·멤버십) 체계 강화를 우선 추진하세요.',
+      low:  '신규 고객 유입이 제한적이거나 특정 고객에 매출이 집중되어 있습니다. 즉각 고객 확보 채널(SNS·지역 커뮤니티·협력 네트워크)을 다각화하세요.'
+    },
+    '경영역량': {
+      high: '의사결정과 경영 정보 관리가 잘 되고 있습니다. 데이터 기반 의사결정을 더욱 정교화하고 KPI 모니터링 체계를 갖추세요.',
+      ok:   '경영 역량은 보통 수준입니다. 월간 목표를 숫자로 설정하고, 주간 점검 루틴을 도입하면 실행력이 눈에 띄게 향상됩니다.',
+      low:  '경영 계획이나 의사결정 체계가 미흡합니다. 핵심 지표 3개(매출·고객수·이익률)부터 매주 기록하는 습관을 만드세요.'
+    },
+    '업종특화 종합': {
+      high: '업종 핵심 역량이 강점입니다. 이 경쟁력을 마케팅 메시지에 더 적극적으로 담아 신규 고객에게 전달하세요.',
+      ok:   '업종 역량은 평균 수준입니다. 경쟁사 대비 귀사만의 차별점을 발굴하고, 이를 고객과의 접점에서 명확히 전달하세요.',
+      low:  '업종 핵심 역량에 취약점이 있습니다. 경쟁사가 갖추고 있는 기본 역량부터 체계적으로 강화해 나가는 로드맵이 필요합니다.'
+    },
+    '사업모델 종합': {
+      high: '수익 모델이 안정적으로 작동하고 있습니다. 반복 수익(재계약·구독·단골) 비중을 높여 매출 예측 가능성을 더욱 강화하세요.',
+      ok:   '수익 모델은 작동하고 있으나 다각화 여지가 있습니다. 기존 고객에게 추가 상품·서비스를 제안하는 업셀링을 검토해보세요.',
+      low:  '현재 수익 모델이 단순하거나 지속성이 낮습니다. 고객 1명당 생애 가치(LTV)를 높이는 구조(재구매·패키지·멤버십)로의 전환이 필요합니다.'
+    }
+  };
+
+  function _getAreaInsight(label, score) {
+    const tbl = AREA_INSIGHTS[label] || {};
+    if (score >= 4.0) return tbl.high || '';
+    if (score >= 3.0) return tbl.ok  || '';
+    return tbl.low || '';
+  }
+
   function renderWeakAreas(scores) {
     const banner = document.getElementById('weakBanner');
     if (!banner) return;
@@ -366,6 +406,25 @@ const Dashboard = (() => {
       });
       html += '</div>';
     }
+
+    // 영역별 상세 분석 카드
+    html += '<div class="diag-area-cards">';
+    allAreas.forEach(a => {
+      const cls    = a.score >= 4 ? 'acard-high' : a.score >= 3 ? 'acard-ok' : 'acard-low';
+      const bar    = Math.round((a.score / 5) * 100);
+      const lbl    = a.score >= 4 ? '강점' : a.score >= 3 ? '보통' : a.score >= 2 ? '취약' : '위험';
+      const clrCls = a.score >= 4 ? 'high' : a.score >= 3 ? 'mid' : a.score >= 2 ? 'low' : 'risk';
+      const insight = _getAreaInsight(a.label, a.score);
+      html += `<div class="diag-area-card ${cls}">
+        <div class="dac-header">
+          <span class="dac-label">${a.label}</span>
+          <span class="dac-score dr-score-val ${clrCls}">${a.score.toFixed(1)}점 <small>${lbl}</small></span>
+        </div>
+        <div class="dac-bar-wrap"><div class="dac-bar ${clrCls}" style="width:${bar}%"></div></div>
+        ${insight ? `<p class="dac-insight">${insight}</p>` : ''}
+      </div>`;
+    });
+    html += '</div>';
 
     banner.innerHTML = html;
   }
