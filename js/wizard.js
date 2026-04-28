@@ -1541,6 +1541,8 @@ const Wizard = (() => {
 
   function animateLoading() {
     const ids = ['ls1', 'ls2', 'ls3', 'ls4'];
+    // 각 스텝 대기 시간(ms): 웹검색~1차(긴 대기), 1차→2차(중간), 2차→완료(짧은 대기)
+    const delays = [3000, 5000, 5000];
     ids.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -1553,7 +1555,7 @@ const Wizard = (() => {
       first.querySelector('.ld-step-ico').textContent = '◌';
     }
     let i = 0;
-    const iv = setInterval(() => {
+    function advance() {
       const cur = document.getElementById(ids[i]);
       if (cur) {
         cur.classList.replace('active', 'done');
@@ -1566,10 +1568,10 @@ const Wizard = (() => {
           next.classList.add('active');
           next.querySelector('.ld-step-ico').textContent = '◌';
         }
-      } else {
-        clearInterval(iv);
+        if (i < delays.length) setTimeout(advance, delays[i - 1]);
       }
-    }, 700);
+    }
+    setTimeout(advance, delays[0]);
   }
 
   function reset() {
