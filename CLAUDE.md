@@ -1,10 +1,41 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-28 최신)
+## 배포 상태 (2026-04-29 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: UI 고도화 6개 항목 (diag-reveal 세로 레이아웃 + 도메인 해설 + 진단분석 강화)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: consultingType 사전계산 + 진단유형별 솔루션 특화 (digital_strategy 전면 특화)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-29)
+
+### consultingType 사전계산 + 진단유형별 솔루션 특화
+
+#### 핵심 버그 수정: consultingType 순서 역전 문제
+- **문제**: `showDiagReveal(data)` (AI 호출 후)에서 consultingType을 결정 → AI 프롬프트에 항상 `'미확인'`으로 전달
+- **수정 위치**: `app.js runAnalysis()` — `Wizard.collect()` 직후, AI 호출 전에 삽입
+  ```js
+  const _domScores = Wizard.calcDomainScores(data.diagScores || {});
+  const _ctResult  = Wizard.classifyConsultingType(_domScores);
+  data.consultingType = _ctResult?.primary || '';
+  data.consultingTypeSecondary = _ctResult?.secondary || '';
+  ```
+- **효과**: 진단 유형이 AI 프롬프트에 실제로 반영됨
+
+#### buildPrompt 강화: _ctGuidance() 헬퍼 추가 (ai-engine.js)
+- 컨설팅 유형별 상세 지침을 전체 프롬프트에 주입 (SWOT·keyStrategies·KPI·6시스템·90일플랜 전체 반영 지시)
+- 구현된 유형: `digital_strategy`, `finance_strategy`, `growth_strategy`, `differentiation_strategy`, `hr_strategy`, `marketing_strategy`
+
+#### fakeAnalysis 유형별 특화: _fakeByConsultingType() 추가 (ai-engine.js)
+- `digital_strategy`: keyStrategies(6개)·KPI(10개)·sixSystems(6개)·plan90days(3개) 전면 디지털 전환 특화
+  - CRM 도입·온라인 마케팅·업무 자동화·데이터 대시보드·디지털 판매 채널·디지털 역량 강화
+  - 각 sixSystem: 현재 아날로그 문제 → 디지털 도구명·비용 포함 즉시 실행 액션
+- `finance_strategy`: keyStrategies(6개) 재무 특화 (BEP·현금흐름·수익성·비용·자금조달·대시보드)
+- 구조: `Object.assign(base, _fakeByConsultingType(...))` — 반드시 마지막에 오버라이드
+
+#### 기타
+- `.diag-item-text` font-size: 14px → 16px (진단 질문 가독성 향상)
 
 ---
 
