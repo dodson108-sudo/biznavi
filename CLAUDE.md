@@ -1,10 +1,60 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-27 최신)
+## 배포 상태 (2026-04-28 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 경영전략 진단 문항 전면 리설계 (65문항 → 13문항)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: UI 고도화 6개 항목 (diag-reveal 세로 레이아웃 + 도메인 해설 + 진단분석 강화)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-28)
+
+### 위저드 흐름 버그 수정 + Step4 개선
+
+#### 버그 수정
+- **OCR 이미지 압축**: Canvas 기반 압축(max 1200px, JPEG 85%) → Vercel 4.5MB 제한 해결
+- **OCR maxDuration 45초** + AbortController 40초 타임아웃 추가
+- **개업연도 파싱**: 날짜형(20101116) → 앞 4자리만 사용 (wizard.js + analyze-biz.js)
+- **Step2 "이전" 버튼**: `goStep(1)` → biz-context 확인 화면으로 복귀 (`prevDiagTab()` 수정)
+- **"정보 수정" 빈화면**: `Wizard.goStep(1)` → `Wizard.reset()` 호출로 수정 (`app.js backToStep1()`)
+- **validate 오류**: `validate(3)` → `validate(4)` (Step3 제거된 새 흐름 반영)
+- **Step4 "이전" 버튼**: `App.goStep(3)` → `App.goStep(2)` 수정
+
+#### Step4 개선
+- **업종별 리스크 placeholder**: `Wizard.updateRiskPlaceholder(industryKey)` — 16개 업종 각각 맞춤 예시 자동 적용
+- **기타참고사항**: 소상공인 실정에 맞는 예시 텍스트 (원맨구조, 핵심직원 퇴사 등)
+- **notes 필드**: placeholder → 라벨 아래 p.hint로 항상 표시
+
+### UI 고도화 6개 항목
+
+#### 1. diag-reveal 세로 레이아웃 전환
+- 2열 가로(레이더+유형) → 3섹션 세로 스크롤
+- 섹션1: 📊 5대 역량 프로파일 (레이더 차트 + 점수 바 + **도메인별 해설 카드**)
+  - 각 도메인: 무엇을 측정하는지 + 현재 점수에 따른 구체적 조언
+  - `DOMAIN_EXPLAIN` 상수 (wizard.js) + `#drDomainGuide` DOM 주입
+- 섹션2: 🎯 진단 컨설팅 유형 (설명 텍스트 포함)
+- 섹션3: 💡 제안 솔루션 미리보기 (설명 텍스트 포함)
+
+#### 2. 경영진단 분석 강화 (dashboard.js)
+- 기존: 점수 pill + 취약 경고 배지
+- 추가: **영역별 상세 분석 카드** (`AREA_INSIGHTS` + `diag-area-cards`)
+  - 재무건전성/조직·인력/고객·매출/경영역량/업종특화/사업모델 각각
+  - 점수 구간(high/ok/low)별 구체적 유지·개선 방향 제안 문장
+
+#### 3. fakeAnalysis 요약 개선 (ai-engine.js)
+- 기존: 입력값 단순 삽입
+- 개선: 진단 점수 분석 → 취약 영역·강점 영역 명시 + 3단계 로드맵 방향 제시
+
+#### 4. 기타 UI 개선
+- step-badge 폰트: 11px → 13px (모든 스텝 통일)
+- 기타참고사항: placeholder → p.hint 라벨 아래 항상 표시
+
+#### 다음 세션 예정 작업
+- 테스트 후 버그 수정
+- AI 분석 2회 호출 분할 (1차: 진단·전략방향, 2차: 실행플랜)
+- 소상공인/소기업 출력 분리 강화
+- OCR 추가 안정화 테스트
 
 ---
 
@@ -22,16 +72,6 @@
 - **BM 진단 탭 제거**: `TAB_ORDER = ['common', 'industry']` 2탭으로 단순화
   - BM은 추론으로만 사용(UI에서 탭 제거)
 - **총 진단 문항**: 65문항 → 13문항 (공통 8 + 업종 5)
-
-#### 품질 보장 근거
-- 수치 기반 질문(불량률·재구매율·원가율 등)은 BARS 10개보다 변별력 높음
-- 형식적 3점 응답이 줄어 AI 분석 정확도 향상
-- 업종별 가장 중요한 핵심 지표만 남겨 완주율 대폭 향상 예상
-
-#### 다음 세션 예정 작업
-- AI 분석 2회 호출 분할 (1차: 진단·전략방향, 2차: 실행플랜)
-- 소상공인/소기업 출력 분리 강화
-- 사업자등록증 OCR 수정 (api/ocr-scan.js)
 
 ---
 
