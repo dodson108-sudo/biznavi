@@ -833,6 +833,14 @@ ${ (typeof GovSupport !== 'undefined') ? (() => {
 ${block}
 ` : '';
 })() : '' }
+${ (typeof ReferenceDB !== 'undefined') ? (() => {
+  const block = ReferenceDB.buildPromptBlock(d.industryKey || d.industry);
+  return block ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. 업종 벤치마크 준거 데이터 (반드시 이 수치와 비교하여 분석할 것)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${block}` : '';
+})() : '' }
 ${buildCausalChain(d, d.domainScores || {})}
 ${_ctGuidance(d.consultingType)}
 [분석 지침]
