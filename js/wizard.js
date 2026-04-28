@@ -380,6 +380,39 @@ const Wizard = (() => {
   /* ═══════════════════════════════════════════════════════════
      OCR: 사업자등록증 이미지 → 자동입력
   ═══════════════════════════════════════════════════════════ */
+  /* 이미지 → JPEG 압축 (최대 1200px, 85%) → base64 반환 */
+  function _compressImage(file) {
+    return new Promise(function(resolve) {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = function() {
+        const MAX = 1200;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else        { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(function(blob) {
+          const reader = new FileReader();
+          reader.onloadend = function() { resolve(reader.result.split(',')[1]); };
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.85);
+      };
+      img.onerror = function() {
+        URL.revokeObjectURL(url);
+        // 압축 실패 시 원본 그대로 사용
+        const r = new FileReader();
+        r.onloadend = function() { resolve(r.result.split(',')[1]); };
+        r.readAsDataURL(file);
+      };
+      img.src = url;
+    });
+  }
+
   function handleOcrUpload(input) {
     const file = input.files[0];
     if (!file) return;
@@ -388,28 +421,37 @@ const Wizard = (() => {
     const previewEl = document.getElementById('ocrPreview');
 
     statusEl.className = 'biz-lookup-status biz-status-loading';
-    statusEl.textContent = '⏳ 이미지 인식 중...';
+    statusEl.textContent = '⏳ 이미지 압축 및 인식 중... (최대 40초)';
     statusEl.classList.remove('hidden');
-    previewEl.classList.add('hidden');
+    if (previewEl) previewEl.classList.add('hidden');
 
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      // base64에서 data:image/...;base64, 접두사 제거
-      const base64 = e.target.result.split(',')[1];
+    // 비동기 처리 (압축 → OCR)
+    (async function() {
+      let base64;
+      try {
+        base64 = await _compressImage(file);
+      } catch(e) {
+        const r = new FileReader();
+        r.onloadend = function() { base64 = r.result.split(',')[1]; };
+        r.readAsDataURL(file);
+        await new Promise(res => setTimeout(res, 100));
+      }
 
-      // 30초 타임아웃
+      // 40초 타임아웃
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
+      const timeout = setTimeout(() => controller.abort(), 40000);
 
       try {
         const res = await fetch('/api/ocr-scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64 }),
+          body: JSON.stringify({ imageBase64: base64, mimeType: 'image/jpeg' }),
           signal: controller.signal
         });
         clearTimeout(timeout);
-        const data = await res.json();
+        let data;
+        try { data = await res.json(); }
+        catch(e) { throw new Error('서버 응답 파싱 오류 (status: ' + res.status + ')'); }
 
         if (data.status === 'no_key') {
           statusEl.className = 'biz-lookup-status biz-status-warn';
@@ -444,11 +486,10 @@ const Wizard = (() => {
         clearTimeout(timeout);
         statusEl.className = 'biz-lookup-status biz-status-err';
         statusEl.textContent = err.name === 'AbortError'
-          ? '⏱ OCR 시간 초과 (30초). 직접 입력해주세요.'
+          ? '⏱ OCR 시간 초과 (40초). 직접 입력해주세요.'
           : 'OCR 처리 중 오류가 발생했습니다. 직접 입력해주세요.';
       }
-    };
-    reader.readAsDataURL(file);
+    })();
   }
 
   /* ═══════════════════════════════════════════════════════════

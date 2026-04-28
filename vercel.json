@@ -6,7 +6,7 @@
     "api/dart-lookup.js": { "regions": ["icn1"], "maxDuration": 45 },
     "api/bok-avg.js":     { "regions": ["icn1"] },
     "api/biz-lookup.js":  { "regions": ["icn1"] },
-    "api/ocr-scan.js":    { "regions": ["icn1"] },
+    "api/ocr-scan.js":    { "regions": ["icn1"], "maxDuration": 45 },
     "api/analyze-biz.js": { "regions": ["icn1"] }
   },
   "headers": [
