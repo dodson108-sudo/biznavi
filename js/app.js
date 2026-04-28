@@ -211,6 +211,7 @@ const App = (() => {
     const _ctResult  = Wizard.classifyConsultingType(_domScores);
     data.consultingType          = _ctResult?.primary   || '';
     data.consultingTypeSecondary = _ctResult?.secondary || '';
+    data.domainScores            = _domScores;
     show('loading');
     Wizard.animateLoading();
     try {
