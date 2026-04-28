@@ -206,6 +206,11 @@ const App = (() => {
     }
 
     const data = Wizard.collect();
+    // consultingType을 AI 호출 전에 미리 계산 — 프롬프트에 반영되도록
+    const _domScores = Wizard.calcDomainScores(data.diagScores || {});
+    const _ctResult  = Wizard.classifyConsultingType(_domScores);
+    data.consultingType          = _ctResult?.primary   || '';
+    data.consultingTypeSecondary = _ctResult?.secondary || '';
     show('loading');
     Wizard.animateLoading();
     try {
@@ -215,8 +220,7 @@ const App = (() => {
       // 분석 결과 보관 → diag-reveal 화면으로 이동
       _pendingResult = result;
       _pendingIsDemo = (mode === 'demo' || !apiKey);
-      const revealInfo = Wizard.showDiagReveal(data);
-      data.consultingType = revealInfo?.primary || '';
+      Wizard.showDiagReveal(data);
       _pendingData = data;
       show('diag-reveal');
     } catch (e) {
