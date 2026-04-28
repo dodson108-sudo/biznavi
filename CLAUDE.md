@@ -2,13 +2,32 @@
 
 ## 배포 상태 (2026-04-29 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: reference-db.js — 16개 업종 벤치마크 준거 데이터 + AI 프롬프트 통합
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: Phase 2 — Claude web_search 실시간 데이터 연동
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-29)
+
+### Phase 2: Claude web_search 실시간 데이터 연동 (배포 완료)
+
+#### api/claude-analyze.js (신규) — Vercel 서버사이드 Claude API 프록시
+- `web_search_20250305` 도구 포함 — Anthropic이 실시간 웹 검색을 서버에서 실행
+- 모델 `claude-sonnet-4-6` 으로 업그레이드 (knowledge cutoff Aug 2025, 기존 Oct 2024 → +10개월)
+- 다중 턴 처리 루프 (stop_reason: 'tool_use' 시 tool_result로 응답 반복, 최대 10턴)
+- `maxDuration: 60초` (웹 검색 포함 시 응답 지연 대비)
+
+#### js/ai-engine.js callClaude() 전환
+- 기존: 브라우저 → Anthropic API 직접 (CORS 우회 헤더 의존)
+- 변경: 브라우저 → `/api/claude-analyze` → Anthropic API (서버사이드 프록시)
+
+#### js/ai-engine.js buildPrompt() 섹션10 추가 — 웹 검색 지시어
+- 업종 2025~2026 시장 동향 검색 → SWOT 기회·위협에 직접 반영
+- 경쟁사 현황 검색 → 포지셔닝·차별화 전략에 반영
+- 정부지원사업 2025 검색 → 로드맵에 지원사업 신청 일정 포함
+
+---
 
 ### Reference DB + Chain of Consulting 통합 (배포 완료)
 
