@@ -2,13 +2,51 @@
 
 ## 배포 상태 (2026-04-29 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: Phase 2 — Claude web_search 실시간 데이터 연동
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: _fakeByConsultingType 5개 유형 특화 완료 (fdd22ef)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-29)
+
+### _fakeByConsultingType 전체 유형 특화 완료 (배포 완료)
+
+#### js/ai-engine.js 수정
+- `finance_strategy`: kpi(10개)·sixSystems(6개)·plan90days(3개) 추가 (기존 keyStrategies만 있었음)
+- `differentiation_strategy` (신규): USP·해자(Moat)·ROI증명·니치시장 전략 + 완전한 실행 데이터
+- `marketing_strategy` (신규): StoryBrand·콘텐츠 루틴·리드육성·디지털채널 최적화 + 완전한 실행 데이터
+- `hr_strategy` (신규): R&R 명확화·매뉴얼화·성과체계·채용·eNPS + 완전한 실행 데이터
+- `pivot_strategy` (신규): 현황진단·잔존역량·런웨이 확보·MVP검증·재피벗 + 완전한 실행 데이터
+- 모든 유형: keyStrategies(6개)·kpi(10개)·sixSystems(6개)·plan90days(3개) 완전 구성
+
+#### 현재 미완성 (growth_strategy, structure_strategy, innovation_strategy, cx_strategy)
+- 위 4개 유형은 여전히 `return {}` — 기본 fakeAnalysis 데이터로 표시됨
+
+---
+
+### Phase 3: AI 분석 2회 호출 분할 (배포 완료)
+
+#### js/ai-engine.js 구조 변경
+- `buildPrompt()` → `buildPrompt1()`: 1차 호출 사용자 프롬프트 (SWOT·전략 6개 섹션)
+  - 끝에 "★ 1차 호출 응답 범위" 지시어 추가 → kpi/roadmap/sixSystems 제외 강제
+- `buildPrompt2(d, r1)` 신규: 2차 호출 사용자 프롬프트
+  - r1.keyStrategies를 참조하여 KPI·로드맵이 전략과 일관성 유지
+  - _ctGuidance 포함, 웹검색 지시어 (정부지원사업 특화)
+- `_SYSTEM_EXEC` 신규: 2차 전용 시스템 프롬프트 (KPI·로드맵·6시스템·90일플랜·린캔버스 5개 JSON 템플릿)
+- `callClaude()` 재작성: 2회 순차 호출 + `Object.assign(result1, result2)` 병합
+  - `apiCall()` 헬퍼: /api/claude-analyze 공통 호출
+  - `extractJSON()` 헬퍼: JSON 파싱 로직 공통화
+
+#### 로딩 화면 업데이트 (index.html + wizard.js)
+- 스텝 텍스트: "SWOT 분석 중" → "1차 진단·전략 분석" / "KPI·실행플랜 작성 (2차)"
+- `animateLoading()`: 고정 700ms → 가변 딜레이 (3000/5000/5000ms — 실제 2회 API 호출 시간 반영)
+
+#### 효과
+- 8000 토큰을 전체 섹션에 분산 → 1차 4000+α (전략 깊이) + 2차 4000+α (실행 깊이)
+- 2차 호출이 1차 keyStrategies를 참고 → KPI·로드맵·6시스템이 전략과 일관성 유지
+
+---
 
 ### Phase 2: Claude web_search 실시간 데이터 연동 (배포 완료)
 
