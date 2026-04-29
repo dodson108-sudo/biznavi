@@ -72,6 +72,250 @@ const Wizard = (() => {
   // 탭 순서 정의
   const TAB_ORDER = ['common', 'industry'];
 
+  /* ================================================================
+     Dynamic Common Core — 업종별 공통 질문 문구 오버라이드 + 참고값
+     공통 8문항 중 업종에 따라 의미가 달라지는 항목의 텍스트·앵커 교체
+  ================================================================ */
+  const COMMON_WORDING_MAP = {
+    mfg_parts: {
+      '1_3': {
+        text: '주요 거래처(바이어)의 재발주율은 얼마나 됩니까? — 거래처가 이탈하면 수주 공백이 생기므로 핵심 지표입니다.',
+        inputLabel: '재발주율 (%) — 모르면 아래 선택',
+        placeholder: '예: 70',
+        benchRef: { avg: 65, good: 80, label: '제조업 재발주율 평균', src: '소상공인진흥공단 2023' },
+        anchors: {
+          1: '🔴 1점 — 재발주 30% 미만. 신규 수주만 의존. 거래처 이탈 위험.',
+          2: '🟠 2점 — 재발주 30~50%. 단가 협상마다 이탈 위험.',
+          3: '🟡 3점 — 재발주 50~70%. 2~3개 핵심 거래처 의존.',
+          4: '🟢 4점 — 재발주 70%+. 장기 단가 계약 확보.',
+          5: '🟢 5점 — 재발주 85%+. VMI/캔반 연동 또는 연간 계약.'
+        }
+      },
+      '1_2': { benchRef: { avg: 6.0, good: 10, label: '제조업 영업이익률 평균', src: '한국은행 기업경영분석 2023' } },
+      '1_1': { benchRef: { avg: 4.5, good: 10, label: '제조업 매출성장률 평균', src: '한국은행 기업경영분석 2023' } }
+    },
+    food_mfg: {
+      '1_3': {
+        text: '주요 거래처(유통사·바이어)의 재발주율 또는 단골 소비자 재구매율은 어느 수준입니까?',
+        inputLabel: '재발주·재구매율 (%) — 모르면 아래 선택',
+        placeholder: '예: 55',
+        benchRef: { avg: 55, good: 75, label: '식품제조 재주문율 평균', src: '소상공인진흥공단 2023' },
+        anchors: {
+          1: '🔴 1점 — 30% 미만. 일회성 납품·시식 판촉 위주.',
+          2: '🟠 2점 — 30~50%. 재발주 불안정. 납품단가 압박 심함.',
+          3: '🟡 3점 — 50~70%. 유통 거래처 일부 고정화.',
+          4: '🟢 4점 — 70~85%. 장기 납품 계약·정기 발주 확보.',
+          5: '🟢 5점 — 85%+. OEM 연간 계약 또는 전속 납품 구조.'
+        }
+      },
+      '1_2': { benchRef: { avg: 5.5, good: 9, label: '식품제조 영업이익률 평균', src: '한국은행 기업경영분석 2023' } }
+    },
+    restaurant: {
+      '1_3': {
+        text: '재방문 손님의 비율과 재방문 주기는 어느 수준입니까? — 단골 1명이 신규 1명보다 마케팅 비용이 7배 저렴합니다.',
+        inputLabel: '재방문율 (%) — 모르면 아래 선택',
+        placeholder: '예: 45',
+        benchRef: { avg: 40, good: 60, label: '외식 단골 재방문율 평균', src: '소상공인진흥공단 2023' },
+        anchors: {
+          1: '🔴 1점 — 재방문 거의 없음. 매번 신규 유입에만 의존.',
+          2: '🟠 2점 — 재방문 20~30%. 월 1회 이하. 기억에 남지 않는 수준.',
+          3: '🟡 3점 — 재방문 30~50%. 2~3주 주기 단골층 일부 형성.',
+          4: '🟢 4점 — 재방문 50~65%. 주 1회 이상 단골 보유.',
+          5: '🟢 5점 — 재방문 65%+. 단골 명단 관리·포인트·예약 체계 보유.'
+        }
+      },
+      '1_1': { benchRef: { avg: 3.2, good: 8, label: '외식업 매출성장률 평균', src: '소상공인진흥공단 2023' } },
+      '1_2': { benchRef: { avg: 8.0, good: 12, label: '외식업 영업이익률 평균', src: '소상공인진흥공단 2023' } }
+    },
+    knowledge_it: {
+      '1_3': {
+        text: '월 구독 갱신율(Retention Rate) 또는 계약 연장율은 얼마나 됩니까? — 이탈 1명을 막는 비용이 신규 획득의 1/5 수준입니다.',
+        inputLabel: '갱신율·연장율 (%) — 모르면 아래 선택',
+        placeholder: '예: 85',
+        benchRef: { avg: 78, good: 90, label: 'IT 서비스 고객 갱신율 평균', src: '글로벌 SaaS 벤치마크 2024' },
+        anchors: {
+          1: '🔴 1점 — 갱신율 60% 미만. 매달 이탈자가 신규보다 많음.',
+          2: '🟠 2점 — 갱신율 60~75%. 성장이 이탈을 간신히 상쇄.',
+          3: '🟡 3점 — 갱신율 75~85%. 이탈 원인 파악 필요.',
+          4: '🟢 4점 — 갱신율 85~92%. 이탈 원인 추적·개선 루틴 보유.',
+          5: '🟢 5점 — 갱신율 92%+. 커뮤니티·락인 기능으로 이탈 구조 해결.'
+        }
+      },
+      '1_2': { benchRef: { avg: 14.0, good: 22, label: 'IT·SW업 영업이익률 평균', src: '한국은행 기업경영분석 2023' } },
+      '1_1': { benchRef: { avg: 18, good: 35, label: 'IT·SW업 매출성장률 평균', src: '한국은행 기업경영분석 2023' } }
+    },
+    local_service: {
+      '1_3': {
+        text: '한번 이용한 고객이 다시 찾아오는 비율(재방문율)은 어느 수준입니까? — 네이버 예약·카카오채널 단골 관리를 기준으로 생각해보세요.',
+        inputLabel: '재방문율 (%) — 모르면 아래 선택',
+        placeholder: '예: 50',
+        benchRef: { avg: 45, good: 65, label: '생활서비스 단골 재방문율 평균', src: '소상공인진흥공단 2023' },
+        anchors: {
+          1: '🔴 1점 — 재방문 20% 미만. 단골이 거의 없음.',
+          2: '🟠 2점 — 재방문 20~40%. 연 1~2회 단골 수준.',
+          3: '🟡 3점 — 재방문 40~55%. 월 1회 이상 단골 일부 형성.',
+          4: '🟢 4점 — 재방문 55~70%. 예약 선점·포인트 활용 단골층 있음.',
+          5: '🟢 5점 — 재방문 70%+. 단골 명단 관리·정기 예약 체계 완성.'
+        }
+      },
+      '1_2': { benchRef: { avg: 10.5, good: 16, label: '생활서비스 영업이익률 평균', src: '소상공인진흥공단 2023' } }
+    },
+    medical: {
+      '1_3': {
+        text: '환자·고객의 재방문율 또는 재등록률은 어느 수준입니까? — 재방문율이 낮으면 마케팅 비용 대비 실제 환자 수가 늘지 않습니다.',
+        inputLabel: '재방문·재등록율 (%) — 모르면 아래 선택',
+        placeholder: '예: 55',
+        benchRef: { avg: 55, good: 75, label: '의료 재방문율 평균', src: '보건복지부 의료기관 경영통계 2023' },
+        anchors: {
+          1: '🔴 1점 — 재방문 30% 미만. 신규 유입 의존. 마케팅 비용 과다.',
+          2: '🟠 2점 — 재방문 30~50%. 환자 충성도 낮음.',
+          3: '🟡 3점 — 재방문 50~65%. 정기 검진·관리 루틴 일부.',
+          4: '🟢 4점 — 재방문 65~80%. 의료진 신뢰도·관리 프로그램 효과.',
+          5: '🟢 5점 — 재방문 80%+. 검진·관리 패키지·멤버십 완성.'
+        }
+      }
+    },
+    education: {
+      '1_3': {
+        text: '수강생·학생의 재등록률 또는 재계약률은 어느 수준입니까? — 재등록률이 낮으면 광고비가 계속 올라갑니다.',
+        inputLabel: '재등록·재계약율 (%) — 모르면 아래 선택',
+        placeholder: '예: 60',
+        benchRef: { avg: 58, good: 78, label: '교육업 재등록율 평균', src: '소상공인진흥공단 교육업 통계 2023' },
+        anchors: {
+          1: '🔴 1점 — 재등록 30% 미만. 스타 강사 1명 의존. 이탈 위험.',
+          2: '🟠 2점 — 재등록 30~50%. 단기 성과 위주.',
+          3: '🟡 3점 — 재등록 50~65%. 일부 단골 형성. 커리큘럼 체계화 필요.',
+          4: '🟢 4점 — 재등록 65~80%. 커리큘럼·담임 관리 효과.',
+          5: '🟢 5점 — 재등록 80%+. 학부모·성인 재등록 구조 완성.'
+        }
+      }
+    },
+    construction: {
+      '1_3': {
+        text: '기존 고객·거래처의 재계약률 또는 수의계약(기존 거래처와 직접 계약) 비율은 어느 수준입니까?',
+        inputLabel: '재계약·수의계약율 (%) — 모르면 아래 선택',
+        placeholder: '예: 40',
+        benchRef: { avg: 35, good: 55, label: '건설·인테리어 재계약율 평균', src: '건설산업연구원 2023' },
+        anchors: {
+          1: '🔴 1점 — 재계약 거의 없음. 매번 입찰·공개 경쟁. 수주 불안정.',
+          2: '🟠 2점 — 재계약 20~35%. 일부 수의계약 있으나 단가 압박.',
+          3: '🟡 3점 — 재계약 35~50%. 기존 거래처 일부 안정화.',
+          4: '🟢 4점 — 재계약 50~65%. 연간 계약·A/S 계약 연동.',
+          5: '🟢 5점 — 재계약 65%+. 시공 완료→A/S→추가 공사 선순환.'
+        }
+      },
+      '1_2': { benchRef: { avg: 4.5, good: 8, label: '건설업 영업이익률 평균', src: '한국은행 기업경영분석 2023' } }
+    },
+    wholesale: {
+      '1_3': {
+        text: '주요 바이어·거래처의 재주문율은 어느 수준입니까? — 거래처 집중도가 높을수록 재주문율이 핵심 위험 지표입니다.',
+        inputLabel: '재주문율 (%) — 모르면 아래 선택',
+        placeholder: '예: 60',
+        benchRef: { avg: 60, good: 78, label: '유통·도소매 재주문율 평균', src: '소상공인진흥공단 2023' },
+        anchors: {
+          1: '🔴 1점 — 30% 미만. 일회성 거래 위주.',
+          2: '🟠 2점 — 30~50%. 일부 반복 거래 있으나 불안정.',
+          3: '🟡 3점 — 50~70%. 주요 거래처 일부 고정화.',
+          4: '🟢 4점 — 70~85%. 주요 바이어 정기 발주 체계 완성.',
+          5: '🟢 5점 — 85%+. 연간 공급 계약 또는 VMI 구조 운영.'
+        }
+      }
+    },
+    export_sme: {
+      '1_3': {
+        text: '해외 바이어의 재주문율(Repeat Order Rate)은 어느 수준입니까? — 신규 바이어 개발 비용이 재발주 유지 비용의 5~7배입니다.',
+        inputLabel: '해외 바이어 재주문율 (%) — 모르면 아래 선택',
+        placeholder: '예: 55',
+        benchRef: { avg: 55, good: 75, label: '수출중소기업 바이어 재주문율', src: 'KOTRA 수출기업 실태조사 2023' },
+        anchors: {
+          1: '🔴 1점 — 재주문 30% 미만. 바이어 찾기→견적→협상 반복.',
+          2: '🟠 2점 — 30~50%. 일부 재주문 있으나 단가 협상 반복.',
+          3: '🟡 3점 — 50~70%. 주요 바이어 일부 안정화.',
+          4: '🟢 4점 — 70~85%. 주요 바이어 연간 발주 계획 확보.',
+          5: '🟢 5점 — 85%+. OEM 연간 계약 또는 독점 공급 계약.'
+        }
+      }
+    },
+    logistics: {
+      '1_3': {
+        text: '주요 화주(물류를 맡기는 거래처)의 재계약율은 어느 수준입니까? — 공차율(빈 차로 다니는 비율)과 함께 가장 중요한 수익성 지표입니다.',
+        inputLabel: '화주 재계약율 (%) — 모르면 아래 선택',
+        placeholder: '예: 60',
+        benchRef: { avg: 60, good: 80, label: '물류운송 화주 재계약율 평균', src: '국토교통부 화물운수업 실태조사 2023' },
+        anchors: {
+          1: '🔴 1점 — 재계약 30% 미만. 스팟 운송 위주. 공차율 높음.',
+          2: '🟠 2점 — 30~50%. 일부 고정 거래처 있으나 단가 경쟁 심함.',
+          3: '🟡 3점 — 50~70%. 주요 화주 반기 계약 일부 확보.',
+          4: '🟢 4점 — 70~85%. 연간 계약 화주 보유. 노선 효율화 가능.',
+          5: '🟢 5점 — 85%+. 전속 계약 화주 보유. 공차율 20% 미만 운영.'
+        }
+      }
+    }
+  };
+
+  // 수치 항목 업종 기본 참고값 (COMMON_WORDING_MAP에 없는 업종 fallback)
+  const NUMERIC_BENCH_REF_DEFAULT = {
+    '1_1': { avg: 5,  good: 12, label: '중소기업 매출성장률 평균', src: '한국은행 기업경영분석 2023' },
+    '1_2': { avg: 8,  good: 12, label: '중소기업 영업이익률 평균', src: '한국은행 기업경영분석 2023' },
+    '1_3': { avg: 50, good: 70, label: '중소기업 재구매율 평균',  src: '소상공인진흥공단 2023' }
+  };
+
+  // DX 탐지 질문 — 점수 미반영, 전략 시그널 수집 전용
+  const DX_DETECT_ITEM = {
+    id: 'dx_detect',
+    type: 'bars',
+    _signalOnly: true,
+    text: '고객관리·재고·회계·영업 업무에 디지털 도구를 얼마나 활용하고 있습니까? <span class="diag-signal-badge">점수 미반영 · AI 전략 방향 설정용</span>',
+    min: '아날로그 중심',
+    max: '디지털 선도',
+    anchors: {
+      1: '🔴 아날로그 중심 — 메모·엑셀·전화가 주요 도구. CRM·POS 전혀 없음.',
+      2: '🟠 일부만 디지털 — 회계 프로그램 또는 배달앱·네이버 예약 정도.',
+      3: '🟡 보통 — CRM·POS·재고 중 1개 이상 운영 중.',
+      4: '🟢 적극 활용 — 2~3개 디지털 도구 연동 운영 중.',
+      5: '🟢 선도적 — 자동화·데이터 대시보드·AI 도구까지 활용.'
+    }
+  };
+
+  // 업종별 공통 질문 문구 오버라이드 적용
+  function _applyIndustryWording(diagData, industryKey) {
+    const overrides = COMMON_WORDING_MAP[industryKey] || {};
+    return {
+      title: diagData.title,
+      description: diagData.description,
+      insights: diagData.insights,
+      areas: diagData.areas.map(area => ({
+        id: area.id,
+        title: area.title,
+        description: area.description,
+        items: area.items.map(item => {
+          const ov = overrides[item.id];
+          const base = ov ? Object.assign({}, item, ov) : item;
+          // 수치 항목에 기본 참고값 주입 (override에 없는 경우)
+          if (base.type === 'numeric' && !base.benchRef && NUMERIC_BENCH_REF_DEFAULT[item.id]) {
+            return Object.assign({}, base, { benchRef: NUMERIC_BENCH_REF_DEFAULT[item.id] });
+          }
+          return base;
+        })
+      }))
+    };
+  }
+
+  // DX 탐지 영역 주입
+  function _injectDxDetect(diagData) {
+    return {
+      title: diagData.title,
+      description: diagData.description,
+      insights: diagData.insights,
+      areas: diagData.areas.concat([{
+        id: 'dx',
+        title: '🔍 DX(디지털 전환) 현황 탐지',
+        description: '이 항목은 점수에 반영되지 않습니다 — AI가 전략 방향 설정에만 활용합니다.',
+        items: [DX_DETECT_ITEM]
+      }])
+    };
+  }
+
   /* ── 업종 기반 사업모델 추론 ── */
   function inferBizModel(industryKey, formData) {
     const candidates = INDUSTRY_BM_MAP[industryKey] || INDUSTRY_BM_MAP['etc'];
@@ -745,8 +989,8 @@ const Wizard = (() => {
       if (!get('bizItem'))     { alert('종목을 입력해주세요.\n(사업자등록증의 종목 — 예: 미용업, 한식, 자동차부품)'); return false; }
     }
     if (step === 2) {
-      const total = document.querySelectorAll('.diag-item').length || 13;
-      const done  = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
+      const total = document.querySelectorAll('.diag-item:not([data-signal-only])').length || 13;
+      const done  = Object.keys(diagScores).filter(k => !k.includes('dx_detect') && diagScores[k].score > 0).length;
       if (done < total) {
         alert('진단 항목을 모두 입력해주세요. (' + done + ' / ' + total + '개 완료)');
         return false;
@@ -772,9 +1016,14 @@ const Wizard = (() => {
 
     // 공통 모듈 렌더링 — 창업 초기면 STARTUP_DIAGNOSIS로 교체
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
-    const commonDiag = isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined'
+    let commonDiag = isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined'
       ? STARTUP_DIAGNOSIS
       : (typeof COMMON_DIAGNOSIS !== 'undefined' ? COMMON_DIAGNOSIS : null);
+    // Dynamic Common Core: 업종별 문구 오버라이드 + DX 탐지 주입 (창업 초기 제외)
+    if (commonDiag && !isStartupMode) {
+      commonDiag = _applyIndustryWording(commonDiag, industryKey);
+      commonDiag = _injectDxDetect(commonDiag);
+    }
     renderDiagModule('diag-common-container', commonDiag);
 
     // 업종 특화 모듈 렌더링
@@ -817,8 +1066,8 @@ const Wizard = (() => {
         : '📋 기본 경영 진단 (8문항)';
     }
 
-    // 진행률 카운터 총 항목 수 동적 갱신
-    const totalItems = document.querySelectorAll('.diag-item').length || 15;
+    // 진행률 카운터 총 항목 수 동적 갱신 (signal-only 제외)
+    const totalItems = document.querySelectorAll('.diag-item:not([data-signal-only])').length || 13;
     const progressText = document.getElementById('diag-progress-text');
     if (progressText) progressText.textContent = '0 / ' + totalItems + ' 항목 완료';
 
@@ -838,7 +1087,9 @@ const Wizard = (() => {
     const savedChoices = saved.choices || [];
     const savedMemo    = diagMemos[scoreKey] || '';
 
-    let html = '<div class="diag-item" id="diag-item-' + scoreKey + '">';
+    const signalAttr = item._signalOnly ? ' data-signal-only="true"' : '';
+    const signalCls  = item._signalOnly ? ' diag-signal-item' : '';
+    let html = '<div class="diag-item' + signalCls + '" id="diag-item-' + scoreKey + '"' + signalAttr + '>';
     html += '<div class="diag-item-text">' + item.text + '</div>';
 
     switch (item.type) {
@@ -890,6 +1141,12 @@ const Wizard = (() => {
 
     let html = '<div class="diag-numeric-wrap" id="num-wrap-' + scoreKey + '" data-ranges=\'' + rangesEsc + '\'>';
     html += '<label class="diag-numeric-label">' + (item.inputLabel || item.text) + '</label>';
+    // 업종 평균 참고값 표시
+    if (item.benchRef) {
+      const br = item.benchRef;
+      const brUnit = br.unit || item.unit || '%';
+      html += '<div class="diag-bench-ref">📊 <strong>' + br.label + '</strong>: 평균 <span class="bench-avg">' + br.avg + brUnit + '</span> · 양호 기준 <span class="bench-good">' + br.good + brUnit + '+</span> <span class="bench-src">[' + br.src + ']</span></div>';
+    }
     html += '<div class="diag-numeric-row">';
     html += '<input type="number" step="any" class="diag-numeric-input" id="num-' + scoreKey + '" value="' + savedRaw + '" placeholder="' + (item.placeholder || '') + '" oninput="Wizard.setNumeric(\'' + scoreKey + '\',this.value)" />';
     html += '<span class="diag-numeric-unit">' + (item.unit || '') + '</span>';
@@ -1112,8 +1369,8 @@ const Wizard = (() => {
   }
 
   function updateDiagProgress() {
-    const total = document.querySelectorAll('.diag-item').length || 48;
-    const done = Object.keys(diagScores).filter(k => diagScores[k].score > 0).length;
+    const total = document.querySelectorAll('.diag-item:not([data-signal-only])').length || 13;
+    const done = Object.keys(diagScores).filter(k => !k.includes('dx_detect') && diagScores[k].score > 0).length;
     const pct = Math.round((done / total) * 100);
     const el = document.getElementById('diag-progress-text');
     const fill = document.getElementById('diag-progress-fill');
@@ -1131,6 +1388,7 @@ const Wizard = (() => {
     let uncheckedCount = 0;
 
     allItems.forEach(item => {
+      if (item.dataset.signalOnly === 'true') return; // DX 탐지 항목은 필수 아님
       const key = item.id.replace('diag-item-', '');
       const hasScore = diagScores[key] && diagScores[key].score > 0;
       if (!hasScore) {
@@ -1567,6 +1825,17 @@ const Wizard = (() => {
       isStartup:           g('aiIsStartup') === 'true',
       yearsInBusiness:     g('aiYearsInBusiness'),
       diagScores:          diagScores,
+      // DX 탐지 시그널 (1~2: 아날로그, 4~5: 디지털 선도)
+      dxSignal: (() => {
+        const s = diagScores['diag-common-container_dx_detect']?.score || 0;
+        return s <= 2 && s > 0 ? 'analog' : s >= 4 ? 'digital_ready' : '';
+      })(),
+      // 대표자 의존도 복합 조건 (3_1 점수 ≤2 AND 직원>1)
+      ceoDependencySignal: (() => {
+        const depScore = diagScores['diag-common-container_3_1']?.score || 0;
+        const empCount = parseInt(document.getElementById('employees')?.value || '0');
+        return depScore > 0 && depScore <= 2 && empCount > 1;
+      })(),
     };
   }
 
