@@ -1535,6 +1535,7 @@ const Wizard = (() => {
       partnerships:        g('partnerships'),
       govSupport:          Array.from(document.querySelectorAll('input[name="govSupport"]:checked')).map(el => el.value).join(', '),
       notes:               g('notes'),
+      extraDiagArea:       g('extraDiagAreaHidden') || g('extraDiagArea'),
       diagScores:          diagScores,
     };
   }

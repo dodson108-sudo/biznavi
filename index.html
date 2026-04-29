@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=20260429h" />
   <link rel="stylesheet" href="css/landing.css" />
   <link rel="stylesheet" href="css/dashboard.css?v=20260429g" />
 </head>
@@ -984,11 +984,22 @@
     <div id="biz-context" class="wiz-card hidden">
       <h3 class="serif">🤖 AI 업종 분석 결과</h3>
       <div id="biz-context-content"></div>
+
+      <!-- 추가 진단 요청 영역 -->
+      <div class="biz-ctx-extra-area">
+        <div class="biz-ctx-extra-title">💬 추가로 진단받고 싶은 영역이 있으신가요? <span class="optional">(선택)</span></div>
+        <p class="hint">위에서 제시한 핵심 진단 영역 외에, 특별히 해답이 필요한 경영 과제나 고민이 있으면 자유롭게 입력하세요. AI 솔루션에 반드시 반영됩니다.</p>
+        <p class="hint">예: "최근 핵심 직원이 퇴사해서 인수인계가 걱정됨", "신규 사업 진출을 고민 중인데 리스크가 큼", "온라인 판로를 개척하고 싶은데 어디서 시작해야 할지 모름"</p>
+        <textarea id="extraDiagArea" placeholder="자유롭게 입력하세요 (최대 300자)" maxlength="300" rows="3"></textarea>
+      </div>
+
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.backToStep1()">← 정보 수정</button>
         <button class="btn btn-gold" onclick="App.startDiagnosis()">이 내용으로 진단 시작 →</button>
       </div>
     </div>
+    <!-- 추가 진단 요청 보존용 hidden input -->
+    <input type="hidden" id="extraDiagAreaHidden" value="" />
 
     <!-- 삭제된 Step 1 하단 영역 — 아래는 원래 step1 내부였지만 이제 biz-context 이후 별도 div로 -->
     <div id="step1-extra" class="hidden">
@@ -1605,9 +1616,9 @@
 <script src="js/gov-support.js"></script>
 <script src="js/industry-trends.js"></script>
 <script src="js/reference-db.js?v=20260429e"></script>
-<script src="js/ai-engine.js?v=20260429g"></script>
+<script src="js/ai-engine.js?v=20260429h"></script>
 <script src="js/dashboard.js?v=20260429g"></script>
-<script src="js/wizard.js?v=20260429e"></script>
+<script src="js/wizard.js?v=20260429h"></script>
 <script src="js/diagnosis/common.js?v=20260429e"></script>
 <script src="js/diagnosis/industry/mfg_parts.js?v=20260429e"></script>
 <script src="js/diagnosis/industry/food_mfg.js?v=20260429e"></script>
@@ -1625,7 +1636,7 @@
 <script src="js/diagnosis/industry/logistics.js?v=20260429e"></script>
 <script src="js/diagnosis/industry/energy.js?v=20260429e"></script>
 <script src="js/diagnosis/industry/agri_food.js?v=20260429e"></script>
-<script src="js/app.js?v=20260429e"></script>
+<script src="js/app.js?v=20260429h"></script>
 <script src="js/finance-wizard.js?v=20260429e"></script>
 <script src="js/ticker.js"></script>
 <script src="js/hero-canvas.js"></script>

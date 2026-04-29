@@ -146,10 +146,21 @@ const App = (() => {
   function startDiagnosis() {
     const industryKey = document.getElementById('aiIndustryKey')?.value || 'local_service';
     const bizDesc     = document.getElementById('aiBusinessDesc')?.value || '';
-    const bizScale    = document.getElementById('bizScale')?.value || 'micro';
+
+    // 추가 진단 요청 사항 저장 (hidden input에 보존)
+    const extraArea = document.getElementById('extraDiagArea')?.value?.trim() || '';
+    const extraHidden = document.getElementById('extraDiagAreaHidden');
+    if (extraHidden) extraHidden.value = extraArea;
+
+    // biz-context 숨기기
+    const bizCtx = document.getElementById('biz-context');
+    if (bizCtx) bizCtx.classList.add('hidden');
+
+    // 진단 UI 렌더링 후 직접 step2 전환 (goStep(2) 경유 시 step1 hidden 상태에서 animation 오류 발생)
     Wizard.loadDiagnosisUI(industryKey);
     Wizard.updateRiskPlaceholder(industryKey);
-    Wizard.goStep(2);
+    Wizard.goToStep2FromBm();
+
     // Step 2 상단에 맥락 미니배너 표시
     const mini = document.getElementById('biz-context-mini');
     if (mini) {
