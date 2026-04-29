@@ -770,8 +770,12 @@ const Wizard = (() => {
     const industryKey = forceIndustryKey || aiKey || INDUSTRY_MAP[industry] || 'local_service';
     const bizModelKey = _inferredBmKey || 'etc';
 
-    // 공통 모듈 렌더링
-    renderDiagModule('diag-common-container', typeof COMMON_DIAGNOSIS !== 'undefined' ? COMMON_DIAGNOSIS : null);
+    // 공통 모듈 렌더링 — 창업 초기면 STARTUP_DIAGNOSIS로 교체
+    const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
+    const commonDiag = isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined'
+      ? STARTUP_DIAGNOSIS
+      : (typeof COMMON_DIAGNOSIS !== 'undefined' ? COMMON_DIAGNOSIS : null);
+    renderDiagModule('diag-common-container', commonDiag);
 
     // 업종 특화 모듈 렌더링
     const industryVarMap = {
@@ -805,21 +809,12 @@ const Wizard = (() => {
     const tabIndustry = document.getElementById('diagTabBtn-industry');
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단 (5문항)';
 
-    // 창업 초기 모드 배너 삽입
-    const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
-    const commonContainer = document.getElementById('diag-common-container');
-    if (isStartupMode && commonContainer) {
-      const existingBanner = document.getElementById('startup-diag-banner');
-      if (!existingBanner) {
-        const banner = document.createElement('div');
-        banner.id = 'startup-diag-banner';
-        banner.className = 'startup-diag-banner';
-        banner.innerHTML = `
-          🚀 <strong>창업 초기 모드</strong> — 실제 데이터가 없는 항목은 <strong>목표값·예상값</strong>으로 입력하세요.<br>
-          예: 목표 영업이익률, 예상 재계약율, 계획 중인 매출 성장률 등.<br>
-          "모르면" 1점을 선택하고 메모란에 <em>"창업 초기, 아직 데이터 없음"</em>이라고 적으면 됩니다.`;
-        commonContainer.parentNode.insertBefore(banner, commonContainer);
-      }
+    // 창업 초기 모드: 탭 레이블을 창업 전용으로 변경
+    const tabCommon = document.getElementById('diagTabBtn-common');
+    if (tabCommon) {
+      tabCommon.textContent = isStartupMode
+        ? '🚀 창업 초기 진단 (8문항)'
+        : '📋 기본 경영 진단 (8문항)';
     }
 
     // 진행률 카운터 총 항목 수 동적 갱신
