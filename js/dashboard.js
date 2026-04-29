@@ -33,15 +33,42 @@ const Dashboard = (() => {
 
     // 9블록 정의 (린 캔버스 순서)
     const blocks = [
-      { key: 'problem',               label: 'Problem',              sub: '핵심 문제',         icon: '🔴', cls: 'lc-problem' },
-      { key: 'solution',              label: 'Solution',             sub: '해결책',            icon: '💡', cls: 'lc-solution' },
-      { key: 'uniqueValueProposition',label: 'Unique Value Prop.',   sub: '핵심 가치 제안',    icon: '⭐', cls: 'lc-uvp' },
-      { key: 'unfairAdvantage',       label: 'Unfair Advantage',     sub: '모방 불가 강점',    icon: '🛡️', cls: 'lc-advantage' },
-      { key: 'customerSegments',      label: 'Customer Segments',    sub: '타겟 고객',         icon: '👥', cls: 'lc-customer' },
-      { key: 'keyMetrics',            label: 'Key Metrics',          sub: '핵심 지표',         icon: '📊', cls: 'lc-metrics' },
-      { key: 'channels',              label: 'Channels',             sub: '채널',              icon: '📣', cls: 'lc-channels' },
-      { key: 'costStructure',         label: 'Cost Structure',       sub: '비용 구조',         icon: '💸', cls: 'lc-cost' },
-      { key: 'revenueStreams',        label: 'Revenue Streams',      sub: '수익 흐름',         icon: '💰', cls: 'lc-revenue' },
+      {
+        key: 'problem', label: 'Problem', sub: '핵심 문제', icon: '🔴', cls: 'lc-problem',
+        guide: '고객이 현재 겪고 있는 가장 중요한 문제 1~3가지입니다. 기존의 어떤 방법(경쟁사, 대안)으로도 해결되지 않는 pain point를 구체적으로 정의하세요. 예: "단골 고객 의존도 80% → 신규 유입 경로 없음", "월말마다 현금 부족 → 운전자금 관리 방법 없음"'
+      },
+      {
+        key: 'solution', label: 'Solution', sub: '해결책', icon: '💡', cls: 'lc-solution',
+        guide: '위 문제를 해결하는 우리만의 방법입니다. 거창하지 않아도 되며, 지금 당장 실행 가능한 구체적인 해법이어야 합니다. 각 문제에 1:1로 대응하는 솔루션을 제시하면 가장 강력합니다.'
+      },
+      {
+        key: 'uniqueValueProposition', label: 'Unique Value Prop.', sub: '핵심 가치 제안', icon: '⭐', cls: 'lc-uvp',
+        guide: '고객이 우리를 선택해야 하는 단 하나의 이유입니다. "왜 다른 곳이 아닌 우리?"에 10초 안에 답할 수 있어야 합니다. 예: "당일 출장 수리 전문 — 4시간 내 방문 보장", "30년 장인의 수제 레시피 — 방부제·조미료 無". 명확하고 검증 가능한 약속이어야 합니다.'
+      },
+      {
+        key: 'unfairAdvantage', label: 'Unfair Advantage', sub: '모방 불가 강점', icon: '🛡️', cls: 'lc-advantage',
+        guide: '경쟁사가 돈으로 사거나 쉽게 따라 할 수 없는 나만의 강점입니다. 예: 특허·자격증·독점 계약, 오랜 단골 관계, 희귀한 기술이나 네트워크, 특별한 입지 등. 비어있다면 "아직 없음 — 현재 구축 중"이라도 솔직하게 적고 전략에 반영하세요.'
+      },
+      {
+        key: 'customerSegments', label: 'Customer Segments', sub: '타겟 고객', icon: '👥', cls: 'lc-customer',
+        guide: '우리 제품·서비스에 돈을 낼 가능성이 가장 높은 핵심 고객 집단입니다. 나이·직업·지역·행동 패턴 등으로 구체화하세요. 예: "반경 1km 내 30~50대 직장인 점심 수요", "인스타그램 활용하는 20대 여성 소자본 창업자". 모두를 타겟하면 아무도 잡지 못합니다.'
+      },
+      {
+        key: 'keyMetrics', label: 'Key Metrics', sub: '핵심 지표', icon: '📊', cls: 'lc-metrics',
+        guide: '사업의 건강 상태를 나타내는 3~5개의 숫자입니다. 매출·방문자 수보다 "우리 사업의 본질"을 측정하는 지표를 선택하세요. 예: 재방문율(단골 충성도), 객단가(구매 깊이), 신규 고객 유입 수(성장성), 원가율(수익성). 이 숫자가 개선되면 매출이 자연히 따라옵니다.'
+      },
+      {
+        key: 'channels', label: 'Channels', sub: '채널', icon: '📣', cls: 'lc-channels',
+        guide: '고객이 우리를 발견하고, 구매하고, 재방문하는 경로입니다. 현재 효과를 보고 있는 채널과 앞으로 강화할 채널을 구분하여 적으세요. 예: 네이버 플레이스(현재 주력), 인스타그램(강화 예정), 단골 소개(구전). 채널마다 비용 대비 효과(ROAS)가 다르므로 집중 채널을 1~2개로 좁히는 것이 유리합니다.'
+      },
+      {
+        key: 'costStructure', label: 'Cost Structure', sub: '비용 구조', icon: '💸', cls: 'lc-cost',
+        guide: '사업을 운영하는 데 드는 주요 비용 항목입니다. 고정비(임대료·인건비·통신비 — 매출에 상관없이 발생)와 변동비(재료비·배달비·광고비 — 매출에 따라 변동)를 구분하세요. 손익분기점(BEP)을 파악하고, 가장 큰 비용부터 줄일 방법을 찾는 것이 생존 전략의 핵심입니다.'
+      },
+      {
+        key: 'revenueStreams', label: 'Revenue Streams', sub: '수익 흐름', icon: '💰', cls: 'lc-revenue',
+        guide: '고객으로부터 돈을 받는 방식입니다. 단일 수익원에 의존하면 리스크가 크므로 2~3개의 수익 흐름을 구성하는 것이 이상적입니다. 예: 주력 상품 판매(즉시 수익) + 구독·정기권(예측 가능 수익) + 교육·컨설팅(고마진 수익). 수익 흐름별 비율과 마진을 파악하고, 고마진 수익원을 늘리는 방향을 전략에 반영하세요.'
+      },
     ];
 
     const grid = document.getElementById('leanCanvasGrid');
@@ -54,6 +81,7 @@ const Dashboard = (() => {
           <span class="lc-sublabel">${b.sub}</span>
         </div>
         <div class="lc-content">${(lc[b.key] || '—').replace(/\n/g, '<br>')}</div>
+        <div class="lc-guide">${b.guide}</div>
       </div>`).join('');
   }
 

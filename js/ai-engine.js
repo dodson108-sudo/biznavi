@@ -65,37 +65,80 @@ const AIEngine = (() => {
   }
 
   function buildDiagSummary(diagScores) {
-    const scores = calcDiagScores(diagScores);
-    if (!scores) return '진단 미실시';
+    if (!diagScores || Object.keys(diagScores).length === 0) return '진단 미실시';
 
     let summary = '';
-    Object.keys(scores).forEach(tabKey => {
-      const tab = scores[tabKey];
-      summary += `\n[${tab.label}] 종합 ${tab.avg}점 ${getScoreLabel(tab.avg)}\n`;
-      Object.keys(tab.areas).forEach(areaId => {
-        const areaScore = tab.areas[areaId];
-        summary += `  · ${areaId}: ${areaScore}점 ${getScoreLabel(areaScore)}\n`;
+    const weakItems  = [];
+    const strongItems = [];
+    const memoItems  = [];
+
+    // 개별 항목 레벨로 출력 — 질문 텍스트를 DOM에서 추출하거나 키 기반 라벨 사용
+    const tabLabels = {
+      'diag-common':   '기본 경영 진단',
+      'diag-industry': '업종 특화 진단',
+      'diag-bizmodel': '사업모델 진단',
+    };
+
+    const byTab = {};
+    Object.keys(diagScores).forEach(key => {
+      const entry = diagScores[key];
+      if (!entry || (!entry.score && !entry.memo)) return;
+
+      let tabKey = 'diag-common';
+      if (key.includes('diag-industry')) tabKey = 'diag-industry';
+      else if (key.includes('diag-bizmodel')) tabKey = 'diag-bizmodel';
+
+      if (!byTab[tabKey]) byTab[tabKey] = [];
+
+      // 질문 텍스트를 DOM에서 찾기 (브라우저 환경)
+      let qText = '';
+      if (typeof document !== 'undefined') {
+        const container = document.querySelector(`[data-score-key="${key}"]`);
+        if (container) {
+          const qEl = container.closest('.diag-item')?.querySelector('.diag-item-text, .diag-q-label, h4, p');
+          if (qEl) qText = qEl.textContent.trim().substring(0, 80);
+        }
+        if (!qText) {
+          // 컨테이너 라벨 대체
+          const parts = key.split('_');
+          qText = `진단항목 ${parts[parts.length - 2]}-${parts[parts.length - 1]}`;
+        }
+      }
+
+      byTab[tabKey].push({ key, score: entry.score || 0, memo: entry.memo || '', qText });
+    });
+
+    Object.keys(byTab).forEach(tabKey => {
+      const items = byTab[tabKey];
+      if (items.length === 0) return;
+      const avg = (items.reduce((s, i) => s + i.score, 0) / items.length).toFixed(1);
+      summary += `\n[${tabLabels[tabKey] || tabKey}] 종합 ${avg}점 ${getScoreLabel(parseFloat(avg))}\n`;
+
+      items.forEach(item => {
+        if (item.score > 0) {
+          const line = `  · ${item.qText} → ${item.score}점 ${getScoreLabel(item.score)}`;
+          summary += line + '\n';
+          if (item.score <= 2) weakItems.push(`"${item.qText}" (${item.score}점)`);
+          if (item.score >= 4) strongItems.push(`"${item.qText}" (${item.score}점)`);
+        }
+        if (item.memo) {
+          summary += `    ※ 현장 메모: "${item.memo}"\n`;
+          memoItems.push({ q: item.qText, memo: item.memo });
+        }
       });
     });
 
-    // 취약/위험 영역 추출
-    const weakAreas = [];
-    const strongAreas = [];
-    Object.keys(scores).forEach(tabKey => {
-      Object.keys(scores[tabKey].areas).forEach(areaId => {
-        const s = scores[tabKey].areas[areaId];
-        if (s < 2.5) weakAreas.push(`${scores[tabKey].label} - ${areaId} (${s}점)`);
-        if (s >= 4.0) strongAreas.push(`${scores[tabKey].label} - ${areaId} (${s}점)`);
-      });
-    });
-
-    if (weakAreas.length > 0) {
-      summary += `\n⚠️ 즉각 개선 필요 영역:\n`;
-      weakAreas.forEach(a => summary += `  · ${a}\n`);
+    if (weakItems.length > 0) {
+      summary += `\n⚠️ 즉각 개선 필요 (2점 이하) — 전략의 최우선 처방 대상:\n`;
+      weakItems.forEach(a => summary += `  · ${a}\n`);
     }
-    if (strongAreas.length > 0) {
-      summary += `\n💪 핵심 강점 영역:\n`;
-      strongAreas.forEach(a => summary += `  · ${a}\n`);
+    if (strongItems.length > 0) {
+      summary += `\n💪 핵심 강점 (4점 이상) — 마케팅·영업에 적극 활용:\n`;
+      strongItems.forEach(a => summary += `  · ${a}\n`);
+    }
+    if (memoItems.length > 0) {
+      summary += `\n📝 경영자 현장 메모 (전략에 반드시 반영할 것):\n`;
+      memoItems.forEach(m => summary += `  · [${m.q}] "${m.memo}"\n`);
     }
 
     return summary;
@@ -1010,9 +1053,16 @@ ${ (typeof ReferenceDB !== 'undefined') ? (() => {
   const block = ReferenceDB.buildPromptBlock(d.industryKey || d.industry);
   return block ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-9. 업종 벤치마크 준거 데이터 (반드시 이 수치와 비교하여 분석할 것)
+9. 업종 벤치마크 준거 데이터 (필수 비교 분석)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${block}` : '';
+${block}
+
+▶ 위 수치를 활용한 필수 작성 규칙:
+① executiveSummary에 반드시 "현재 [지표명] XX% → 업종 평균 YY% (격차 ±ZZ%p)" 형식의 수치 비교를 2개 이상 포함할 것.
+② SWOT 기회·위협 항목에도 업종 평균 수치를 직접 인용하여 근거로 삼을 것.
+   예시: "업종 평균 영업이익률 OO% 대비 현재 OO%p 차이 — 원가·운영비 개선 여지 존재"
+③ KPI 목표값은 업종 평균 기준으로 "현재값 → 업종 평균 → 목표값" 3단계로 설정할 것.
+④ 수치가 없는 경우에도 "업종 통계 기준" 또는 "소상공인진흥공단 기준" 출처를 명시할 것.` : '';
 })() : '' }
 ${buildCausalChain(d, d.domainScores || {})}
 ${_ctGuidance(d.consultingType)}
