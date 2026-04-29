@@ -1,10 +1,49 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-29 최신)
+## 배포 상태 (2026-04-30 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: _fakeByConsultingType 5개 유형 특화 완료 (fdd22ef)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: Dynamic Common Core 구현 (7693684)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-04-30)
+
+### Dynamic Common Core — 업종별 공통 질문 문구 오버라이드 (배포 완료)
+
+#### js/wizard.js 추가
+- `COMMON_WORDING_MAP`: 11개 업종 × `1_3` 재구매 항목 업종별 호칭 교체
+  - 제조(mfg_parts/food_mfg/wholesale/export_sme/logistics): 재발주율·재주문율
+  - 외식(restaurant)/생활서비스(local_service): 재방문율
+  - IT(knowledge_it): 갱신율/Retention Rate
+  - 의료(medical)/교육(education): 재등록율
+  - 건설(construction): 재계약율·수의계약율
+  - 각 업종 `1_1`·`1_2`에 `benchRef` (업종 평균 + 양호 기준) 주입
+- `NUMERIC_BENCH_REF_DEFAULT`: 업종 매핑 없는 경우 중소기업 평균 fallback
+- `DX_DETECT_ITEM`: 공통 진단 끝에 1문항 추가 (점수 미반영, 전략 시그널 수집)
+  - `_signalOnly: true` → `data-signal-only` 속성 → 진행률·검증에서 자동 제외
+- `_applyIndustryWording(diagData, industryKey)`: 데이터 오버라이드 함수
+- `_injectDxDetect(diagData)`: DX 탐지 영역 주입 함수
+- `loadDiagnosisUI()`: 창업 초기 제외하고 두 함수 적용
+- `_renderNumeric()`: `item.benchRef` 있으면 골드 박스(평균/양호 기준/출처) 렌더링
+- `updateDiagProgress()` + `validateCurrentTab()`: signal-only 항목 자동 제외
+- `collect()`: `dxSignal` ('analog'|'digital_ready'|'') + `ceoDependencySignal` (boolean) 추가
+  - `ceoDependencySignal`: `3_1점수 ≤ 2 AND 직원수 > 1` 복합 조건
+
+#### js/ai-engine.js 수정
+- `buildPrompt1()`: DX·대표의존도 시그널 블록 추가
+  - `dxSignal === 'analog'`: SWOT 위협 + sixSystems 자동 주입 지시
+  - `ceoDependencySignal`: sixSystems[operations] 1순위 + SOP 위임 체계 액션
+
+#### css/style.css 추가
+- `.diag-signal-badge`: DX 탐지 인라인 뱃지 (연파랑)
+- `.diag-signal-item`: DX 탐지 카드 좌측 연파랑 테두리
+- `.diag-bench-ref`: 업종 평균 참고값 박스 (골드 테두리)
+- `.bench-avg` / `.bench-good` / `.bench-src`: 참고값 내부 강조 스타일
+
+#### 현재 미완성
+- `growth_strategy`, `structure_strategy`, `innovation_strategy`, `cx_strategy` — `_fakeByConsultingType()`에서 여전히 `return {}` (기본 fakeAnalysis 데이터 표시)
 
 ---
 
