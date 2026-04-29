@@ -126,9 +126,11 @@ const App = (() => {
       if (data.status !== 'success') throw new Error(data.message || '분석 실패');
 
       // 결과 hidden 필드에 저장
-      document.getElementById('aiIndustryKey').value  = data.industry_key  || '';
-      document.getElementById('aiBusinessDesc').value = data.business_description || '';
-      document.getElementById('bizScale').value       = data.biz_scale     || '';
+      document.getElementById('aiIndustryKey').value      = data.industry_key  || '';
+      document.getElementById('aiBusinessDesc').value     = data.business_description || '';
+      document.getElementById('bizScale').value           = data.biz_scale     || '';
+      document.getElementById('aiIsStartup').value        = data.is_startup ? 'true' : 'false';
+      document.getElementById('aiYearsInBusiness').value  = data.years_in_business ?? '';
 
       // biz-context 화면 렌더링
       Wizard.showBizContext(data, companyName, foundedYear);

@@ -32,6 +32,7 @@ module.exports = async function handler(req, res) {
   // foundedYear가 날짜형(20101116)으로 넘어올 경우 앞 4자리만 사용
   const yearStr = foundedYear ? String(foundedYear).substring(0, 4) : null;
   const yearsInBusiness = yearStr ? currentYear - parseInt(yearStr) : null;
+  const isStartup = yearsInBusiness !== null && yearsInBusiness < 1;
 
   const prompt = `당신은 한국 소상공인·중소기업 경영 컨설턴트입니다.
 사업자등록증의 업태와 종목을 보고 이 사업체의 본질을 정의하고 진단 방향을 설정하세요.
@@ -41,35 +42,45 @@ module.exports = async function handler(req, res) {
 - 상호명: ${companyName || '미입력'}
 - 업태: ${bizType}
 - 종목: ${bizItem}
-- 개업연도: ${foundedYear || '미입력'} ${yearsInBusiness ? `(업력 ${yearsInBusiness}년)` : ''}
+- 개업연도: ${foundedYear || '미입력'} ${yearsInBusiness !== null ? `(업력 약 ${yearsInBusiness}년)` : ''}
 - 직원수: ${employees || '미입력'}
 - 연매출: ${revenue || '미입력'}
+${isStartup ? '⚠️ 창업 초기 기업 (개업 1년 미만): diagnosis_note에 반드시 창업 초기 특성 반영' : ''}
 
 [반환 JSON]
 {
-  "industry_key": "(아래 16개 중 정확히 하나)",
-  "industry_label": "(한국어 업종명 — 예: 생활밀착형 서비스업)",
-  "business_description": "(이 사업체가 실제로 무엇을 하는 곳인지 핵심 1~2문장. 예: '지역 주민을 대상으로 헤어 시술을 제공하는 방문형 B2C 서비스업 — 재방문율과 단골 관리가 생존의 핵심')",
+  "industry_key": "(아래 16개 중 정확히 하나 — 분류 기준 숙지 후 선택)",
+  "industry_label": "(한국어 업종명 — 예: 사업시설 유지관리 서비스업)",
+  "business_description": "(이 사업체가 실제로 무엇을 하는 곳인지 핵심 1~2문장. 예: 'B2B 고객사의 건물·시설을 위탁받아 청소·설비점검·보안 등 통합 유지관리 서비스 제공 — 장기계약 갱신율과 인력 운용 효율이 수익성 핵심')",
   "biz_scale": "(micro 또는 sme — 직원 5명 이하·매출 10억 미만이면 micro, 아니면 sme)",
   "years_in_business": ${yearsInBusiness ?? null},
+  "is_startup": ${isStartup},
   "critical_areas": ["(핵심 경영 지표 1)", "(핵심 경영 지표 2)", "(핵심 경영 지표 3)"],
-  "diagnosis_note": "(이 업체 진단 시 AI가 특별히 유의해야 할 업종 특성 1문장)"
+  "diagnosis_note": "(이 업체 진단 시 AI가 특별히 유의해야 할 업종·규모·창업시기 특성 1~2문장)"
 }
 
-[industry_key 선택 기준 — 반드시 이 목록에서만 선택]
-- local_service : 헤어·네일·피부샵, 세탁소, 수선집, 반려동물, 필라테스·요가스튜디오, 주유소 등 지역 밀착 생활서비스
+[industry_key 분류 기준 — 반드시 이 목록에서만 선택, 아래 구체 예시 기준 엄수]
+
+★ 분류 주의사항 (자주 혼동되는 업종):
+- FM(시설관리)·사업시설유지·보안경비·청소대행·빌딩관리 → local_service  (B2B여도 서비스업)
+- 실제 공사·시공·신축·리모델링·전기배선 현장작업 → construction  (용역서비스 X)
+- 인력파견·아웃소싱·HR컨설팅 → knowledge_it
+- 물류창고관리만(운송 없음) → wholesale
+
+[16개 분류]
+- local_service : 헤어·네일·피부샵, 세탁소, 수선집, 반려동물샵, 필라테스·요가, 주유소, 사업시설유지관리(FM)·빌딩관리·경비·청소대행·방역·소독 등 생활밀착·B2B 위탁서비스
 - restaurant    : 음식점, 카페, 베이커리, 배달전문점, 분식점, 주점
-- wholesale     : 도소매, 유통, 무역상사(국내 위주), 대리점
-- construction  : 건설, 인테리어, 리모델링, 전기·설비공사
-- knowledge_it  : IT개발, 소프트웨어, SaaS, 컨설팅, 회계·법무, 광고대행
+- wholesale     : 도소매, 유통, 무역상사(국내 위주), 대리점, 총판
+- construction  : 건설현장 시공, 인테리어 공사, 리모델링 공사, 전기·소방·설비 공사 (완공된 건물의 일상 관리는 local_service)
+- knowledge_it  : IT개발, 소프트웨어, SaaS, 컨설팅·자문, 회계·법무·세무, 광고대행, 인력파견·아웃소싱, HR컨설팅
 - mfg_parts     : 기계·금속·자동차·전자 부품 등 산업재 제조
 - food_mfg      : 식품·음료·건강기능식품·HMR 제조
-- medical       : 병원·의원·한의원·약국·헬스장·PT샵·성형외과
+- medical       : 병원·의원·한의원·약국·헬스장·PT샵·성형외과·요양원
 - finance       : 금융·보험·핀테크·대부·투자
 - education     : 학원·교습소·온라인강의·직업훈련기관
 - fashion       : 의류·패션잡화 디자인·제조·유통 브랜드 (미용 서비스 제외)
-- media         : 미디어·콘텐츠제작·1인방송·광고·디자인스튜디오
-- logistics     : 화물운송·택배·창고·이사·포워딩
+- media         : 미디어·콘텐츠제작·1인방송·광고·디자인스튜디오·영상제작
+- logistics     : 화물운송·택배·창고·이사·포워딩·배송대행
 - energy        : 태양광·신재생에너지·환경·재활용·폐기물처리
 - agri_food     : 농산물·수산물·축산물 원물 재배·가공·유통
 - export_sme    : 해외 수출이 매출의 30% 이상인 제조·유통 기업`;

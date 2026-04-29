@@ -610,6 +610,7 @@ const Wizard = (() => {
   function showBizContext(data, companyName, foundedYear) {
     const currentYear = new Date().getFullYear();
     const years = foundedYear ? currentYear - parseInt(foundedYear) : null;
+    const isStartup = data.is_startup === true || years === 0 || years < 1;
     const scaleLabel = data.biz_scale === 'micro' ? '소상공인' : '소기업·중소기업';
 
     const areasHtml = (data.critical_areas || [])
@@ -618,7 +619,15 @@ const Wizard = (() => {
     const noteHtml = data.diagnosis_note
       ? `<div class="biz-ctx-note">⚠️ 진단 시 유의: ${data.diagnosis_note}</div>` : '';
 
+    const startupBanner = isStartup ? `
+      <div class="biz-ctx-startup-banner">
+        🚀 <strong>창업 초기 모드</strong> — 개업 1년 미만 사업체입니다.<br>
+        진단 항목 중 실제 데이터가 없는 경우 <strong>목표값·예상값·계획치</strong>로 입력해주세요.<br>
+        AI가 창업 초기 특화 전략(초기 계약 확보·현금 생존·BEP 달성)을 제시합니다.
+      </div>` : '';
+
     document.getElementById('biz-context-content').innerHTML = `
+      ${startupBanner}
       <div class="biz-ctx-card">
         <div class="biz-ctx-header">
           <div class="biz-ctx-name">🏪 ${companyName || '입력하신 사업체'}</div>
@@ -626,7 +635,9 @@ const Wizard = (() => {
         </div>
         <div class="biz-ctx-desc">"${data.business_description || ''}"</div>
         <div class="biz-ctx-meta">
-          ${years ? `<span>⏱ 업력 ${years}년차 (${foundedYear}년 개업)</span>` : ''}
+          ${isStartup
+            ? `<span>🚀 창업 초기 (${foundedYear}년 개업)</span>`
+            : (years ? `<span>⏱ 업력 ${years}년차 (${foundedYear}년 개업)</span>` : '')}
           <span>📊 ${scaleLabel}</span>
         </div>
         <div class="biz-ctx-areas">
@@ -785,9 +796,31 @@ const Wizard = (() => {
     if (industryData) renderDiagModule('diag-industry-container', industryData);
 
     // 탭 버튼 레이블 동적 업데이트 (업종 반영)
-    const indLabel  = document.getElementById('bizItem')?.value || industry || '업종';
+    const aiLabel = document.getElementById('aiIndustryKey') ? (() => {
+      // AI가 반환한 industry_label로 탭 레이블 설정
+      const bizCtxBadge = document.querySelector('.biz-ctx-type-badge');
+      return bizCtxBadge ? bizCtxBadge.textContent : null;
+    })() : null;
+    const indLabel  = aiLabel || document.getElementById('bizItem')?.value || industry || '업종';
     const tabIndustry = document.getElementById('diagTabBtn-industry');
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단 (5문항)';
+
+    // 창업 초기 모드 배너 삽입
+    const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
+    const commonContainer = document.getElementById('diag-common-container');
+    if (isStartupMode && commonContainer) {
+      const existingBanner = document.getElementById('startup-diag-banner');
+      if (!existingBanner) {
+        const banner = document.createElement('div');
+        banner.id = 'startup-diag-banner';
+        banner.className = 'startup-diag-banner';
+        banner.innerHTML = `
+          🚀 <strong>창업 초기 모드</strong> — 실제 데이터가 없는 항목은 <strong>목표값·예상값</strong>으로 입력하세요.<br>
+          예: 목표 영업이익률, 예상 재계약율, 계획 중인 매출 성장률 등.<br>
+          "모르면" 1점을 선택하고 메모란에 <em>"창업 초기, 아직 데이터 없음"</em>이라고 적으면 됩니다.`;
+        commonContainer.parentNode.insertBefore(banner, commonContainer);
+      }
+    }
 
     // 진행률 카운터 총 항목 수 동적 갱신
     const totalItems = document.querySelectorAll('.diag-item').length || 15;
@@ -1536,6 +1569,8 @@ const Wizard = (() => {
       govSupport:          Array.from(document.querySelectorAll('input[name="govSupport"]:checked')).map(el => el.value).join(', '),
       notes:               g('notes'),
       extraDiagArea:       g('extraDiagAreaHidden') || g('extraDiagArea'),
+      isStartup:           g('aiIsStartup') === 'true',
+      yearsInBusiness:     g('aiYearsInBusiness'),
       diagScores:          diagScores,
     };
   }
