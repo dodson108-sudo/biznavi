@@ -17,7 +17,9 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   font-family:'Noto Sans KR',sans-serif;
   overflow-x:hidden;
 }
-#landing h1,#landing h2,#landing h3{font-family:'Noto Serif KR',serif}
+#landing h2,#landing h3{font-family:'Noto Serif KR',serif}
+/* 히어로 h1만 고딕 강제 */
+#lp-hero .lp-hero-h1{font-family:'Noto Sans KR',sans-serif!important}
 
 /* Section fade-in animation */
 .lp-section{
@@ -33,7 +35,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 .lp-section-title{text-align:center;margin-bottom:60px}
 .lp-section-title h2{font-size:clamp(28px,4vw,44px);font-weight:700;color:#F0F2F8;margin-bottom:16px;line-height:1.2}
 .lp-section-title p{font-size:17px;color:rgba(255,255,255,.72);line-height:1.8;font-weight:400}
-.lp-accent{background:linear-gradient(135deg,#F5C030,#FFD966);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lp-accent{color:#FFD700;-webkit-text-fill-color:#FFD700}
 
 /* Landing nav */
 .lp-nav{
