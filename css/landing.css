@@ -60,13 +60,19 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   text-decoration:none;cursor:pointer;
 }
 .lp-nav-logo svg{flex-shrink:0}
-.lp-nav-links{display:flex;align-items:center;gap:32px}
+.lp-nav-links{display:flex;align-items:center;gap:28px;margin-left:auto}
 .lp-nav-links a{
-  font-size:14px;color:rgba(255,255,255,.65);text-decoration:none;
-  transition:color .2s;
+  font-size:14px;color:rgba(255,255,255,.70);text-decoration:none;
+  font-weight:500;transition:color .2s;
 }
 .lp-nav-links a:hover{color:#F5C030}
-.lp-nav-actions{display:flex;align-items:center;gap:10px}
+.lp-nav-login{
+  border:1.5px solid rgba(245,192,48,.55);border-radius:6px;
+  padding:6px 16px;color:#F5C030!important;font-weight:700!important;
+  transition:all .2s!important;
+}
+.lp-nav-login:hover{background:rgba(245,192,48,.12)!important;border-color:#F5C030!important}
+.lp-nav-actions{display:flex;align-items:center;gap:10px;margin-left:16px}
 
 /* Buttons */
 .lp-btn-primary{
