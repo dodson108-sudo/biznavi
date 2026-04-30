@@ -809,6 +809,25 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .surv-survived { color: #4ADE80; }
 .surv-src      { font-size: 0.72rem; color: rgba(255,255,255,.35); margin-top: 4px; }
 
+/* ── 기업마당 정부지원사업 카드 ── */
+.bizinfo-note  { font-size: 0.78rem; color: rgba(255,255,255,.45); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.bizinfo-live-badge { background: rgba(34,197,94,.18); color: #4ADE80; border: 1px solid rgba(34,197,94,.35); border-radius: 10px; padding: 1px 8px; font-size: 0.7rem; font-weight: 700; }
+.bizinfo-fb-badge   { background: rgba(245,192,48,.12); color: #F5C030; border: 1px solid rgba(245,192,48,.3); border-radius: 10px; padding: 1px 8px; font-size: 0.7rem; }
+.bizinfo-list  { display: flex; flex-direction: column; gap: 12px; }
+.bizinfo-card  { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 14px 16px; }
+.bizinfo-card:hover { border-color: rgba(245,192,48,.35); }
+.bizinfo-top   { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.bizinfo-type  { font-size: 0.72rem; background: rgba(245,192,48,.15); color: #F5C030; border-radius: 4px; padding: 2px 8px; }
+.bizinfo-amount{ font-size: 0.78rem; font-weight: 700; color: #4ADE80; margin-left: auto; }
+.bizinfo-name  { font-size: 0.92rem; font-weight: 700; color: #E8EDF5; margin-bottom: 3px; line-height: 1.4; }
+.bizinfo-org   { font-size: 0.75rem; color: rgba(255,255,255,.45); margin-bottom: 6px; }
+.bizinfo-period{ font-size: 0.78rem; color: rgba(255,255,255,.6); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.bizinfo-dday  { background: rgba(245,192,48,.15); color: #F5C030; border-radius: 4px; padding: 1px 6px; font-size: 0.7rem; font-weight: 700; }
+.bizinfo-dday.urgent { background: rgba(239,68,68,.2); color: #F87171; }
+.bizinfo-summary { font-size: 0.8rem; color: rgba(255,255,255,.65); line-height: 1.5; margin-bottom: 8px; }
+.bizinfo-link  { font-size: 0.78rem; color: #F5C030; text-decoration: none; opacity: .8; }
+.bizinfo-link:hover { opacity: 1; text-decoration: underline; }
+
 .dr-right { flex: 1; display: flex; flex-direction: column; gap: 20px; }
 
 .dr-type-box {

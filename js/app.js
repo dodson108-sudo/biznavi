@@ -228,23 +228,35 @@ const App = (() => {
     show('loading');
     Wizard.animateLoading();
 
-    // KOSIS 업종 생존율 — AI 호출 전에 미리 받아서 프롬프트에 반영
-    if (data.industry) {
-      try {
-        const svRes = await fetch('/api/kosis-survival', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ industryKey: data.industry }),
-        });
-        const svData = await svRes.json();
-        if (svData && svData.y3) {
-          window._kosisSurvival = svData;
-          data.survivalData = svData; // data 객체에도 보관
+    // KOSIS + 기업마당 — AI 호출 전에 병렬 조회 (프롬프트 반영용)
+    await Promise.allSettled([
+      // ① KOSIS 업종 생존율
+      data.industry
+        ? fetch('/api/kosis-survival', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ industryKey: data.industry }),
+          }).then(r => r.json()).then(sv => {
+            if (sv && sv.y3) { window._kosisSurvival = sv; data.survivalData = sv; }
+          })
+        : Promise.resolve(),
+
+      // ② 기업마당 정부지원사업
+      fetch('/api/bizinfo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          industryKey:    data.industry    || '',
+          bizScale:       data.bizScale    || 'micro',
+          consultingType: data.consultingType || '',
+        }),
+      }).then(r => r.json()).then(bi => {
+        if (bi && bi.programs && bi.programs.length > 0) {
+          window._bizinfoPrograms = bi.programs;
+          data.bizinfoPrograms = bi.programs;
         }
-      } catch (e) {
-        console.log('[KOSIS] 생존율 조회 실패 (무시):', e.message);
-      }
-    }
+      }),
+    ]);
 
     try {
       const result = (mode === 'demo' || !apiKey)

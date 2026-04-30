@@ -1825,9 +1825,12 @@ const Wizard = (() => {
 
     drawRadarChart('radarChart', domainScores);
 
-    // 업종 생존율 비동기 조회 (KOSIS)
+    // 업종 생존율 렌더링 (KOSIS — app.js에서 선행 조회)
     const industryKey = data.industry || '';
     if (industryKey) _fetchSurvival(industryKey, data);
+
+    // 정부지원사업 렌더링 (기업마당 — app.js에서 선행 조회)
+    _renderBizinfo(data);
 
     return { primary, secondary, domainScores };
   }
@@ -1887,6 +1890,47 @@ const Wizard = (() => {
       window._kosisSurvival = d;
     })
     .catch(function() { box.style.display = 'none'; });
+  }
+
+  /* ── 기업마당 정부지원사업 렌더링 ── */
+  function _renderBizinfo(diagData) {
+    const box     = document.getElementById('drBizinfoBox');
+    const content = document.getElementById('drBizinfoContent');
+    if (!box || !content) return;
+
+    const programs = diagData.bizinfoPrograms ||
+      (typeof window !== 'undefined' && window._bizinfoPrograms) || [];
+
+    if (!programs.length) { box.style.display = 'none'; return; }
+
+    box.style.display = '';
+    const sourceTag = programs[0]._source === 'api'
+      ? '<span class="bizinfo-live-badge">실시간</span>'
+      : '<span class="bizinfo-fb-badge">주요 상시사업</span>';
+
+    content.innerHTML =
+      '<p class="bizinfo-note">귀사 업종·규모 기준 관련도 순 정렬 ' + sourceTag + '</p>' +
+      '<div class="bizinfo-list">' +
+      programs.map(function(p) {
+        const dDayHtml = p.dDay !== null && p.dDay !== undefined
+          ? '<span class="bizinfo-dday' + (p.dDay <= 7 ? ' urgent' : '') + '">D-' + p.dDay + '</span>'
+          : '';
+        return '<div class="bizinfo-card">' +
+          '<div class="bizinfo-top">' +
+            '<span class="bizinfo-type">' + (p.type || '지원') + '</span>' +
+            '<span class="bizinfo-amount">' + (p.amount || '') + '</span>' +
+          '</div>' +
+          '<div class="bizinfo-name">' + p.name + '</div>' +
+          '<div class="bizinfo-org">' + (p.org || '') + '</div>' +
+          '<div class="bizinfo-period">' + (p.period || '') + dDayHtml + '</div>' +
+          '<p class="bizinfo-summary">' + (p.summary || '') + '</p>' +
+          '<a class="bizinfo-link" href="' + (p.url || '#') + '" target="_blank" rel="noopener">신청·상세 보기 →</a>' +
+        '</div>';
+      }).join('') +
+      '</div>';
+
+    // AI 엔진이 참조할 수 있도록 전역 저장
+    window._bizinfoPrograms = programs;
   }
 
   function _survBar(label, val, max) {
