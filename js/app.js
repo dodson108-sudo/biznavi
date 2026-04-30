@@ -265,7 +265,15 @@ const App = (() => {
       // 분석 결과 보관 → diag-reveal 화면으로 이동
       _pendingResult = result;
       _pendingIsDemo = (mode === 'demo' || !apiKey);
-      Wizard.showDiagReveal(data);
+
+      // 진단 이력 자동 저장 (demo 제외)
+      let _currentSnap = null;
+      if (!_pendingIsDemo && typeof HistoryTracker !== 'undefined') {
+        _currentSnap = HistoryTracker.save(data, result);
+      }
+      window._currentSnap = _currentSnap;
+
+      Wizard.showDiagReveal(data, _currentSnap);
       _pendingData = data;
       show('diag-reveal');
     } catch (e) {
@@ -341,7 +349,26 @@ const App = (() => {
     if (wizKeyEl && apiKey && apiKey.startsWith('sk-ant-')) wizKeyEl.value = apiKey;
   }
 
-  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, fillSavedKey };
+  /* ── 이력 패널 열기/닫기 ── */
+  function openHistory() {
+    const overlay = document.getElementById('historyOverlay');
+    const drawer  = document.getElementById('historyDrawer');
+    if (!overlay || !drawer) return;
+    if (typeof HistoryTracker !== 'undefined') HistoryTracker.renderPanel();
+    overlay.classList.remove('hidden');
+    drawer.classList.remove('hidden');
+    requestAnimationFrame(() => drawer.classList.add('open'));
+  }
+
+  function closeHistory() {
+    const drawer = document.getElementById('historyDrawer');
+    const overlay = document.getElementById('historyOverlay');
+    if (drawer)  drawer.classList.remove('open');
+    if (overlay) overlay.classList.add('hidden');
+    setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
+  }
+
+  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, fillSavedKey, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */

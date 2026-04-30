@@ -1312,10 +1312,21 @@
       BizNavi
     </div>
     <div class="nav-actions">
+      <button class="btn btn-ghost btn-sm" onclick="App.openHistory()">📋 이력</button>
       <button class="btn btn-outline btn-sm" onclick="App.goBackToDiag()">← 진단 수정</button>
       <button class="btn btn-ghost btn-sm" onclick="App.restart()">↩ 새 분석</button>
     </div>
   </nav>
+
+  <!-- 이력 패널 (슬라이드 오버) -->
+  <div id="historyOverlay" class="hist-overlay hidden" onclick="App.closeHistory()"></div>
+  <div id="historyDrawer" class="hist-drawer hidden">
+    <div class="hist-drawer-header">
+      <span>📋 진단 이력</span>
+      <button class="hist-close-btn" onclick="App.closeHistory()">✕</button>
+    </div>
+    <div id="historyPanel" class="hist-panel"></div>
+  </div>
 
   <div class="dr-wrap">
     <!-- 헤더 -->
@@ -1351,6 +1362,12 @@
       <div class="dr-section-card" id="drPatternBox" style="display:none">
         <h3 class="dr-section-title">🔍 동종업계 경영 패턴 분석</h3>
         <div id="drPatternContent"></div>
+      </div>
+
+      <!-- 섹션 1-E: 이전 진단 대비 변화 -->
+      <div class="dr-section-card" id="drHistoryBox" style="display:none">
+        <h3 class="dr-section-title">📈 이전 진단 대비 변화</h3>
+        <div id="drHistoryContent"></div>
       </div>
 
       <!-- 섹션 2: 진단 컨설팅 유형 -->
@@ -1585,6 +1602,7 @@
 <script src="js/diagnosis/industry/energy.js?v=20260429e"></script>
 <script src="js/diagnosis/industry/agri_food.js?v=20260429e"></script>
 <script src="js/app.js?v=20260429i"></script>
+<script src="js/history-tracker.js?v=20260430a"></script>
 <script src="js/pattern-db.js?v=20260430a"></script>
 <script src="js/bep-simulator.js?v=20260430a"></script>
 <script src="js/finance-wizard.js?v=20260430b"></script>

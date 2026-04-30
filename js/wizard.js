@@ -1769,7 +1769,7 @@ const Wizard = (() => {
   };
 
   /* ── 진단유형 확인 화면 렌더링 ── */
-  function showDiagReveal(data) {
+  function showDiagReveal(data, currentSnap) {
     const scores = data.diagScores || diagScores;
     const isStartup = !!(data.isStartup);
     const domainScores = calcDomainScores(scores, isStartup);
@@ -1835,6 +1835,11 @@ const Wizard = (() => {
     // 동종업계 경영 패턴 DB 렌더링
     if (typeof PatternDB !== 'undefined') {
       PatternDB.renderDiagReveal(data);
+    }
+
+    // 분기별 이력 비교 렌더링
+    if (typeof HistoryTracker !== 'undefined') {
+      HistoryTracker.renderCompare(data, currentSnap || window._currentSnap);
     }
 
     return { primary, secondary, domainScores };
