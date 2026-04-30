@@ -71,20 +71,11 @@
     }
   }
 
-  // ── 이미지 로드 후 레이어에 적용 ──
+  // ── 레이어에 배경 이미지 적용 (브라우저 네이티브 로딩에 맡김) ──
   function loadAndShow(imgObj, layer, instant) {
-    const img = new Image();
-    img.onload = function () {
-      layer.style.backgroundImage  = 'url(' + imgObj.url + ')';
-      layer.style.backgroundPosition = imgObj.pos;
-      layer.style.opacity = instant ? '1' : '1';
-    };
-    img.onerror = function () {
-      // 로드 실패 시 다음 이미지로 넘어감
-      currentIdx = (currentIdx + 1) % images.length;
-      loadAndShow(images[currentIdx], layer, instant);
-    };
-    img.src = imgObj.url;
+    layer.style.backgroundImage    = 'url(' + imgObj.url + ')';
+    layer.style.backgroundPosition = imgObj.pos;
+    if (instant) layer.style.opacity = '1';
   }
 
   // ── A/B 크로스페이드 ──
