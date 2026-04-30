@@ -2,13 +2,95 @@
 
 ## 배포 상태 (2026-04-30 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 히어로 가독성 강화 — 마스터카드 코리아 스타일 (f0b7258)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: 분기별 진단 이력 추적 (c3b64f8)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
-## 최근 수정 이력 (2026-04-30)
+## 최근 수정 이력 (2026-04-30) — 5대 외부 데이터 연동 완료
+
+### ① 통계청 KOSIS 업종 생존율 연동 (배포 완료)
+
+#### api/kosis-survival.js (신규)
+- 기업생멸행정통계 2022 확정치 16개 업종 fallback 내장
+- KOSIS_API_KEY 선택 (없으면 fallback 자동 동작)
+- 반환: `{ y1, y3, y5, risk('폐업 고위험'/'주의 필요'/'상대적 안정'), name, source }`
+- INDUSTRY_TO_KSIC: BizNavi 16개 업종 키 → KSIC 대분류 코드 매핑
+
+#### 연동 흐름
+- `app.js` runAnalysis()에서 `Promise.allSettled` 병렬 선조회 (AI 호출 전)
+- `data.survivalData` → `buildPrompt1()` 섹션13에 KOSIS 블록 주입 → SWOT 위협·전략에 반영
+- `wizard.js` showDiagReveal() → `#drSurvivalBox` 카드 렌더링 (diag-reveal 화면)
+
+---
+
+### ② 기업마당 정부지원사업 실시간 매칭 (배포 완료)
+
+#### api/bizinfo.js (신규)
+- 10개 curated fallback 프로그램 내장 (소상공인스마트화·경영컨설팅·창업도약패키지·정책자금 등)
+- BIZINFO_API_KEY 선택 (없으면 fallback 자동 동작)
+- scoreProgram(): 업종 키워드 + 규모 매칭 → 관련도 점수 → 상위 5개 반환
+- 반환: `{ programs[{ name, amount, dday, url, summary, score }] }`
+
+#### 연동 흐름
+- runAnalysis()에서 KOSIS와 동시 선조회 (Promise.allSettled)
+- `data.bizinfoPrograms` → `buildPrompt1()` 섹션11에 기업마당 블록 주입 → 로드맵 1단계에 반영
+- `wizard.js` showDiagReveal() → `#drBizinfoBox` 지원사업 카드 렌더링
+
+---
+
+### ③ 재무 시뮬레이션 엔진 — BEP·현금흐름 계산기 (배포 완료)
+
+#### js/bep-simulator.js (신규)
+- `BepSim.init(d)`: 재무분석 결과로 초기값 자동 설정
+  - monthlyRev = revenue/12, varRatio = costOfSales/revenue (0.3~0.9 클램핑)
+  - fixedCost = laborCost/12 + revenue/12×0.15 (DART 미제공 항목 추정)
+- 5개 range 슬라이더 실시간 연동 (월매출·변동비율·고정비·초기투자·현금잔액)
+- 4개 결과 카드: BEP 금액·달성률·런웨이·월순이익 (수준별 색상 bep-pos/warn/neg)
+- 6개월 현금흐름: 테이블 + Canvas 바 차트 (양=초록, 음=빨강)
+- `finance-wizard.js`에서 대시보드 렌더 후 `BepSim.init(d)` 호출
+
+---
+
+### ④ 진단 패턴 DB — 소상공인 실태조사 기반 (배포 완료)
+
+#### js/pattern-db.js (신규)
+- PatternDB 모듈: `match()`, `renderDiagReveal()`, `buildPromptBlock()`
+- 4대 아키타입 (도메인 점수 조건 기반):
+  - `finance_crisis`: finance < 2.5 → 34.2% 비중, 52.8% 3년 폐업률
+  - `market_weak`: (bm+diff)/2 < 2.5 → 28.7% 비중, 44.1% 폐업률
+  - `growth_stall`: 평균 2.5~3.5 → 29.4% 비중, 28.3% 폐업률
+  - `strength_build`: 평균 ≥ 3.5 → 7.7% 비중, 12.1% 폐업률
+- INDUSTRY_CONTEXT: 16개 업종별 평균월매출·BEP범위·주요폐업트리거·디지털효과·성공시그널
+- AGE_CONTEXT: 창업기(0~2년)·성장기(3~5년)·안정기(6~10년)·확장기(10+년)
+- `renderDiagReveal()`: `#drPatternBox`에 아키타입 배지 + 동종업 통계 + 상위3 액션 렌더링
+- `buildPromptBlock()`: AI 프롬프트 섹션12 주입
+
+---
+
+### ⑤ 분기별 진단 이력 추적 — localStorage (Firebase 마이그레이션 대비) (배포 완료)
+
+#### js/history-tracker.js (신규)
+- HistoryTracker 모듈: `save()`, `loadPrev()`, `loadAll()`, `renderCompare()`, `renderPanel()`
+- `_storage` 인터페이스 추상화 → Firebase 교체 시 이 객체만 Firestore 호출로 교체
+- 스냅샷 구조: `{ id, savedAt, quarter(YYYY-Qx), company, domainScores(flattened avg), consultingType, topIssues, execSummary(200자) }`
+- 최대 20개, 같은 분기+회사명 → 덮어쓰기
+- `renderCompare()`: `#drHistoryBox` 이전 분기 대비 도메인 ▲▼ 비교 바 + 컨설팅 유형 변화
+- `renderPanel()`: 우상단 "📋 이력" 버튼 → 슬라이드 드로어 (회사별 그룹, 미니 바, 이슈 태그)
+
+#### app.js 추가
+- 실제 AI 분석 완료 후 자동 저장: `HistoryTracker.save(data, result)` (데모 제외)
+- `openHistory()` / `closeHistory()`: 드로어 오버레이 토글
+
+#### 공통 인프라 수정
+- `js/ai-engine.js`: buildPrompt1()에 섹션 11(기업마당)·12(패턴DB)·13(KOSIS) 추가
+- `vercel.json`: kosis-survival.js·bizinfo.js 함수 등록 (icn1 리전)
+- `css/style.css`: surv-*·bizinfo-*·bep-*·pat-*·hist-* 스타일 일괄 추가
+
+---
+
+## 최근 수정 이력 (2026-04-30) — 히어로·UI
 
 ### 히어로 가독성 강화 — 마스터카드 코리아 스타일 (배포 완료)
 
