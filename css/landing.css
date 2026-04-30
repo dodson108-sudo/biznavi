@@ -17,9 +17,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   font-family:'Noto Sans KR',sans-serif;
   overflow-x:hidden;
 }
-#landing h2,#landing h3{font-family:'Noto Serif KR',serif}
-/* 히어로 h1만 고딕 강제 */
-#lp-hero .lp-hero-h1{font-family:'Noto Sans KR',sans-serif!important}
+#landing h1,#landing h2,#landing h3{font-family:'Noto Sans KR',sans-serif}
 
 /* Section fade-in animation */
 .lp-section{
@@ -57,7 +55,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   height:100%;display:flex;align-items:center;justify-content:space-between;
 }
 .lp-nav-logo{
-  font-family:'Noto Serif KR',serif;font-size:20px;font-weight:700;
+  font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:700;
   color:#F5C030;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
   text-decoration:none;cursor:pointer;
 }
@@ -182,7 +180,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 }
 .lp-pain-card:hover{border-color:rgba(245,192,48,.5);transform:translateY(-4px);box-shadow:0 12px 40px rgba(245,192,48,.15)}
 .lp-pain-ico{font-size:36px;margin-bottom:20px;display:block}
-.lp-pain-card h3{font-size:18px;font-weight:700;color:#1A2340;margin-bottom:12px;font-family:'Noto Serif KR',serif}
+.lp-pain-card h3{font-size:18px;font-weight:700;color:#1A2340;margin-bottom:12px;font-family:'Noto Sans KR',sans-serif}
 .lp-pain-card p{font-size:14px;color:rgba(26,35,64,.6);line-height:1.8}
 
 /* ===== SECTION 3: VALUE — 서비스 분할 행 레이아웃 ===== */
@@ -210,7 +208,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   margin-bottom:24px;width:fit-content;
 }
 .lp-service-h2{
-  font-family:'Noto Serif KR',serif;
+  font-family:'Noto Sans KR',sans-serif;
   font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.15;
   color:#FFFFFF;margin-bottom:28px;letter-spacing:-1px;
 }
@@ -272,7 +270,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   padding:40px 0;border-top:1px solid rgba(255,255,255,.06);
 }
 .lp-trust-stat{text-align:center}
-.lp-trust-stat-num{font-size:36px;font-weight:900;font-family:'Noto Serif KR',serif;color:#F5C030;margin-bottom:6px}
+.lp-trust-stat-num{font-size:36px;font-weight:900;font-family:'Noto Sans KR',sans-serif;color:#F5C030;margin-bottom:6px}
 .lp-trust-stat-label{font-size:13px;color:rgba(255,255,255,.65)}
 
 /* ===== SECTION 6: DEMO (라이트) ===== */
@@ -350,7 +348,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 }
 .lp-plan-name{font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(26,35,64,.4);margin-bottom:12px}
 .lp-plan.featured .lp-plan-name{color:#D4A017}
-.lp-plan-price{font-size:clamp(32px,4vw,48px);font-weight:900;font-family:'Noto Serif KR',serif;color:#1A2340;line-height:1;margin-bottom:4px}
+.lp-plan-price{font-size:clamp(32px,4vw,48px);font-weight:900;font-family:'Noto Sans KR',sans-serif;color:#1A2340;line-height:1;margin-bottom:4px}
 .lp-plan-price span{font-size:15px;color:rgba(26,35,64,.4);font-weight:400;font-family:'Noto Sans KR',sans-serif}
 .lp-plan-desc{font-size:13px;color:rgba(26,35,64,.5);margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid rgba(26,35,64,.08)}
 .lp-plan-features{list-style:none;margin-bottom:32px}
@@ -517,7 +515,7 @@ body{padding-bottom:48px}
 /* ===== SECTION 10: FOOTER ===== */
 #lp-footer{background:#050810;padding:60px 0 0;border-top:1px solid rgba(255,255,255,.05)}
 .lp-footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:48px;padding-bottom:48px}
-.lp-footer-logo{font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;color:#F5C030;margin-bottom:10px}
+.lp-footer-logo{font-family:'Noto Sans KR',sans-serif;font-size:22px;font-weight:700;color:#F5C030;margin-bottom:10px}
 .lp-footer-slogan{font-size:13px;color:rgba(255,255,255,.35);line-height:1.7}
 .lp-footer-col h4{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px}
 .lp-footer-links{list-style:none}
