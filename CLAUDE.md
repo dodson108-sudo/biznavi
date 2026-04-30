@@ -2,13 +2,39 @@
 
 ## 배포 상태 (2026-04-30 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: Dynamic Common Core 구현 (7693684)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 히어로 배경 시간대별 사진 슬라이드쇼 (0b46559)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-30)
+
+### 히어로 배경 시간대별 사진 슬라이드쇼 (배포 완료)
+
+#### js/hero-bg.js (신규)
+- 낮(06~17시) / 밤(18~05시) 이미지 세트 각 3장 (Unsplash 무료)
+  - day: 소규모 팀 미팅·카페 비즈니스·스마트폰 비즈니스 여성
+  - night: 다크 모던 오피스·화면 앞 집중 업무·야간 미팅
+- A/B 두 레이어 크로스페이드 (1.8s ease), 8초 간격 자동 전환
+- 랜덤 시작 인덱스, 이미지 로드 실패 시 다음 이미지 fallback
+- 탭 숨김 시 인터벌 중지, 복귀 시 재개 (visibility API)
+- 초기화 시 `#hero-canvas` opacity:0 → display:none (이미지로 대체)
+
+#### index.html hero 섹션 재편
+- `#hero-bg-a`, `#hero-bg-b`: 배경 이미지 레이어 (z-index:0, opacity 전환)
+- `#hero-overlay`: 오버레이 그라디언트 레이어 (z-index:1)
+- `#lp-hero::before/::after`: 격자 패턴·골드 글로우 (z-index:2)
+- `.hero-content-wrap`: 콘텐츠 래퍼 (position:relative; z-index:3) — 배경 위에 표시 보장
+
+#### css/landing.css 추가
+- `.hero-bg-layer`: absolute·inset:0·opacity:0·background-size:cover
+- `.hero-overlay-layer`: absolute·inset:0·pointer-events:none·z-index:1
+- `.hero-content-wrap`: position:relative·z-index:3·flex column center
+
+---
+
+### Dynamic Common Core — 업종별 공통 질문 문구 오버라이드 (배포 완료)
 
 ### Dynamic Common Core — 업종별 공통 질문 문구 오버라이드 (배포 완료)
 
