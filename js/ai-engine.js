@@ -1141,7 +1141,16 @@ ${(function() {
     '- 신청 기간이 임박한 사업은 "즉시 신청 필요" 강조';
 })()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-12. 업종 생존율 데이터 (통계청 KOSIS 기반)
+12. 동종업계 경영 패턴 (실태조사 기반)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${(function() {
+  if (typeof PatternDB !== 'undefined' && d.domainScores) {
+    return PatternDB.buildPromptBlock(d);
+  }
+  return '(패턴 DB 데이터 없음 — 업종 일반 데이터 기반으로 작성)';
+})()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. 업종 생존율 데이터 (통계청 KOSIS 기반)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${(function() {
   const sv = d.survivalData || (typeof window !== 'undefined' && window._kosisSurvival) || null;

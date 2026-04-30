@@ -1832,6 +1832,11 @@ const Wizard = (() => {
     // 정부지원사업 렌더링 (기업마당 — app.js에서 선행 조회)
     _renderBizinfo(data);
 
+    // 동종업계 경영 패턴 DB 렌더링
+    if (typeof PatternDB !== 'undefined') {
+      PatternDB.renderDiagReveal(data);
+    }
+
     return { primary, secondary, domainScores };
   }
 
