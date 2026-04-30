@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css?v=20260430a" />
-  <link rel="stylesheet" href="css/landing.css?v=20260430c" />
+  <link rel="stylesheet" href="css/landing.css?v=20260430d" />
   <link rel="stylesheet" href="css/dashboard.css?v=20260429g" />
 </head>
 <body>
@@ -127,36 +127,34 @@
 
   <!-- ── 섹션 3: 두 가지 서비스 소개 ── -->
   <section id="lp-value" class="lp-section" style="--lp-delay:0.12s">
-    <div class="lp-container">
-      <div class="lp-section-title">
-        <h2>BizNavi AI가 두 가지를 모두 해결합니다</h2>
-        <p>재무 분석과 경영 전략, 하나의 플랫폼에서 완결</p>
+    <!-- 재무분석 행 -->
+    <div class="lp-service-row">
+      <div class="lp-service-text">
+        <div class="lp-service-tag">📊 재무분석</div>
+        <h2 class="lp-service-h2">6대 재무비율<br>자동 계산</h2>
+        <ul class="lp-service-list">
+          <li>DART 10만개 기업 자동조회</li>
+          <li>유동성·안전성·수익성·활동성·생산성·성장성</li>
+          <li>한국은행 ECOS 업종평균 벤치마크</li>
+          <li>재무분석 리포트 PDF 출력</li>
+        </ul>
+        <button class="lp-btn-primary" onclick="App.startFinanceAnalysis()">재무분석 시작하기 →</button>
       </div>
-      <div class="lp-value-grid" style="grid-template-columns: repeat(2, 1fr)">
-        <div class="lp-value-card" style="border:1px solid rgba(245,192,48,.25);cursor:pointer" onclick="App.startFinanceAnalysis()">
-          <span class="lp-value-ico">📊</span>
-          <div class="lp-value-num" style="font-size:1.4rem">재무분석</div>
-          <h3>6대 재무비율 자동 계산</h3>
-          <p style="text-align:left;font-size:0.85rem;line-height:1.7;color:rgba(232,237,245,.7)">
-            ✓ DART 10만개 기업 자동조회<br>
-            ✓ 유동성·안전성·수익성·활동성·생산성·성장성<br>
-            ✓ 한국은행 ECOS 업종평균 벤치마크<br>
-            ✓ 재무분석 리포트 PDF 출력
-          </p>
-          <div style="margin-top:12px;font-size:0.8rem;color:var(--gold);font-weight:700">재무분석 시작하기 →</div>
-        </div>
-        <div class="lp-value-card" style="border:1px solid rgba(245,192,48,.25);cursor:pointer" onclick="App.startWizard()">
-          <span class="lp-value-ico">🎯</span>
-          <div class="lp-value-num" style="font-size:1.4rem">경영전략</div>
-          <h3>AI 경영전략 자동 수립</h3>
-          <p style="text-align:left;font-size:0.85rem;line-height:1.7;color:rgba(232,237,245,.7)">
-            ✓ 16개 업종 × BARS 5단계 정밀 진단<br>
-            ✓ SWOT · STP · 4P · KPI · 실행 로드맵<br>
-            ✓ 10대 컨설팅 유형 자동 분류<br>
-            ✓ 90일 즉시 실행 플랜 자동 생성
-          </p>
-          <div style="margin-top:12px;font-size:0.8rem;color:var(--gold);font-weight:700">경영전략 수립하기 →</div>
-        </div>
+      <div class="lp-service-img" style="background-image:url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&q=85&auto=format&fit=crop')"></div>
+    </div>
+    <!-- 경영전략 행 -->
+    <div class="lp-service-row lp-service-row-rev">
+      <div class="lp-service-img" style="background-image:url('https://images.unsplash.com/photo-1552664730-d307ca884978?w=900&q=85&auto=format&fit=crop')"></div>
+      <div class="lp-service-text">
+        <div class="lp-service-tag">🎯 경영전략</div>
+        <h2 class="lp-service-h2">AI 경영전략<br>자동 수립</h2>
+        <ul class="lp-service-list">
+          <li>16개 업종 × BARS 5단계 정밀 진단</li>
+          <li>SWOT · STP · 4P · KPI · 실행 로드맵</li>
+          <li>10대 컨설팅 유형 자동 분류</li>
+          <li>90일 즉시 실행 플랜 자동 생성</li>
+        </ul>
+        <button class="lp-btn-primary" onclick="App.startWizard()">경영전략 수립하기 →</button>
       </div>
     </div>
   </section>

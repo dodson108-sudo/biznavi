@@ -91,68 +91,63 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 /* ===== SECTION 1: HERO ===== */
 #lp-hero{
   min-height:100vh;display:flex;flex-direction:column;
-  align-items:flex-start;justify-content:center;
-  padding:120px max(5vw,32px) 80px max(8vw,48px);
-  position:relative;overflow:hidden;
+  align-items:center;justify-content:center;
+  padding:120px 24px 80px;position:relative;overflow:hidden;text-align:center;
   background:#0A0E1A;
 }
 
-/* ── 사진 배경 레이어 (A/B 크로스페이드) ── */
+/* ── 사진 배경 레이어 (A/B 크로스페이드) — 채도 낮춰 색번짐 차단 ── */
 .hero-bg-layer{
   position:absolute;inset:0;z-index:1;
-  background-size:cover;background-position:center right;background-repeat:no-repeat;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
   opacity:0;
+  filter:grayscale(55%) brightness(0.5);
 }
 
-/* ── 다크 오버레이 — 좌측(텍스트) 완전 보호, 우측(사진) 자연 노출 ── */
+/* ── 다크 오버레이 — 균일하게 강하게 ── */
 .hero-overlay-layer{
   position:absolute;inset:0;z-index:2;pointer-events:none;
-  background:linear-gradient(to right,
-    rgba(5,8,20,.97) 0%,
-    rgba(5,8,20,.93) 30%,
-    rgba(5,8,20,.70) 55%,
-    rgba(5,8,20,.20) 78%,
-    rgba(5,8,20,.00) 100%);
+  background:rgba(5,8,20,.82);
   transition:background 1.2s ease;
 }
 
-/* ── 골드 격자 패턴 (오버레이 위, 좌측만) ── */
+/* ── 골드 격자 패턴 (오버레이 위) ── */
 #lp-hero::before{
   content:'';position:absolute;inset:0;z-index:3;
   background-image:
-    linear-gradient(rgba(245,192,48,.05) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(245,192,48,.05) 1px,transparent 1px);
+    linear-gradient(rgba(245,192,48,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(245,192,48,.06) 1px,transparent 1px);
   background-size:56px 56px;pointer-events:none;
-  mask-image:linear-gradient(to right,rgba(0,0,0,.8) 0%,transparent 60%);
+  mask-image:radial-gradient(ellipse 85% 90% at 50% 42%,#000 25%,transparent 100%);
 }
 
-/* ── 골드 후광 글로우 (좌하단) ── */
+/* ── 골드 후광 글로우 ── */
 #lp-hero::after{
-  content:'';position:absolute;bottom:-10%;left:-5%;z-index:3;
-  width:800px;height:700px;
+  content:'';position:absolute;top:-8%;left:50%;transform:translateX(-50%);z-index:3;
+  width:1100px;height:860px;
   background:radial-gradient(ellipse,
-    rgba(245,192,48,.12) 0%,
-    rgba(245,192,48,.05) 35%,
-    transparent 65%);
+    rgba(245,192,48,.16) 0%,
+    rgba(245,192,48,.07) 30%,
+    rgba(245,192,48,.02) 58%,
+    transparent 72%);
   pointer-events:none;animation:lpPulse 6s ease-in-out infinite;
 }
-@keyframes lpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.1)}}
+@keyframes lpPulse{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.7;transform:translateX(-50%) scale(1.08)}}
 
-/* ── 콘텐츠 래퍼 — 좌측 정렬, 배경 레이어 위에 ── */
+/* ── 콘텐츠 래퍼 ── */
 .hero-content-wrap{
   position:relative;z-index:4;
-  display:flex;flex-direction:column;align-items:flex-start;
-  max-width:580px;text-align:left;
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;text-align:center;
 }
 
 .lp-hero-badge{
   display:inline-flex;align-items:center;gap:8px;
-  background:rgba(245,192,48,.12);border:1px solid rgba(245,192,48,.45);
+  background:rgba(245,192,48,.15);border:1px solid rgba(245,192,48,.5);
   border-radius:100px;padding:7px 20px;
   font-size:12px;font-weight:700;color:#F5C030;letter-spacing:.8px;
-  text-transform:uppercase;margin-bottom:28px;
+  text-transform:uppercase;margin-bottom:32px;
   animation:lpFadeDown .6s ease both;
-  text-shadow:0 1px 4px rgba(0,0,0,.6);
   backdrop-filter:blur(8px);
 }
 .lp-hero-badge .dot{width:7px;height:7px;border-radius:50%;background:#F5C030;animation:lpBlink 2s ease-in-out infinite}
@@ -160,35 +155,35 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 @keyframes lpFadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes lpFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 .lp-hero-h1{
-  font-size:clamp(36px,5.5vw,68px);font-weight:900;line-height:1.12;
+  font-size:clamp(38px,7vw,76px);font-weight:900;line-height:1.1;
   color:#FFFFFF;margin-bottom:20px;
-  animation:lpFadeUp .7s ease .1s both;letter-spacing:-1.5px;
+  animation:lpFadeUp .7s ease .1s both;letter-spacing:-1px;
   text-shadow:0 2px 8px rgba(0,0,0,.65),0 6px 32px rgba(0,0,0,.45);
 }
 .lp-hero-sub{
-  font-size:clamp(14px,1.6vw,18px);color:rgba(255,255,255,.88);
-  font-family:'Noto Sans KR',sans-serif;font-weight:500;
-  line-height:1.85;margin-bottom:40px;max-width:520px;
+  font-size:clamp(15px,2vw,20px);color:rgba(255,255,255,.92);
+  font-family:'Noto Sans KR',sans-serif;font-weight:600;
+  line-height:1.9;margin-bottom:44px;max-width:620px;
   animation:lpFadeUp .7s ease .2s both;
   text-shadow:0 1px 6px rgba(0,0,0,.7),0 4px 20px rgba(0,0,0,.5);
 }
 .lp-hero-cta{
-  display:flex;align-items:center;justify-content:flex-start;gap:14px;flex-wrap:wrap;
-  margin-bottom:56px;animation:lpFadeUp .7s ease .3s both;
+  display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  margin-bottom:60px;animation:lpFadeUp .7s ease .3s both;
 }
 .lp-hero-stats{
   display:flex;align-items:center;
-  border:1px solid rgba(245,192,48,.22);border-radius:12px;
+  border:1px solid rgba(245,192,48,.25);border-radius:14px;
   background:rgba(5,8,20,.65);backdrop-filter:blur(16px);
-  overflow:hidden;max-width:560px;width:100%;
+  overflow:hidden;max-width:700px;width:100%;
   animation:lpFadeUp .7s ease .4s both;
 }
-.lp-stat-item{flex:1;padding:18px 10px;text-align:center;position:relative}
+.lp-stat-item{flex:1;padding:20px 12px;text-align:center;position:relative}
 .lp-stat-item+.lp-stat-item::before{
   content:'';position:absolute;left:0;top:20%;height:60%;
   width:1px;background:rgba(245,192,48,.15);
 }
-.lp-stat-num{font-size:clamp(11px,1.5vw,15px);font-weight:700;color:#F5C030;margin-bottom:4px;line-height:1.3;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.lp-stat-num{font-size:clamp(12px,1.8vw,16px);font-weight:700;color:#F5C030;margin-bottom:4px;line-height:1.3;text-shadow:0 1px 6px rgba(0,0,0,.5)}
 .lp-stat-label{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:.3px}
 
 /* ===== SECTION 2: PAIN (라이트) ===== */
@@ -206,24 +201,53 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 .lp-pain-card h3{font-size:18px;font-weight:700;color:#1A2340;margin-bottom:12px;font-family:'Noto Serif KR',serif}
 .lp-pain-card p{font-size:14px;color:rgba(26,35,64,.6);line-height:1.8}
 
-/* ===== SECTION 3: VALUE (다크) ===== */
-#lp-value{background:#0A0E1A;padding:100px 0}
-.lp-value-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-bottom:60px}
-.lp-value-card{
-  text-align:center;padding:48px 24px;
-  background:rgba(245,192,48,.04);border:1px solid rgba(245,192,48,.12);
-  border-radius:20px;transition:all .35s;
+/* ===== SECTION 3: VALUE — 서비스 분할 행 레이아웃 ===== */
+#lp-value{background:#0A0E1A;padding:0}
+
+/* 서비스 행 공통 */
+.lp-service-row{
+  display:grid;grid-template-columns:1fr 1fr;
+  min-height:480px;
 }
-.lp-value-card:hover{border-color:rgba(245,192,48,.4);background:rgba(245,192,48,.08);transform:translateY(-6px);box-shadow:0 16px 48px rgba(245,192,48,.12)}
-.lp-value-ico{font-size:48px;margin-bottom:20px;display:block}
-.lp-value-num{
-  font-size:clamp(40px,6vw,64px);font-weight:900;font-family:'Noto Serif KR',serif;
-  background:linear-gradient(135deg,#F5C030,#FFD966);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  line-height:1;margin-bottom:8px;
+/* 이미지가 왼쪽인 행 (경영전략) */
+.lp-service-row-rev{direction:ltr}
+
+/* 텍스트 영역 */
+.lp-service-text{
+  background:#0D1425;
+  padding:72px clamp(32px,5vw,72px);
+  display:flex;flex-direction:column;justify-content:center;gap:0;
 }
-.lp-value-card h3{font-size:20px;font-weight:700;color:#F0F2F8;margin-bottom:12px}
-.lp-value-card p{font-size:15px;color:rgba(255,255,255,.72);line-height:1.8}
+.lp-service-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(245,192,48,.12);border:1px solid rgba(245,192,48,.35);
+  border-radius:100px;padding:5px 16px;
+  font-size:12px;font-weight:700;color:#F5C030;letter-spacing:.6px;
+  margin-bottom:24px;width:fit-content;
+}
+.lp-service-h2{
+  font-family:'Noto Serif KR',serif;
+  font-size:clamp(28px,3.5vw,48px);font-weight:900;line-height:1.15;
+  color:#FFFFFF;margin-bottom:28px;letter-spacing:-1px;
+}
+.lp-service-list{
+  list-style:none;padding:0;margin:0 0 36px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.lp-service-list li{
+  font-size:15px;color:rgba(255,255,255,.78);
+  padding-left:22px;position:relative;line-height:1.5;
+}
+.lp-service-list li::before{
+  content:'✓';position:absolute;left:0;
+  color:#F5C030;font-weight:700;
+}
+
+/* 이미지 영역 */
+.lp-service-img{
+  background-size:cover;background-position:center;
+  min-height:400px;
+}
 
 /* ===== SECTION 4: FEATURES (라이트) ===== */
 #lp-features{background:#F4F6FB;padding:100px 0}
@@ -579,18 +603,17 @@ body{padding-bottom:48px}
 
   /* --- 2. 레이아웃 그리드 --- */
   .lp-pain-grid,.lp-value-grid,.lp-review-grid,.lp-pricing-grid{grid-template-columns:1fr}
+  /* 서비스 행: 모바일 세로 스택 (이미지 위, 텍스트 아래) */
+  .lp-service-row{grid-template-columns:1fr;direction:ltr}
+  .lp-service-row-rev .lp-service-img{order:-1}
+  .lp-service-img{min-height:240px}
+  .lp-service-text{padding:40px 24px}
   .lp-feat-grid{grid-template-columns:1fr}
   .lp-demo-layout{grid-template-columns:1fr;gap:32px}
   .lp-footer-grid{grid-template-columns:1fr;gap:28px}
   .lp-plan.featured{transform:none}
   #lp-cta .lp-btn-primary{padding:18px 40px;font-size:16px}
-  /* 모바일: 히어로 중앙 정렬로 복귀 */
-  #lp-hero{align-items:center;padding:100px 20px 60px;text-align:center}
-  .hero-content-wrap{align-items:center;text-align:center;max-width:100%}
-  .lp-hero-sub{max-width:100%}
-  .hero-overlay-layer{
-    background:rgba(5,8,20,.82)!important;
-  }
+  #lp-hero{padding:100px 20px 60px}
   .lp-hero-cta{flex-direction:column;align-items:stretch}
   .lp-btn-primary,.lp-btn-secondary{justify-content:center}
 
