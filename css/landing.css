@@ -107,32 +107,12 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 /* ── 다크 오버레이 — 균일하게 강하게 ── */
 .hero-overlay-layer{
   position:absolute;inset:0;z-index:2;pointer-events:none;
-  background:rgba(5,8,20,.52);
+  background:rgba(5,8,20,.38);
   transition:background 1.2s ease;
 }
 
-/* ── 골드 격자 패턴 (오버레이 위) ── */
-#lp-hero::before{
-  content:'';position:absolute;inset:0;z-index:3;
-  background-image:
-    linear-gradient(rgba(245,192,48,.06) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(245,192,48,.06) 1px,transparent 1px);
-  background-size:56px 56px;pointer-events:none;
-  mask-image:radial-gradient(ellipse 85% 90% at 50% 42%,#000 25%,transparent 100%);
-}
-
-/* ── 골드 후광 글로우 ── */
-#lp-hero::after{
-  content:'';position:absolute;top:-8%;left:50%;transform:translateX(-50%);z-index:3;
-  width:1100px;height:860px;
-  background:radial-gradient(ellipse,
-    rgba(245,192,48,.16) 0%,
-    rgba(245,192,48,.07) 30%,
-    rgba(245,192,48,.02) 58%,
-    transparent 72%);
-  pointer-events:none;animation:lpPulse 6s ease-in-out infinite;
-}
-@keyframes lpPulse{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.7;transform:translateX(-50%) scale(1.08)}}
+/* ── 격자·후광 비활성화 ── */
+#lp-hero::before,#lp-hero::after{content:none}
 
 /* ── 콘텐츠 래퍼 ── */
 .hero-content-wrap{
@@ -143,29 +123,31 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 
 .lp-hero-badge{
   display:inline-flex;align-items:center;gap:8px;
-  background:rgba(245,192,48,.15);border:1px solid rgba(245,192,48,.5);
-  border-radius:100px;padding:7px 20px;
-  font-size:12px;font-weight:700;color:#F5C030;letter-spacing:.8px;
-  text-transform:uppercase;margin-bottom:32px;
+  background:rgba(0,0,0,.45);border:1.5px solid rgba(245,192,48,.7);
+  border-radius:100px;padding:8px 22px;
+  font-family:'Noto Sans KR',sans-serif;
+  font-size:13px;font-weight:700;color:#F5C030;letter-spacing:.5px;
+  margin-bottom:28px;
   animation:lpFadeDown .6s ease both;
-  backdrop-filter:blur(8px);
+  backdrop-filter:blur(10px);
 }
 .lp-hero-badge .dot{width:7px;height:7px;border-radius:50%;background:#F5C030;animation:lpBlink 2s ease-in-out infinite}
 @keyframes lpBlink{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes lpFadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes lpFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 .lp-hero-h1{
-  font-size:clamp(38px,7vw,76px);font-weight:900;line-height:1.1;
+  font-family:'Noto Sans KR',sans-serif;
+  font-size:clamp(40px,7vw,80px);font-weight:900;line-height:1.1;
   color:#FFFFFF;margin-bottom:20px;
-  animation:lpFadeUp .7s ease .1s both;letter-spacing:-1px;
-  text-shadow:0 2px 6px rgba(0,0,0,.95),0 4px 24px rgba(0,0,0,.85),0 8px 48px rgba(0,0,0,.6);
+  animation:lpFadeUp .7s ease .1s both;letter-spacing:-2px;
+  text-shadow:0 2px 4px rgba(0,0,0,.98),0 4px 16px rgba(0,0,0,.9),0 8px 32px rgba(0,0,0,.7);
 }
 .lp-hero-sub{
-  font-size:clamp(15px,2vw,20px);color:rgba(255,255,255,.92);
+  font-size:clamp(15px,2vw,20px);color:#FFFFFF;
   font-family:'Noto Sans KR',sans-serif;font-weight:600;
-  line-height:1.9;margin-bottom:44px;max-width:620px;
+  line-height:1.8;margin-bottom:44px;max-width:620px;
   animation:lpFadeUp .7s ease .2s both;
-  text-shadow:0 1px 4px rgba(0,0,0,.95),0 3px 16px rgba(0,0,0,.85);
+  text-shadow:0 1px 3px rgba(0,0,0,.98),0 3px 12px rgba(0,0,0,.9);
 }
 .lp-hero-cta{
   display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
