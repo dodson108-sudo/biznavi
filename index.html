@@ -63,29 +63,37 @@
 
   <!-- ── 섹션 1: HERO ── -->
   <section id="lp-hero" class="lp-section visible">
-    <div class="lp-hero-badge"><span class="dot"></span> 재무분석 + 경영전략, 두 가지를 한 곳에서</div>
-    <h1 class="lp-hero-h1">재무상태 진단부터<br><span class="lp-accent">경영전략 실행까지</span></h1>
-    <p class="lp-hero-sub">DART 10만개 기업 자동조회 · 6대 재무비율 · SWOT/STP/4P · 90일 실행 플랜</p>
-    <div class="lp-hero-cta">
-      <button class="lp-btn-secondary" onclick="App.startFinanceAnalysis()">📊 재무분석 시작하기</button>
-      <button class="lp-btn-primary" onclick="App.startWizard()">🎯 경영전략 수립하기 →</button>
-    </div>
-    <div class="lp-hero-stats">
-      <div class="lp-stat-item">
-        <div class="lp-stat-num">109,030개</div>
-        <div class="lp-stat-label">DART 기업 자동조회</div>
+    <!-- 시간대별 배경 이미지 레이어 (hero-bg.js 제어) -->
+    <div class="hero-bg-layer" id="hero-bg-a" aria-hidden="true"></div>
+    <div class="hero-bg-layer" id="hero-bg-b" aria-hidden="true"></div>
+    <!-- 다크 컬러 오버레이 (가독성 보장) -->
+    <div class="hero-overlay-layer" id="hero-overlay" aria-hidden="true"></div>
+    <!-- 히어로 콘텐츠 — 배경 레이어 위 (z-index:3) -->
+    <div class="hero-content-wrap">
+      <div class="lp-hero-badge"><span class="dot"></span> 재무분석 + 경영전략, 두 가지를 한 곳에서</div>
+      <h1 class="lp-hero-h1">재무상태 진단부터<br><span class="lp-accent">경영전략 실행까지</span></h1>
+      <p class="lp-hero-sub">DART 10만개 기업 자동조회 · 6대 재무비율 · SWOT/STP/4P · 90일 실행 플랜</p>
+      <div class="lp-hero-cta">
+        <button class="lp-btn-secondary" onclick="App.startFinanceAnalysis()">📊 재무분석 시작하기</button>
+        <button class="lp-btn-primary" onclick="App.startWizard()">🎯 경영전략 수립하기 →</button>
       </div>
-      <div class="lp-stat-item">
-        <div class="lp-stat-num">16개 업종</div>
-        <div class="lp-stat-label">맞춤 경영진단</div>
-      </div>
-      <div class="lp-stat-item">
-        <div class="lp-stat-num">30분</div>
-        <div class="lp-stat-label">전략 보고서 완성</div>
-      </div>
-      <div class="lp-stat-item">
-        <div class="lp-stat-num">무료 체험</div>
-        <div class="lp-stat-label">가입 없이 시작</div>
+      <div class="lp-hero-stats">
+        <div class="lp-stat-item">
+          <div class="lp-stat-num">109,030개</div>
+          <div class="lp-stat-label">DART 기업 자동조회</div>
+        </div>
+        <div class="lp-stat-item">
+          <div class="lp-stat-num">16개 업종</div>
+          <div class="lp-stat-label">맞춤 경영진단</div>
+        </div>
+        <div class="lp-stat-item">
+          <div class="lp-stat-num">30분</div>
+          <div class="lp-stat-label">전략 보고서 완성</div>
+        </div>
+        <div class="lp-stat-item">
+          <div class="lp-stat-num">무료 체험</div>
+          <div class="lp-stat-label">가입 없이 시작</div>
+        </div>
       </div>
     </div>
   </section>
@@ -1643,5 +1651,6 @@
 <script src="js/finance-wizard.js?v=20260429e"></script>
 <script src="js/ticker.js"></script>
 <script src="js/hero-canvas.js"></script>
+<script src="js/hero-bg.js?v=20260430a"></script>
 </body>
 </html>
