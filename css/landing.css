@@ -32,7 +32,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 .lp-container{max-width:1200px;margin:0 auto;padding:0 24px}
 .lp-section-title{text-align:center;margin-bottom:60px}
 .lp-section-title h2{font-size:clamp(28px,4vw,44px);font-weight:700;color:#F0F2F8;margin-bottom:16px;line-height:1.2}
-.lp-section-title p{font-size:16px;color:rgba(255,255,255,.5);line-height:1.8}
+.lp-section-title p{font-size:17px;color:rgba(255,255,255,.72);line-height:1.8;font-weight:400}
 .lp-accent{background:linear-gradient(135deg,#F5C030,#FFD966);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
 /* Landing nav */
@@ -80,11 +80,12 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 .lp-btn-secondary{
   display:inline-flex;align-items:center;gap:8px;
   padding:15px 32px;border-radius:10px;cursor:pointer;
-  font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:500;
-  background:transparent;border:1.5px solid rgba(245,192,48,.35);
-  color:rgba(255,255,255,.8);transition:all .3s;
+  font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;
+  background:rgba(255,255,255,0.13);border:1.5px solid rgba(245,192,48,.6);
+  color:#ffffff;transition:all .3s;
+  backdrop-filter:blur(6px);
 }
-.lp-btn-secondary:hover{border-color:#F5C030;background:rgba(245,192,48,.06);transform:translateY(-2px)}
+.lp-btn-secondary:hover{border-color:#F5C030;background:rgba(245,192,48,.18);transform:translateY(-2px);box-shadow:0 8px 28px rgba(245,192,48,.25)}
 .lp-btn-sm{padding:10px 20px!important;font-size:13px!important}
 
 /* ===== SECTION 1: HERO ===== */
@@ -158,10 +159,11 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   animation:lpFadeUp .7s ease .1s both;letter-spacing:-1px;
 }
 .lp-hero-sub{
-  font-size:clamp(15px,2vw,20px);color:rgba(255,255,255,.55);
-  font-family:'Noto Sans KR',sans-serif;font-weight:400;
+  font-size:clamp(15px,2vw,20px);color:rgba(255,255,255,.82);
+  font-family:'Noto Sans KR',sans-serif;font-weight:500;
   line-height:1.9;margin-bottom:44px;z-index:1;max-width:620px;
   animation:lpFadeUp .7s ease .2s both;
+  text-shadow:0 2px 12px rgba(0,0,0,.45);
 }
 .lp-hero-cta{
   display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
@@ -214,7 +216,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   line-height:1;margin-bottom:8px;
 }
 .lp-value-card h3{font-size:20px;font-weight:700;color:#F0F2F8;margin-bottom:12px}
-.lp-value-card p{font-size:14px;color:rgba(255,255,255,.5);line-height:1.8}
+.lp-value-card p{font-size:15px;color:rgba(255,255,255,.72);line-height:1.8}
 
 /* ===== SECTION 4: FEATURES (라이트) ===== */
 #lp-features{background:#F4F6FB;padding:100px 0}
@@ -256,7 +258,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 }
 .lp-trust-stat{text-align:center}
 .lp-trust-stat-num{font-size:36px;font-weight:900;font-family:'Noto Serif KR',serif;color:#F5C030;margin-bottom:6px}
-.lp-trust-stat-label{font-size:13px;color:rgba(255,255,255,.4)}
+.lp-trust-stat-label{font-size:13px;color:rgba(255,255,255,.65)}
 
 /* ===== SECTION 6: DEMO (라이트) ===== */
 #lp-demo{background:#F4F6FB;padding:100px 0}
@@ -383,7 +385,7 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
   pointer-events:none;
 }
 .lp-cta-h2{font-size:clamp(28px,4.5vw,52px);font-weight:900;color:#F0F2F8;margin-bottom:16px;line-height:1.2;position:relative;z-index:1}
-.lp-cta-sub{font-size:16px;color:rgba(255,255,255,.5);margin-bottom:44px;position:relative;z-index:1}
+.lp-cta-sub{font-size:17px;color:rgba(255,255,255,.75);margin-bottom:44px;position:relative;z-index:1;font-weight:500}
 #lp-cta .lp-btn-primary{padding:22px 60px;font-size:18px;position:relative;z-index:1}
 
 /* ===== 글로벌 시장 실시간 롤링 배너 ===== */
