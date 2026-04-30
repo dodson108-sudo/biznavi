@@ -1824,7 +1824,78 @@ const Wizard = (() => {
     }
 
     drawRadarChart('radarChart', domainScores);
+
+    // 업종 생존율 비동기 조회 (KOSIS)
+    const industryKey = data.industry || '';
+    if (industryKey) _fetchSurvival(industryKey, data);
+
     return { primary, secondary, domainScores };
+  }
+
+  /* ── KOSIS 업종 생존율 조회 + 렌더링 ── */
+  function _fetchSurvival(industryKey, diagData) {
+    const box     = document.getElementById('drSurvivalBox');
+    const content = document.getElementById('drSurvivalContent');
+    if (!box || !content) return;
+
+    content.innerHTML = '<p style="color:rgba(255,255,255,.45);font-size:13px;padding:8px 0">생존율 데이터 조회 중…</p>';
+    box.style.display = '';
+
+    // runAnalysis에서 이미 받아둔 데이터 우선 사용 (중복 호출 방지)
+    const cached = diagData.survivalData || (typeof window !== 'undefined' && window._kosisSurvival);
+    const p = cached
+      ? Promise.resolve(cached)
+      : fetch('/api/kosis-survival', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ industryKey }),
+        }).then(function(r) { return r.json(); });
+
+    p
+    .then(function(d) {
+      if (!d || !d.y3) { box.style.display = 'none'; return; }
+
+      // 사업연차로 귀사 생존율 추정
+      const startYear = parseInt(diagData.startYear) || 0;
+      const nowYear   = new Date().getFullYear();
+      const bizAge    = startYear > 1900 ? nowYear - startYear : null;
+
+      let myRateText = '';
+      if (bizAge !== null) {
+        if (bizAge < 1)       myRateText = '<span class="surv-my">창업 초기 — 1년 생존율 ' + d.y1 + '% 구간 진입</span>';
+        else if (bizAge < 3)  myRateText = '<span class="surv-my">1~3년차 — 3년 생존율 ' + d.y3 + '% 구간 통과 중</span>';
+        else if (bizAge < 5)  myRateText = '<span class="surv-my">3~5년차 — 5년 생존율 ' + d.y5 + '% 구간 통과 중</span>';
+        else                  myRateText = '<span class="surv-my surv-survived">5년 이상 생존 ✓ — 이 업종의 상위 ' + d.y5 + '% 생존 구간</span>';
+      }
+
+      const r = d.risk;
+      content.innerHTML =
+        '<div class="surv-row">' +
+          '<div class="surv-bar-wrap">' +
+            _survBar('1년', d.y1, 100) +
+            _survBar('3년', d.y3, 100) +
+            _survBar('5년', d.y5, 100) +
+          '</div>' +
+          '<div class="surv-meta">' +
+            '<div class="surv-risk-badge" style="background:' + r.bg + ';color:' + r.color + '">' + r.label + '</div>' +
+            (myRateText ? '<div class="surv-my-wrap">' + myRateText + '</div>' : '') +
+            '<div class="surv-src">출처: ' + d.source + '</div>' +
+          '</div>' +
+        '</div>';
+
+      // AI 엔진이 참조할 수 있도록 전역 저장
+      window._kosisSurvival = d;
+    })
+    .catch(function() { box.style.display = 'none'; });
+  }
+
+  function _survBar(label, val, max) {
+    const pct = Math.round((val / max) * 100);
+    return '<div class="surv-bar-item">' +
+      '<span class="surv-bar-label">' + label + ' 생존율</span>' +
+      '<div class="surv-bar-track"><div class="surv-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '<span class="surv-bar-val">' + val + '%</span>' +
+    '</div>';
   }
 
   /* ── 5각형 레이더 차트 (Canvas) ── */
