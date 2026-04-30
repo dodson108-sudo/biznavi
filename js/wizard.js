@@ -1524,8 +1524,14 @@ const Wizard = (() => {
   };
 
   /* ── 5대 역량 도메인 점수 계산 ── */
-  function calcDomainScores(scores) {
-    const domains = {
+  function calcDomainScores(scores, isStartup) {
+    const domains = isStartup ? {
+      finance:         { label: '자금·사업계획',  scores: [], color: '#4ADE80' },
+      hr:              { label: '운영 준비도',    scores: [], color: '#60A5FA' },
+      bm:              { label: '고객 확보력',    scores: [], color: '#A78BFA' },
+      future:          { label: '업종 대응력',    scores: [], color: '#FB923C' },
+      differentiation: { label: '사업 검증도',   scores: [], color: '#F5C030' }
+    } : {
       finance:         { label: '경영재무역량',     scores: [], color: '#4ADE80' },
       hr:              { label: '인적자원역량',     scores: [], color: '#60A5FA' },
       bm:              { label: 'BM역량',          scores: [], color: '#A78BFA' },
@@ -1535,18 +1541,30 @@ const Wizard = (() => {
     Object.entries(scores || {}).forEach(([key, val]) => {
       if (!val || !val.score) return;
       const s = val.score;
-      if (key.startsWith('diag-common-container_1_') || key.startsWith('diag-common-container_4_')) {
-        domains.finance.scores.push(s);
-      } else if (key.startsWith('diag-common-container_2_')) {
-        domains.hr.scores.push(s);
-      } else if (key.startsWith('diag-common-container_3_')) {
-        domains.bm.scores.push(s);
-      } else if (key.startsWith('diag-common-container_5_')) {
-        domains.differentiation.scores.push(s);
-      } else if (key.startsWith('diag-industry-container_')) {
-        domains.future.scores.push(s);
-      } else if (key.startsWith('diag-bizmodel-container_')) {
-        domains.bm.scores.push(s);
+      if (isStartup) {
+        if (key.includes('_s1_') || key.includes('_s2_')) {
+          domains.finance.scores.push(s);
+        } else if (key.includes('_s4_')) {
+          domains.hr.scores.push(s);
+        } else if (key.includes('_s3_')) {
+          domains.bm.scores.push(s);
+        } else if (key.startsWith('diag-industry-container_')) {
+          domains.future.scores.push(s);
+        }
+      } else {
+        if (key.startsWith('diag-common-container_1_') || key.startsWith('diag-common-container_4_')) {
+          domains.finance.scores.push(s);
+        } else if (key.startsWith('diag-common-container_2_')) {
+          domains.hr.scores.push(s);
+        } else if (key.startsWith('diag-common-container_3_')) {
+          domains.bm.scores.push(s);
+        } else if (key.startsWith('diag-common-container_5_')) {
+          domains.differentiation.scores.push(s);
+        } else if (key.startsWith('diag-industry-container_')) {
+          domains.future.scores.push(s);
+        } else if (key.startsWith('diag-bizmodel-container_')) {
+          domains.bm.scores.push(s);
+        }
       }
     });
     const result = {};
@@ -1634,10 +1652,40 @@ const Wizard = (() => {
     }
   };
 
+  const STARTUP_DOMAIN_EXPLAIN = {
+    finance: {
+      icon: '💰', what: '창업 자금의 런웨이(생존 기간)와 사업계획 완성도를 진단한 결과입니다.',
+      high: '자금 관리와 계획 수립이 안정적입니다. 계획대로 실행하면서 월별 성과를 꼼꼼히 추적하세요.',
+      low:  '런웨이 확보와 BEP 계산이 시급합니다. 지출을 최소화하고 첫 매출을 최대한 빨리 만드세요.'
+    },
+    hr: {
+      icon: '⚙️', what: '서비스 제공 준비 상태와 핵심 파트너·인력 확보 수준을 측정했습니다.',
+      high: '운영 준비가 잘 갖춰졌습니다. 첫 고객이 와도 즉시 대응 가능한 상태입니다.',
+      low:  '운영 준비가 아직 미흡합니다. 서비스 절차(SOP)와 핵심 파트너 확보를 먼저 해결하세요.'
+    },
+    bm: {
+      icon: '📈', what: '현재 확정 고객·계약과 향후 90일 파이프라인을 진단한 결과입니다.',
+      high: '고객 파이프라인이 구축되고 있습니다. 재구매·입소문 채널을 빠르게 강화하세요.',
+      low:  '첫 고객 확보가 최우선 과제입니다. 지금 당장 10명에게 직접 연락하여 첫 계약을 만드세요.'
+    },
+    future: {
+      icon: '🔮', what: '선택한 업종의 핵심 성공 요인에 대한 준비 수준을 측정했습니다.',
+      high: '업종 특성에 맞는 준비가 잘 되어 있습니다. 동종 업계 선배·멘토와 연결하여 노하우를 심화하세요.',
+      low:  '업종 특성에 대한 이해와 준비가 부족합니다. 현장 경험을 쌓거나 선배를 만나보세요.'
+    },
+    differentiation: {
+      icon: '⚡', what: '아이디어가 실제 시장에서 검증되었는지, 차별화 요소가 명확한지를 진단했습니다.',
+      high: '사업 아이디어가 잘 검증되고 있습니다. 고객 피드백을 계속 반영하며 강점을 강화하세요.',
+      low:  '사업 아이디어 검증이 더 필요합니다. MVP로 빠르게 시장 반응을 확인하세요.'
+    }
+  };
+
   /* ── 진단유형 확인 화면 렌더링 ── */
   function showDiagReveal(data) {
     const scores = data.diagScores || diagScores;
-    const domainScores = calcDomainScores(scores);
+    const isStartup = !!(data.isStartup);
+    const domainScores = calcDomainScores(scores, isStartup);
+    const explainMap = isStartup ? STARTUP_DOMAIN_EXPLAIN : DOMAIN_EXPLAIN;
     const { primary, secondary } = classifyConsultingType(domainScores);
     const pType = CONSULTING_TYPES[primary]   || CONSULTING_TYPES.growth_strategy;
     const sType = CONSULTING_TYPES[secondary] || CONSULTING_TYPES.differentiation_strategy;
@@ -1669,7 +1717,7 @@ const Wizard = (() => {
       elGuide.innerHTML = Object.entries(domainScores).map(function(pair) {
         var key = pair[0], d = pair[1];
         if (d.avg === 0) return '';
-        var info = DOMAIN_EXPLAIN[key] || {};
+        var info = explainMap[key] || {};
         var isLow = d.avg < 3.0;
         var cls = d.avg >= 4 ? 'guide-high' : d.avg >= 3 ? 'guide-ok' : 'guide-low';
         var statusIcon = d.avg >= 4 ? '✅' : d.avg >= 3 ? '📊' : '⚠️';
@@ -2039,10 +2087,9 @@ const Wizard = (() => {
   };
 
   function updateRiskPlaceholder(industryKey) {
-    const el = document.getElementById('externalRisk');
-    if (!el) return;
+    const hint = document.getElementById('riskExampleHint');
     const ph = _RISK_PLACEHOLDER[industryKey];
-    if (ph) el.placeholder = ph;
+    if (hint && ph) hint.textContent = ph;
   }
 
   return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };

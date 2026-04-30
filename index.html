@@ -1282,14 +1282,13 @@
         <div class="wiz-section-title">⚠️ 리스크 및 제약 조건</div>
         <div class="form-group full">
           <label>우리 사업의 가장 큰 외부 위협은 무엇인가요?</label>
-          <p class="hint">임대료·원가·경쟁·규제·인력 등 내가 통제할 수 없는 외부 요인을 적어주세요. AI가 업종별 대응 전략을 제안합니다.</p>
-          <p class="hint">예: 근처에 동종 업체가 새로 생겼음. 원자재 가격이 30% 올랐음. 최저임금 인상으로 인건비 부담이 커짐. 건물 임대료 계약 만료가 다가옴</p>
-          <textarea id="externalRisk" placeholder="위 예시를 참고하여 외부 위협 요인을 입력하세요"></textarea>
+          <p id="riskExampleHint" class="example-hint">예: 근처에 동종 업체가 새로 생겼음. 원자재 가격이 30% 올랐음. 최저임금 인상으로 인건비 부담이 커짐. 건물 임대료 계약 만료가 다가옴</p>
+          <textarea id="externalRisk" placeholder="임대료·원가·경쟁·규제·인력 등 통제할 수 없는 외부 요인을 적어주세요. AI가 업종별 대응 전략을 제안합니다."></textarea>
         </div>
         <div class="form-group">
           <label>핵심 파트너십 / 협력사</label>
-          <input type="text" id="partnerships" placeholder="예: 단골 거래처 3곳, 납품 공급사 A업체, 세무사 B씨 (없으면 공란)" />
-          <p class="hint">현재 사업에 도움이 되는 파트너·협력사·플랫폼 (없으면 공란)</p>
+          <p class="example-hint">예: 단골 거래처 3곳, 납품 공급사 A업체, 세무사 B씨, 배달 플랫폼 (없으면 공란)</p>
+          <input type="text" id="partnerships" placeholder="현재 사업에 도움이 되는 파트너·협력사·플랫폼을 입력하세요" />
         </div>
         <div class="form-group full">
           <label>정부지원사업 관심 분야 <span style="font-weight:400;color:var(--txt3)">(복수 선택 가능)</span></label>

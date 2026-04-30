@@ -220,7 +220,7 @@ const App = (() => {
 
     const data = Wizard.collect();
     // consultingType을 AI 호출 전에 미리 계산 — 프롬프트에 반영되도록
-    const _domScores = Wizard.calcDomainScores(data.diagScores || {});
+    const _domScores = Wizard.calcDomainScores(data.diagScores || {}, data.isStartup);
     const _ctResult  = Wizard.classifyConsultingType(_domScores);
     data.consultingType          = _ctResult?.primary   || '';
     data.consultingTypeSecondary = _ctResult?.secondary || '';

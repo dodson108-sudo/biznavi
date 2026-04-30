@@ -6,15 +6,15 @@
 /* ===== VARIABLES ===== */
 :root {
   --bg:        #0A0E1A;
-  --bg-card:   #0F1629;
-  --bg-input:  rgba(22,32,64,0.8);
-  --border:    rgba(42,63,117,0.7);
+  --bg-card:   #172040;
+  --bg-input:  rgba(32,50,100,0.85);
+  --border:    rgba(70,100,180,0.65);
   --gold:      #F5C030;
   --gold-dk:   #D4A017;
   --gold-lt:   #FFD966;
   --txt:       #E8EDF5;
   --txt2:      rgba(255,255,255,.55);
-  --txt3:      rgba(255,255,255,.35);
+  --txt3:      rgba(255,255,255,.50);
   --teal:      #F5C030;
   --red:       #E05555;
   --blue:      #2D7ED4;
@@ -85,7 +85,13 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .form-group select option{background:#0F1629;color:var(--txt)}
 /* 특정 필드 배경 강제 고정 (autofill 외 다른 오버라이드 방지) */
 #marketSize,#marketShare{background:rgba(22,32,64,0.8) !important;color:#E8EDF5 !important}
-.hint{font-size:11px;color:var(--txt3);margin-top:5px}
+.hint{font-size:13px;color:var(--txt3);margin-top:5px;line-height:1.55}
+/* 업종별 커스텀 예시 — 질문 바로 아래 항상 표시 */
+.example-hint{
+  font-size:14px;color:rgba(255,255,255,.72);margin:6px 0 8px;
+  background:rgba(245,192,48,.06);border-left:3px solid rgba(245,192,48,.4);
+  border-radius:0 6px 6px 0;padding:8px 12px;line-height:1.6;
+}
 /* 추론된 사업모델 표시 */
 .inferred-bm-display{
   background:rgba(245,192,48,.08);border:1px solid rgba(245,192,48,.25);
