@@ -2,13 +2,27 @@
 
 ## 배포 상태 (2026-04-30 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 히어로 배경 시간대별 사진 슬라이드쇼 (0b46559)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: 히어로 가독성 강화 — 마스터카드 코리아 스타일 (f0b7258)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
 ## 최근 수정 이력 (2026-04-30)
+
+### 히어로 가독성 강화 — 마스터카드 코리아 스타일 (배포 완료)
+
+#### js/hero-bg.js 오버레이 강화
+- 방향: `160deg` 평면 → `125deg` 대각선 (좌하단→우상단)
+- 강도: 텍스트 영역(좌) .94 완전 불투명 → 우측 .50 사진 노출
+- 효과: 텍스트는 완전 보호, 우측에 사진 배경 일부 시각적 노출
+
+#### css/landing.css 히어로 텍스트 개선
+- `.lp-hero-h1`: `#F0F2F8` → `#FFFFFF` + `text-shadow:0 2px 8px rgba(0,0,0,.65),0 6px 32px rgba(0,0,0,.45)`
+- `.lp-hero-sub`: opacity `.82`→`.92`, weight `500`→`600`, text-shadow 2중 강화
+- `.lp-hero-badge`: `backdrop-filter:blur(8px)` + 테두리/배경 강화
+- `.lp-hero-stats`: 배경 `rgba(5,8,20,.55)` (이전 `.04`), `blur(16px)`
+- `.lp-stat-label`: opacity `.35`→`.55`
 
 ### 히어로 배경 시간대별 사진 슬라이드쇼 (배포 완료)
 
