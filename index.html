@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css?v=20260430a" />
-  <link rel="stylesheet" href="css/landing.css?v=20260430h" />
+  <link rel="stylesheet" href="css/landing.css?v=20260430i" />
   <link rel="stylesheet" href="css/dashboard.css?v=20260429g" />
 </head>
 <body>
@@ -44,7 +44,6 @@
       <div class="lp-nav-links">
         <a href="#lp-features">기능</a>
         <a href="#lp-trust">후기</a>
-        <a href="#lp-pricing">가격</a>
         <a href="#lp-faq">FAQ</a>
       </div>
       <div class="lp-nav-actions">
@@ -57,7 +56,6 @@
   <div class="lp-mobile-menu" id="lpMobileMenu">
     <a href="#lp-features" class="lp-mobile-link">기능</a>
     <a href="#lp-trust"    class="lp-mobile-link">후기</a>
-    <a href="#lp-pricing"  class="lp-mobile-link">가격</a>
     <a href="#lp-faq"      class="lp-mobile-link">FAQ</a>
   </div>
 
@@ -361,56 +359,6 @@
   </section>
 
   <!-- ── 섹션 7: 가격표 ── -->
-  <section id="lp-pricing" class="lp-section" style="--lp-delay:0.12s">
-    <div class="lp-container">
-      <div class="lp-section-title">
-        <h2>합리적인 가격으로 시작하세요</h2>
-        <p>지금은 재무분석·경영전략 모든 기능을 무료로 체험할 수 있습니다</p>
-      </div>
-      <div class="lp-pricing-grid">
-        <div class="lp-plan">
-          <div class="lp-plan-name">FREE</div>
-          <div class="lp-plan-price">₩0<span> /월</span></div>
-          <div class="lp-plan-desc">지금 당장 무료로 시작하세요</div>
-          <ul class="lp-plan-features">
-            <li>재무분석 (DART 자동조회 포함)</li>
-            <li>경영전략 데모 모드 무제한</li>
-            <li>월 3회 AI 경영전략 분석</li>
-            <li>PDF 출력</li>
-          </ul>
-          <button class="lp-plan-btn" onclick="App.showModeSelect()">무료로 시작하기</button>
-        </div>
-        <div class="lp-plan featured">
-          <div class="lp-plan-badge">✦ 추천</div>
-          <div class="lp-plan-name">PRO</div>
-          <div class="lp-plan-price">₩29,000<span> /월</span></div>
-          <div class="lp-plan-desc">전문적인 분석이 필요한 분께</div>
-          <ul class="lp-plan-features">
-            <li>재무분석 무제한 (DART 연동)</li>
-            <li>월 30회 AI 경영전략 분석</li>
-            <li>한국은행 업종평균 자동 비교</li>
-            <li>분석 히스토리 저장</li>
-            <li>우선 고객 지원</li>
-          </ul>
-          <button class="lp-plan-btn" onclick="App.showModeSelect()">시작하기</button>
-        </div>
-        <div class="lp-plan">
-          <div class="lp-plan-name">BUSINESS</div>
-          <div class="lp-plan-price">₩99,000<span> /월</span></div>
-          <div class="lp-plan-desc">경영지도사·컨설팅 기업 전용</div>
-          <ul class="lp-plan-features">
-            <li>재무분석·경영전략 무제한</li>
-            <li>멀티 클라이언트 관리</li>
-            <li>커스텀 브랜딩 리포트</li>
-            <li>API 연동 지원</li>
-            <li>전담 고객 지원</li>
-          </ul>
-          <button class="lp-plan-btn" onclick="App.showModeSelect()">시작하기</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- ── 섹션 8: FAQ ── -->
   <section id="lp-faq" class="lp-section" style="--lp-delay:0.1s">
     <div class="lp-container">
@@ -464,47 +412,22 @@
     </div>
   </section>
 
-  <!-- ── 섹션 9: 2차 CTA ── -->
-  <section id="lp-cta" class="lp-section" style="--lp-delay:0.15s">
-    <h2 class="lp-cta-h2">재무분석과 경영전략,<br>지금 바로 시작해보세요</h2>
-    <p class="lp-cta-sub">가입 없이 무료 · 재무분석은 회사명만 입력하면 완료</p>
-    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-      <button class="lp-btn-secondary" onclick="App.startFinanceAnalysis()">📊 재무분석 시작하기</button>
-      <button class="lp-btn-primary" onclick="App.startWizard()">🎯 경영전략 수립하기 →</button>
-    </div>
-  </section>
-
-  <!-- ── 섹션 10: FOOTER ── -->
-  <footer id="lp-footer" class="lp-section visible">
-    <div class="lp-container">
-      <div class="lp-footer-grid">
-        <div>
-          <div class="lp-footer-logo">BizNavi AI</div>
-          <p class="lp-footer-slogan">재무분석부터 경영전략까지.<br>30분 안에 실행 가능한 전략을 만드세요.</p>
-        </div>
-        <div class="lp-footer-col">
-          <h4>서비스</h4>
-          <ul class="lp-footer-links">
-            <li><a href="#lp-features">서비스 소개</a></li>
-            <li><a href="#lp-pricing">가격</a></li>
-            <li><a href="#lp-faq">FAQ</a></li>
-            <li><a href="mailto:dodson108@gmail.com">문의하기</a></li>
-          </ul>
-        </div>
-        <div class="lp-footer-col">
-          <h4>문의</h4>
-          <p class="lp-footer-email">이메일: <a href="mailto:dodson108@gmail.com">dodson108@gmail.com</a></p>
-          <div class="lp-footer-sns">
-            <a class="lp-sns-btn" href="#" title="블로그">📝</a>
-            <a class="lp-sns-btn" href="#" title="인스타그램">📸</a>
-            <a class="lp-sns-btn" href="#" title="유튜브">▶</a>
-          </div>
-        </div>
+  <!-- ── FOOTER ── -->
+  <footer id="lp-footer">
+    <div class="lp-footer-inner">
+      <div class="lp-footer-logo-wrap">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="20" cy="20" r="18" stroke="#F5C030" stroke-width="2.5"/>
+          <path d="M13 27L20 13L27 27" stroke="#F5C030" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15.5 22H24.5" stroke="#F5C030" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="lp-footer-logo-text">BizNavi AI</span>
       </div>
-      <div class="lp-footer-bar">
-        <p>© 2026 BizNavi AI · Powered by Claude AI</p>
-        <p><a href="#">개인정보처리방침</a> · <a href="#">이용약관</a></p>
-      </div>
+      <p class="lp-footer-copy">© 2026 BizNavi All Rights Reserved.</p>
+      <div class="lp-footer-divider"></div>
+      <p class="lp-footer-biz">BizNavi Lab &nbsp;/&nbsp; 경영지도사 형학선 &nbsp;등록번호 제 13128호 &nbsp;자격증 번호 제2024-063호</p>
+      <p class="lp-footer-biz">주소 : 경기도 성남시 분당구 불정로366번길 10</p>
+      <p class="lp-footer-biz">Tel. 010-6237-5054 &nbsp;&nbsp;|&nbsp;&nbsp; Email. dodson108@gmail.com</p>
     </div>
   </footer>
 

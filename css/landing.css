@@ -512,34 +512,39 @@ body{padding-bottom:48px}
   letter-spacing:0.2px;
 }
 
-/* ===== SECTION 10: FOOTER ===== */
-#lp-footer{background:#050810;padding:60px 0 0;border-top:1px solid rgba(255,255,255,.05)}
-.lp-footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:48px;padding-bottom:48px}
-.lp-footer-logo{font-family:'Noto Sans KR',sans-serif;font-size:22px;font-weight:700;color:#F5C030;margin-bottom:10px}
-.lp-footer-slogan{font-size:13px;color:rgba(255,255,255,.35);line-height:1.7}
-.lp-footer-col h4{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px}
-.lp-footer-links{list-style:none}
-.lp-footer-links li{margin-bottom:10px}
-.lp-footer-links a{font-size:14px;color:rgba(255,255,255,.5);text-decoration:none;transition:color .2s}
-.lp-footer-links a:hover{color:#F5C030}
-.lp-footer-email{font-size:14px;color:rgba(255,255,255,.5);margin-bottom:16px;line-height:1.7}
-.lp-footer-email a{color:#F5C030;text-decoration:none}
-.lp-footer-email a:hover{text-decoration:underline}
-.lp-footer-sns{display:flex;gap:10px}
-.lp-sns-btn{
-  width:36px;height:36px;border-radius:8px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
-  display:flex;align-items:center;justify-content:center;
-  font-size:16px;cursor:pointer;transition:all .2s;text-decoration:none;color:rgba(255,255,255,.6);
+/* ===== FOOTER ===== */
+#lp-footer{
+  background:#080C1A;
+  border-top:1px solid rgba(245,192,48,.12);
+  padding:56px 24px 80px;
 }
-.lp-sns-btn:hover{background:rgba(245,192,48,.12);border-color:rgba(245,192,48,.3);color:#F5C030}
-.lp-footer-bar{
-  border-top:1px solid rgba(255,255,255,.05);padding:20px 0;
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+.lp-footer-inner{
+  max-width:720px;margin:0 auto;
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;gap:0;
 }
-.lp-footer-bar p{font-size:12px;color:rgba(255,255,255,.22)}
-.lp-footer-bar a{color:rgba(255,255,255,.22);text-decoration:none}
-.lp-footer-bar a:hover{color:rgba(255,255,255,.5)}
+.lp-footer-logo-wrap{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:20px;
+}
+.lp-footer-logo-text{
+  font-family:'Noto Sans KR',sans-serif;
+  font-size:22px;font-weight:700;color:#F5C030;letter-spacing:.3px;
+}
+.lp-footer-copy{
+  font-size:14px;color:rgba(255,255,255,.55);
+  margin-bottom:20px;
+}
+.lp-footer-divider{
+  width:48px;height:1px;
+  background:rgba(245,192,48,.3);
+  margin-bottom:20px;
+}
+.lp-footer-biz{
+  font-size:12.5px;color:rgba(255,255,255,.38);
+  line-height:1.9;margin:0;
+  word-break:keep-all;
+}
 
 /* ===== 햄버거 버튼 (데스크톱에서 숨김) ===== */
 .lp-nav-hamburger{
