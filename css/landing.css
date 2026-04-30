@@ -129,13 +129,12 @@ body.landing-active .top-nav .nav-logo{color:#F5C030!important}
 
 .lp-hero-badge{
   display:inline-flex;align-items:center;gap:8px;
-  background:rgba(0,0,0,.45);border:1.5px solid rgba(245,192,48,.7);
-  border-radius:100px;padding:8px 22px;
+  background:none;border:none;
+  padding:8px 0;
   font-family:'Noto Sans KR',sans-serif;
-  font-size:13px;font-weight:700;color:#F5C030;letter-spacing:.5px;
-  margin-bottom:28px;
+  font-size:13px;font-weight:600;color:rgba(255,255,255,.80);letter-spacing:.3px;
+  margin-bottom:20px;
   animation:lpFadeDown .6s ease both;
-  backdrop-filter:blur(10px);
 }
 .lp-hero-badge .dot{width:7px;height:7px;border-radius:50%;background:#F5C030;animation:lpBlink 2s ease-in-out infinite}
 @keyframes lpBlink{0%,100%{opacity:1}50%{opacity:.3}}
