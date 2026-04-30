@@ -58,7 +58,7 @@
     loadAndShow(images[currentIdx], layerA, true);
 
     // Canvas 숨기기 (이미지 배경으로 대체)
-    const canvas = document.getElementById('hero-canvas');
+    const canvas = document.getElementById('heroCanvas');
     if (canvas) {
       canvas.style.transition = 'opacity 0.8s ease';
       canvas.style.opacity = '0';

@@ -318,9 +318,14 @@
     section.style.position = 'relative';
     section.insertBefore(canvas, section.firstChild);
 
-    /* 콘텐츠가 캔버스 위에 표시되도록 z-index 설정 */
+    /* 콘텐츠가 캔버스 위에 표시되도록 z-index 설정 (bg 레이어는 absolute 유지) */
     Array.from(section.children).forEach(el => {
-      if (el !== canvas) el.style.position = 'relative', el.style.zIndex = '1';
+      if (el !== canvas &&
+          !el.classList.contains('hero-bg-layer') &&
+          !el.classList.contains('hero-overlay-layer')) {
+        el.style.position = 'relative';
+        el.style.zIndex = '1';
+      }
     });
 
     const ctx = canvas.getContext('2d');
