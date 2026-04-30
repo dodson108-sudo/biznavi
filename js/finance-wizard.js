@@ -956,6 +956,9 @@ const FinWizard = (() => {
 
       ${sections.map(s => _renderSection(s)).join('')}
 
+      <!-- BEP 시뮬레이터 (bep-simulator.js) -->
+      <div id="bepSimSection" class="fin-section-card" style="display:none"></div>
+
       <div class="fin-note">
         <p>※ 산업평균 기준: ${_bokAvgSource}</p>
         <p>※ 일부 항목은 입력 데이터가 없는 경우 계산되지 않을 수 있습니다.</p>
@@ -967,6 +970,11 @@ const FinWizard = (() => {
       const axes = _getSectionAxes(s.data);
       _drawRadarAxes(`finRadar-${s.key}`, axes);
     });
+
+    // BEP 시뮬레이터 초기화
+    if (typeof BepSim !== 'undefined') {
+      BepSim.init(d);
+    }
   }
 
   function _countEvals(ratios) {
