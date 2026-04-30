@@ -28,8 +28,8 @@
   // ── 오버레이 — 텍스트 우선 가독성, 사진은 배경으로 ──
   // 좌하단에서 우상단으로 어두운 쐐기 → 텍스트 영역 완전 보호, 우측 사진 일부 노출
   const OVERLAY = {
-    day:   'linear-gradient(125deg, rgba(5,8,20,.94) 0%, rgba(8,12,26,.88) 45%, rgba(10,16,30,.72) 75%, rgba(10,16,30,.50) 100%)',
-    night: 'linear-gradient(125deg, rgba(3,5,15,.90) 0%, rgba(6,10,22,.84) 45%, rgba(8,14,26,.68) 75%, rgba(8,14,26,.45) 100%)'
+    day:   'linear-gradient(to right, rgba(5,8,20,.97) 0%, rgba(5,8,20,.93) 30%, rgba(5,8,20,.70) 55%, rgba(5,8,20,.20) 78%, rgba(5,8,20,.00) 100%)',
+    night: 'linear-gradient(to right, rgba(3,5,15,.97) 0%, rgba(3,5,15,.93) 30%, rgba(5,8,20,.68) 55%, rgba(5,8,20,.18) 78%, rgba(5,8,20,.00) 100%)'
   };
 
   const SLIDE_INTERVAL = 8000; // 8초마다 이미지 교체
