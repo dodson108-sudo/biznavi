@@ -1,10 +1,49 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-04-30 최신)
+## 배포 상태 (2026-05-06 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: 분기별 진단 이력 추적 (c3b64f8)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: 표지 PDF 넘침 완전 수정 (3d4ff40)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-06) — 재무분석 PDF 리포트 완성
+
+### ① NICE BizINFO 수준 재무분석 보고서 출력 구현 (배포 완료)
+
+#### js/finance-wizard.js — renderReport() 전면 재작성
+- 기존 단순 테이블 → NICE BizINFO 스타일 10개 섹션 구조
+- `sHdr(num, title, sub)`: 섹션 헤더 헬퍼 (번호 배지 + 제목 + 영문 부제)
+- `aBlock(areaKey)`: 평가(현황) → 진단(원인) → 처방(대안) 3단 서술 블록
+- `_buildOpinionPara(areaKey, r, d)`: 5개 비율군별 자동 서술 문단 생성
+  - 유동성·안전성·수익성·활동성·성장성 각각 비율값·산업평균 비교 → 진단 텍스트 자동 생성
+- `_buildFinalOpinion(r, d, sc, score, gradeLbl)`: 종합 의견 문단 (등급·핵심 취약점·개선 방향)
+- `_buildImprovements(r, d)`: 우선순위별 개선 권고 항목 리스트
+- 10개 섹션: 표지·재무현황요약·재무상태표·손익계산서·유동성·안전성·수익성·활동성·성장성·종합의견
+
+#### css/style.css — nice-* 클래스 ~180줄 추가
+- `.nice-sec-hdr`, `.nice-sec-num`: 섹션 헤더 (네이비 번호 배지)
+- `.nice-kv-grid`, `.nice-kv-card`: 재무현황 카드 그리드
+- `.nice-score-bar`: 종합 점수 바
+- `.nice-def-table`, `.nice-ratio-table`: 비율 정의·비교 테이블
+- `.nice-analysis`, `.nice-analysis-row`: 평가/진단/처방 서술 블록
+
+---
+
+### ② PDF 표지 2페이지 넘침 완전 수정 (배포 완료) — 5개 원인 동시 해결
+
+#### 원인 분석
+1. **print.css 캐시** — 버전 파라미터 없어 브라우저가 구버전 서빙 → `?v=20260506a` 추가
+2. **height 수학 버그** — `height:255mm + padding:8mm×2 = 271mm > 259mm(A4)` → `box-sizing:border-box + height:257mm`
+3. **style.css 충돌** — `@media print .rpt-cover { background:#1A2340 !important }` 잔재 → 삭제
+4. **캐시 근본 해결** — `printPdf()`에서 `window.print()` 직전 `<style>` 태그 DOM 직접 주입 (캐시 완전 무력화)
+5. **이중 페이지브레이크** — `.rpt-cover { break-after:page }` + `.rpt-page { break-before:page }` 동시 적용 → `break-after:avoid`로 변경
+
+#### 표지 HTML inline 스타일 → CSS 클래스 전환
+- 기존: `<div style="color:#F5C030;...">` 형태 (print에서 색상 오버라이드 불가)
+- 수정: `.rpt-cover-logo`, `.rpt-cover-tagline`, `.rpt-cover-subtitle`, `.rpt-cover-company`, `.rpt-cover-ind` 클래스 사용
+- print.css에 각 클래스 인쇄용 색상 명시 (흰 배경 대응)
 
 ---
 
