@@ -361,16 +361,28 @@
     page-break-after: always !important;
     background: #ffffff !important;
     width: 100% !important;
+    /* 화면용 금색 테두리·padding·margin·border-radius 완전 제거 */
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    /* A4 가용 높이(297-18-20=259mm) 이내로 강제 */
+    max-height: 257mm !important;
+    overflow: hidden !important;
   }
   .rpt-cover-inner {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 245mm !important;
+    /* min-height 대신 고정 height — 여백 포함 257mm 이내 */
+    height: 255mm !important;
+    min-height: 0 !important;
+    max-height: 255mm !important;
     text-align: center !important;
     background: #ffffff !important;
-    padding: 20mm 15mm !important;
+    padding: 8mm 15mm !important;
+    overflow: hidden !important;
   }
   .rpt-cover-badge {
     font-size: 11pt !important;
