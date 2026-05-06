@@ -1484,7 +1484,12 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   margin-bottom: 32px;
   text-align: center;
 }
-.rpt-cover-inner { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.rpt-cover-inner { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.rpt-cover-logo { font-size: 1.6rem; font-weight: 900; color: #F5C030; letter-spacing: 0.1em; }
+.rpt-cover-tagline { font-size: 0.7rem; color: rgba(255,255,255,.4); letter-spacing: 0.18em; }
+.rpt-cover-subtitle { font-size: 0.85rem; color: rgba(255,255,255,.5); letter-spacing: 0.18em; }
+.rpt-cover-company { font-size: 2.2rem; font-weight: 800; color: #E8EDF5; }
+.rpt-cover-ind { font-size: 0.9rem; color: rgba(255,255,255,.5); }
 .rpt-cover-badge {
   font-family: 'Noto Serif KR', serif;
   font-size: 2rem;

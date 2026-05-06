@@ -1172,11 +1172,11 @@ const FinWizard = (() => {
     <!-- ══════════ 표지 ══════════ -->
     <div class="rpt-cover">
       <div class="rpt-cover-inner">
-        <div style="font-size:1.6rem;font-weight:900;color:#F5C030;letter-spacing:0.1em">BizNavi</div>
-        <div style="font-size:0.7rem;color:rgba(255,255,255,.4);letter-spacing:0.18em;margin-bottom:32px">AI FINANCIAL INTELLIGENCE</div>
-        <div style="font-size:0.85rem;color:rgba(255,255,255,.5);letter-spacing:0.18em;margin-bottom:10px">재무분석 보고서</div>
-        <div style="font-size:2.2rem;font-weight:800;color:#E8EDF5;margin-bottom:6px">${d.companyName}</div>
-        <div style="font-size:0.9rem;color:rgba(255,255,255,.5);margin-bottom:36px">${industryName}</div>
+        <div class="rpt-cover-logo">BizNavi</div>
+        <div class="rpt-cover-tagline">AI FINANCIAL INTELLIGENCE</div>
+        <div class="rpt-cover-subtitle">재무분석 보고서</div>
+        <div class="rpt-cover-company">${d.companyName}</div>
+        <div class="rpt-cover-ind">${industryName}</div>
         <table class="rpt-cover-table">
           <tr><td class="rpt-cover-key">분석연도</td><td class="rpt-cover-val">${d.year}년 기준</td></tr>
           <tr><td class="rpt-cover-key">업&nbsp;&nbsp;&nbsp;&nbsp;종</td><td class="rpt-cover-val">${industryName}</td></tr>
@@ -1762,7 +1762,7 @@ const FinWizard = (() => {
         padding: 0 !important; margin: 0 !important;
         background: #ffffff !important; overflow: hidden !important;
         height: 257mm !important; max-height: 257mm !important;
-        break-after: page !important; page-break-after: always !important;
+        break-after: avoid !important; page-break-after: avoid !important;
         box-sizing: border-box !important;
       }
       .rpt-cover-inner {
@@ -1771,7 +1771,7 @@ const FinWizard = (() => {
         padding: 10mm 20mm !important; overflow: hidden !important;
         background: #ffffff !important; display: flex !important;
         flex-direction: column !important; align-items: center !important;
-        justify-content: center !important;
+        justify-content: center !important; gap: 6mm !important;
       }
     }`;
     document.head.appendChild(s);

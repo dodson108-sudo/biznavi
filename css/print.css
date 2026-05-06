@@ -385,6 +385,12 @@
     padding: 10mm 20mm !important;
     overflow: hidden !important;
   }
+  /* 표지 클래스별 인쇄용 색상 */
+  .rpt-cover-logo   { font-size: 14pt !important; font-weight: 900 !important; color: #8B6914 !important; letter-spacing: 0.1em !important; }
+  .rpt-cover-tagline { font-size: 7pt !important; color: #999 !important; letter-spacing: 0.2em !important; }
+  .rpt-cover-subtitle { font-size: 9pt !important; color: #666 !important; letter-spacing: 0.15em !important; }
+  .rpt-cover-company { font-size: 20pt !important; font-weight: 800 !important; color: #1a1a2e !important; }
+  .rpt-cover-ind  { font-size: 9pt !important; color: #555 !important; }
   .rpt-cover-badge {
     font-size: 11pt !important;
     color: #666 !important;
