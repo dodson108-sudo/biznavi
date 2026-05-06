@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/style.css?v=20260430a" />
   <link rel="stylesheet" href="css/landing.css?v=20260430k" />
   <link rel="stylesheet" href="css/dashboard.css?v=20260429g" />
+  <link rel="stylesheet" href="css/print.css" />
 </head>
 <body>
 
@@ -763,7 +764,7 @@
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost btn-sm" onclick="App.showFinanceDashboard()">← 분석결과</button>
-      <button class="btn btn-gold btn-sm" onclick="window.print()">🖨️ 인쇄 / PDF</button>
+      <button class="btn btn-gold btn-sm" onclick="FinWizard.printPdf()">📄 PDF 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="App.showLanding()">홈</button>
     </div>
   </nav>
@@ -1427,7 +1428,7 @@
     <div class="nav-actions">
       <button class="btn btn-outline btn-sm" onclick="App.prevFromDash()">← 이전</button>
       <button class="btn btn-ghost btn-sm" onclick="App.restart()">↩ 새 분석</button>
-      <button class="btn btn-outline btn-sm" onclick="window.print()">인쇄</button>
+      <button class="btn btn-gold btn-sm" onclick="Dashboard.print()">📄 PDF 저장</button>
     </div>
   </nav>
 
@@ -1448,6 +1449,9 @@
       <nav class="report-nav" id="reportNav">
         <div class="report-nav-title">목차</div>
       </nav>
+
+      <!-- 인쇄 표지 (화면에서는 숨김, print-only) -->
+      <div id="printCover" class="print-only"></div>
 
       <!-- 우측 리포트 콘텐츠 -->
       <div class="report-content">

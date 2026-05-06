@@ -457,7 +457,10 @@ const Dashboard = (() => {
     banner.innerHTML = html;
   }
 
+  let _lastFd = {};
+
   function render(data, fd, isDemo) {
+    _lastFd = fd || {};
     const isMicro = fd.bizScale === 'micro';
 
     // 동적 목차 생성
@@ -688,5 +691,61 @@ const Dashboard = (() => {
     });
   });
 
-  return { render, initScrollReveal, initCountUp, addRipple, initInputChecks };
+  /* ── 업종 한글 레이블 ──────────────────────────────────────── */
+  const _INDUSTRY_KR = {
+    mfg_parts:'뿌리제조·부품가공', food_mfg:'식품제조·가공',
+    local_service:'생활밀착형서비스', wholesale:'전문유통·도소매',
+    restaurant:'외식·휴게음식', knowledge_it:'지식서비스·IT개발',
+    construction:'소규모건설·인테리어', medical:'의료·보건',
+    education:'교육·학원', fashion:'패션·의류',
+    media:'미디어·콘텐츠', logistics:'물류·운송',
+    energy:'환경·에너지', agri_food:'농림·식품원료',
+    export_sme:'수출중소기업', finance:'금융·핀테크',
+  };
+  const _CT_KR = {
+    finance_strategy:'경영재무전략', growth_strategy:'사업화·성장전략',
+    differentiation_strategy:'차별화·경쟁우위전략', structure_strategy:'기업구조·시스템전략',
+    innovation_strategy:'혁신·신사업전략', marketing_strategy:'마케팅·브랜드전략',
+    hr_strategy:'조직·인력운영전략', digital_strategy:'디지털전환전략',
+    pivot_strategy:'사업재편·피벗전략', cx_strategy:'고객경험·서비스전략',
+  };
+
+  /* ── PDF 저장 (경영전략 보고서) ────────────────────────────── */
+  function print() {
+    const fd = _lastFd;
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+    const industryKr = _INDUSTRY_KR[fd.industry] || fd.industry || '—';
+    const scaleKr    = fd.bizScale === 'micro' ? '소상공인' : '소기업·중소기업';
+    const ctKr       = _CT_KR[fd.consultingType] || fd.consultingType || '—';
+
+    const cover = document.getElementById('printCover');
+    if (cover) {
+      cover.innerHTML = `
+        <div class="pcov-logo-wrap">
+          <div class="pcov-logo-name">BizNavi AI</div>
+          <div class="pcov-logo-sub">경영전략 분석 플랫폼</div>
+        </div>
+        <hr class="pcov-rule-top">
+        <p class="pcov-report-type">BUSINESS STRATEGY ANALYSIS REPORT</p>
+        <h1 class="pcov-title">경영전략 분석 보고서</h1>
+        <hr class="pcov-rule-bot">
+        <table class="pcov-meta-table">
+          <tr><td class="pcov-meta-key">기 업 명</td><td class="pcov-meta-val"><strong>${fd.companyName || '—'}</strong></td></tr>
+          <tr><td class="pcov-meta-key">업 &nbsp;&nbsp;&nbsp; 종</td><td class="pcov-meta-val">${industryKr}</td></tr>
+          <tr><td class="pcov-meta-key">규 &nbsp;&nbsp;&nbsp; 모</td><td class="pcov-meta-val">${scaleKr}</td></tr>
+          <tr><td class="pcov-meta-key">컨설팅 유형</td><td class="pcov-meta-val">${ctKr}</td></tr>
+          <tr><td class="pcov-meta-key">작 성 일</td><td class="pcov-meta-val">${dateStr}</td></tr>
+        </table>
+        <p class="pcov-footer">본 보고서는 BizNavi AI가 진단 데이터를 기반으로 자동 생성한 분석 보고서입니다.</p>
+      `;
+    }
+
+    const el = document.getElementById('dashboard');
+    el.classList.add('print-target');
+    window.print();
+    el.classList.remove('print-target');
+  }
+
+  return { render, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
 })();

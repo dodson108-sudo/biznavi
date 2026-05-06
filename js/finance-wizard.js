@@ -1427,8 +1427,20 @@ const FinWizard = (() => {
   }
 
   /* ── PUBLIC API ── */
+  /* ── PDF 저장 (재무분석 리포트) ────────────────────────────── */
+  function printPdf() {
+    if (!document.getElementById('finReportContent')?.innerHTML.trim()) {
+      alert('먼저 재무분석 리포트를 생성해주세요.');
+      return;
+    }
+    const el = document.getElementById('finance-report');
+    el.classList.add('print-target');
+    window.print();
+    el.classList.remove('print-target');
+  }
+
   return {
     goStep, nextStep, switchInputMode, onCompanyInput, lookupDart, analyze,
-    searchIndustryCode, selectIndustryCode, selectDirectCode, renderReport, backToStep2
+    searchIndustryCode, selectIndustryCode, selectDirectCode, renderReport, backToStep2, printPdf
   };
 })();
