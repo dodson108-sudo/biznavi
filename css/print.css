@@ -280,6 +280,67 @@
   .lc-block { border: 1pt solid #ccc !important; padding: 7pt !important; background: #f8f8f8 !important; break-inside: avoid; }
   .lc-guide { display: none !important; }
 
+  /* ════════════════════════════════════════════════════════════
+     NICE 스타일 재무 리포트 (nice-* 오버라이드)
+  ════════════════════════════════════════════════════════════ */
+
+  .nice-sec-hdr { border-bottom: 1.5pt solid #1a1a2e !important; padding-bottom: 6pt !important; margin-bottom: 10pt !important; }
+  .nice-sec-num { background: #1a1a2e !important; color: #8B6914 !important; font-size: 10pt !important; width: 26pt !important; height: 26pt !important; }
+  .nice-sec-title { font-size: 12pt !important; font-weight: 700 !important; }
+  .nice-sec-sub   { font-size: 8pt !important; }
+  .nice-section-lead { font-size: 8.5pt !important; background: #f5f5f5 !important; border-left: 2pt solid #ccc !important; padding: 5pt 8pt !important; margin-bottom: 8pt !important; }
+
+  .nice-kv-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 6pt !important; margin-bottom: 10pt !important; }
+  .nice-kv-card { border: 0.5pt solid #999 !important; padding: 7pt 9pt !important; background: #f5f5f5 !important; break-inside: avoid; }
+  .nice-kv-label { font-size: 7.5pt !important; }
+  .nice-kv-value { font-size: 11pt !important; }
+  .nice-kv-sub   { font-size: 7pt !important; }
+
+  .nice-score-bar { background: #1a1a2e !important; border-radius: 4pt !important; padding: 10pt 14pt !important; margin-top: 4pt !important; }
+  .nice-score-grade { font-size: 18pt !important; }
+  .nice-score-label { font-size: 7.5pt !important; }
+  .nice-score-sub   { font-size: 8.5pt !important; }
+  .nice-score-progress { width: 80pt !important; height: 5pt !important; background: rgba(255,255,255,.2) !important; }
+  .nice-score-pct { font-size: 10pt !important; }
+
+  .nice-def-table { font-size: 8pt !important; margin-bottom: 8pt !important; }
+  .nice-def-table th { background: #2a3a5e !important; color: #fff !important; padding: 5pt 7pt !important; }
+  .nice-def-table td { border: 0.5pt solid #ccc !important; padding: 5pt 7pt !important; background: #ffffff !important; }
+  .nice-def-table td:first-child { background: #f0f2f8 !important; }
+  .nice-def-table tr:nth-child(even) td:not(:first-child) { background: #f8f8f8 !important; }
+
+  .nice-ratio-table { font-size: 8.5pt !important; margin-bottom: 8pt !important; }
+  .nice-ratio-table th { background: #2a3a5e !important; color: #fff !important; padding: 5pt 7pt !important; font-size: 7.5pt !important; }
+  .nice-rt-label { padding: 5pt 7pt !important; font-size: 8.5pt !important; border-bottom: 0.5pt solid #e5e5e5 !important; }
+  .nice-rt-val, .nice-rt-avg, .nice-rt-diff { padding: 5pt 7pt !important; border-bottom: 0.5pt solid #e5e5e5 !important; }
+  .nice-rt-eval { padding: 5pt 7pt !important; border-bottom: 0.5pt solid #e5e5e5 !important; }
+  .nice-ratio-table tbody tr:nth-child(even) td { background: #f9f9f9 !important; }
+
+  .nice-grade-good { color: #155a15 !important; }
+  .nice-grade-bad  { color: #b50000 !important; }
+  .nice-grade-na   { color: #888 !important; }
+
+  .nice-analysis { background: #f5f5f5 !important; border: 0.5pt solid #ccc !important; padding: 8pt 10pt !important; margin-top: 8pt !important; break-inside: avoid; }
+  .nice-analysis-row { grid-template-columns: 50pt 1fr !important; gap: 6pt !important; padding: 5pt 0 !important; border-bottom: 0.5pt solid #e5e5e5 !important; }
+  .nice-analysis-label { font-size: 7.5pt !important; font-weight: 700 !important; }
+  .nice-analysis-text  { font-size: 8.5pt !important; line-height: 1.65 !important; }
+
+  .nice-summary-table { font-size: 8pt !important; }
+  .nice-summary-table th { background: #2a3a5e !important; color: #fff !important; padding: 5pt 7pt !important; font-size: 7.5pt !important; }
+  .nice-summary-table td { border: 0.5pt solid #ccc !important; padding: 5pt 7pt !important; background: #fff !important; }
+  .nice-summary-table .nice-group-hdr td { background: #eef0f8 !important; font-size: 7.5pt !important; }
+
+  .nice-final-box { background: #f5f5f5 !important; padding: 10pt 14pt !important; break-inside: avoid; }
+  .nice-final-grade-row { background: #1a1a2e !important; padding: 10pt 14pt !important; margin-bottom: 10pt !important; border-radius: 3pt !important; }
+  .nice-final-grade { font-size: 20pt !important; }
+  .nice-final-grade-label { font-size: 7.5pt !important; }
+  .nice-final-grade-text  { font-size: 9pt !important; }
+  .nice-final-grid { grid-template-columns: 1fr 1fr !important; gap: 6pt !important; margin-bottom: 10pt !important; }
+  .nice-final-item { font-size: 8.5pt !important; }
+  .nice-opinion-title { font-size: 9pt !important; border-left: 2pt solid #8B6914 !important; padding-left: 6pt !important; margin-bottom: 4pt !important; }
+  .nice-opinion-text  { font-size: 8.5pt !important; line-height: 1.65 !important; padding: 7pt 10pt !important; background: #fff !important; }
+  .nice-improve-list  { font-size: 8.5pt !important; line-height: 1.65 !important; padding: 7pt 10pt !important; background: #fff !important; }
+
   /* ── 페이지 구분 ─────────────────────────────────────────────── */
   #sec-swot        { break-before: page !important; page-break-before: always !important; }
   #sec-stp         { break-before: page !important; page-break-before: always !important; }

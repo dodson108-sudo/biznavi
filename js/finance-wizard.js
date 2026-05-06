@@ -1057,138 +1057,374 @@ const FinWizard = (() => {
   function isKey1인당(key) { return key.includes('1인당'); }
 
   /* ─────────────────────────────────────────────────────────────────
-     재무분석 리포트 생성 (PDF 형식)
+     재무분석 리포트 생성 — NICE BizINFO 수준 (섹션별 정의+분석)
   ───────────────────────────────────────────────────────────────── */
   function renderReport() {
     const d = _finData;
     const r = _lastRatios;
     if (!d || !r) { alert('먼저 재무분석을 실행해주세요.'); return; }
 
-    const today = new Date();
+    const today    = new Date();
     const todayStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
-    const industryName = document.getElementById('finIndustryName')?.value || document.getElementById('finIndustryCode')?.value || '전체업종';
-
+    const industryName = document.getElementById('finIndustryName')?.value ||
+                         document.getElementById('finIndustryCode')?.value || '전체업종';
     const wrap = document.getElementById('finReportContent');
     if (!wrap) return;
 
-    /* ── 숫자 포맷 ── */
-    const n = (v, unit='') => (v || v===0) ? `${(+v).toLocaleString()}${unit}` : '—';
-    const pct = (v) => v !== null && v !== undefined ? `${v}%` : '—';
-    const tim = (v) => v !== null && v !== undefined ? `${v}회` : '—';
-    const day = (v) => v !== null && v !== undefined ? `${v}일` : '—';
+    /* ── 포맷 헬퍼 ── */
+    const fmtW = v => (v || v===0) ? `${(+v).toLocaleString()}백만원` : '—';
+    const fmtN = v => (v || v===0) ? `${(+v).toLocaleString()}` : '—';
 
-    /* ── 평가 텍스트 생성 ── */
-    function evalTag(key, val) {
-      const ev = _evalVsAvg(key, val);
-      if (!ev.cls) return `<span class="rpt-neutral">—</span>`;
-      const txt = ev.cls === 'fin-eval-good' ? '양호' : '불량';
-      return `<span class="rpt-eval-${ev.cls === 'fin-eval-good' ? 'good' : 'bad'}">${txt}</span>`;
-    }
-    function avgStr(key) {
-      const avg = _bokAvg[key];
-      if (avg === undefined) return '—';
-      if (key.includes('회전율')) return `${avg}회`;
-      if (key.includes('기간')) return `${avg}일`;
-      if (key.includes('1인당')) return `${avg}백만원`;
-      return `${avg}%`;
-    }
-    function valStr(key, val) {
+    function vFmt(key, val) {
       if (val === null || val === undefined) return '—';
       if (key.includes('회전율')) return `${val}회`;
-      if (key.includes('기간')) return `${val}일`;
-      if (key.includes('1인당')) return `${(+val).toLocaleString()}백만원`;
+      if (key.includes('기간'))   return `${val}일`;
+      if (key.includes('1인당'))  return `${(+val).toLocaleString()}백만원`;
       return `${val}%`;
     }
+    function aFmt(key) {
+      const a = _bokAvg[key];
+      if (a === undefined) return '—';
+      if (key.includes('회전율')) return `${a}회`;
+      if (key.includes('기간'))   return `${a}일`;
+      if (key.includes('1인당'))  return `${a}백만원`;
+      return `${a}%`;
+    }
+    function dFmt(key, val) {
+      if (val === null || val === undefined) return '—';
+      const a = _bokAvg[key];
+      if (!a) return '—';
+      const diff = +(val - a).toFixed(1);
+      const sign = diff >= 0 ? '+' : '';
+      if (key.includes('회전율')) return `${sign}${diff.toFixed(2)}회`;
+      if (key.includes('기간'))   return `${sign}${diff.toFixed(1)}일`;
+      if (key.includes('1인당'))  return `${sign}${diff.toFixed(0)}백만원`;
+      return `${sign}${diff.toFixed(1)}%p`;
+    }
+    function eCell(key, val) {
+      if (val === null || val === undefined) return `<span class="nice-grade-na">—</span>`;
+      const ev = _evalVsAvg(key, val);
+      if (!ev.cls) return `<span class="nice-grade-na">—</span>`;
+      return ev.cls === 'fin-eval-good'
+        ? `<span class="nice-grade-good">▲ 양호</span>`
+        : `<span class="nice-grade-bad">▼ 주의</span>`;
+    }
 
-    /* ── 재무비율 행 렌더 ── */
-    function ratioRow(label, key, val) {
+    /* ── 비율 행 (비교표용) ── */
+    function rRow(label, key, val) {
       return `<tr>
-        <td class="rpt-td-label">${label}</td>
-        <td class="rpt-td-num">${valStr(key, val)}</td>
-        <td class="rpt-td-num">${avgStr(key)}</td>
-        <td class="rpt-td-eval">${evalTag(key, val)}</td>
+        <td class="nice-rt-label">${label}</td>
+        <td class="nice-rt-val">${vFmt(key, val)}</td>
+        <td class="nice-rt-avg">${aFmt(key)}</td>
+        <td class="nice-rt-diff">${dFmt(key, val)}</td>
+        <td class="nice-rt-eval">${eCell(key, val)}</td>
       </tr>`;
     }
 
-    /* ── 분석의견 자동생성 (평가→진단→처방) ── */
-    function buildOpinion(areaKey) {
-      const opinions = {
-        liquidity: _buildLiquidityOpinion(r.liquidity, d),
-        safety:    _buildSafetyOpinion(r.safety, d),
-        profitability: _buildProfitabilityOpinion(r.profitability, d),
-        activity:  _buildActivityOpinion(r.activity, d),
-        growth:    _buildGrowthOpinion(r.growth, d),
-      };
-      return opinions[areaKey] || { eval: '분석 데이터 부족', diag: '—', rx: '—' };
+    /* ── 종합표 행 ── */
+    function sRow(group, label, key, val) {
+      return `<tr>
+        <td style="text-align:center;font-size:0.78rem;color:#666">${group}</td>
+        <td>${label}</td>
+        <td>${vFmt(key, val)}</td>
+        <td>${aFmt(key)}</td>
+        <td>${dFmt(key, val)}</td>
+        <td>${eCell(key, val)}</td>
+      </tr>`;
     }
 
-    function opinionBlock(num, title, areaKey) {
-      const op = buildOpinion(areaKey);
-      return `
-      <div class="rpt-opinion-block">
-        <div class="rpt-opinion-title">${num}. ${title}</div>
-        <div class="rpt-opinion-section">
-          <div class="rpt-opinion-label">□ 평가 (현황)</div>
-          <div class="rpt-opinion-text">${op.eval}</div>
+    /* ── 섹션 헤더 ── */
+    function sHdr(num, title, sub) {
+      return `<div class="nice-sec-hdr">
+        <div class="nice-sec-num">${num}</div>
+        <div><div class="nice-sec-title">${title}</div><div class="nice-sec-sub">${sub}</div></div>
+      </div>`;
+    }
+
+    /* ── 분석의견 블록 ── */
+    function aBlock(areaKey) {
+      const op = _buildOpinionPara(areaKey, r, d);
+      return `<div class="nice-analysis">
+        <div class="nice-analysis-row">
+          <div class="nice-analysis-label">■ 평가 (현황)</div>
+          <div class="nice-analysis-text">${op.eval}</div>
         </div>
-        <div class="rpt-opinion-section">
-          <div class="rpt-opinion-label">□ 진단 (원인)</div>
-          <div class="rpt-opinion-text">${op.diag}</div>
+        <div class="nice-analysis-row">
+          <div class="nice-analysis-label">■ 진단 (원인)</div>
+          <div class="nice-analysis-text">${op.diag}</div>
         </div>
-        <div class="rpt-opinion-section">
-          <div class="rpt-opinion-label">□ 처방 (대안)</div>
-          <div class="rpt-opinion-text">${op.rx}</div>
+        <div class="nice-analysis-row">
+          <div class="nice-analysis-label">■ 처방 (대안)</div>
+          <div class="nice-analysis-text">${op.rx}</div>
         </div>
       </div>`;
     }
 
+    /* ── 종합 점수 ── */
+    const sc = _countEvals(r);
+    const score = sc.total > 0 ? Math.round(sc.good / sc.total * 100) : 0;
+    const grade = score >= 70 ? 'A' : score >= 55 ? 'B' : score >= 40 ? 'C' : 'D';
+    const gradeLbl = score >= 70 ? '양호' : score >= 55 ? '보통' : score >= 40 ? '주의' : '취약';
+    const gradeClr = score >= 70 ? '#059669' : score >= 55 ? '#D97706' : score >= 40 ? '#EA580C' : '#DC2626';
+
     wrap.innerHTML = `
-    <!-- ══ 표지 ══ -->
+
+    <!-- ══════════ 표지 ══════════ -->
     <div class="rpt-cover">
       <div class="rpt-cover-inner">
-        <div class="rpt-cover-badge">재무분석 보고서</div>
+        <div style="font-size:1.6rem;font-weight:900;color:#F5C030;letter-spacing:0.1em">BizNavi</div>
+        <div style="font-size:0.7rem;color:rgba(255,255,255,.4);letter-spacing:0.18em;margin-bottom:32px">AI FINANCIAL INTELLIGENCE</div>
+        <div style="font-size:0.85rem;color:rgba(255,255,255,.5);letter-spacing:0.18em;margin-bottom:10px">재무분석 보고서</div>
+        <div style="font-size:2.2rem;font-weight:800;color:#E8EDF5;margin-bottom:6px">${d.companyName}</div>
+        <div style="font-size:0.9rem;color:rgba(255,255,255,.5);margin-bottom:36px">${industryName}</div>
         <table class="rpt-cover-table">
-          <tr><td class="rpt-cover-key">업 체 명</td><td class="rpt-cover-val">${d.companyName}</td></tr>
           <tr><td class="rpt-cover-key">분석연도</td><td class="rpt-cover-val">${d.year}년 기준</td></tr>
-          <tr><td class="rpt-cover-key">업    종</td><td class="rpt-cover-val">${industryName}</td></tr>
-          <tr><td class="rpt-cover-key">작 성 일</td><td class="rpt-cover-val">${todayStr}</td></tr>
+          <tr><td class="rpt-cover-key">업&nbsp;&nbsp;&nbsp;&nbsp;종</td><td class="rpt-cover-val">${industryName}</td></tr>
+          <tr><td class="rpt-cover-key">작&nbsp;성&nbsp;일</td><td class="rpt-cover-val">${todayStr}</td></tr>
+          <tr><td class="rpt-cover-key">산업평균</td><td class="rpt-cover-val">${_bokAvgSource}</td></tr>
         </table>
-        <div class="rpt-cover-note">※ 산업평균 : ${_bokAvgSource}</div>
+        <div class="rpt-cover-note">본 보고서는 입력된 재무데이터와 산업평균 기준으로 자동 생성되었습니다.</div>
       </div>
     </div>
 
-    <!-- ══ 재무상태표 ══ -->
+    <!-- ══════════ 01. 재무현황 요약 ══════════ -->
     <div class="rpt-page">
-      <div class="rpt-page-title">□ 재무상태표 (B/S)</div>
+      ${sHdr('01', '재무현황 요약', 'Financial Overview')}
+      <div class="nice-kv-grid">
+        <div class="nice-kv-card">
+          <div class="nice-kv-label">자산 총계</div>
+          <div class="nice-kv-value">${fmtW(d.total_assets)}</div>
+          <div class="nice-kv-sub">유동 ${fmtW(d.current_assets)} / 비유동 ${fmtW(d.noncurrent_assets || (d.total_assets - d.current_assets))}</div>
+        </div>
+        <div class="nice-kv-card">
+          <div class="nice-kv-label">부채 총계</div>
+          <div class="nice-kv-value">${fmtW(d.total_liabilities)}</div>
+          <div class="nice-kv-sub">유동 ${fmtW(d.current_liabilities)} / 비유동 ${fmtW(d.noncurrent_liabilities)}</div>
+        </div>
+        <div class="nice-kv-card">
+          <div class="nice-kv-label">자기자본</div>
+          <div class="nice-kv-value">${fmtW(d.equity)}</div>
+          <div class="nice-kv-sub">자기자본비율 ${vFmt('자기자본비율', r.safety.자기자본비율)}</div>
+        </div>
+        <div class="nice-kv-card">
+          <div class="nice-kv-label">매출액</div>
+          <div class="nice-kv-value">${fmtW(d.revenue)}</div>
+          <div class="nice-kv-sub">매출총이익률 ${vFmt('매출총이익율', r.profitability.매출총이익율)}</div>
+        </div>
+        <div class="nice-kv-card">
+          <div class="nice-kv-label">영업이익</div>
+          <div class="nice-kv-value">${fmtW(d.operating_profit)}</div>
+          <div class="nice-kv-sub">영업이익률 ${vFmt('매출액영업이익율', r.profitability.매출액영업이익율)} ${eCell('매출액영업이익율', r.profitability.매출액영업이익율)}</div>
+        </div>
+        <div class="nice-kv-card">
+          <div class="nice-kv-label">당기순이익</div>
+          <div class="nice-kv-value">${fmtW(d.net_income)}</div>
+          <div class="nice-kv-sub">순이익률 ${vFmt('매출액순이익율', r.profitability.매출액순이익율)}</div>
+        </div>
+      </div>
+      <div class="nice-score-bar">
+        <div class="nice-score-grade" style="color:${gradeClr}">${grade}</div>
+        <div class="nice-score-info">
+          <div class="nice-score-label">재무건전성 종합등급</div>
+          <div class="nice-score-sub">산업평균 대비 <strong>${sc.good}/${sc.total}개</strong> 항목 양호 — <strong style="color:${gradeClr}">${gradeLbl}</strong></div>
+        </div>
+        <div class="nice-score-progress">
+          <div class="nice-score-bar-inner" style="width:${score}%;background:${gradeClr}"></div>
+        </div>
+        <div class="nice-score-pct" style="color:${gradeClr}">${score}점</div>
+      </div>
+    </div>
+
+    <!-- ══════════ 02. 재무비율 종합 평가 ══════════ -->
+    <div class="rpt-page">
+      ${sHdr('02', '재무비율 종합 평가', 'Financial Ratio Summary')}
+      <table class="nice-summary-table">
+        <thead><tr><th>구분</th><th>지표명</th><th>당사</th><th>산업평균</th><th>차이</th><th>평가</th></tr></thead>
+        <tbody>
+          <tr class="nice-group-hdr"><td colspan="6">유동성 지표 (Liquidity)</td></tr>
+          ${sRow('유동성','유동비율','유동비율',r.liquidity.유동비율)}
+          ${sRow('','당좌비율','당좌비율',r.liquidity.당좌비율)}
+          ${sRow('','현금비율','현금비율',r.liquidity.현금비율)}
+          <tr class="nice-group-hdr"><td colspan="6">안전성 지표 (Stability)</td></tr>
+          ${sRow('안전성','부채비율','부채비율',r.safety.부채비율)}
+          ${sRow('','자기자본비율','자기자본비율',r.safety.자기자본비율)}
+          ${sRow('','차입금의존도','차입금의존도',r.safety.차입금의존도)}
+          ${sRow('','이자보상비율','이자보상비율',r.safety.이자보상비율)}
+          ${sRow('','고정비율','고정비율',r.safety.고정비율)}
+          <tr class="nice-group-hdr"><td colspan="6">수익성 지표 (Profitability)</td></tr>
+          ${sRow('수익성','매출총이익율','매출총이익율',r.profitability.매출총이익율)}
+          ${sRow('','영업이익율','매출액영업이익율',r.profitability.매출액영업이익율)}
+          ${sRow('','순이익율','매출액순이익율',r.profitability.매출액순이익율)}
+          ${sRow('','ROA','총자본순이익율_ROA',r.profitability.총자본순이익율_ROA)}
+          ${sRow('','ROE','자기자본순이익율_ROE',r.profitability.자기자본순이익율_ROE)}
+          <tr class="nice-group-hdr"><td colspan="6">활동성 지표 (Activity)</td></tr>
+          ${sRow('활동성','총자산회전율','총자산회전율',r.activity.총자산회전율)}
+          ${sRow('','매출채권회전율','매출채권회전율',r.activity.매출채권회전율)}
+          ${sRow('','매출채권회수기간','매출채권회수기간',r.activity.매출채권회수기간)}
+          ${sRow('','재고자산회전율','재고자산회전율',r.activity.재고자산회전율)}
+          <tr class="nice-group-hdr"><td colspan="6">성장성 지표 (Growth)</td></tr>
+          ${sRow('성장성','매출액증가율','매출액증가율',r.growth.매출액증가율)}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ══════════ 03. 유동성 분석 ══════════ -->
+    <div class="rpt-page">
+      ${sHdr('03', '유동성 분석', 'Liquidity Analysis')}
+      <p class="nice-section-lead">유동성은 기업이 단기 채무를 적시에 상환할 수 있는 능력으로, 기업의 단기 지급 안정성과 직결됩니다.</p>
+      <table class="nice-def-table">
+        <thead><tr><th>지표명</th><th>산출공식</th><th>판단기준</th></tr></thead>
+        <tbody>
+          <tr><td>유동비율</td><td>유동자산 ÷ 유동부채 × 100</td><td>100% 이상 권장 (업종평균 이상)</td></tr>
+          <tr><td>당좌비율</td><td>(유동자산 − 재고자산) ÷ 유동부채 × 100</td><td>80% 이상 권장</td></tr>
+          <tr><td>현금비율</td><td>현금및현금성자산 ÷ 유동부채 × 100</td><td>20% 이상 권장</td></tr>
+        </tbody>
+      </table>
+      <table class="nice-ratio-table">
+        <thead><tr><th>지표명</th><th>당사</th><th>산업평균</th><th>차이</th><th>평가</th></tr></thead>
+        <tbody>
+          ${rRow('유동비율','유동비율',r.liquidity.유동비율)}
+          ${rRow('당좌비율','당좌비율',r.liquidity.당좌비율)}
+          ${rRow('현금비율','현금비율',r.liquidity.현금비율)}
+        </tbody>
+      </table>
+      ${aBlock('liquidity')}
+    </div>
+
+    <!-- ══════════ 04. 안전성 분석 ══════════ -->
+    <div class="rpt-page">
+      ${sHdr('04', '안전성 분석', 'Stability Analysis')}
+      <p class="nice-section-lead">안전성은 기업의 장기 채무 상환 능력과 재무구조 건전성을 나타내며, 외부 충격에 대한 재무적 내성을 측정합니다.</p>
+      <table class="nice-def-table">
+        <thead><tr><th>지표명</th><th>산출공식</th><th>판단기준</th></tr></thead>
+        <tbody>
+          <tr><td>부채비율</td><td>부채총계 ÷ 자기자본 × 100</td><td>낮을수록 안정 (200% 이하 권장)</td></tr>
+          <tr><td>자기자본비율</td><td>자기자본 ÷ 자산총계 × 100</td><td>높을수록 안정 (30% 이상 권장)</td></tr>
+          <tr><td>차입금의존도</td><td>차입금합계 ÷ 자산총계 × 100</td><td>낮을수록 양호 (30% 이하 권장)</td></tr>
+          <tr><td>이자보상비율</td><td>영업이익 ÷ 이자비용 × 100</td><td>100% 이상 (이자 감당 가능)</td></tr>
+          <tr><td>고정비율</td><td>비유동자산 ÷ 자기자본 × 100</td><td>낮을수록 안정 (100% 이하)</td></tr>
+          <tr><td>고정장기적합율</td><td>비유동자산 ÷ (자기자본 + 비유동부채) × 100</td><td>100% 이하 권장</td></tr>
+        </tbody>
+      </table>
+      <table class="nice-ratio-table">
+        <thead><tr><th>지표명</th><th>당사</th><th>산업평균</th><th>차이</th><th>평가</th></tr></thead>
+        <tbody>
+          ${rRow('부채비율','부채비율',r.safety.부채비율)}
+          ${rRow('자기자본비율','자기자본비율',r.safety.자기자본비율)}
+          ${rRow('차입금의존도','차입금의존도',r.safety.차입금의존도)}
+          ${rRow('이자보상비율','이자보상비율',r.safety.이자보상비율)}
+          ${rRow('고정비율','고정비율',r.safety.고정비율)}
+          ${rRow('고정장기적합율','고정장기적합율',r.safety.고정장기적합율)}
+        </tbody>
+      </table>
+      ${aBlock('safety')}
+    </div>
+
+    <!-- ══════════ 05. 수익성 분석 ══════════ -->
+    <div class="rpt-page">
+      ${sHdr('05', '수익성 분석', 'Profitability Analysis')}
+      <p class="nice-section-lead">수익성은 기업의 자원 투입 대비 이익 창출 능력으로, 지속 성장 가능성과 투자 매력도를 판단하는 핵심 지표입니다.</p>
+      <table class="nice-def-table">
+        <thead><tr><th>지표명</th><th>산출공식</th><th>판단기준</th></tr></thead>
+        <tbody>
+          <tr><td>매출총이익율</td><td>매출총이익 ÷ 매출액 × 100</td><td>높을수록 원가 경쟁력 우수</td></tr>
+          <tr><td>영업이익율</td><td>영업이익 ÷ 매출액 × 100</td><td>높을수록 영업 수익성 양호</td></tr>
+          <tr><td>순이익율</td><td>당기순이익 ÷ 매출액 × 100</td><td>높을수록 최종 수익성 양호</td></tr>
+          <tr><td>ROA</td><td>당기순이익 ÷ 자산총계 × 100</td><td>높을수록 자산 활용 효율 우수</td></tr>
+          <tr><td>ROE</td><td>당기순이익 ÷ 자기자본 × 100</td><td>높을수록 자기자본 효율 우수</td></tr>
+        </tbody>
+      </table>
+      <table class="nice-ratio-table">
+        <thead><tr><th>지표명</th><th>당사</th><th>산업평균</th><th>차이</th><th>평가</th></tr></thead>
+        <tbody>
+          ${rRow('매출총이익율','매출총이익율',r.profitability.매출총이익율)}
+          ${rRow('영업이익율','매출액영업이익율',r.profitability.매출액영업이익율)}
+          ${rRow('순이익율','매출액순이익율',r.profitability.매출액순이익율)}
+          ${rRow('ROA (총자본순이익율)','총자본순이익율_ROA',r.profitability.총자본순이익율_ROA)}
+          ${rRow('ROE (자기자본순이익율)','자기자본순이익율_ROE',r.profitability.자기자본순이익율_ROE)}
+        </tbody>
+      </table>
+      ${aBlock('profitability')}
+    </div>
+
+    <!-- ══════════ 06. 활동성 분석 ══════════ -->
+    <div class="rpt-page">
+      ${sHdr('06', '활동성 분석', 'Activity Analysis')}
+      <p class="nice-section-lead">활동성은 기업이 보유 자산을 얼마나 효율적으로 활용하여 매출을 창출하는지를 측정하며, 운전자본 관리 효율성을 나타냅니다.</p>
+      <table class="nice-def-table">
+        <thead><tr><th>지표명</th><th>산출공식</th><th>판단기준</th></tr></thead>
+        <tbody>
+          <tr><td>총자산회전율</td><td>매출액 ÷ 자산총계</td><td>높을수록 자산 활용 효율 우수</td></tr>
+          <tr><td>자기자본회전율</td><td>매출액 ÷ 자기자본</td><td>높을수록 자기자본 활용 효율 우수</td></tr>
+          <tr><td>매출채권회전율</td><td>매출액 ÷ 매출채권</td><td>높을수록 채권 회수 빠름</td></tr>
+          <tr><td>매출채권회수기간</td><td>365 ÷ 매출채권회전율</td><td>낮을수록 회수 속도 빠름</td></tr>
+          <tr><td>재고자산회전율</td><td>매출액 ÷ 재고자산</td><td>높을수록 재고 관리 효율 우수</td></tr>
+        </tbody>
+      </table>
+      <table class="nice-ratio-table">
+        <thead><tr><th>지표명</th><th>당사</th><th>산업평균</th><th>차이</th><th>평가</th></tr></thead>
+        <tbody>
+          ${rRow('총자산회전율','총자산회전율',r.activity.총자산회전율)}
+          ${rRow('자기자본회전율','자기자본회전율',r.activity.자기자본회전율)}
+          ${rRow('매출채권회전율','매출채권회전율',r.activity.매출채권회전율)}
+          ${rRow('매출채권회수기간','매출채권회수기간',r.activity.매출채권회수기간)}
+          ${rRow('재고자산회전율','재고자산회전율',r.activity.재고자산회전율)}
+        </tbody>
+      </table>
+      ${aBlock('activity')}
+    </div>
+
+    <!-- ══════════ 07. 성장성 분석 ══════════ -->
+    <div class="rpt-page">
+      ${sHdr('07', '성장성 분석', 'Growth Analysis')}
+      <p class="nice-section-lead">성장성은 기업의 외형 확대 속도를 나타내며, 산업 성장률과의 비교를 통해 시장 경쟁력을 판단합니다.</p>
+      <table class="nice-def-table">
+        <thead><tr><th>지표명</th><th>산출공식</th><th>판단기준</th></tr></thead>
+        <tbody>
+          <tr><td>매출액증가율</td><td>(당기매출 − 전기매출) ÷ 전기매출 × 100</td><td>높을수록 성장성 우수 (산업평균 이상 권장)</td></tr>
+        </tbody>
+      </table>
+      <table class="nice-ratio-table">
+        <thead><tr><th>지표명</th><th>당사</th><th>산업평균</th><th>차이</th><th>평가</th></tr></thead>
+        <tbody>
+          ${rRow('매출액증가율','매출액증가율',r.growth.매출액증가율)}
+        </tbody>
+      </table>
+      ${aBlock('growth')}
+    </div>
+
+    <!-- ══════════ 08. 재무상태표 ══════════ -->
+    <div class="rpt-page">
+      ${sHdr('08', '재무상태표 (B/S)', 'Balance Sheet')}
       <p class="rpt-unit">(단위 : 백만원)</p>
       <table class="rpt-bs-table">
         <thead><tr><th colspan="2">과목</th><th>${d.year}년</th></tr></thead>
         <tbody>
           <tr class="rpt-bs-head"><td colspan="3">〈 자 산 〉</td></tr>
-          <tr class="rpt-bs-sub"><td>Ⅰ. 유동자산</td><td></td><td>${n(d.current_assets)}</td></tr>
-          <tr><td></td><td>(1) 당좌자산</td><td>${n(d.quick_assets)}</td></tr>
-          <tr><td></td><td>&nbsp;&nbsp;현금 + 금융상품</td><td>${n(d.cash)}</td></tr>
-          <tr><td></td><td>&nbsp;&nbsp;매출채권 + 받을어음</td><td>${n(d.receivable)}</td></tr>
-          <tr><td></td><td>(2) 재고자산</td><td>${n(d.inventory)}</td></tr>
-          <tr class="rpt-bs-sub"><td>Ⅱ. 비유동자산</td><td></td><td>${n(d.noncurrent_assets || (d.total_assets - d.current_assets))}</td></tr>
-          <tr><td></td><td>(1) 유형자산</td><td>${n(d.tangible_assets)}</td></tr>
-          <tr class="rpt-bs-total"><td colspan="2">자산총계</td><td>${n(d.total_assets)}</td></tr>
+          <tr class="rpt-bs-sub"><td>Ⅰ. 유동자산</td><td></td><td>${fmtN(d.current_assets)}</td></tr>
+          <tr><td></td><td>(1) 당좌자산</td><td>${fmtN(d.quick_assets)}</td></tr>
+          <tr><td></td><td>&nbsp;&nbsp;현금 + 금융상품</td><td>${fmtN(d.cash)}</td></tr>
+          <tr><td></td><td>&nbsp;&nbsp;매출채권 + 받을어음</td><td>${fmtN(d.receivable)}</td></tr>
+          <tr><td></td><td>(2) 재고자산</td><td>${fmtN(d.inventory)}</td></tr>
+          <tr class="rpt-bs-sub"><td>Ⅱ. 비유동자산</td><td></td><td>${fmtN(d.noncurrent_assets || (d.total_assets - d.current_assets))}</td></tr>
+          <tr><td></td><td>(1) 유형자산</td><td>${fmtN(d.tangible_assets)}</td></tr>
+          <tr class="rpt-bs-total"><td colspan="2">자산총계</td><td>${fmtN(d.total_assets)}</td></tr>
           <tr class="rpt-bs-head"><td colspan="3">〈 부 채 〉</td></tr>
-          <tr class="rpt-bs-sub"><td>Ⅰ. 유동부채</td><td></td><td>${n(d.current_liabilities)}</td></tr>
-          <tr><td></td><td>&nbsp;&nbsp;매입채무 + 지급어음</td><td>${n(d.payable)}</td></tr>
-          <tr class="rpt-bs-sub"><td>Ⅱ. 비유동부채</td><td></td><td>${n(d.noncurrent_liabilities)}</td></tr>
-          <tr><td></td><td>&nbsp;&nbsp;차입금 (장·단기)</td><td>${n(d.borrowings)}</td></tr>
-          <tr class="rpt-bs-total"><td colspan="2">부채총계</td><td>${n(d.total_liabilities)}</td></tr>
+          <tr class="rpt-bs-sub"><td>Ⅰ. 유동부채</td><td></td><td>${fmtN(d.current_liabilities)}</td></tr>
+          <tr><td></td><td>&nbsp;&nbsp;매입채무 + 지급어음</td><td>${fmtN(d.payable)}</td></tr>
+          <tr class="rpt-bs-sub"><td>Ⅱ. 비유동부채</td><td></td><td>${fmtN(d.noncurrent_liabilities)}</td></tr>
+          <tr><td></td><td>&nbsp;&nbsp;차입금 (장·단기)</td><td>${fmtN(d.borrowings)}</td></tr>
+          <tr class="rpt-bs-total"><td colspan="2">부채총계</td><td>${fmtN(d.total_liabilities)}</td></tr>
           <tr class="rpt-bs-head"><td colspan="3">〈 자 본 〉</td></tr>
-          <tr class="rpt-bs-total"><td colspan="2">자기자본(자본총계)</td><td>${n(d.equity)}</td></tr>
-          <tr class="rpt-bs-total rpt-bs-grand"><td colspan="2">부채와 자본 총계</td><td>${n(d.total_assets)}</td></tr>
+          <tr class="rpt-bs-total"><td colspan="2">자기자본(자본총계)</td><td>${fmtN(d.equity)}</td></tr>
+          <tr class="rpt-bs-grand"><td colspan="2">부채와 자본 총계</td><td>${fmtN(d.total_assets)}</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- ══ 손익계산서 ══ -->
+    <!-- ══════════ 09. 포괄손익계산서 ══════════ -->
     <div class="rpt-page">
-      <div class="rpt-page-title">□ 포괄손익계산서 (I/S)</div>
+      ${sHdr('09', '포괄손익계산서 (I/S)', 'Income Statement')}
       <p class="rpt-unit">(단위 : 백만원)</p>
       <table class="rpt-bs-table">
         <thead><tr><th>과목</th><th>${d.year}년</th><th>매출대비(%)</th></tr></thead>
@@ -1205,81 +1441,32 @@ const FinWizard = (() => {
       </table>
     </div>
 
-    <!-- ══ 재무비율 분석 ══ -->
+    <!-- ══════════ 10. 종합의견 및 개선안 ══════════ -->
     <div class="rpt-page">
-      <div class="rpt-page-title">○ 유동성 지표 (indicators concerning liquidity)</div>
-      <table class="rpt-ratio-table">
-        <thead><tr><th>항목</th><th>당사</th><th>산업평균</th><th>평가</th></tr></thead>
-        <tbody>
-          ${ratioRow('유동비율', '유동비율', r.liquidity.유동비율)}
-          ${ratioRow('당좌비율', '당좌비율', r.liquidity.당좌비율)}
-          ${ratioRow('현금비율', '현금비율', r.liquidity.현금비율)}
-        </tbody>
-      </table>
-
-      <div class="rpt-page-title" style="margin-top:28px">○ 안전성 지표 (indicators concerning stability)</div>
-      <table class="rpt-ratio-table">
-        <thead><tr><th>항목</th><th>당사</th><th>산업평균</th><th>평가</th></tr></thead>
-        <tbody>
-          ${ratioRow('부채비율', '부채비율', r.safety.부채비율)}
-          ${ratioRow('자기자본비율', '자기자본비율', r.safety.자기자본비율)}
-          ${ratioRow('순운전자본비율', '순운전자본비율', r.safety.순운전자본비율)}
-          ${ratioRow('차입금의존도', '차입금의존도', r.safety.차입금의존도)}
-          ${ratioRow('이자보상비율', '이자보상비율', r.safety.이자보상비율)}
-          ${ratioRow('고정비율', '고정비율', r.safety.고정비율)}
-          ${ratioRow('고정장기적합율', '고정장기적합율', r.safety.고정장기적합율)}
-        </tbody>
-      </table>
-
-      <div class="rpt-page-title" style="margin-top:28px">○ 수익성 지표 (indicators concerning profitability)</div>
-      <table class="rpt-ratio-table">
-        <thead><tr><th>항목</th><th>당사</th><th>산업평균</th><th>평가</th></tr></thead>
-        <tbody>
-          ${ratioRow('매출총이익율', '매출총이익율', r.profitability.매출총이익율)}
-          ${ratioRow('매출액 영업이익율', '매출액영업이익율', r.profitability.매출액영업이익율)}
-          ${ratioRow('매출액 순이익율', '매출액순이익율', r.profitability.매출액순이익율)}
-          ${ratioRow('총자본 순이익율 (ROA)', '총자본순이익율_ROA', r.profitability.총자본순이익율_ROA)}
-          ${ratioRow('자기자본 순이익율 (ROE)', '자기자본순이익율_ROE', r.profitability.자기자본순이익율_ROE)}
-        </tbody>
-      </table>
-
-      <div class="rpt-page-title" style="margin-top:28px">○ 활동성 지표 (indicators concerning activity)</div>
-      <table class="rpt-ratio-table">
-        <thead><tr><th>항목</th><th>당사</th><th>산업평균</th><th>평가</th></tr></thead>
-        <tbody>
-          ${ratioRow('총자산 회전율', '총자산회전율', r.activity.총자산회전율)}
-          ${ratioRow('자기자본 회전율', '자기자본회전율', r.activity.자기자본회전율)}
-          ${ratioRow('매출채권 회전율', '매출채권회전율', r.activity.매출채권회전율)}
-          ${ratioRow('매출채권 회수기간', '매출채권회수기간', r.activity.매출채권회수기간)}
-          ${ratioRow('매입채무 회전율', '매입채무회전율', r.activity.매입채무회전율)}
-          ${ratioRow('매입채무 지급기간', '매입채무지급기간', r.activity.매입채무지급기간)}
-          ${ratioRow('재고자산 회전율', '재고자산회전율', r.activity.재고자산회전율)}
-        </tbody>
-      </table>
-
-      <div class="rpt-page-title" style="margin-top:28px">○ 성장성 지표 (indicators concerning growth)</div>
-      <table class="rpt-ratio-table">
-        <thead><tr><th>항목</th><th>당사</th><th>산업평균</th><th>평가</th></tr></thead>
-        <tbody>
-          ${ratioRow('매출액 증가율', '매출액증가율', r.growth.매출액증가율)}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ══ 분석의견 ══ -->
-    <div class="rpt-page">
-      <div class="rpt-page-title rpt-opinion-main-title">분 석 의 견&nbsp;<span style="font-size:0.85rem;font-weight:400">[ 평가 → 진단(원인) → 처방(대안) 順 ]</span></div>
-      ${opinionBlock(1, '유동성 분석', 'liquidity')}
-      ${opinionBlock(2, '안전성 분석', 'safety')}
-      ${opinionBlock(3, '수익성 분석', 'profitability')}
-      ${opinionBlock(4, '활동성 분석', 'activity')}
-      ${opinionBlock(5, '성장성 분석', 'growth')}
-    </div>
-
-    <!-- ══ 종합의견 ══ -->
-    <div class="rpt-page">
-      <div class="rpt-page-title">6. 종합의견 및 개선안</div>
-      ${_buildSummaryOpinion(r, d)}
+      ${sHdr('10', '종합의견 및 개선안', 'Comprehensive Analysis & Recommendations')}
+      <div class="nice-final-box">
+        <div class="nice-final-grade-row">
+          <div class="nice-final-grade" style="color:${gradeClr}">${grade}</div>
+          <div class="nice-final-grade-info">
+            <div class="nice-final-grade-label">재무건전성 종합 등급</div>
+            <div class="nice-final-grade-text">${sc.good}/${sc.total}개 항목 산업평균 이상 — ${gradeLbl} (${score}점)</div>
+          </div>
+        </div>
+        <div class="nice-final-grid">
+          <div class="nice-final-item"><span class="${r.liquidity.유동비율 !== null && r.liquidity.유동비율 >= _bokAvg.유동비율 ? 'nice-grade-good' : 'nice-grade-bad'}">●</span> 유동성: ${vFmt('유동비율', r.liquidity.유동비율)} (산업평균 ${_bokAvg.유동비율}%)</div>
+          <div class="nice-final-item"><span class="${r.safety.부채비율 !== null && r.safety.부채비율 <= _bokAvg.부채비율 ? 'nice-grade-good' : 'nice-grade-bad'}">●</span> 안전성: 부채비율 ${vFmt('부채비율', r.safety.부채비율)} (산업평균 ${_bokAvg.부채비율}%)</div>
+          <div class="nice-final-item"><span class="${r.profitability.매출액영업이익율 !== null && r.profitability.매출액영업이익율 >= _bokAvg.매출액영업이익율 ? 'nice-grade-good' : 'nice-grade-bad'}">●</span> 수익성: 영업이익율 ${vFmt('매출액영업이익율', r.profitability.매출액영업이익율)} (산업평균 ${_bokAvg.매출액영업이익율}%)</div>
+          <div class="nice-final-item"><span class="${r.activity.총자산회전율 !== null && r.activity.총자산회전율 >= _bokAvg.총자산회전율 ? 'nice-grade-good' : 'nice-grade-bad'}">●</span> 활동성: 총자산회전율 ${vFmt('총자산회전율', r.activity.총자산회전율)} (산업평균 ${_bokAvg.총자산회전율}회)</div>
+        </div>
+        <div class="nice-opinion-block">
+          <div class="nice-opinion-title">□ 종합의견</div>
+          <div class="nice-opinion-text">${_buildFinalOpinion(r, d, sc, score, gradeLbl)}</div>
+        </div>
+        <div class="nice-opinion-block">
+          <div class="nice-opinion-title">□ 개선 권고사항</div>
+          <ul class="nice-improve-list">${_buildImprovements(r, d)}</ul>
+        </div>
+      </div>
     </div>
     `;
 
@@ -1371,6 +1558,138 @@ const FinWizard = (() => {
         ? '1. 핵심사업 리빌딩: 수익성 높은 주력사업 위주 구조 재편\n2. 신규 시장 및 고객군 개척을 통한 매출기반 다각화\n3. R&D 투자 확대로 제품·서비스 경쟁력 강화'
         : '1. 전기 매출액 입력 후 성장률 재산출 권장\n2. 지속 성장을 위한 단계별 투자 로드맵 수립\n3. 핵심 역량 강화 및 시장 확대 전략 추진'
     };
+  }
+
+  /* ── 문단형 분석의견 (NICE 스타일 평가→진단→처방) ── */
+  function _buildOpinionPara(areaKey, r, d) {
+    const ba = _bokAvg;
+    const co = d.companyName;
+
+    if (areaKey === 'liquidity') {
+      const cr = r.liquidity.유동비율, qr = r.liquidity.당좌비율, cashr = r.liquidity.현금비율;
+      const crAvg = ba.유동비율, qrAvg = ba.당좌비율, cashrAvg = ba.현금비율;
+      const crOk = cr !== null && cr >= crAvg;
+      const diff = cr !== null ? Math.abs(cr - crAvg).toFixed(1) : null;
+      return {
+        eval: cr !== null
+          ? `${co}의 유동비율은 ${cr}%로, 산업평균 ${crAvg}%를 ${diff}%p ${crOk ? '상회하여 단기 채무 상환 능력이 양호한 수준입니다' : '하회하여 단기 지급능력이 다소 취약한 상황입니다'}. 당좌비율은 ${qr !== null ? qr+'%' : '—'}(산업평균 ${qrAvg}%)로 재고 제외 즉시 지급능력이 ${qr !== null && qr >= qrAvg ? '충분히 확보되어 있습니다' : '개선이 필요한 수준입니다'}. 현금비율 ${cashr !== null ? cashr+'%' : '—'}(산업평균 ${cashrAvg}%)는 현금성 자산의 단기 부채 커버율을 나타냅니다.`
+          : '유동성 분석에 필요한 유동자산 또는 유동부채 데이터가 입력되지 않았습니다.',
+        diag: crOk
+          ? '현재 유동자산이 유동부채를 충분히 커버하고 있어 운전자본 관리가 적절히 이루어지고 있습니다. 다만 유동비율이 과도하게 높을 경우 재고 과잉 또는 현금 운용 비효율이 발생할 수 있으므로 적정 수준 유지가 중요합니다.'
+          : `유동부채 대비 유동자산이 부족하여 단기 자금 부족 리스크가 존재합니다. 매출채권 회수 지연 또는 재고 과잉 보유가 유동성 저하의 원인일 수 있으며, 운전자본 관리 체계의 전반적인 점검이 필요합니다.`,
+        rx: crOk
+          ? '현 수준의 유동성을 유지하되, 매출채권 조기 회수와 불필요한 재고 최소화로 현금전환주기(CCC)를 단축하는 것을 권장합니다. 단기 차입금 의존도를 점진적으로 낮추어 유동성 리스크를 사전 차단하시기 바랍니다.'
+          : '① 단기 유동성 보강: 매출채권 조기 회수 촉진(팩토링·조기결제 할인 활용) ② 비필수 재고 처분 및 재고 회전율 개선 ③ 단기 차입금을 장기로 전환하여 유동부채 감축 ④ 현금흐름 기반의 주간·월간 예산 관리체계 도입을 권고합니다.'
+      };
+    }
+
+    if (areaKey === 'safety') {
+      const dr = r.safety.부채비율, er = r.safety.자기자본비율, icr = r.safety.이자보상비율;
+      const drAvg = ba.부채비율, erAvg = ba.자기자본비율, icrAvg = ba.이자보상비율;
+      const drOk = dr !== null && dr <= drAvg;
+      return {
+        eval: dr !== null
+          ? `${co}의 부채비율은 ${dr}%로 산업평균 ${drAvg}%보다 ${drOk ? '낮아 재무구조가 안정적입니다' : '높아 레버리지 부담이 상대적으로 큰 상황입니다'}. 자기자본비율은 ${er !== null ? er+'%' : '—'}(산업평균 ${erAvg}%)로 ${er !== null && er >= erAvg ? '적정 수준의 자본 기반을 갖추고 있습니다' : '자기자본 확충이 필요한 수준입니다'}. 이자보상비율은 ${icr !== null ? icr+'%' : '—'}(산업평균 ${icrAvg}%)로 ${icr !== null && icr >= 100 ? '영업이익으로 이자비용을 충분히 감당할 수 있습니다' : '영업이익이 이자비용을 충당하지 못하는 수준으로 재무적 위험이 존재합니다'}.`
+          : '안전성 분석에 필요한 재무상태표 데이터가 부족합니다.',
+        diag: drOk
+          ? '전반적인 재무 레버리지 수준이 산업평균 이하로, 외부 충격에 대한 재무적 내성이 확보되어 있습니다. 이자보상비율이 충분한 경우 금리 상승 환경에서도 안정성을 유지할 수 있습니다.'
+          : `부채 의존도가 높아 금리 상승 시 이자 부담이 가중될 위험이 있으며, 신용등급 하락과 차입 비용 상승의 악순환 리스크가 있습니다. 자기자본 비중이 낮아 장기적 재무 안전성 확보를 위한 구조 개선이 요구됩니다.`,
+        rx: drOk
+          ? '현재의 안정적 재무구조를 유지하면서 부채비율 150% 이하·이자보상비율 200% 이상을 관리 목표로 설정하시기 바랍니다. 신규 투자 시 내부 유보 자금 활용을 우선하는 것을 권장합니다.'
+          : '① 비핵심 자산 매각 또는 증자를 통한 자기자본 확충 ② 고금리 단기 차입을 저금리 장기 대출로 전환 ③ 정부 정책 금융(신보·기보 보증) 적극 활용 ④ 이익잉여금 축적을 통한 재무구조 단계적 개선을 권고합니다.'
+      };
+    }
+
+    if (areaKey === 'profitability') {
+      const gpm = r.profitability.매출총이익율, opm = r.profitability.매출액영업이익율;
+      const roa = r.profitability.총자본순이익율_ROA, roe = r.profitability.자기자본순이익율_ROE;
+      const opmAvg = ba.매출액영업이익율, roaAvg = ba.총자본순이익율_ROA;
+      const opmOk = opm !== null && opm >= opmAvg;
+      return {
+        eval: opm !== null
+          ? `${co}의 영업이익률은 ${opm}%로 산업평균 ${opmAvg}%를 ${opmOk ? '상회하여 영업 수익성이 양호합니다' : '하회하여 영업 수익성 개선이 필요한 상황입니다'}. 매출총이익율은 ${gpm !== null ? gpm+'%' : '—'}(산업평균 ${ba.매출총이익율}%)이며, ROA는 ${roa !== null ? roa+'%' : '—'}(산업평균 ${roaAvg}%)로 자산 대비 수익 창출 능력이 ${roa !== null && roa >= roaAvg ? '적절합니다' : '개선이 필요합니다'}. ROE는 ${roe !== null ? roe+'%' : '—'}(산업평균 ${ba.자기자본순이익율_ROE}%)입니다.`
+          : '수익성 분석에 필요한 손익계산서 데이터가 부족합니다.',
+        diag: opmOk
+          ? '원가 효율성과 판관비 관리가 적절히 이루어지고 있으며, 영업 단계에서의 수익 창출 능력이 양호합니다. 비영업 손익(이자비용·세금 등)에 의해 순이익률이 영업이익률과 괴리될 경우 재무비용 구조 점검이 필요합니다.'
+          : `매출 대비 원가 또는 판관비 부담이 높아 영업 수익성이 저하되고 있습니다. 고정비 대비 매출 규모가 충분치 않거나 수익성 낮은 사업 비중이 높을 가능성이 있으며, 손익분기점(BEP) 재검토가 권장됩니다.`,
+        rx: opmOk
+          ? '현재의 수익성 우위를 유지하면서 고마진 제품·서비스 비중을 확대하고 판관비 효율화를 지속 추구하시기 바랍니다. ROE 개선을 위한 자기자본 효율 관리도 병행 권장합니다.'
+          : '① BEP 재산출 및 제품·프로젝트별 수익성 분석으로 저마진 항목 식별 ② 구매 단가 협상·공정 효율화를 통한 원가 개선 ③ 판관비 합리화(인건비·임차료·마케팅비 단계적 조정) ④ 고마진 신사업 확대를 권고합니다.'
+      };
+    }
+
+    if (areaKey === 'activity') {
+      const atr = r.activity.총자산회전율, recv = r.activity.매출채권회전율;
+      const recvDay = r.activity.매출채권회수기간;
+      const atrAvg = ba.총자산회전율, recvAvg = ba.매출채권회전율;
+      const atrOk = atr !== null && atr >= atrAvg;
+      const recvOk = recv !== null && recv >= recvAvg;
+      return {
+        eval: atr !== null
+          ? `${co}의 총자산회전율은 ${atr}회로 산업평균 ${atrAvg}회와 비교해 자산 활용 효율성이 ${atrOk ? '양호합니다' : '다소 낮은 편입니다'}. 매출채권 회전율은 ${recv !== null ? recv+'회' : '—'}(산업평균 ${recvAvg}회)이며, 평균 회수기간은 ${recvDay !== null ? recvDay+'일' : '—'}(산업평균 ${ba.매출채권회수기간}일)로 채권 회수가 ${recvOk ? '비교적 원활히 이루어지고 있습니다' : '지연되어 운전자본 부담이 존재합니다'}.`
+          : '활동성 분석에 필요한 데이터가 부족합니다.',
+        diag: atrOk && recvOk
+          ? '자산 대비 매출 창출 능력과 채권 회수 주기가 산업 수준에서 적절히 관리되고 있습니다. 재고 과잉이나 장기 미수금 발생 여부를 정기적으로 점검하여 현 수준을 유지하는 것이 중요합니다.'
+          : `${!recvOk ? '매출채권 회수가 지연되면 운전자본이 채권에 묶여 현금 흐름이 악화될 수 있습니다. ' : ''}${!atrOk ? '총자산 대비 매출 창출 효율이 낮아 자산 과잉 보유 또는 유휴 자산 존재 가능성이 있습니다.' : ''}`,
+        rx: atrOk && recvOk
+          ? '현재의 자산 활용 효율성을 유지하면서 재고 수준 최적화와 적시 공급망 관리(JIT)를 강화하시기 바랍니다.'
+          : '① 매출채권 관리 강화: 거래처별 여신 한도 설정 및 연체채권 조기 회수 체계 구축 ② 팩토링·어음 할인으로 채권의 현금화 가속 ③ 불용 재고 및 유휴 자산 처분으로 자산 효율성 개선 ④ CCC(현금전환주기) 단축 목표 수립 및 모니터링을 권고합니다.'
+      };
+    }
+
+    if (areaKey === 'growth') {
+      const mgr = r.growth.매출액증가율;
+      const avg = ba.매출액증가율;
+      const mgrOk = mgr !== null && mgr >= avg;
+      return {
+        eval: mgr !== null
+          ? `${co}의 매출액 증가율은 ${mgr}%로 산업평균 ${avg}%를 ${mgrOk ? '상회하여 산업 성장률 이상의 외형 성장을 달성하고 있습니다' : '하회하여 성장세가 산업 평균에 미치지 못하는 상황입니다'}. ${mgrOk ? '시장에서의 경쟁력 유지와 신규 고객 확보가 이루어지고 있음을 시사합니다.' : '시장 점유율 유지 또는 확대를 위한 전략적 대응이 필요한 시점입니다.'}`
+          : '성장성 분석을 위해서는 전년도(전기) 매출액 데이터가 필요합니다. 재무 입력 화면의 "전기 매출액" 항목을 입력하시면 성장률을 자동 산출합니다.',
+        diag: mgr !== null && !mgrOk
+          ? '매출 성장 둔화는 주요 고객 이탈, 신규 경쟁자 진입, 주력 제품·서비스의 성숙기 진입, 또는 시장 전체의 수요 감소 등이 복합적으로 작용했을 가능성이 있습니다. 매출 구성(고객·제품별)을 세분화하여 성장 저해 요인을 파악할 필요가 있습니다.'
+          : mgr !== null
+          ? '매출이 산업평균 이상으로 성장하고 있으나, 성장 과정에서 수익성과 현금흐름이 동반 개선되는지 모니터링이 필요합니다. 외형 성장에만 치중하면 운전자본 부족(Overtrading 리스크)이 발생할 수 있습니다.'
+          : '전기 매출 데이터 미입력으로 성장성 진단이 제한적입니다.',
+        rx: mgr !== null && !mgrOk
+          ? '① 핵심 고객 이탈 방지를 위한 재계약·로열티 프로그램 강화 ② 신규 고객군·채널 발굴(온라인 마케팅·파트너십) ③ 신규 제품·서비스 라인 개발 또는 기존 라인 고도화 ④ 경쟁사 분석을 통한 차별화 포인트 강화를 권고합니다.'
+          : mgr !== null
+          ? '성장 모멘텀 유지를 위해 ① 핵심 고객 관계 강화 ② 마케팅 투자 최적화 ③ 규모의 경제 확보를 통한 수익성 동반 개선을 추진하시기 바랍니다.'
+          : '전기 매출액을 입력 후 재분석하시면 정확한 성장성 진단과 처방이 가능합니다.'
+      };
+    }
+    return { eval: '—', diag: '—', rx: '—' };
+  }
+
+  /* ── 종합의견 문단 ── */
+  function _buildFinalOpinion(r, d, sc, score, gradeLbl) {
+    const opm = r.profitability.매출액영업이익율;
+    const dr  = r.safety.부채비율;
+    const cr  = r.liquidity.유동비율;
+    return `${d.companyName}의 ${d.year}년도 재무현황을 분석한 결과, 전체 ${sc.total}개 주요 재무비율 항목 중 ${sc.good}개(${score}점)가 산업평균 이상으로 나타나 종합 등급 ${gradeLbl}(Grade ${score >= 70 ? 'A' : score >= 55 ? 'B' : score >= 40 ? 'C' : 'D'})로 평가됩니다. ` +
+      (score >= 70
+        ? '전반적으로 재무건전성이 양호한 수준으로, 현재의 재무구조를 유지하면서 성장성 강화에 집중하는 전략이 유효합니다. 특히 수익성과 유동성 지표가 산업평균을 상회하고 있어 미래 투자 여력이 확보되어 있습니다.'
+        : score >= 55
+        ? `일부 취약 지표에 대한 선제적 개선이 필요합니다. ${dr !== null && dr > _bokAvg.부채비율 ? '부채비율이 산업평균을 상회하고 있어 재무구조 안정화가 우선 과제입니다. ' : ''}${opm !== null && opm < _bokAvg.매출액영업이익율 ? '영업이익률 개선을 위한 원가 및 비용 구조 재설계가 필요합니다. ' : ''}균형 잡힌 재무관리를 통해 점진적인 건전성 향상이 가능한 상태입니다.`
+        : `복합적인 재무 취약성이 확인되어 즉각적인 구조 개선이 필요합니다. ${cr !== null && cr < _bokAvg.유동비율 ? '단기 유동성 확보가 시급하며, ' : ''}${dr !== null && dr > _bokAvg.부채비율 ? '부채구조 개선과 자기자본 확충이 최우선 과제입니다. ' : ''}수익성 회복과 재무구조 안정화를 동시에 추진해야 하며, 필요시 외부 전문가(경영지도사·회계사)의 진단을 권장합니다.`);
+  }
+
+  /* ── 우선순위 개선 권고사항 ── */
+  function _buildImprovements(r, d) {
+    const items = [];
+    const ba = _bokAvg;
+    if (r.safety.부채비율 !== null && r.safety.부채비율 > ba.부채비율)
+      items.push(`<li><strong>재무구조 개선 (우선순위 高)</strong>: 부채비율이 산업평균(${ba.부채비율}%) 대비 ${+(r.safety.부채비율 - ba.부채비율).toFixed(1)}%p 초과. 비핵심 자산 매각 또는 증자를 통한 자기자본 확충 및 고금리 차입금 상환을 우선 추진하시기 바랍니다.</li>`);
+    if (r.profitability.매출액영업이익율 !== null && r.profitability.매출액영업이익율 < ba.매출액영업이익율)
+      items.push(`<li><strong>수익성 개선</strong>: 영업이익률이 산업평균(${ba.매출액영업이익율}%)에 미달. 제품·서비스별 손익 분석을 통해 저수익 항목을 정리하고, 고마진 사업 비중 확대 전략을 수립하시기 바랍니다.</li>`);
+    if (r.liquidity.유동비율 !== null && r.liquidity.유동비율 < ba.유동비율)
+      items.push(`<li><strong>유동성 관리 강화</strong>: 유동비율이 산업평균(${ba.유동비율}%) 미달. 매출채권 조기 회수 체계를 구축하고, 불필요한 재고를 정리하여 운전자본을 최적화하시기 바랍니다.</li>`);
+    if (r.activity.매출채권회수기간 !== null && r.activity.매출채권회수기간 > ba.매출채권회수기간)
+      items.push(`<li><strong>채권 회수 개선</strong>: 매출채권 회수기간이 산업평균(${ba.매출채권회수기간}일) 초과. 거래처별 여신 한도 설정 및 연체관리 시스템 도입을 권장합니다.</li>`);
+    if (r.growth.매출액증가율 !== null && r.growth.매출액증가율 < ba.매출액증가율)
+      items.push(`<li><strong>성장 전략 수립</strong>: 매출 성장률이 산업평균(${ba.매출액증가율}%) 미달. 신규 고객 유치 전략 수립 및 기존 고객 업셀링·크로스셀링 강화를 권장합니다.</li>`);
+    if (items.length === 0)
+      items.push('<li>주요 재무비율이 산업평균 수준 이상으로 유지되고 있습니다. 현재의 재무건전성을 지속 유지하면서 성장 기회를 탐색하시기 바랍니다.</li>');
+    return items.join('');
   }
 
   function _buildSummaryOpinion(r, d) {

@@ -1590,6 +1590,169 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .rpt-summary-item { font-size: 0.85rem; color: #2D3E6B; }
 .rpt-summary-text { font-size: 0.85rem; color: #2D3E6B; line-height: 1.8; background: #fff; border-radius: 8px; padding: 14px 18px; }
 
+/* ═══════════════════════════════════════════════════════════════
+   NICE 스타일 재무분석 리포트 (nice-* 전용)
+   ─── 화면 표시용 (인쇄 오버라이드는 print.css에서)
+═══════════════════════════════════════════════════════════════ */
+
+/* 섹션 헤더 */
+.nice-sec-hdr {
+  display: flex; align-items: center; gap: 14px;
+  border-bottom: 2px solid #1A2340;
+  padding-bottom: 10px; margin-bottom: 18px;
+}
+.nice-sec-num {
+  background: #1A2340; color: #F5C030;
+  font-size: 1.1rem; font-weight: 900;
+  min-width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; letter-spacing: 0.05em;
+}
+.nice-sec-title { font-size: 1.1rem; font-weight: 700; color: #1A2340; }
+.nice-sec-sub   { font-size: 0.75rem; color: #888; letter-spacing: 0.08em; margin-top: 2px; }
+.nice-section-lead {
+  font-size: 0.85rem; color: #555; line-height: 1.7;
+  background: #f8f9fc; border-left: 3px solid #D1D8E8;
+  padding: 8px 14px; margin-bottom: 14px; border-radius: 0 4px 4px 0;
+}
+
+/* 핵심지표 카드 그리드 */
+.nice-kv-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; margin-bottom: 18px;
+}
+.nice-kv-card {
+  border: 1px solid #D1D8E8; border-radius: 8px;
+  padding: 14px 16px; background: #F8F9FC;
+}
+.nice-kv-label { font-size: 0.75rem; color: #666; margin-bottom: 5px; }
+.nice-kv-value { font-size: 1.25rem; font-weight: 700; color: #1A2340; }
+.nice-kv-sub   { font-size: 0.72rem; color: #888; margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* 재무건전성 점수바 */
+.nice-score-bar {
+  display: flex; align-items: center; gap: 16px;
+  background: #1A2340; border-radius: 10px; padding: 16px 22px;
+  margin-top: 4px;
+}
+.nice-score-grade { font-size: 2.2rem; font-weight: 900; line-height: 1; min-width: 40px; }
+.nice-score-info  { flex: 1; min-width: 0; }
+.nice-score-label { font-size: 0.8rem; color: rgba(255,255,255,.55); margin-bottom: 2px; }
+.nice-score-sub   { font-size: 0.88rem; color: #E8EDF5; }
+.nice-score-progress {
+  width: 140px; height: 8px; background: rgba(255,255,255,.15);
+  border-radius: 4px; overflow: hidden; flex-shrink: 0;
+}
+.nice-score-bar-inner { height: 100%; border-radius: 4px; transition: width .4s; }
+.nice-score-pct { font-size: 1.1rem; font-weight: 700; min-width: 46px; text-align: right; }
+
+/* 비율 정의 표 */
+.nice-def-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.83rem; margin-bottom: 14px;
+}
+.nice-def-table th {
+  background: #2D3E6B; color: #fff;
+  padding: 7px 10px; text-align: center; font-weight: 600;
+}
+.nice-def-table td {
+  border: 1px solid #D1D8E8;
+  padding: 7px 10px; vertical-align: middle;
+}
+.nice-def-table td:first-child { font-weight: 600; text-align: center; background: #F4F6FB; width: 18%; }
+.nice-def-table td:nth-child(2) { font-size: 0.78rem; color: #444; width: 48%; }
+.nice-def-table td:last-child   { text-align: center; font-size: 0.78rem; color: #555; width: 34%; }
+.nice-def-table tr:nth-child(even) td:not(:first-child) { background: #F8F9FC; }
+
+/* 비율 비교 표 */
+.nice-ratio-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.86rem; margin-bottom: 14px;
+}
+.nice-ratio-table th {
+  background: #1A2340; color: #E8EDF5;
+  padding: 7px 10px; text-align: center; font-weight: 600; font-size: 0.8rem;
+}
+.nice-rt-label { padding: 7px 10px; border-bottom: 1px solid #EEF1FA; font-weight: 600; color: #2D3E6B; }
+.nice-rt-val, .nice-rt-avg, .nice-rt-diff {
+  text-align: right; padding: 7px 10px;
+  border-bottom: 1px solid #EEF1FA;
+  font-variant-numeric: tabular-nums;
+}
+.nice-rt-eval  { text-align: center; padding: 7px 10px; border-bottom: 1px solid #EEF1FA; }
+.nice-ratio-table tbody tr:nth-child(even) td { background: #FAFBFD; }
+
+/* 평가 뱃지 */
+.nice-grade-good { color: #059669; font-weight: 700; font-size: 0.82rem; }
+.nice-grade-bad  { color: #DC2626; font-weight: 700; font-size: 0.82rem; }
+.nice-grade-na   { color: #9BAAC8; font-size: 0.82rem; }
+
+/* 분석의견 블록 */
+.nice-analysis {
+  background: #FAFBFD; border: 1px solid #D1D8E8;
+  border-radius: 8px; padding: 16px 20px; margin-top: 14px;
+}
+.nice-analysis-row {
+  display: grid; grid-template-columns: 72px 1fr;
+  gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid #EEF1FA;
+}
+.nice-analysis-row:last-child { border-bottom: none; padding-bottom: 0; }
+.nice-analysis-label {
+  font-size: 0.8rem; font-weight: 700;
+  color: #2D3E6B; padding-top: 1px;
+}
+.nice-analysis-text {
+  font-size: 0.84rem; color: #333; line-height: 1.75;
+}
+
+/* 종합 비율 요약 표 */
+.nice-summary-table {
+  width: 100%; border-collapse: collapse; font-size: 0.84rem;
+}
+.nice-summary-table th {
+  background: #1A2340; color: #E8EDF5;
+  padding: 7px 10px; text-align: center; font-weight: 600; font-size: 0.78rem;
+}
+.nice-summary-table td {
+  border: 1px solid #D1D8E8; padding: 6px 10px; text-align: center;
+}
+.nice-summary-table td:nth-child(2) { text-align: left; font-weight: 600; }
+.nice-summary-table .nice-group-hdr td {
+  background: #EEF1FA; font-weight: 700; font-size: 0.78rem;
+  color: #1A2340; text-align: left; padding-left: 14px;
+}
+
+/* 종합의견 박스 */
+.nice-final-box {
+  background: #F4F6FB; border-radius: 10px; padding: 24px 28px;
+}
+.nice-final-grade-row {
+  display: flex; align-items: center; gap: 20px;
+  background: #1A2340; border-radius: 8px;
+  padding: 18px 24px; margin-bottom: 22px;
+}
+.nice-final-grade { font-size: 3rem; font-weight: 900; line-height: 1; }
+.nice-final-grade-info { flex: 1; }
+.nice-final-grade-label { font-size: 0.78rem; color: rgba(255,255,255,.5); margin-bottom: 3px; }
+.nice-final-grade-text  { font-size: 1rem; font-weight: 700; color: #E8EDF5; }
+.nice-final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.nice-final-item { font-size: 0.84rem; color: #2D3E6B; }
+.nice-opinion-block { margin-bottom: 14px; }
+.nice-opinion-title {
+  font-size: 0.9rem; font-weight: 700; color: #1A2340;
+  border-left: 3px solid #F5C030; padding-left: 9px; margin-bottom: 7px;
+}
+.nice-opinion-text {
+  font-size: 0.84rem; color: #333; line-height: 1.8;
+  background: #fff; border-radius: 6px; padding: 12px 16px;
+}
+.nice-improve-list {
+  font-size: 0.84rem; color: #333; line-height: 1.8;
+  background: #fff; border-radius: 6px; padding: 12px 16px;
+}
+.nice-improve-list li { margin-bottom: 5px; }
+
 /* ── 직접입력 행 ── */
 .industry-direct-input {
   display: flex; align-items: center; gap: 8px;
