@@ -1771,7 +1771,7 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   .screen.hidden { display: none !important; }
   #finance-report { display: block !important; }
   .fin-report-wrap { max-width: 100%; padding: 0 12px; }
-  .rpt-cover { background: #1A2340 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .rpt-page { box-shadow: none; break-inside: avoid; }
   .rpt-opinion-block { break-inside: avoid; }
   .btn { display: none !important; }

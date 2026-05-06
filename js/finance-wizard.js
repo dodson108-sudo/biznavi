@@ -1752,10 +1752,34 @@ const FinWizard = (() => {
       alert('먼저 재무분석 리포트를 생성해주세요.');
       return;
     }
+    // 캐시 우회: 표지 넘침 방지 스타일을 JS로 직접 주입 (print.css 캐시 무력화)
+    const s = document.createElement('style');
+    s.id = '__print_cover_fix__';
+    // A4 가용 높이 259mm. box-sizing:border-box로 padding 포함 257mm로 강제
+    s.textContent = `@media print {
+      .rpt-cover {
+        border: none !important; border-radius: 0 !important;
+        padding: 0 !important; margin: 0 !important;
+        background: #ffffff !important; overflow: hidden !important;
+        height: 257mm !important; max-height: 257mm !important;
+        break-after: page !important; page-break-after: always !important;
+        box-sizing: border-box !important;
+      }
+      .rpt-cover-inner {
+        box-sizing: border-box !important;
+        height: 257mm !important; min-height: 0 !important; max-height: 257mm !important;
+        padding: 10mm 20mm !important; overflow: hidden !important;
+        background: #ffffff !important; display: flex !important;
+        flex-direction: column !important; align-items: center !important;
+        justify-content: center !important;
+      }
+    }`;
+    document.head.appendChild(s);
     const el = document.getElementById('finance-report');
     el.classList.add('print-target');
     window.print();
     el.classList.remove('print-target');
+    document.getElementById('__print_cover_fix__')?.remove();
   }
 
   return {

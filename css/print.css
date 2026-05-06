@@ -375,13 +375,14 @@
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    /* min-height 대신 고정 height — 여백 포함 257mm 이내 */
-    height: 255mm !important;
+    /* box-sizing:border-box → padding 포함 257mm, 절대 넘침 없음 */
+    box-sizing: border-box !important;
+    height: 257mm !important;
     min-height: 0 !important;
-    max-height: 255mm !important;
+    max-height: 257mm !important;
     text-align: center !important;
     background: #ffffff !important;
-    padding: 8mm 15mm !important;
+    padding: 10mm 20mm !important;
     overflow: hidden !important;
   }
   .rpt-cover-badge {
