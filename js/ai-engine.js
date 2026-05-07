@@ -1211,7 +1211,7 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
 ② "${d.consultingType === 'digital_strategy' ? '소상공인 디지털 전환 바우처 2025' : d.consultingType === 'finance_strategy' ? '중소기업 경영안정 자금 융자 2025' : '중소기업 컨설팅 지원사업 창업지원 2025'}"`;
   }
 
-  async function callClaude(key, formData) {
+  async function callClaude(formData) {
     // JSON 파싱 헬퍼
     function extractJSON(text) {
       const jsonBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
@@ -1228,7 +1228,7 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
       const res = await fetch('/api/claude-analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: key, systemPrompt, userPrompt }),
+        body: JSON.stringify({ systemPrompt, userPrompt }),
       });
       if (!res.ok) {
         let msg = 'API 호출 실패 (' + res.status + ')';

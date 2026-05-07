@@ -7,8 +7,9 @@
  *   2. claude-sonnet-4-6 최신 모델 사용 (knowledge cutoff Aug 2025)
  *   3. stop_reason === 'tool_use' 다중 턴 처리
  *
- * Request:  POST { apiKey, systemPrompt, userPrompt }
+ * Request:  POST { systemPrompt, userPrompt }
  * Response: { text }  or  { error }
+ * Note: API 키는 서버 환경변수(ANTHROPIC_API_KEY)에서만 읽음 — 클라이언트에 노출 안 됨
  */
 
 const ANTHROPIC_BASE = 'https://api.anthropic.com/v1/messages';
@@ -19,9 +20,13 @@ const MAX_TURNS      = 10;
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { apiKey, systemPrompt, userPrompt } = req.body || {};
-  if (!apiKey || !userPrompt) {
-    return res.status(400).json({ error: '필수 파라미터 누락 (apiKey, userPrompt)' });
+  const { systemPrompt, userPrompt } = req.body || {};
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY 미설정 — Vercel 환경변수를 확인하세요.' });
+  }
+  if (!userPrompt) {
+    return res.status(400).json({ error: '필수 파라미터 누락 (userPrompt)' });
   }
 
   const headers = {

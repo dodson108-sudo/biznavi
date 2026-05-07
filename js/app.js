@@ -261,7 +261,7 @@ const App = (() => {
     try {
       const result = (mode === 'demo' || !apiKey)
         ? await AIEngine.fakeAnalysis(data)
-        : await AIEngine.callClaude(apiKey, data);
+        : await AIEngine.callClaude(data);
       // 분석 결과 보관 → diag-reveal 화면으로 이동
       _pendingResult = result;
       _pendingIsDemo = (mode === 'demo' || !apiKey);
