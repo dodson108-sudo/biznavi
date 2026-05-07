@@ -1,10 +1,84 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-06 최신)
+## 배포 상태 (2026-05-07 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: 표지 PDF 넘침 완전 수정 (3d4ff40)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: fullstack-engineer 에이전트에 WebSearch/WebFetch 도구 추가 (c8440f4)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-07) — QA 버그 수정 + fakeAnalysis 완성
+
+### ① apiKey UI 완전 제거 — 서버 환경변수 전환 후속 정리 (배포 완료)
+
+#### js/app.js
+- `mode`, `apiKey` 상태 변수 제거 (localStorage 의존 제거)
+- 제거된 함수: `showModal()`, `closeModal()`, `setMode()`, `confirmKey()`, `saveApiKey()`, `showApiModal()`, `fillSavedKey()`
+- `runAnalysis()`: 항상 `AIEngine.callClaude(data)` 직접 호출 (`mode === 'demo'` 분기 제거)
+- `_pendingIsDemo`: 에러 fallback 시에만 `true` (이전: demo 모드 시 true)
+- 진단 이력 저장: demo 여부 무관하게 항상 `HistoryTracker.save()` 호출
+
+#### index.html
+- `apiModal` div 전체 제거 (API 키 입력 모달)
+- STEP 4 `wiz-api-box` 제거 (API 키 입력란 + 확인 버튼)
+- 위저드 nav "⚙ API 설정" 버튼 + `nav-actions` wrapper 제거
+
+#### js/wizard.js
+- `App.fillSavedKey` 호출 제거 (goStep 내)
+
+---
+
+### ② industryVarMap 키 영문화 + 4개 업종 추가 (배포 완료)
+
+#### js/ai-engine.js — buildInsightsSummary()
+- **근본 버그**: 기존 12개 항목이 한국어 키('제조업', '식품/음료')로 등록되어 있었으나 함수 호출 시 영문 키(aiIndustryKey: 'mfg_parts', 'logistics')가 전달 → 항상 미매칭 (dead code)
+- **수정**: 전체 16개 항목을 영문 industryKey로 교체
+  ```
+  'mfg_parts', 'food_mfg', 'local_service', 'wholesale', 'restaurant',
+  'knowledge_it', 'construction', 'medical', 'finance', 'education',
+  'fashion', 'media', 'logistics', 'energy', 'agri_food', 'export_sme'
+  ```
+- bizModelVarMap은 Korean 키 그대로 유지 (d.bizModel이 한국어 레이블이므로 정상)
+
+---
+
+### ③ Object.assign 키 충돌 방지 (배포 완료)
+
+#### js/ai-engine.js — callClaude() 2차 호출 병합
+- **문제**: `Object.assign({}, result1, result2)` → 2차 응답이 1차 핵심 키(SWOT·전략 등)를 덮어씀
+- **수정**: 1차 전용 키 보호 후 병합
+  ```js
+  const FIRST_PASS_KEYS = ['executiveSummary', 'swot', 'stp', 'fourP', 'keyStrategies', 'specializedAnalysis'];
+  const r2Clean = Object.fromEntries(
+    Object.entries(result2).filter(([k]) => !FIRST_PASS_KEYS.includes(k))
+  );
+  return Object.assign({}, result1, r2Clean);
+  ```
+
+---
+
+### ④ fakeAnalysis 4개 컨설팅 유형 데이터 완성 (배포 완료)
+
+#### js/ai-engine.js — _fakeByConsultingType()
+기존 `return {}` 상태였던 4개 유형 완전 구현:
+
+| 유형 | 핵심 전략 방향 |
+|------|---------------|
+| `growth_strategy` | LTV 극대화, 신규 채널 개척, 단가 상향, 반복 매출 모델 |
+| `structure_strategy` | SOP 매뉴얼화, R&R 위임, 채용·온보딩, 대표 의존도 감소 |
+| `innovation_strategy` | 고객 불만 기반 혁신, 린 MVP 검증, 파트너십, 정부 R&D 연계 |
+| `cx_strategy` | 고객 여정 맵, NPS 측정, 온보딩, 컴플레인 기준, 재구매 루틴 |
+
+각 유형 구조: keyStrategies×6(`[진단][방침][행동]`) + kpi×8 + sixSystems×6(상태 배지+액션 3+지원사업) + plan90days×3
+
+---
+
+### ⑤ 에이전트 도구 추가 (배포 완료)
+
+#### .claude/agents/fullstack-engineer.md
+- tools에 `WebSearch`, `WebFetch` 추가
+- 이유: Vercel API 변경사항·npm 패키지 문서·Node.js 버전 호환성 등 외부 레퍼런스 조회 대응
 
 ---
 
