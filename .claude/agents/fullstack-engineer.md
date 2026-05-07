@@ -1,7 +1,7 @@
 ---
 name: fullstack-engineer
 description: BizNavi 풀스택 개발자. Vanilla HTML/CSS/JS + api/ 폴더 백엔드 + Vercel 배포 환경 전담. 코드 작성·수정·리팩토링·디버깅 시 사용. ai-engine.js, wizard.js, finance-wizard.js 등 핵심 모듈 작업.
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch, WebFetch
 model: sonnet
 color: green
 ---
