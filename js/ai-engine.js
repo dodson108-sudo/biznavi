@@ -145,19 +145,24 @@ const AIEngine = (() => {
   }
 
   function buildInsightsSummary(industry, bizModel) {
+    // industry 인자는 aiIndustryKey 영문 키 (mfg_parts, logistics 등)로 전달됨
     const industryVarMap = {
-      '제조업': typeof INDUSTRY_MFG_PARTS !== 'undefined' ? INDUSTRY_MFG_PARTS : null,
-      '식품/음료': typeof INDUSTRY_FOOD_MFG !== 'undefined' ? INDUSTRY_FOOD_MFG : null,
-      '서비스업': typeof INDUSTRY_LOCAL_SERVICE !== 'undefined' ? INDUSTRY_LOCAL_SERVICE : null,
-      '유통/물류': typeof INDUSTRY_WHOLESALE !== 'undefined' ? INDUSTRY_WHOLESALE : null,
-      '외식 및 휴게음식업': typeof INDUSTRY_RESTAURANT !== 'undefined' ? INDUSTRY_RESTAURANT : null,
-      'IT/소프트웨어': typeof INDUSTRY_KNOWLEDGE_IT !== 'undefined' ? INDUSTRY_KNOWLEDGE_IT : null,
-      '건설/부동산': typeof INDUSTRY_CONSTRUCTION !== 'undefined' ? INDUSTRY_CONSTRUCTION : null,
-      '의료/헬스케어': typeof INDUSTRY_MEDICAL !== 'undefined' ? INDUSTRY_MEDICAL : null,
-      '금융/핀테크': typeof INDUSTRY_FINANCE !== 'undefined' ? INDUSTRY_FINANCE : null,
-      '교육': typeof INDUSTRY_EDUCATION !== 'undefined' ? INDUSTRY_EDUCATION : null,
-      '패션/뷰티': typeof INDUSTRY_FASHION !== 'undefined' ? INDUSTRY_FASHION : null,
-      '미디어/엔터테인먼트': typeof INDUSTRY_MEDIA !== 'undefined' ? INDUSTRY_MEDIA : null,
+      'mfg_parts':    typeof INDUSTRY_MFG_PARTS     !== 'undefined' ? INDUSTRY_MFG_PARTS     : null,
+      'food_mfg':     typeof INDUSTRY_FOOD_MFG      !== 'undefined' ? INDUSTRY_FOOD_MFG      : null,
+      'local_service':typeof INDUSTRY_LOCAL_SERVICE !== 'undefined' ? INDUSTRY_LOCAL_SERVICE : null,
+      'wholesale':    typeof INDUSTRY_WHOLESALE     !== 'undefined' ? INDUSTRY_WHOLESALE     : null,
+      'restaurant':   typeof INDUSTRY_RESTAURANT    !== 'undefined' ? INDUSTRY_RESTAURANT    : null,
+      'knowledge_it': typeof INDUSTRY_KNOWLEDGE_IT  !== 'undefined' ? INDUSTRY_KNOWLEDGE_IT  : null,
+      'construction': typeof INDUSTRY_CONSTRUCTION  !== 'undefined' ? INDUSTRY_CONSTRUCTION  : null,
+      'medical':      typeof INDUSTRY_MEDICAL       !== 'undefined' ? INDUSTRY_MEDICAL       : null,
+      'finance':      typeof INDUSTRY_FINANCE       !== 'undefined' ? INDUSTRY_FINANCE       : null,
+      'education':    typeof INDUSTRY_EDUCATION     !== 'undefined' ? INDUSTRY_EDUCATION     : null,
+      'fashion':      typeof INDUSTRY_FASHION       !== 'undefined' ? INDUSTRY_FASHION       : null,
+      'media':        typeof INDUSTRY_MEDIA         !== 'undefined' ? INDUSTRY_MEDIA         : null,
+      'logistics':    typeof INDUSTRY_LOGISTICS     !== 'undefined' ? INDUSTRY_LOGISTICS     : null,
+      'energy':       typeof INDUSTRY_ENERGY        !== 'undefined' ? INDUSTRY_ENERGY        : null,
+      'agri_food':    typeof INDUSTRY_AGRI_FOOD     !== 'undefined' ? INDUSTRY_AGRI_FOOD     : null,
+      'export_sme':   typeof INDUSTRY_EXPORT_SME    !== 'undefined' ? INDUSTRY_EXPORT_SME    : null,
     };
 
     const bizModelVarMap = {
@@ -1254,8 +1259,12 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     const result2 = extractJSON(text2);
     if (!result2) throw new Error('2차 실행플랜 JSON 파싱 실패: ' + text2.substring(0, 200));
 
-    // ── 병합: 1차 전략 + 2차 실행플랜
-    return Object.assign({}, result1, result2);
+    // ── 병합: 1차 전략 + 2차 실행플랜 (1차 키 보호 — 2차가 덮어쓰지 않도록)
+    const FIRST_PASS_KEYS = ['executiveSummary', 'swot', 'stp', 'fourP', 'keyStrategies', 'specializedAnalysis'];
+    const r2Clean = Object.fromEntries(
+      Object.entries(result2).filter(([k]) => !FIRST_PASS_KEYS.includes(k))
+    );
+    return Object.assign({}, result1, r2Clean);
   }
 
   function _fakeByConsultingType(d, co, ind, bm, comp, tl, cs) {
