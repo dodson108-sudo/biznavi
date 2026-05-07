@@ -445,40 +445,6 @@
 
 </section>
 
-<!-- ══════════════════════════════════════════
-     API KEY MODAL
-══════════════════════════════════════════ -->
-<div id="apiModal" class="modal-overlay hidden">
-  <div class="modal">
-    <div class="modal-head">
-      <h2 class="serif">🔑 API 설정</h2>
-      <p>Anthropic Claude API 키를 입력하거나<br>데모 모드로 체험하세요</p>
-    </div>
-
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="btnDemo" onclick="App.setMode('demo')">데모 모드</button>
-      <button class="mode-btn" id="btnReal" onclick="App.setMode('real')">실제 모드</button>
-    </div>
-
-    <div id="demoContent">
-      <div class="info-box">
-        <p><strong style="color:var(--teal)">✓ 데모 모드 활성화</strong><br>
-        API 키 없이 샘플 데이터로 전체 기능을 체험합니다.<br>실제 AI 분석 결과와는 다를 수 있습니다.</p>
-      </div>
-    </div>
-
-    <div id="realContent" class="hidden">
-      <div class="form-group">
-        <label>Claude API 키</label>
-        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" />
-        <p class="hint">키는 브라우저 localStorage에만 저장되며 외부로 전송되지 않습니다</p>
-      </div>
-    </div>
-
-    <button class="btn btn-gold" style="width:100%;margin-top:4px" onclick="App.confirmKey()">시작하기 →</button>
-    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="App.closeModal()">취소</button>
-  </div>
-</div>
 
 <!-- ══════════════════════════════════════════
      MODE SELECT
@@ -796,9 +762,6 @@
         <circle cx="13" cy="13" r="0.9" fill="#1BBFB2"/>
       </svg>
       BizNavi
-    </div>
-    <div class="nav-actions">
-      <button class="btn btn-ghost btn-sm" onclick="App.showModal()">⚙ API 설정</button>
     </div>
   </nav>
 
@@ -1253,17 +1216,6 @@
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.goStep(2)">← 이전</button>
         <button class="btn btn-gold" onclick="App.runAnalysis()">AI 분석 시작 →</button>
-      </div>
-      <!-- API 키 입력 (선택) — 버튼 아래 배치 -->
-      <div class="wiz-api-box">
-        <div class="wiz-api-title">🤖 AI 분석 설정 <span class="wiz-api-optional">선택사항</span></div>
-        <p class="wiz-api-desc">Claude API 키를 입력하면 실제 AI가 맞춤형 전략을 생성합니다.<br>입력하지 않으면 샘플 데이터로 결과를 확인할 수 있습니다.</p>
-        <div class="form-group">
-          <label>Claude API 키 (sk-ant-…)</label>
-          <input type="password" id="wizApiKey" placeholder="sk-ant-api03-…" autocomplete="off" />
-          <div class="hint">Anthropic Console에서 발급 · 브라우저에 안전하게 저장됩니다</div>
-        </div>
-        <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="App.saveApiKey()">🔑 API 키 저장 후 분석 시작</button>
       </div>
     </div>
   </div>

@@ -1042,7 +1042,6 @@ const Wizard = (() => {
       }, 250);
     }
     window.scrollTo(0, 60);
-    if (n === 4 && typeof App !== 'undefined') setTimeout(App.fillSavedKey, 100);
   }
 
   function updateStepUI(n) {

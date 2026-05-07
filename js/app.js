@@ -5,8 +5,6 @@
 
 const App = (() => {
   /* ── STATE ── */
-  let mode = 'demo';
-  let apiKey = localStorage.getItem('biznavi_key') || '';
   let _pendingResult = null;
   let _pendingData   = null;
   let _pendingIsDemo = false;
@@ -47,48 +45,8 @@ const App = (() => {
     if (id === 'dashboard') Dashboard.initScrollReveal();
   }
 
-  /* ── MODAL ── */
-  function showModal() {
-    document.getElementById('apiModal').classList.remove('hidden');
-    if (apiKey) {
-      document.getElementById('apiKeyInput').value = apiKey;
-      setMode('real');
-    }
-  }
-  function closeModal() { document.getElementById('apiModal').classList.add('hidden'); }
-  function setMode(m) {
-    mode = m;
-    const btnDemo    = document.getElementById('btnDemo');
-    const btnReal    = document.getElementById('btnReal');
-    const demoContent = document.getElementById('demoContent');
-    const realContent = document.getElementById('realContent');
-    if (m === 'real') {
-      btnDemo.classList.remove('active');
-      btnReal.classList.add('active');
-      demoContent.classList.add('hidden');
-      realContent.classList.remove('hidden');
-    } else {
-      btnReal.classList.remove('active');
-      btnDemo.classList.add('active');
-      realContent.classList.add('hidden');
-      demoContent.classList.remove('hidden');
-    }
-  }
-  function confirmKey() {
-    if (mode === 'real') {
-      const k = document.getElementById('apiKeyInput').value.trim();
-      if (!k) { alert('API 키를 입력해주세요.'); return; }
-      if (!k.startsWith('sk-ant-')) { alert('올바른 Anthropic API 키 형식이 아닙니다.\n(sk-ant-… 형식)'); return; }
-      apiKey = k;
-      localStorage.setItem('biznavi_key', k);
-    }
-    closeModal();
-    show('wizard');
-  }
-
   /* ── MODE SELECT ── */
   function startWizard() {
-    mode = apiKey ? 'real' : 'demo';
     Wizard.reset();
     show('wizard');
   }
@@ -194,29 +152,11 @@ const App = (() => {
 
   function goStep(n) {
     Wizard.goStep(n);
-    if (n === 4) setTimeout(fillSavedKey, 50);
   }
 
   /* ── ANALYSIS ── */
   async function runAnalysis() {
     if (!Wizard.validate(4)) return;
-
-    // STEP 4 API 키 입력란에서 키 읽기
-    const wizKeyEl = document.getElementById('wizApiKey');
-    if (wizKeyEl && wizKeyEl.value.trim()) {
-      const k = wizKeyEl.value.trim();
-      if (k.startsWith('sk-ant-')) {
-        apiKey = k;
-        localStorage.setItem('biznavi_key', k);
-        mode = 'real';
-      } else {
-        alert('API 키 형식이 올바르지 않습니다.\n(sk-ant-… 형식)\n\n샘플 데이터로 진행합니다.');
-        mode = 'demo';
-        apiKey = '';
-      }
-    } else {
-      mode = apiKey ? 'real' : 'demo';
-    }
 
     const data = Wizard.collect();
     // consultingType을 AI 호출 전에 미리 계산 — 프롬프트에 반영되도록
@@ -259,16 +199,13 @@ const App = (() => {
     ]);
 
     try {
-      const result = (mode === 'demo' || !apiKey)
-        ? await AIEngine.fakeAnalysis(data)
-        : await AIEngine.callClaude(data);
-      // 분석 결과 보관 → diag-reveal 화면으로 이동
+      const result = await AIEngine.callClaude(data);
       _pendingResult = result;
-      _pendingIsDemo = (mode === 'demo' || !apiKey);
+      _pendingIsDemo = false;
 
-      // 진단 이력 자동 저장 (demo 제외)
+      // 진단 이력 자동 저장
       let _currentSnap = null;
-      if (!_pendingIsDemo && typeof HistoryTracker !== 'undefined') {
+      if (typeof HistoryTracker !== 'undefined') {
         _currentSnap = HistoryTracker.save(data, result);
       }
       window._currentSnap = _currentSnap;
@@ -277,25 +214,7 @@ const App = (() => {
       _pendingData = data;
       show('diag-reveal');
     } catch (e) {
-      // invalid x-api-key: 저장된 키가 만료/잘못된 것 → 즉시 삭제 후 재입력 안내
-      if (e.message && (e.message.includes('invalid x-api-key') || e.message.includes('401'))) {
-        localStorage.removeItem('biznavi_key');
-        apiKey = '';
-        mode = 'demo';
-        const _k = document.getElementById('wizApiKey');
-        if (_k) _k.value = '';
-        show('wizard');
-        Wizard.goStep(4);
-        alert(
-          '⚠️ API 키가 유효하지 않습니다.\n\n' +
-          '저장된 키를 자동 삭제했습니다.\n' +
-          'Anthropic Console (console.anthropic.com) → API Keys 에서\n' +
-          '새 키를 발급받아 다시 입력해주세요.\n\n' +
-          '(키를 입력하지 않으면 샘플 데이터로 진행됩니다)'
-        );
-        return;
-      }
-      alert('오류: ' + e.message + '\n\n샘플 데이터로 대체합니다.');
+      alert('AI 분석 중 오류가 발생했습니다: ' + e.message + '\n\n샘플 데이터로 결과를 표시합니다.');
       const result = await AIEngine.fakeAnalysis(data);
       _pendingResult = result;
       _pendingIsDemo = true;
@@ -319,35 +238,9 @@ const App = (() => {
     Wizard.goStep(2);
   }
 
-  /* API 키 저장 후 분석 시작 (API 박스 확인 버튼) */
-  function saveApiKey() {
-    const wizKeyEl = document.getElementById('wizApiKey');
-    if (!wizKeyEl || !wizKeyEl.value.trim()) {
-      alert('API 키를 입력해주세요.');
-      return;
-    }
-    const k = wizKeyEl.value.trim();
-    if (!k.startsWith('sk-ant-')) {
-      alert('API 키 형식이 올바르지 않습니다.\n(sk-ant-… 형식으로 입력해주세요.)');
-      return;
-    }
-    apiKey = k;
-    localStorage.setItem('biznavi_key', k);
-    mode = 'real';
-    runAnalysis();
-  }
-
-  /* ── PUBLIC API ── */
-  function showApiModal() { showModal(); }
-
   // Init on load
   setTimeout(() => Dashboard.initCountUp(), 400);
   setTimeout(() => Dashboard.initInputChecks(), 100);
-  // 저장된 API 키가 있으면 STEP4 입력란에 자동 채우기 (유효성 체크 후)
-  function fillSavedKey() {
-    const wizKeyEl = document.getElementById('wizApiKey');
-    if (wizKeyEl && apiKey && apiKey.startsWith('sk-ant-')) wizKeyEl.value = apiKey;
-  }
 
   /* ── 이력 패널 열기/닫기 ── */
   function openHistory() {
@@ -368,7 +261,7 @@ const App = (() => {
     setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
   }
 
-  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, showModal, showApiModal, closeModal, setMode, confirmKey, goStep, runAnalysis, restart, prevFromDash, saveApiKey, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, fillSavedKey, openHistory, closeHistory };
+  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */
