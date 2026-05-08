@@ -40,11 +40,8 @@ module.exports = async (req, res) => {
     'anthropic-beta': 'web-search-2025-03-05',
   };
 
-  const tools = [{
-    type: 'web_search_20250305',
-    name: 'web_search',
-    max_uses: 2,
-  }];
+  // web_search 비활성화 — 60초 타임아웃 원인. 로그 확인 후 재활성화 결정
+  const tools = [];
 
   const messages = [{ role: 'user', content: userPrompt }];
   let finalText = '';
