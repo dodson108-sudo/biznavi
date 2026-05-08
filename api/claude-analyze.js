@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
   const tools = [{
     type: 'web_search_20250305',
     name: 'web_search',
-    max_uses: 5,
+    max_uses: 2,
   }];
 
   const messages = [{ role: 'user', content: userPrompt }];
