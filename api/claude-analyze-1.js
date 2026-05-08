@@ -6,7 +6,7 @@
 
 const ANTHROPIC_BASE = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL   = 'claude-sonnet-4-6';
-const MAX_TOKENS     = 8000;
+const MAX_TOKENS     = 16000;
 const MAX_TURNS      = 10;
 
 module.exports = async (req, res) => {
