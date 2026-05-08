@@ -1132,12 +1132,13 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
       return null;
     }
 
-    // /api/claude-analyze 프록시 호출 헬퍼
+    // /api/claude-analyze-1|2 프록시 호출 헬퍼 (1차·2차 별도 함수로 분리 — 60초 타임아웃 방지)
     async function apiCall(systemPrompt, userPrompt, _callLabel) {
-      const res = await fetch('/api/claude-analyze', {
+      const endpoint = _callLabel === '1차' ? '/api/claude-analyze-1' : '/api/claude-analyze-2';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt, userPrompt, _callLabel }),
+        body: JSON.stringify({ systemPrompt, userPrompt }),
       });
       if (!res.ok) {
         let msg = 'API 호출 실패 (' + res.status + ')';

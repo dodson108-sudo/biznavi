@@ -8,7 +8,9 @@
     "api/biz-lookup.js":     { "regions": ["icn1"], "maxDuration": 30 },
     "api/ocr-scan.js":       { "regions": ["icn1"], "maxDuration": 45 },
     "api/analyze-biz.js":    { "regions": ["icn1"], "maxDuration": 30 },
-    "api/claude-analyze.js": { "regions": ["icn1"], "maxDuration": 60 },
+    "api/claude-analyze.js":   { "regions": ["icn1"], "maxDuration": 60 },
+    "api/claude-analyze-1.js": { "regions": ["icn1"], "maxDuration": 55 },
+    "api/claude-analyze-2.js": { "regions": ["icn1"], "maxDuration": 55 },
     "api/kosis-survival.js": { "regions": ["icn1"], "maxDuration": 30 },
     "api/bizinfo.js":        { "regions": ["icn1"], "maxDuration": 30 }
   },
