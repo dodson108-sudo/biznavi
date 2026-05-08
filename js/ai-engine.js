@@ -1133,11 +1133,11 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     }
 
     // /api/claude-analyze 프록시 호출 헬퍼
-    async function apiCall(systemPrompt, userPrompt) {
+    async function apiCall(systemPrompt, userPrompt, _callLabel) {
       const res = await fetch('/api/claude-analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt, userPrompt }),
+        body: JSON.stringify({ systemPrompt, userPrompt, _callLabel }),
       });
       if (!res.ok) {
         let msg = 'API 호출 실패 (' + res.status + ')';
@@ -1151,14 +1151,18 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
 
     // ── 1차 호출: 진단·전략 (executiveSummary·SWOT·STP·4P·핵심전략·유형별특화분석)
     console.log('[BizNavi] 1차 분석 시작 — 진단·전략...');
-    const text1 = await apiCall(SYSTEM, buildPrompt1(formData));
+    const _t1Start = Date.now();
+    const text1 = await apiCall(SYSTEM, buildPrompt1(formData), '1차');
+    console.log(`[TIMING] 클라이언트 — 1차 호출 왕복: ${Date.now() - _t1Start}ms`);
     console.log('1차 응답 (처음 400자):', text1.substring(0, 400));
     const result1 = extractJSON(text1);
     if (!result1) throw new Error('1차 분석 JSON 파싱 실패: ' + text1.substring(0, 200));
 
     // ── 2차 호출: 실행플랜 (KPI·로드맵·6시스템·90일플랜·린캔버스)
     console.log('[BizNavi] 2차 분석 시작 — 실행플랜...');
-    const text2 = await apiCall(_SYSTEM_EXEC, buildPrompt2(formData, result1));
+    const _t2Start = Date.now();
+    const text2 = await apiCall(_SYSTEM_EXEC, buildPrompt2(formData, result1), '2차');
+    console.log(`[TIMING] 클라이언트 — 2차 호출 왕복: ${Date.now() - _t2Start}ms`);
     console.log('2차 응답 (처음 400자):', text2.substring(0, 400));
     const result2 = extractJSON(text2);
     if (!result2) throw new Error('2차 실행플랜 JSON 파싱 실패: ' + text2.substring(0, 200));

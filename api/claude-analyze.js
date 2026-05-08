@@ -20,7 +20,11 @@ const MAX_TURNS      = 10;
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { systemPrompt, userPrompt } = req.body || {};
+  const T_START = Date.now();
+  const { systemPrompt, userPrompt, _callLabel } = req.body || {};
+  const callLabel = _callLabel || '?차';
+  console.log(`[TIMING] ${callLabel} 호출 시작`);
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY 미설정 — Vercel 환경변수를 확인하세요.' });
@@ -46,6 +50,8 @@ module.exports = async (req, res) => {
   let finalText = '';
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
+    const T_TURN = Date.now();
+    console.log(`[TIMING] ${callLabel} — 턴 ${turn + 1} 시작 (+${T_TURN - T_START}ms)`);
     let claudeRes;
     try {
       claudeRes = await fetch(ANTHROPIC_BASE, {
@@ -75,6 +81,8 @@ module.exports = async (req, res) => {
     // 이번 턴의 텍스트 누적
     const turnText = content.filter(b => b.type === 'text').map(b => b.text).join('');
     if (turnText) finalText += turnText;
+
+    console.log(`[TIMING] ${callLabel} — 턴 ${turn + 1} 완료 (+${Date.now() - T_START}ms, stop_reason=${data.stop_reason})`);
 
     // 정상 종료
     if (data.stop_reason === 'end_turn') break;
@@ -106,8 +114,10 @@ module.exports = async (req, res) => {
   }
 
   if (!finalText) {
+    console.log(`[TIMING] ${callLabel} — 응답 텍스트 없음. 총 소요: ${Date.now() - T_START}ms`);
     return res.status(500).json({ error: 'Claude 응답에서 텍스트를 추출할 수 없습니다.' });
   }
 
+  console.log(`[TIMING] ${callLabel} 완료 — 총 소요: ${Date.now() - T_START}ms`);
   return res.json({ text: finalText });
 };
