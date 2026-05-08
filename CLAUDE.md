@@ -1,10 +1,49 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-07 최신)
+## 배포 상태 (2026-05-08 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: fullstack-engineer 에이전트에 WebSearch/WebFetch 도구 추가 (c8440f4)
-- **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: max_tokens 증가 — 1차 JSON 절단 파싱 실패 해결 (323f1a7)
+- **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-08) — 504 타임아웃 근본 해결 + 시스템 프롬프트 QA
+
+### ① _SYSTEM_EXEC 2차 호출 동기화 (배포 완료)
+- `const _SYSTEM_EXEC` 페르소나: "맥킨지·BCG 20년" → "30년 카드/금융 경영지도사" (SYSTEM과 일치)
+- `_SYSTEM_EXEC` keyMetrics 슬롯: 재방문율(인과사슬 1축)·ROAS(인과사슬 2축) 필수 포함 지시 추가
+- qa-reviewer 검증 결과 WARNING 2건 수정
+
+### ② vercel.json maxDuration 전체 정비 (배포 완료)
+- `bok-avg`, `biz-lookup`, `analyze-biz`, `kosis-survival`, `bizinfo`: 기본 10초 → 30초
+- `claude-analyze` 계열: Pro 플랜 확인 후 **60 → 300초**로 상향
+
+### ③ claude-analyze 1차·2차 함수 분리 — 504 근본 해결 (배포 완료)
+
+#### api/claude-analyze-1.js (신규)
+- 1차 호출 전용: executiveSummary·SWOT·STP·4P·keyStrategies·specializedAnalysis
+- web_search 1회 포함 (실시간 업종 트렌드·정부지원사업 조회)
+- maxDuration: 300초, max_tokens: 16000
+
+#### api/claude-analyze-2.js (신규)
+- 2차 호출 전용: kpi·roadmap·sixSystems·plan90days·leanCanvas
+- web_search 없음 (실행플랜은 1차 전략 기반 내부 생성)
+- maxDuration: 300초, max_tokens: 12000
+
+#### js/ai-engine.js
+- `apiCall(_callLabel)`: `'1차'` → `/api/claude-analyze-1`, `'2차'` → `/api/claude-analyze-2`
+- 각 호출 왕복 시간 `[TIMING]` 로그 추가
+
+#### 근본 원인 요약
+- 기존 `claude-analyze.js` 단일 함수에서 1차+2차 순차 실행 → 합산 60초 초과
+- Vercel Pro 플랜임에도 `maxDuration: 60` 고정이어서 Pro 한도(300초) 미적용 상태였음
+- 함수 분리 + maxDuration 300 적용으로 완전 해결
+
+### ④ 1차 JSON 파싱 실패 해결 (배포 완료)
+- 원인: 새 시스템 프롬프트(30년 경력 노하우 5개 섹션) 추가로 응답 생성 공간 부족 → JSON 중간 절단
+- claude-analyze-1: max_tokens 8000 → 16000
+- claude-analyze-2: max_tokens 8000 → 12000
 
 ---
 
