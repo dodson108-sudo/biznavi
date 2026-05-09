@@ -1121,14 +1121,33 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
   }
 
   async function callClaude(formData) {
-    // JSON 파싱 헬퍼
+    // JSON 수리: trailing comma 제거 (Claude가 자주 생성하는 비표준 패턴)
+    function repairJSON(str) {
+      return str.replace(/,\s*([}\]])/g, '$1');
+    }
+
+    // JSON 파싱 헬퍼 — 4단계 시도
     function extractJSON(text) {
-      const jsonBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-      if (jsonBlock) try { return JSON.parse(jsonBlock[1]); } catch (_) {}
-      const trimmed = text.trim();
-      if (trimmed.startsWith('{')) try { return JSON.parse(trimmed); } catch (_) {}
-      const s = text.indexOf('{'), e = text.lastIndexOf('}');
-      if (s !== -1 && e > s) try { return JSON.parse(text.substring(s, e + 1)); } catch (_) {}
+      // 1. { 시작 ~ } 끝 추출 (코드블록 감쌈 여부 무관)
+      const s = text.indexOf('{');
+      const e = text.lastIndexOf('}');
+      if (s === -1 || e <= s) return null;
+      const raw = text.substring(s, e + 1);
+
+      // 2. 직접 파싱
+      try { return JSON.parse(raw); } catch (_) {}
+
+      // 3. trailing comma 제거 후 재시도
+      try { return JSON.parse(repairJSON(raw)); } catch (_) {}
+
+      // 4. 코드블록 그리디 추출 후 시도 (Claude가 ```json ... ``` 으로 감쌀 때)
+      const cb = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (cb) {
+        const inner = cb[1].substring(cb[1].indexOf('{'), cb[1].lastIndexOf('}') + 1);
+        try { return JSON.parse(inner); } catch (_) {}
+        try { return JSON.parse(repairJSON(inner)); } catch (_) {}
+      }
+
       return null;
     }
 
