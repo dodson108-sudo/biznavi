@@ -1,10 +1,37 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-08 최신)
+## 배포 상태 (2026-05-09 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: max_tokens 증가 — 1차 JSON 절단 파싱 실패 해결 (323f1a7)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: BizNavi 스킬 6개 추가 (66082d4)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-09) — extractJSON 개선 + 스킬 시스템 구축
+
+### ① extractJSON 4단계 파싱 + trailing comma 수리 (배포 완료)
+- `repairJSON()`: Claude가 자주 생성하는 trailing comma 자동 제거
+- `extractJSON()`: 직접파싱 → 수리 → 코드블록그리디 → 코드블록수리 4단계
+- `claude-analyze-2.js`: stop_reason + output_tokens 로깅 추가
+
+### ② 2차 JSON 파싱 실패 해결 (배포 완료)
+- 원인: 대규모 기업(중소기업급) 분석 시 kpi+roadmap+sixSystems 합산 토큰 초과
+- claude-analyze-2 max_tokens: 12000 → 16000
+
+### ③ BizNavi 반복 오류 스킬 시스템 구축 (배포 완료)
+- `.claude/commands/` 폴더 신규 생성
+- 7개 스킬 파일 생성 (47개 과거 버그 패턴 수록)
+
+| 스킬 | 대상 오류 |
+|------|----------|
+| `/fix-ai-error` | AI 분석 504·JSON 파싱 실패 |
+| `/fix-ai-engine` | AI 엔진 로직 버그 (키 충돌·consultingType 등) |
+| `/fix-wizard` | 위저드 화면전환·버튼 버그 |
+| `/fix-dart` | DART 조회·재무분석 버그 |
+| `/fix-pdf` | PDF 표지·출력 버그 |
+| `/qa` | qa-reviewer 에이전트 검증 호출 |
+| `/wrap-up` | 세션 마무리 일괄 처리 |
 
 ---
 
