@@ -1,10 +1,34 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-09 최신)
+## 배포 상태 (2026-05-12 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: BizNavi 스킬 6개 추가 (66082d4)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: KOSIS 생존율 맥락 인사이트 자동 생성 (e76faf4)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-12) — 생존율 인사이트 구현 (4순위 D)
+
+### ① INDUSTRY_CLOSURE_CAUSES 상수 추가
+- 16개 업종 × 3도메인(재무·인력·BM) 폐업 원인 상수 추가
+- js/ai-engine.js 또는 js/pattern-db.js에 위치
+
+### ② _buildSurvivalInsights() 헬퍼 함수 추가 (+97줄)
+- 시나리오 1·2·3·6 통합 처리
+- 인사이트 예시 (외식업·창업 8년·재무 2.1점):
+  - 3년 생존율 31.2% — 전체 평균(39.6%) 대비 21% 낮은 고난이도 업종
+  - 업력 8년 — 5년 생존율 21% 기준 상위 생존 코호트 진입 확인
+  - ⚠ 생존 역설 경고: 7년 이상 운영 + 고위험 업종 조합
+  - 재무역량(2.1점) — "식재료비·임대료 현금흐름 압박" 폐업 원인과 직접 일치
+  - ⚠ 긴급 생존 모드 강제 적용
+
+### ③ 섹션13 교체 (js/ai-engine.js — buildPrompt1())
+- 기존 22줄 KOSIS 블록 → _buildSurvivalInsights() 1줄 호출로 단순화
+- 기존 긴급 모드 블록 내부 통합 완료
+
+### ④ app.js
+- 수정 불필요 (167줄에 data.domainScores = _domScores 이미 존재)
 
 ---
 
@@ -664,16 +688,33 @@ vercel dev
 
 ## 다음 세션 예정 작업
 
-### 1. vercel login + vercel link (터미널에서 직접 실행 필요)
-- `vercel login` (브라우저 인증)
-- `vercel link` (biznavi 프로젝트 선택)
-- 이후 `vercel dev` → http://localhost:3000
-- **localhost 분기는 이미 제거됨** — 실제 API 바로 호출됨
+### 1순위: AI 분석 정상 작동 최종 확인
+- biznavi.vercel.app에서 실제 분석 1회 end-to-end 테스트
+- 1차·2차 모두 정상 JSON 반환 확인, 대시보드 렌더링 확인
 
-### 2. 사업자등록증 OCR 수정
-- wizard.js의 이미지 업로드 → Claude Vision API 호출 흐름 진단 (api/ocr-scan.js 확인)
-- `GOOGLE_VISION_API_KEY` 환경변수 설정 필요 여부 확인
-- 원인 파악 후 수정
+### 2순위: JSON 파싱 실패 근본 해결
+- max_tokens 증가 방식 revert됨 — 다른 접근 필요
+- 후보: 시스템 프롬프트 토큰 축소 / buildPrompt1 섹션 경량화
+
+### 3순위: [TIMING] 타이머 로그 제거
+- api/claude-analyze-1.js, claude-analyze-2.js의 console.log 제거
+- ai-engine.js 클라이언트 타이머 로그 제거
+
+### 4순위: vercel dev 로컬 실행 방법
+```powershell
+$env:DART_API_KEY="fe33283e3bacd8d0bc0e060b9e224ddce18ac10d"
+vercel dev
+# → http://localhost:3000
+```
+
+### 5순위: PDF 표지 확인
+- 실제 인쇄/PDF 저장 테스트 → 표지 1페이지 확인
+
+### 6순위: --teal CSS 변수 정리
+- 미사용 CSS 변수 정리 및 다크테마 일관성 점검
+
+### 마지막: 통합 테스트 1회
+- 전체 흐름 (위저드 → AI 분석 → 대시보드 → PDF) end-to-end 검증
 
 ---
 
