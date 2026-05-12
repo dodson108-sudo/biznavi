@@ -175,6 +175,9 @@ const AIEngine = (() => {
       '제조·유통': typeof BIZMODEL_MFG_DIST !== 'undefined' ? BIZMODEL_MFG_DIST : null,
       '서비스업': typeof BIZMODEL_SERVICE !== 'undefined' ? BIZMODEL_SERVICE : null,
       '기타': typeof BIZMODEL_ETC !== 'undefined' ? BIZMODEL_ETC : null,
+      '종량제/사용기반': typeof BIZMODEL_USAGE_BASED !== 'undefined' ? BIZMODEL_USAGE_BASED : null,
+      '광고기반':        typeof BIZMODEL_ADVERTISING  !== 'undefined' ? BIZMODEL_ADVERTISING  : null,
+      '딥테크/R&D':      typeof BIZMODEL_DEEPTECH     !== 'undefined' ? BIZMODEL_DEEPTECH     : null,
     };
 
     let insightText = '';
