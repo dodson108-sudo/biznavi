@@ -580,6 +580,101 @@ const AIEngine = (() => {
   }
 }`;
 
+  // 업종별 주요 폐업 원인 매핑 (도메인별 3가지)
+  const INDUSTRY_CLOSURE_CAUSES = {
+    restaurant:    { finance: '식재료비·임대료 현금흐름 압박', hr: '핵심 조리인력 이탈·인건비 과부하', bm: '고객 단가 하락·재방문 단절' },
+    local_service: { finance: '임대료 대비 매출 마진 압박', hr: '원장 의존형 구조·핵심 직원 이탈', bm: '플랫폼 수수료 의존·신규 고객 유입 단절' },
+    knowledge_it:  { finance: 'MRR 불규칙·개발비 선지출 부담', hr: '핵심 개발자 퇴사·R&R 불명확', bm: '계약 만료 후 재계약 실패·SaaS 경쟁사 대체' },
+    construction:  { finance: '기성금 지연·공사대금 미수·흑자도산', hr: '안전사고·핵심 기술인력 이탈', bm: '수주 채널 1곳 집중·원가 초과 구조' },
+    medical:       { finance: '비급여 수익 감소·높은 고정비', hr: '의료진 이탈·전문인력 채용 실패', bm: '재방문율 하락·입소문 단절' },
+    education:     { finance: '수강료 단가 하락·시즌 매출 편중', hr: '스타 강사 의존·강사 이탈 시 수강생 유출', bm: '재등록율 하락·온라인 플랫폼 경쟁' },
+    wholesale:     { finance: '재고 과잉·대금 회수 지연', hr: '영업 핵심인력 이탈', bm: '채널 집중도 과다·가격 경쟁 심화' },
+    mfg_parts:     { finance: '원가 미파악·설비투자 부담', hr: '숙련 기술자 이탈·고령화', bm: '단일 거래처 의존·단가 인하 압박' },
+    food_mfg:      { finance: '원재료 가격 급등·마진 압박', hr: 'HACCP 관리 인력 부족', bm: '유통 채널 편중·바이어 협상력 열위' },
+    fashion:       { finance: '재고 리스크·시즌 편중 현금흐름', hr: '디자이너·MD 이탈', bm: 'D2C 전환 실패·플랫폼 수수료 부담' },
+    media:         { finance: '프로젝트 단위 수익 불안정·선지출', hr: '핵심 크리에이터·PD 이탈', bm: 'IP 수익화 실패·광고 단가 하락' },
+    logistics:     { finance: '고정비 과다·공차율 증가', hr: '기사 이탈·안전사고', bm: '단일 화주 의존·운임 협상력 열위' },
+    energy:        { finance: '초기 투자금 회수 지연·정책 리스크', hr: '전문 엔지니어 확보 실패', bm: '인허가 지연·수주 Backlog 부족' },
+    agri_food:     { finance: '원물 가격 변동·계절 현금흐름', hr: '가공 인력 수급 불안정', bm: '유통 채널 미확보·가격 경쟁' },
+    export_sme:    { finance: '환율 리스크·수출 대금 회수 지연', hr: '해외 영업 전문인력 부족', bm: '바이어 채널 집중·인증 미비' },
+    finance:       { finance: '금리 리스크·대손 충당금 부담', hr: '규제 전문인력 이탈', bm: 'LTV·CAC 비율 악화·고객 신뢰 하락' },
+  };
+
+  // 전체 업종 3년 평균 생존율 (통계청 기준)
+  const ALL_INDUSTRY_AVG_Y3 = 39.6;
+
+  function _buildSurvivalInsights(d, sv) {
+    if (!sv) return '(생존율 데이터 없음 — 웹 검색으로 보완)';
+
+    const lines = [];
+    const industryKey = d.industryKey || d.industry || '';
+    const foundedYear = parseInt(d.foundedYear, 10) || null;
+    const currentYear = 2026;
+    const yearsOld    = foundedYear ? currentYear - foundedYear : null;
+
+    // 기본 수치
+    lines.push(`업종: ${sv.name} / 출처: ${sv.source}`);
+    lines.push(`1년 생존율: ${sv.y1}% / 3년 생존율: ${sv.y3}% / 5년 생존율: ${sv.y5}%`);
+    lines.push(`업종 리스크 수준: ${sv.risk.label}`);
+    lines.push('');
+
+    // 시나리오 6: 전체 평균 대비 난이도
+    const diffPct = Math.round((sv.y3 / ALL_INDUSTRY_AVG_Y3 - 1) * 100);
+    if (diffPct < -5) {
+      lines.push(`▶ 전체 업종 평균 대비 분석: ${sv.name} 3년 생존율(${sv.y3}%)은 전체 평균(${ALL_INDUSTRY_AVG_Y3}%) 대비 ${Math.abs(diffPct)}% 낮은 고난이도 업종임. 구조적 역풍을 안고 경쟁하는 상황이므로 SWOT 위협에 반드시 반영할 것.`);
+    } else if (diffPct > 10) {
+      lines.push(`▶ 전체 업종 평균 대비 분석: ${sv.name} 3년 생존율(${sv.y3}%)은 전체 평균(${ALL_INDUSTRY_AVG_Y3}%) 대비 ${diffPct}% 높은 상대적 안정 업종임. 단, 안정감이 위기 신호 둔감화로 이어지지 않도록 주의.`);
+    }
+
+    // 시나리오 1: 업력 → 생존 코호트 위치
+    if (yearsOld !== null) {
+      if (yearsOld >= 5) {
+        lines.push(`▶ 업력 코호트 분석: ${sv.name} 5년 생존율 ${sv.y5}%인 업종에서 귀사 ${yearsOld}년 운영은 통계적으로 상위 생존 코호트에 해당함. 이 지속성 자체가 SWOT 강점 1순위 근거임.`);
+      } else if (yearsOld >= 3) {
+        lines.push(`▶ 업력 코호트 분석: 3년 생존 관문(${sv.y3}%)을 통과한 상태. 창업 3년차 탈락율 ${Math.round(100 - sv.y3)}%를 극복한 기업임.`);
+      } else {
+        lines.push(`▶ 업력 코호트 분석: 업력 ${yearsOld}년. 3년 생존 관문(${sv.y3}%)까지 ${3 - yearsOld}년 남음. 이 기간이 가장 높은 폐업 위험 구간임.`);
+      }
+    }
+
+    // 시나리오 2: 생존 역설 (장기 운영 + 고위험 업종)
+    if (yearsOld !== null && yearsOld >= 7 && sv.risk.level === 'high') {
+      lines.push(`▶ 생존 역설 경고: 고위험 업종에서 ${yearsOld}년 운영 중. 과거 성공 패턴이 현재 시장 변화에 맞지 않을 때 7~10년차에 급격한 폐업 위험이 오히려 높아지는 구조임. 현재 운영 방식의 유효성을 재점검해야 함.`);
+    }
+
+    // 시나리오 3: 진단 점수 취약 영역 × 업종별 폐업 원인 연결
+    const causes = INDUSTRY_CLOSURE_CAUSES[industryKey];
+    const ds = d.domainScores || null;
+    if (causes && ds) {
+      const weakLinks = [];
+      if (ds.finance !== undefined && ds.finance < 2.5) weakLinks.push(`재무역량(${ds.finance.toFixed(1)}점) — "${causes.finance}"`);
+      if (ds.hr      !== undefined && ds.hr      < 2.5) weakLinks.push(`조직·인력역량(${ds.hr.toFixed(1)}점) — "${causes.hr}"`);
+      if (ds.bm      !== undefined && ds.bm      < 2.5) weakLinks.push(`사업모델역량(${ds.bm.toFixed(1)}점) — "${causes.bm}"`);
+      if (weakLinks.length > 0) {
+        lines.push(`▶ 진단 점수 × 폐업 원인 연결 (즉시 처방 필요):`);
+        weakLinks.forEach(function(w) { lines.push('  - ' + w); });
+        lines.push(`  → 위 취약 영역은 ${sv.name} 폐업의 주요 원인과 직접 일치함. keyStrategies 최우선 전략으로 반드시 반영할 것.`);
+      }
+    }
+
+    // 긴급 생존 모드 (risk.level === 'high')
+    if (sv.risk.level === 'high') {
+      lines.push('');
+      lines.push(`⚠️ [긴급 생존 모드 강제 적용]`);
+      lines.push(`3년 생존율 ${sv.y3}% — 폐업 고위험 업종 확인됨.`);
+      lines.push(`→ plan90days 1개월차 theme을 "현금 생존 우선 — 런웨이 확보 긴급 실행"으로 강제할 것.`);
+      lines.push(`→ sixSystems 재무 시스템 status를 "취약"으로 고정하고 긴급 유동성 확보 액션을 1순위로 배치할 것.`);
+      lines.push(`→ keyStrategies 최우선 전략은 반드시 현금흐름 개선·고정비 절감·매출 즉시 회복 중 하나여야 함.`);
+    }
+
+    lines.push('');
+    lines.push('▶ 활용 지침:');
+    lines.push(`- SWOT 위협(Threats) 섹션에 "이 업종의 3년 생존율 ${sv.y3}%로 절반 이상이 3년 내 폐업" 문구를 구체적으로 인용할 것`);
+    lines.push('- keyStrategies에서 가장 높은 우선순위 전략은 반드시 이 생존율 위협을 직접 타격하는 내용이어야 함');
+
+    return lines.join('\n');
+  }
+
   function _ctGuidance(ct) {
     const G = {
       digital_strategy: `
@@ -1068,30 +1163,9 @@ ${(function() {
   return '(패턴 DB 데이터 없음 — 업종 일반 데이터 기반으로 작성)';
 })()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-13. 업종 생존율 데이터 (통계청 KOSIS 기반)
+13. 업종 생존율 × 귀사 현황 교차 인사이트 (통계청 KOSIS 기반)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${(function() {
-  const sv = d.survivalData || (typeof window !== 'undefined' && window._kosisSurvival) || null;
-  if (!sv) return '(생존율 데이터 없음 — 웹 검색으로 보완)';
-  return `업종: ${sv.name} / 출처: ${sv.source}
-1년 생존율: ${sv.y1}% / 3년 생존율: ${sv.y3}% / 5년 생존율: ${sv.y5}%
-업종 리스크 수준: ${sv.risk.label}
-
-▶ 활용 지침:
-- SWOT 위협(Threats) 섹션에 "이 업종의 3년 생존율 ${sv.y3}%로 절반 이상이 3년 내 폐업" 문구를 구체적으로 인용할 것
-- 진단 점수가 낮은 영역과 생존율 데이터를 연결해서, 어떤 문제가 폐업으로 이어지는지 인과관계를 서술할 것
-- keyStrategies에서 가장 높은 우선순위 전략은 반드시 이 생존율 위협을 직접 타격하는 내용이어야 함`;
-})()}
-${(function() {
-  const sv = d.survivalData || (typeof window !== 'undefined' && window._kosisSurvival) || null;
-  if (!sv || !sv.risk || sv.risk.level !== 'high') return '';
-  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ [긴급 생존 모드 강제 적용]
-3년 생존율 ${sv.y3}% — 폐업 고위험 업종 확인됨.
-→ plan90days 1개월차 theme을 "현금 생존 우선 — 런웨이 확보 긴급 실행"으로 강제할 것.
-→ sixSystems 재무 시스템 status를 "취약"으로 고정하고 긴급 유동성 확보 액션을 1순위로 배치할 것.
-→ keyStrategies 최우선 전략은 반드시 현금흐름 개선·고정비 절감·매출 즉시 회복 중 하나여야 함.`;
-})()}
+${_buildSurvivalInsights(d, d.survivalData || (typeof window !== 'undefined' && window._kosisSurvival) || null)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ★ 1차 호출 응답 범위 (반드시 준수) ★
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
