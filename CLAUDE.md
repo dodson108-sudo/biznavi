@@ -2,9 +2,27 @@
 
 ## 배포 상태 (2026-05-12 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: KOSIS 생존율 맥락 인사이트 자동 생성 (e76faf4)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: app.js bizinfo industryKey 빈 문자열 버그 수정 (QA CRITICAL)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-12 추가) — QA·CSS 정리
+
+### ① print.css .rpt-cover 정리 (배포 완료)
+- `break-after: page` → `break-after: avoid` (JS 주입과 일치)
+- `height: 257mm; box-sizing: border-box` CSS에 명시 추가
+- `print.css?v=20260506a` → `?v=20260512a` 버전 갱신
+
+### ② --teal CSS 변수 제거 (배포 완료)
+- `style.css:18` `--teal: #F5C030` 정의 삭제
+- `dashboard.css` 6곳 `var(--teal)` → `var(--gold)` 치환 (시각 변화 없음 — 동일 색상)
+
+### ③ QA CRITICAL 수정 — bizinfo industryKey 버그 (배포 완료)
+- `app.js:190` `industryKey: data.industry || ''` → `data.industryKey || data.industry || ''`
+- 근본 원인: `id="industry"` select 제거 후 `data.industry`가 항상 `''` → 기업마당 업종 매칭 무력화
+- QA WARNING 2건(CORS 와일드카드·tool_result 빈 배열)은 즉시 수정 보류
 
 ---
 

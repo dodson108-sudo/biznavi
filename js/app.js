@@ -187,7 +187,7 @@ const App = (() => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          industryKey:    data.industry    || '',
+          industryKey:    data.industryKey || data.industry || '',
           bizScale:       data.bizScale    || 'micro',
           consultingType: data.consultingType || '',
         }),
