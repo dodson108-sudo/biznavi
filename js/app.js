@@ -171,11 +171,12 @@ const App = (() => {
     // KOSIS + 기업마당 — AI 호출 전에 병렬 조회 (프롬프트 반영용)
     await Promise.allSettled([
       // ① KOSIS 업종 생존율
-      data.industry
+      // industryKey(영문) 우선 사용 — industry(한국어 레거시)는 select#industry가 없어 항상 ''
+      (data.industryKey || data.industry)
         ? fetch('/api/kosis-survival', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ industryKey: data.industry }),
+            body: JSON.stringify({ industryKey: data.industryKey || data.industry }),
           }).then(r => r.json()).then(sv => {
             if (sv && sv.y3) { window._kosisSurvival = sv; data.survivalData = sv; }
           })

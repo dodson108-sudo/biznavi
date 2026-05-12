@@ -1825,7 +1825,10 @@ const Wizard = (() => {
     drawRadarChart('radarChart', domainScores);
 
     // 업종 생존율 렌더링 (KOSIS — app.js에서 선행 조회)
-    const industryKey = data.industry || '';
+    // data.industryKey = aiIndustryKey hidden input 영문 키 (예: restaurant, food_mfg)
+    // data.industry    = 레거시 한국어 드롭다운 값 (현재 HTML에 select#industry 없음 → 항상 '')
+    // → industryKey가 없으면 박스가 호출되지 않는 버그 수정
+    const industryKey = data.industryKey || data.industry || '';
     if (industryKey) _fetchSurvival(industryKey, data);
 
     // 정부지원사업 렌더링 (기업마당 — app.js에서 선행 조회)
@@ -1898,7 +1901,10 @@ const Wizard = (() => {
       // AI 엔진이 참조할 수 있도록 전역 저장
       window._kosisSurvival = d;
     })
-    .catch(function() { box.style.display = 'none'; });
+    .catch(function(err) {
+      console.log('[KOSIS] 생존율 렌더링 오류:', err);
+      box.style.display = 'none';
+    });
   }
 
   /* ── 기업마당 정부지원사업 렌더링 ── */
