@@ -12,9 +12,6 @@ const MAX_TURNS      = 10;
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const T_START = Date.now();
-  console.log('[TIMING] 1차 호출 시작');
-
   const { systemPrompt, userPrompt } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY 미설정' });
@@ -38,7 +35,6 @@ module.exports = async (req, res) => {
   let finalText = '';
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
-    console.log(`[TIMING] 1차 — 턴 ${turn + 1} 시작 (+${Date.now() - T_START}ms)`);
     let claudeRes;
     try {
       claudeRes = await fetch(ANTHROPIC_BASE, {
@@ -67,8 +63,6 @@ module.exports = async (req, res) => {
 
     const turnText = content.filter(b => b.type === 'text').map(b => b.text).join('');
     if (turnText) finalText += turnText;
-
-    console.log(`[TIMING] 1차 — 턴 ${turn + 1} 완료 (+${Date.now() - T_START}ms, stop_reason=${data.stop_reason})`);
 
     if (data.stop_reason === 'end_turn') break;
 
@@ -101,10 +95,8 @@ module.exports = async (req, res) => {
   }
 
   if (!finalText) {
-    console.log(`[TIMING] 1차 — 응답 없음. 총 소요: ${Date.now() - T_START}ms`);
     return res.status(500).json({ error: 'Claude 1차 응답에서 텍스트를 추출할 수 없습니다.' });
   }
 
-  console.log(`[TIMING] 1차 완료 — 총 소요: ${Date.now() - T_START}ms`);
   return res.json({ text: finalText });
 };

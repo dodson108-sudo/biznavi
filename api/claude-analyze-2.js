@@ -11,9 +11,6 @@ const MAX_TOKENS     = 16000;
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const T_START = Date.now();
-  console.log('[TIMING] 2차 호출 시작');
-
   const { systemPrompt, userPrompt } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY 미설정' });
@@ -48,7 +45,6 @@ module.exports = async (req, res) => {
   }
 
   const data = await claudeRes.json();
-  console.log(`[TIMING] 2차 stop_reason=${data.stop_reason}, input_tokens=${data.usage?.input_tokens}, output_tokens=${data.usage?.output_tokens}`);
   if (data.stop_reason === 'max_tokens') {
     console.log(`[ERROR] 2차 max_tokens 초과 — JSON 절단. output_tokens: ${data.usage?.output_tokens}`);
     return res.status(500).json({ error: 'max_tokens 초과 — 2차 응답 절단됨 (JSON 불완전)' });
@@ -59,10 +55,8 @@ module.exports = async (req, res) => {
     .join('');
 
   if (!finalText) {
-    console.log(`[TIMING] 2차 — 응답 없음. 총 소요: ${Date.now() - T_START}ms`);
     return res.status(500).json({ error: 'Claude 2차 응답에서 텍스트를 추출할 수 없습니다.' });
   }
 
-  console.log(`[TIMING] 2차 완료 — 총 소요: ${Date.now() - T_START}ms`);
   return res.json({ text: finalText });
 };

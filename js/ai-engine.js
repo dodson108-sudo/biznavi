@@ -1319,7 +1319,9 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
           { metric: '반복 매출(구독·유지보수) 비중', current: '0~10%', target: '전체 매출의 30% 이상', timeline: tl, progress: 10, method: '월 고정 계약 매출 / 전체 매출', owner: '대표' },
           { metric: '영업 파이프라인 금액', current: '추적 없음', target: '월 매출 목표의 3배 이상', timeline: '2개월', progress: 0, method: 'CRM 진행 중 영업 기회 합산 금액', owner: '영업 담당' },
           { metric: '신규 채널 매출 비중', current: '0%', target: '전체 매출의 15% 이상', timeline: tl, progress: 0, method: '신규 채널 매출 / 전체 매출', owner: '마케팅 담당' },
-          { metric: '고객 재구매율', current: '30% 미만', target: '50% 이상', timeline: tl, progress: 30, method: '재구매 고객 수 / 전체 고객 수', owner: '영업 담당' }
+          { metric: '고객 재구매율', current: '30% 미만', target: '50% 이상', timeline: tl, progress: 30, method: '재구매 고객 수 / 전체 고객 수', owner: '영업 담당' },
+          { metric: '고객 획득 비용 (CAC)', current: '파악 안됨', target: '현재 대비 30% 절감', timeline: tl, progress: 0, method: '마케팅·영업 비용 / 신규 고객 수', owner: '마케팅 담당' },
+          { metric: '월 매출 목표 달성률', current: '측정 안됨', target: '월 목표의 90% 이상', timeline: '분기', progress: 0, method: '실제 매출 / 월 매출 목표', owner: '대표·재무' }
         ],
         sixSystems: [
           { name: '1. 리더십 시스템', icon: '👑', status: '보통',
@@ -2108,7 +2110,9 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
           { metric: '고객 컴플레인 건수', current: '월 파악 안됨', target: '현재 대비 50% 감소', timeline: tl, progress: 20, method: '월간 고객 컴플레인 건수', owner: '운영 담당' },
           { metric: '팀 KPI 달성률', current: '측정 안됨', target: '팀 KPI 3개 중 2개 이상 달성', timeline: '분기', progress: 0, method: '설정 KPI 대비 달성 수', owner: '팀장' },
           { metric: '외주 비용 최적화율', current: '미측정', target: '비핵심 업무 외주 비용 20% 절감', timeline: tl, progress: 0, method: '외주 재계약 후 비용 변화율', owner: '재무 담당' },
-          { metric: '대표 전략적 업무 시간 비중', current: '20% 미만', target: '주 20시간 이상', timeline: tl, progress: 20, method: '주간 업무 시간 기록 기준', owner: '대표' }
+          { metric: '대표 전략적 업무 시간 비중', current: '20% 미만', target: '주 20시간 이상', timeline: tl, progress: 20, method: '주간 업무 시간 기록 기준', owner: '대표' },
+          { metric: '업무 표준화 적용 비율', current: '0%', target: '핵심 업무 80% 이상', timeline: tl, progress: 0, method: 'SOP 완비 업무 수 / 전체 핵심 업무 수', owner: '운영 담당' },
+          { metric: '직원 만족도 (eNPS)', current: '측정 안됨', target: '30점 이상', timeline: '분기', progress: 0, method: '분기별 eNPS 설문 결과', owner: '대표' }
         ],
         sixSystems: [
           { name: '1. 리더십 시스템', icon: '👑', status: '위험',
@@ -2219,7 +2223,9 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
           { metric: '정부 R&D·혁신 지원사업 신청', current: '0건', target: '2건 이상 신청', timeline: tl, progress: 0, method: '신청 완료 건수', owner: '대표' },
           { metric: 'MVP 출시 → 첫 고객 반응 기간', current: '6개월 이상', target: '60일 이내', timeline: '3개월', progress: 0, method: '아이디어 확정 → MVP 첫 고객 반응 수집 일수', owner: '대표' },
           { metric: '신사업 매출 비중', current: '0%', target: '전체 매출의 10% 이상', timeline: tl, progress: 0, method: '신사업 매출 / 전체 매출', owner: '재무 담당' },
-          { metric: '업종 트렌드 스캔 보고서 발행', current: '없음', target: '분기 1회 이상', timeline: '분기', progress: 0, method: '트렌드 보고서 발행 횟수', owner: '대표' }
+          { metric: '업종 트렌드 스캔 보고서 발행', current: '없음', target: '분기 1회 이상', timeline: '분기', progress: 0, method: '트렌드 보고서 발행 횟수', owner: '대표' },
+          { metric: '외부 협력 파트너 수', current: '0개', target: '신규 파트너 3개 이상', timeline: tl, progress: 0, method: '활성 협력 계약 수', owner: '대표' },
+          { metric: '혁신 투자 비율', current: '미책정', target: '연간 매출의 3% 이상', timeline: tl, progress: 0, method: '혁신·R&D 투자액 / 전체 매출', owner: '재무 담당' }
         ],
         sixSystems: [
           { name: '1. 리더십 시스템', icon: '👑', status: '보통',
@@ -2330,7 +2336,9 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
           { metric: '고객 만족도 (CSAT)', current: '측정 안됨', target: '4.0/5.0 이상', timeline: '3개월', progress: 0, method: '서비스 완료 후 만족도 설문 평균 점수', owner: '서비스 담당' },
           { metric: '추천(리퍼럴) 신규 고객 비중', current: '파악 안됨', target: '신규 고객의 30% 이상', timeline: tl, progress: 0, method: '추천으로 유입된 신규 고객 / 전체 신규 고객', owner: '마케팅 담당' },
           { metric: 'VOC 반영 개선 건수', current: '0건/분기', target: '분기 3건 이상', timeline: '분기', progress: 0, method: '고객 의견 기반 서비스 개선 완료 건수', owner: '운영 담당' },
-          { metric: '고객 응대 응답 시간', current: '파악 안됨', target: '영업시간 내 1시간 이내', timeline: '2개월', progress: 20, method: '고객 문의 접수 → 최초 응대 시간 평균', owner: '서비스 담당' }
+          { metric: '고객 응대 응답 시간', current: '파악 안됨', target: '영업시간 내 1시간 이내', timeline: '2개월', progress: 20, method: '고객 문의 접수 → 최초 응대 시간 평균', owner: '서비스 담당' },
+          { metric: '고객 온보딩 완료율', current: '측정 안됨', target: '신규 고객의 85% 이상', timeline: tl, progress: 0, method: '온보딩 완료 고객 수 / 전체 신규 고객 수', owner: '서비스 담당' },
+          { metric: '평균 고객 유지 기간', current: '파악 안됨', target: '현재 대비 20% 연장', timeline: tl, progress: 0, method: '전체 고객 평균 거래 지속 기간(월) 산출', owner: '대표·서비스' }
         ],
         sixSystems: [
           { name: '1. 리더십 시스템', icon: '👑', status: '보통',

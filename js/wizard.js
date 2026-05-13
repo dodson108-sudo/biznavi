@@ -1076,7 +1076,8 @@ const Wizard = (() => {
       if (!get('bizItem'))     { alert('종목을 입력해주세요.\n(사업자등록증의 종목 — 예: 미용업, 한식, 자동차부품)'); return false; }
     }
     if (step === 2) {
-      const total = document.querySelectorAll('.diag-item:not([data-signal-only])').length || 13;
+      const total = document.querySelectorAll('.diag-item:not([data-signal-only])').length;
+      if (!total) { alert('진단 화면이 로드되지 않았습니다. 잠시 후 다시 시도해주세요.'); return false; }
       const done  = Object.keys(diagScores).filter(k => !k.includes('dx_detect') && diagScores[k].score > 0).length;
       if (done < total) {
         alert('진단 항목을 모두 입력해주세요. (' + done + ' / ' + total + '개 완료)');
@@ -1927,9 +1928,12 @@ const Wizard = (() => {
       '<p class="bizinfo-note">귀사 업종·규모 기준 관련도 순 정렬 ' + sourceTag + '</p>' +
       '<div class="bizinfo-list">' +
       programs.map(function(p) {
-        const dDayHtml = p.dDay !== null && p.dDay !== undefined
-          ? '<span class="bizinfo-dday' + (p.dDay <= 7 ? ' urgent' : '') + '">D-' + p.dDay + '</span>'
-          : '';
+        const dDayHtml = (function() {
+          if (p.dDay === null || p.dDay === undefined) return '';
+          if (p.dDay < 0) return '<span class="bizinfo-dday expired">마감</span>';
+          if (p.dDay === 0) return '<span class="bizinfo-dday urgent">D-Day</span>';
+          return '<span class="bizinfo-dday' + (p.dDay <= 7 ? ' urgent' : '') + '">D-' + p.dDay + '</span>';
+        })();
         return '<div class="bizinfo-card">' +
           '<div class="bizinfo-top">' +
             '<span class="bizinfo-type">' + (p.type || '지원') + '</span>' +
