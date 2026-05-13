@@ -822,7 +822,8 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .bizinfo-org   { font-size: 0.75rem; color: rgba(255,255,255,.45); margin-bottom: 6px; }
 .bizinfo-period{ font-size: 0.78rem; color: rgba(255,255,255,.6); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 .bizinfo-dday  { background: rgba(245,192,48,.15); color: #F5C030; border-radius: 4px; padding: 1px 6px; font-size: 0.7rem; font-weight: 700; }
-.bizinfo-dday.urgent { background: rgba(239,68,68,.2); color: #F87171; }
+.bizinfo-dday.urgent  { background: rgba(239,68,68,.2); color: #F87171; }
+.bizinfo-dday.expired { background: rgba(120,120,120,.35); color: #fff; }
 .bizinfo-summary { font-size: 0.8rem; color: rgba(255,255,255,.65); line-height: 1.5; margin-bottom: 8px; }
 .bizinfo-link  { font-size: 0.78rem; color: #F5C030; text-decoration: none; opacity: .8; }
 .bizinfo-link:hover { opacity: 1; text-decoration: underline; }
