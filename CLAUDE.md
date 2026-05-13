@@ -2,7 +2,7 @@
 
 ## 배포 상태 (2026-05-13 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: chore: 루트 PDF 추적 제거 (2ec8a42)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: Executive Summary 가독성 개선 (e45548e)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
 
@@ -36,11 +36,28 @@
 
 ---
 
+## 최근 수정 이력 (2026-05-13 오후) — 실전 테스트 후 UI/UX 개선
+
+### ① 대시보드 상단 헤더 가려짐 수정 (배포 완료)
+- `css/dashboard.css:7` `#dashboard` `padding-top: 40px` → `80px`
+- 원인: ID 선택자 특이도가 `.has-nav` 클래스 선택자보다 높아 네비(60px) 덮어쓰기 → 20px 겹침
+- 수정: 네비 60px + 여백 20px = 80px 확보
+
+### ② Executive Summary 가독성 개선 (배포 완료)
+- `js/ai-engine.js` SYSTEM 프롬프트 `[executiveSummary 출력 포맷 지침]` 섹션 추가
+  - 전문 경영 용어 단독 사용 금지 → 쉬운 설명으로 직접 서술
+  - 5개 레이블 구조 강제: `[운영현황]` `[핵심위험]` `[차별화포인트]` `[시장기회]` `[즉시과제]`
+  - 각 항목에 구체적 수치·근거 포함 의무화
+- `js/dashboard.js` execSummary 렌더링에 `[레이블]` 패턴 → `.es-label` bold 강조 추가
+  - `.replace(/\[([^\]]+)\]/g, '<strong class="es-label">[$1]</strong>')`
+- `css/dashboard.css` `.es-label { color: var(--gold); font-weight: 700; }` 추가
+
+---
+
 ## 다음 세션 예정 작업
 
-### 1순위: 실전 end-to-end 테스트
-- 실제 ANTHROPIC_API_KEY 연결 후 biznavi.vercel.app 실분석 1회
-- 1차·2차 정상 JSON 반환, 대시보드 전 섹션 렌더링 확인
+### 1순위: Executive Summary 개선 결과 실전 테스트
+- 5개 레이블 구조 정상 출력, 골드 bold 강조 확인
 
 ### 2순위: reference-db.js 데이터 업그레이드
 - `js/reference-db.js` 벤치마크 수치를 `knowledge_base/industry_full_benchmarks.csv` 기준으로 갱신
