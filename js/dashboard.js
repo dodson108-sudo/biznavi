@@ -488,7 +488,10 @@ const Dashboard = (() => {
 
     // Executive Summary
     document.getElementById('execSummary').innerHTML =
-      (data.executiveSummary || '').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      (data.executiveSummary || '')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[([^\]]+)\]/g, '<strong class="es-label">[$1]</strong>');
 
     // SWOT (항상 렌더링 — 소상공인 모드에선 섹션 자체가 hidden)
     const renderSwotList = (id, arr) => {
