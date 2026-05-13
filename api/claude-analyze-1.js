@@ -72,6 +72,11 @@ module.exports = async (req, res) => {
 
     if (data.stop_reason === 'end_turn') break;
 
+    if (data.stop_reason === 'max_tokens') {
+      console.log(`[ERROR] 1차 max_tokens 초과 — JSON 절단. output_tokens: ${data.usage?.output_tokens}`);
+      return res.status(500).json({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' });
+    }
+
     if (data.stop_reason === 'tool_use') {
       messages.push({ role: 'assistant', content });
       const toolResults = content

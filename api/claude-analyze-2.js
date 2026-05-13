@@ -50,7 +50,8 @@ module.exports = async (req, res) => {
   const data = await claudeRes.json();
   console.log(`[TIMING] 2차 stop_reason=${data.stop_reason}, input_tokens=${data.usage?.input_tokens}, output_tokens=${data.usage?.output_tokens}`);
   if (data.stop_reason === 'max_tokens') {
-    console.log('[ERROR] 2차 max_tokens 초과 — JSON 절단 발생. output_tokens:', data.usage?.output_tokens);
+    console.log(`[ERROR] 2차 max_tokens 초과 — JSON 절단. output_tokens: ${data.usage?.output_tokens}`);
+    return res.status(500).json({ error: 'max_tokens 초과 — 2차 응답 절단됨 (JSON 불완전)' });
   }
   const finalText = (data.content || [])
     .filter(b => b.type === 'text')

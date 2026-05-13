@@ -1494,7 +1494,7 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
               `HubSpot CRM 무료판 설치 + 현재 상담 고객 전부 입력 + 팔로우업 날짜 설정`,
               `Google Analytics 4 홈페이지 연결 + 카카오 채널 자동응답 설정`
             ],
-            expectedResult: '온라인 검색에서 ${co} 발견 시작, CRM에 고객 20명 이상 데이터 적재, 팔로우업 놓치는 건수 0',
+            expectedResult: `온라인 검색에서 ${co} 발견 시작, CRM에 고객 20명 이상 데이터 적재, 팔로우업 놓치는 건수 0`,
             govSupport: '소상공인 스마트상점 기술보급사업 (소진공, 무료 컨설팅 포함)'
           },
           {
