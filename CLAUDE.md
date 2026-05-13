@@ -2,48 +2,52 @@
 
 ## 배포 상태 (2026-05-13 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: claude-analyze-1.js pause_turn 핸들링 추가 (4e76da2)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: chore: 루트 PDF 추적 제거 (2ec8a42)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
-## 최근 수정 이력 (2026-05-13) — AI 분석 end-to-end 버그 수정
+## 최근 수정 이력 (2026-05-13) — AI 버그 수정 + knowledge_base 구축
 
-### ① C-3 + W-4: max_tokens 절단 대응
-- `api/claude-analyze-1.js:73` `stop_reason === 'max_tokens'` 시 500 에러 반환
-- `api/claude-analyze-2.js:52` 동일 처리 (로그만 찍던 것 → 500 에러 반환)
-- 절단된 JSON 클라이언트 전달 완전 차단 → app.js catch → fakeAnalysis fallback 유도
+### ① AI 분석 end-to-end 버그 수정 (배포 완료)
+- C-3: `api/claude-analyze-1.js` `stop_reason === 'max_tokens'` 시 500 에러 반환
+- W-4: `api/claude-analyze-2.js` 동일 처리 (로그만 찍던 것 → 500 에러 반환)
+- C-2: `dashboard.js:491` `(data.executiveSummary || '').replace(...)` null 가드
+- W-1: `ai-engine.js:1497` `digital_strategy` 템플릿 리터럴 백틱 수정 (`'..${co}..'` → `` `..${co}..` ``)
 
-### ② C-2: executiveSummary null 가드
-- `dashboard.js:491` `data.executiveSummary.replace(...)` → `(data.executiveSummary || '').replace(...)`
-- null/undefined 시 대시보드 전체 크래시(TypeError) 방지
-
-### ③ W-1: 단일따옴표 → 백틱 교체
-- `ai-engine.js:1497` `digital_strategy` plan90days 1개월차 expectedResult
-- `'..${co}..'` 단일따옴표 → `` `..${co}..` `` 백틱 — 회사명 변수 정상 출력
-
-### ④ C-1: pause_turn 핸들링 추가
-- `api/claude-analyze-1.js` `pause_turn` 시 assistant 응답 저장 + `'continue'` 메시지 전송 후 루프 재진행
-- web_search 서버 루프 한계 도달 시 대화 연속성 보장
+### ② pause_turn 핸들링 추가 (배포 완료)
+- `api/claude-analyze-1.js`: `stop_reason === 'pause_turn'` 시 `'continue'` 전송 후 루프 재진행
 - stop_reason 처리 체계 완성: `end_turn` / `max_tokens` / `pause_turn` / `tool_use`
+
+### ③ W-2·W-3·W-5·S-2 수정 (배포 완료)
+- W-2: `js/ai-engine.js` growth/structure/innovation/cx_strategy kpi 8개 → 10개 확장
+- W-3: `js/wizard.js:1079` validate(2) `|| 13` fallback 제거 + DOM 0개 시 alert 가드
+- W-5: `js/wizard.js:1930` dDay 음수 → "마감" 뱃지, 0 → "D-Day" 뱃지 처리
+- W-5: `css/style.css` `.bizinfo-dday.expired` 회색 뱃지 스타일 추가
+- S-2: `api/claude-analyze-1.js`, `claude-analyze-2.js` `[TIMING]` console.log + `T_START` 전부 제거
+
+### ④ knowledge_base 폴더 구축 (배포 완료)
+- `knowledge_base/12개사업모델진단.pdf` — 12개 BM 진단 설계 원본
+- `knowledge_base/16개업종진단.pdf` — 16개 업종 진단 설계 원본
+- `knowledge_base/industry_full_benchmarks.csv` — 18개 업종 재무 벤치마크 (영업이익률·부채비율 등)
+- `knowledge_base/small_biz_cost_guide.csv` — 10개 업종 소상공인 비용 구조 (임대료·인건비·원가 비중)
+- CLAUDE.md 작업 규칙: "AI 진단 로직 수정 시 → knowledge_base PDF 우선 참조" 추가
 
 ---
 
 ## 다음 세션 예정 작업
 
-### 1순위: QA WARNING 잔여 수정
-- W-2: `growth_strategy` 등 4유형 kpi 8개 → 10개로 추가
-- W-3: `wizard.js:1079` validate(2) fallback `|| 13` 허점 수정
-- W-5: `wizard.js:1930` dDay 음수(마감 지남) 표시 방어 추가
-
-### 2순위: S-2 콘솔 로그 제거
-- `api/claude-analyze-1.js`, `claude-analyze-2.js` `[TIMING]` console.log 제거
-- `ai-engine.js` 클라이언트 타이머 로그 제거
-
-### 3순위: 실전 end-to-end 테스트
+### 1순위: 실전 end-to-end 테스트
 - 실제 ANTHROPIC_API_KEY 연결 후 biznavi.vercel.app 실분석 1회
-- 1차·2차 정상 JSON 반환 확인, 대시보드 전 섹션 렌더링 확인
+- 1차·2차 정상 JSON 반환, 대시보드 전 섹션 렌더링 확인
+
+### 2순위: reference-db.js 데이터 업그레이드
+- `js/reference-db.js` 벤치마크 수치를 `knowledge_base/industry_full_benchmarks.csv` 기준으로 갱신
+- 소상공인 비용 구조 데이터 (`small_biz_cost_guide.csv`) 프롬프트 반영 검토
+
+### 3순위: CORS 보안 강화
+- API 키 노출 방지 추가 검토
 
 ---
 
