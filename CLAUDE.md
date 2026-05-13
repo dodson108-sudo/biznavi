@@ -1392,6 +1392,9 @@ Vercel Dashboard → biznavi 프로젝트 → Settings → Environment Variables
 
 ```
 biznavi/
+├── knowledge_base/
+│   ├── 12개사업모델진단.pdf   # 12개 BM 진단 설계 원본
+│   └── 16개업종진단.pdf       # 16개 업종 진단 설계 원본
 ├── index.html          HTML 뼈대, 인라인 CSS/JS 없음
 ├── css/
 │   ├── style.css       공통 스타일 (위저드·로딩·모달·네비·진단 UI — 다크테마)
@@ -1547,3 +1550,4 @@ biznavi/
 - 롤링 배너 수정 → `ticker.js` + `landing.css` (ticker 섹션)
 - `lp-` 접두사: 랜딩 전용 클래스에만 사용
 - 인라인 스타일 추가 금지, 디자인 수정은 해당 CSS 파일만
+- AI 진단 로직 수정 시 → `knowledge_base/` PDF 내용 우선 참조
