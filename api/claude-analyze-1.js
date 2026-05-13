@@ -77,6 +77,13 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' });
     }
 
+    if (data.stop_reason === 'pause_turn') {
+      // 서버 도구(web_search) 내부 루프 한계 도달 — 대화 이어서 전송
+      messages.push({ role: 'assistant', content });
+      messages.push({ role: 'user', content: [{ type: 'text', text: 'continue' }] });
+      continue;
+    }
+
     if (data.stop_reason === 'tool_use') {
       messages.push({ role: 'assistant', content });
       const toolResults = content
