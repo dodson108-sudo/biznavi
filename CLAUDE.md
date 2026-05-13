@@ -1393,8 +1393,10 @@ Vercel Dashboard → biznavi 프로젝트 → Settings → Environment Variables
 ```
 biznavi/
 ├── knowledge_base/
-│   ├── 12개사업모델진단.pdf   # 12개 BM 진단 설계 원본
-│   └── 16개업종진단.pdf       # 16개 업종 진단 설계 원본
+│   ├── 12개사업모델진단.pdf          # 12개 BM 진단 설계 원본
+│   ├── 16개업종진단.pdf              # 16개 업종 진단 설계 원본
+│   ├── industry_full_benchmarks.csv  # 18개 업종 재무 벤치마크 (영업이익률·부채비율 등)
+│   └── small_biz_cost_guide.csv      # 10개 업종 소상공인 비용 구조 (임대료·인건비·원가 비중)
 ├── index.html          HTML 뼈대, 인라인 CSS/JS 없음
 ├── css/
 │   ├── style.css       공통 스타일 (위저드·로딩·모달·네비·진단 UI — 다크테마)
