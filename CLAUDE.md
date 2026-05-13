@@ -1,10 +1,49 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-12 최신)
+## 배포 상태 (2026-05-13 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: app.js bizinfo industryKey 빈 문자열 버그 수정 (QA CRITICAL)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: claude-analyze-1.js pause_turn 핸들링 추가 (4e76da2)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-13) — AI 분석 end-to-end 버그 수정
+
+### ① C-3 + W-4: max_tokens 절단 대응
+- `api/claude-analyze-1.js:73` `stop_reason === 'max_tokens'` 시 500 에러 반환
+- `api/claude-analyze-2.js:52` 동일 처리 (로그만 찍던 것 → 500 에러 반환)
+- 절단된 JSON 클라이언트 전달 완전 차단 → app.js catch → fakeAnalysis fallback 유도
+
+### ② C-2: executiveSummary null 가드
+- `dashboard.js:491` `data.executiveSummary.replace(...)` → `(data.executiveSummary || '').replace(...)`
+- null/undefined 시 대시보드 전체 크래시(TypeError) 방지
+
+### ③ W-1: 단일따옴표 → 백틱 교체
+- `ai-engine.js:1497` `digital_strategy` plan90days 1개월차 expectedResult
+- `'..${co}..'` 단일따옴표 → `` `..${co}..` `` 백틱 — 회사명 변수 정상 출력
+
+### ④ C-1: pause_turn 핸들링 추가
+- `api/claude-analyze-1.js` `pause_turn` 시 assistant 응답 저장 + `'continue'` 메시지 전송 후 루프 재진행
+- web_search 서버 루프 한계 도달 시 대화 연속성 보장
+- stop_reason 처리 체계 완성: `end_turn` / `max_tokens` / `pause_turn` / `tool_use`
+
+---
+
+## 다음 세션 예정 작업
+
+### 1순위: QA WARNING 잔여 수정
+- W-2: `growth_strategy` 등 4유형 kpi 8개 → 10개로 추가
+- W-3: `wizard.js:1079` validate(2) fallback `|| 13` 허점 수정
+- W-5: `wizard.js:1930` dDay 음수(마감 지남) 표시 방어 추가
+
+### 2순위: S-2 콘솔 로그 제거
+- `api/claude-analyze-1.js`, `claude-analyze-2.js` `[TIMING]` console.log 제거
+- `ai-engine.js` 클라이언트 타이머 로그 제거
+
+### 3순위: 실전 end-to-end 테스트
+- 실제 ANTHROPIC_API_KEY 연결 후 biznavi.vercel.app 실분석 1회
+- 1차·2차 정상 JSON 반환 확인, 대시보드 전 섹션 렌더링 확인
 
 ---
 
