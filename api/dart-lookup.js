@@ -348,30 +348,30 @@ module.exports = async function handler(req, res) {
     let finData = null;
     const currentYear = new Date().getFullYear();
 
-    // 현재 연도: 최신 보고서 순으로 시도 (1분기 → 반기 → 3분기 → 연간)
-    for (const reprtCode of ['11013', '11012', '11014', '11011']) {
+    // 최신 공시 우선 탐색 순서:
+    // 1. 현재연도 1분기 (오늘 마감, 있으면 가장 최신)
+    // 2. 전년도 연간 (완성도 최우선)
+    // 3. 전년도 3분기→반기→1분기 역순
+    // 4. 전전년도 연간 (최후 fallback)
+    const searchOrder = [
+      { year: currentYear,     reprtCode: '11013' },
+      { year: currentYear - 1, reprtCode: '11011' },
+      { year: currentYear - 1, reprtCode: '11014' },
+      { year: currentYear - 1, reprtCode: '11012' },
+      { year: currentYear - 1, reprtCode: '11013' },
+      { year: currentYear - 2, reprtCode: '11011' },
+    ];
+
+    for (const { year, reprtCode } of searchOrder) {
       for (const fsDiv of ['CFS', 'OFS']) {
-        const res = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${currentYear}&reprt_code=${reprtCode}&fs_div=${fsDiv}`);
+        const res = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=${reprtCode}&fs_div=${fsDiv}`);
         const json = await res.json();
         if (json.status === '000' && json.list?.length > 0) {
-          finData = { year: currentYear, list: json.list, reprtCode, reprtName: `${currentYear}년 ${REPRT_CODE_MAP[reprtCode]}` };
+          finData = { year, list: json.list, reprtCode, reprtName: `${year}년 ${REPRT_CODE_MAP[reprtCode]}` };
           break;
         }
       }
       if (finData) break;
-    }
-
-    // 이전 연도 fallback: 연간 보고서만 시도
-    if (!finData) {
-      for (let year = currentYear - 1; year >= currentYear - 5; year--) {
-        const cfsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=CFS`);
-        const cfs = await cfsRes.json();
-        if (cfs.status === '000' && cfs.list?.length > 0) { finData = { year, list: cfs.list, reprtCode: '11011', reprtName: `${year}년 사업보고서` }; break; }
-
-        const ofsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=OFS`);
-        const ofs = await ofsRes.json();
-        if (ofs.status === '000' && ofs.list?.length > 0) { finData = { year, list: ofs.list, reprtCode: '11011', reprtName: `${year}년 사업보고서` }; break; }
-      }
     }
 
     if (!finData) {
