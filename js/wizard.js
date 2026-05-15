@@ -1646,6 +1646,7 @@ const Wizard = (() => {
           domains.hr.scores.push(s);
         } else if (key === 'diag-common-container_3_2' || key.startsWith('diag-common-container_5_')) {
           domains.differentiation.scores.push(s);
+          domains.bm.scores.push(s); // 3_2 차별화 점수를 BM역량 proxy로 공유 (bizmodel 탭 제거 보완)
         } else if (key.startsWith('diag-common-container_3_')) {
           domains.bm.scores.push(s);
         } else if (key.startsWith('diag-industry-container_')) {
@@ -2039,7 +2040,12 @@ const Wizard = (() => {
       industryKey:     g('aiIndustryKey'),   // AI 분석 업종 키
       aiBusinessDesc:  g('aiBusinessDesc'),  // AI 분석 사업 설명
       industry:        g('industry'),
-      bizScale:        g('bizScale'),   // 'micro' | 'sme'
+      bizScale:        (function() {
+        const explicit = g('bizScale') || g('bizScaleSelect');
+        if (explicit) return explicit;
+        const emp = g('employees');
+        return (!emp || emp === '1~5명') ? 'micro' : 'sme';
+      })(),
       bizModel:        g('bizModel'),   // 추론된 BM 레이블 (hidden input)
       bizModelKey:     _inferredBmKey,  // 추론된 BM 키
       foundedYear:     g('foundedYear'),
