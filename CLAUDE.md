@@ -1,10 +1,52 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-13 최신)
+## 배포 상태 (2026-05-15 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: Executive Summary 가독성 개선 (e45548e)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: DART 보고서 탐색 순서 재설계 (14eeaaa)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-15) — DART 분기보고서 탐색 + 대시보드 버그 수정
+
+### ① 핵심전략 섹션 누락 버그 수정 (배포 완료)
+- **원인**: `bizScale` 숨김 input이 OCR 콜백에서만 세팅 → 일반 입력 시 항상 `''` → AI 프롬프트에 `bizScale: '미입력'` 전달 → micro 모드 출력(sixSystems 중심), keyStrategies 누락
+- **수정**: `wizard.js collect()` — `bizScale` 자동 추론 추가
+  ```js
+  const explicit = g('bizScale') || g('bizScaleSelect');
+  if (explicit) return explicit;
+  const emp = g('employees');
+  return (!emp || emp === '1~5명') ? 'micro' : 'sme';
+  ```
+
+### ② BM역량 항상 빈칸 버그 수정 (배포 완료)
+- **원인**: `TAB_ORDER = ['common', 'industry']`로 bizmodel 탭 제거 후 `diag-bizmodel-container_*` 키가 존재하지 않아 `domains.bm.scores = []` → 0점 표시
+- **수정**: `wizard.js calcDomainScores()` — `3_2`(차별화 요소) 점수를 BM역량 proxy로 공유
+  ```js
+  } else if (key === 'diag-common-container_3_2' || key.startsWith('diag-common-container_5_')) {
+    domains.differentiation.scores.push(s);
+    domains.bm.scores.push(s); // bizmodel 탭 제거 보완
+  ```
+
+### ③ DART 최신 보고서 자동 탐색 구현 (배포 완료)
+- `api/dart-lookup.js` — `REPRT_CODE_MAP` 추가, 명시적 6단계 탐색 순서로 교체
+- `finData`에 `reprtCode`, `reprtName` 저장 → result 객체에 포함
+- `_supplementWithXbrl()` — `reprtCode` 파라미터 추가, XBRL URL에 적용
+- `js/finance-wizard.js` — DART 결과 상단에 `📋 2025년 사업보고서 기준` 초록 배지 표시
+- `css/style.css` — `.dart-reprt-badge` 스타일 추가 (초록 계열)
+
+### ④ DART 탐색 순서 재설계 (배포 완료)
+- **배경**: 이전 구조는 `bsns_year=2026` 전체(8호출) 실패 후 2025 연간만 fallback → "최신 분기 우선" 의도가 이전 연도에 미적용
+- **DART `bsns_year` 의미**: 보고 대상 회계연도 (제출 연도 아님) — 2026 Q1은 오늘(5/15) 마감, 나머지 2026 보고서는 미래
+- **새 탐색 순서**:
+  1. `bsns_year=2026, 11013` — 오늘 마감 Q1, 있으면 최신
+  2. `bsns_year=2025, 11011` — 완성도 최우선 연간 (대부분 여기서 결정)
+  3. `bsns_year=2025, 11014` — 3분기
+  4. `bsns_year=2025, 11012` — 반기
+  5. `bsns_year=2025, 11013` — 1분기
+  6. `bsns_year=2024, 11011` — 최후 fallback
+- **효과**: 불필요 API 호출 8개 → 최대 2개(CFS/OFS)로 감소
 
 ---
 
