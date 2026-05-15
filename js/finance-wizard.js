@@ -411,6 +411,7 @@ const FinWizard = (() => {
           <div class="dart-result-summary">
             <span class="dart-corp-name">${data.corpName}</span>
             <span class="dart-year-badge">${data.year}년 기준</span>
+            ${data.reprtName ? `<span class="dart-reprt-badge">📋 ${data.reprtName} 기준</span>` : ''}
             ${data.indutyName ? `<span class="dart-industry">${data.indutyName}</span>` : ''}
           </div>
           <div class="dart-accounts-grid">

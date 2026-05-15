@@ -1236,6 +1236,10 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   font-size: 11px; background: rgba(245,192,48,0.15); border: 1px solid rgba(245,192,48,0.35);
   color: var(--gold); border-radius: 12px; padding: 2px 8px;
 }
+.dart-reprt-badge {
+  font-size: 11px; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
+  color: #4ADE80; border-radius: 12px; padding: 2px 8px;
+}
 .dart-industry { font-size: 11px; color: var(--txt3); }
 .dart-accounts-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px;

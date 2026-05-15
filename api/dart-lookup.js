@@ -169,7 +169,7 @@ function _parseXbrl(xml, year) {
 }
 
 /* ── XBRL 보완 (fnlttSinglAcnt 누락값 채우기) ── */
-async function _supplementWithXbrl(apiKey, corpCode, year, data) {
+async function _supplementWithXbrl(apiKey, corpCode, year, data, reprtCode = '11011') {
   const needKeys = ['cash', 'inventory', 'tangibleAssets', 'receivable', 'payable', 'borrowings', 'costOfSales', 'grossProfit', 'interestExpense', 'laborCost'];
   if (needKeys.every(k => data[k])) return data; // 이미 모두 있으면 스킵
 
@@ -211,7 +211,7 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data) {
     let buf;
     try {
       const xbrlRes = await fetch(
-        `https://opendart.fss.or.kr/api/fnlttXbrl.xml?crtfc_key=${apiKey}&rcept_no=${filing.rcept_no}&reprt_code=11011`,
+        `https://opendart.fss.or.kr/api/fnlttXbrl.xml?crtfc_key=${apiKey}&rcept_no=${filing.rcept_no}&reprt_code=${reprtCode}`,
         { signal: xbrlCtrl.signal }
       );
       if (!xbrlRes.ok) { console.warn('[XBRL] 다운로드 실패:', xbrlRes.status); return data; }
@@ -344,17 +344,34 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    const REPRT_CODE_MAP = { '11013': '1분기보고서', '11012': '반기보고서', '11014': '3분기보고서', '11011': '사업보고서' };
     let finData = null;
     const currentYear = new Date().getFullYear();
 
-    for (let year = currentYear - 1; year >= currentYear - 5; year--) {
-      const cfsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=CFS`);
-      const cfs = await cfsRes.json();
-      if (cfs.status === '000' && cfs.list?.length > 0) { finData = { year, list: cfs.list }; break; }
+    // 현재 연도: 최신 보고서 순으로 시도 (1분기 → 반기 → 3분기 → 연간)
+    for (const reprtCode of ['11013', '11012', '11014', '11011']) {
+      for (const fsDiv of ['CFS', 'OFS']) {
+        const res = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${currentYear}&reprt_code=${reprtCode}&fs_div=${fsDiv}`);
+        const json = await res.json();
+        if (json.status === '000' && json.list?.length > 0) {
+          finData = { year: currentYear, list: json.list, reprtCode, reprtName: `${currentYear}년 ${REPRT_CODE_MAP[reprtCode]}` };
+          break;
+        }
+      }
+      if (finData) break;
+    }
 
-      const ofsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=OFS`);
-      const ofs = await ofsRes.json();
-      if (ofs.status === '000' && ofs.list?.length > 0) { finData = { year, list: ofs.list }; break; }
+    // 이전 연도 fallback: 연간 보고서만 시도
+    if (!finData) {
+      for (let year = currentYear - 1; year >= currentYear - 5; year--) {
+        const cfsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=CFS`);
+        const cfs = await cfsRes.json();
+        if (cfs.status === '000' && cfs.list?.length > 0) { finData = { year, list: cfs.list, reprtCode: '11011', reprtName: `${year}년 사업보고서` }; break; }
+
+        const ofsRes = await fetch(`https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key=${apiKey}&corp_code=${corpCode}&bsns_year=${year}&reprt_code=11011&fs_div=OFS`);
+        const ofs = await ofsRes.json();
+        if (ofs.status === '000' && ofs.list?.length > 0) { finData = { year, list: ofs.list, reprtCode: '11011', reprtName: `${year}년 사업보고서` }; break; }
+      }
     }
 
     if (!finData) {
@@ -405,6 +422,8 @@ module.exports = async function handler(req, res) {
       indutyCode,
       indutyName,
       year: finData.year,
+      reprtName: finData.reprtName,
+      reprtCode: finData.reprtCode,
       currentAssets:      r(get('유동자산')),
       quickAssets:        r(get('당좌자산', '당좌및단기금융자산', '단기금융상품및현금성자산')),
       // 금융업 fallback: 현금및예치금(은행)
@@ -446,7 +465,7 @@ module.exports = async function handler(req, res) {
     }
 
     // ── 5단계: XBRL로 누락 항목 보완 ──
-    result = await _supplementWithXbrl(apiKey, corpCode, finData.year, result);
+    result = await _supplementWithXbrl(apiKey, corpCode, finData.year, result, finData.reprtCode);
 
     // XBRL 보완 후에도 grossProfit 없으면 costOfSales로 재시도
     if (!result.grossProfit && result.revenue && result.costOfSales) {
