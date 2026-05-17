@@ -1,10 +1,59 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-15 최신)
+## 배포 상태 (2026-05-17 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: DART 보고서 탐색 순서 재설계 (14eeaaa)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: BM 진단 파일 v2.0 전면 교체 (5d73c9c)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-17) — 진단 모듈 v2.0 전면 재설계
+
+### ① 규모별 전용 진단 모듈 신규 구축 (배포 완료)
+- `js/diagnosis/common.js` v2.0 전면 개편 — DiagCommon IIFE, 5 domains × 4 items, `buildPromptSummary()` 추가
+- `js/diagnosis/diagnosis-micro.js` 신규 — DiagMicro IIFE, 소상공인(bizScale='micro') 전용
+  - 3 도메인: 로컬SEO(0.35) · 메뉴엔지니어링(0.35) · 위임시스템(0.30)
+  - ACTION_PLAN_7DAY, calcScores, detectCrossWarnings, buildPromptSummary, getSchema
+- `js/diagnosis/diagnosis-sme.js` 신규 — DiagSme IIFE, 소기업(bizScale='sme') 전용
+  - 4 도메인: process_cost(0.28) · backoffice_dx(0.25) · org_talent(0.22) · scaleup_radar(0.25)
+  - G_1~G_6 Scale-up 6대 축 radar (S_SEO, S_AI, S_CF, S_PCR, S_SD, S_ESG)
+
+### ② 연동 수정 3파일 (배포 완료)
+- `index.html` — script 태그에 diagnosis-micro.js · diagnosis-sme.js 추가
+- `wizard.js collect()` 말미 — bizScale 감지 후 DiagMicro/DiagSme 호출, `data.microPrompt`/`data.smePrompt` 주입
+- `ai-engine.js buildPrompt1()` — `return \`` → `let prompt = \`` 구조 변경 후 common/micro/sme 프롬프트 append
+
+### ③ 업종 진단 파일 v2.0 전면 교체 (배포 완료)
+- 교체 파일: `logistics.js` · `energy.js` · `agri_food.js` · `export_sme.js`
+- 신규 포맷: top-level `label/icon/description` + 4 areas × 4 items + `ai_analysis` 배열
+- `scale:[{score:1~5, desc}]` 구조, `ai_trigger:{threshold, warning}` 항목별 AI 경보 설계
+- `window.INDUSTRY_XXX` + `module.exports` 듀얼 익스포트
+
+### ④ BM 진단 파일 v2.0 전면 교체 (배포 완료)
+- 교체 파일: `usage_based.js` · `advertising.js` · `deeptech.js`
+- 변수명 `BIZMODEL_XXX` → `BM_XXX` 통일, 신규 포맷 동일 적용
+  - `BM_USAGE_BASED`: 종량제 (과금 설계·사용자 확장·Margin·이탈관리 4영역)
+  - `BM_ADVERTISING`: 광고 기반 (오디언스·인벤토리·광고주·UX균형 4영역)
+  - `BM_DEEPTECH`: 딥테크·바이오 (IP·R&D·자금조달·사업화 4영역)
+
+---
+
+## 다음 세션 예정 작업
+
+### 1순위: 나머지 BM 진단 파일 v2.0 교체
+- `b2b_saas.js` · `b2c_sub.js` · `b2b_solution.js` · `b2c_commerce.js` · `platform.js` · `franchise.js` · `mfg_dist.js` · `service.js` · `etc.js` (9개)
+
+### 2순위: 나머지 업종 진단 파일 v2.0 교체
+- `mfg_parts.js` · `food_mfg.js` · `local_service.js` · `wholesale.js` · `restaurant.js` · `knowledge_it.js` · `construction.js` · `medical.js` · `finance.js` · `education.js` · `fashion.js` · `media.js` (12개)
+
+### 3순위: wizard.js 진단 UI 연동 — v2.0 포맷 렌더링
+- `loadDiagnosisUI()` — 새 포맷(`areas → items → scale`) 기반 UI 렌더링 확인
+- `ai_trigger` 경보 → `detectCrossWarnings()` 연동
+
+### 4순위: reference-db.js 데이터 업그레이드
+- `knowledge_base/industry_full_benchmarks.csv` 기준 수치 갱신
+- `small_biz_cost_guide.csv` 소상공인 비용 구조 프롬프트 반영
 
 ---
 
