@@ -2113,6 +2113,26 @@ const Wizard = (() => {
         return depScore > 0 && depScore <= 2 && empCount > 1;
       })(),
     };
+
+    const bizScale = (typeof g === 'function' ? g('bizScale') : '') ||
+      (typeof g === 'function' ? g('bizScaleSelect') : '') || 'micro';
+
+    let scaleScores = {};
+    if (bizScale === 'micro' && window.DiagMicro) {
+      const allScores = collectAllScores ? collectAllScores() : {};
+      scaleScores = DiagMicro.calcScores(allScores);
+      data.microWarnings = DiagMicro.detectCrossWarnings(allScores);
+      data.microPrompt = DiagMicro.buildPromptSummary(allScores);
+    } else if (bizScale === 'sme' && window.DiagSme) {
+      const allScores = collectAllScores ? collectAllScores() : {};
+      scaleScores = DiagSme.calcScores(allScores);
+      data.smeWarnings = DiagSme.detectCrossWarnings(allScores);
+      data.smePrompt = DiagSme.buildPromptSummary(allScores);
+    }
+    data.scaleScores = scaleScores;
+    data.bizScale = bizScale;
+
+    return data;
   }
 
   function animateLoading() {

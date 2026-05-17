@@ -992,7 +992,7 @@ ${risks.map((r, i) => `◆ 구조적 발견 ${i + 1}\n${r}`).join('\n\n')}
   }
 
   function buildPrompt1(d) {
-    return `다음 기업 정보를 바탕으로 맞춤형 경영전략 분석 보고서를 작성해주세요.
+    let prompt = `다음 기업 정보를 바탕으로 맞춤형 경영전략 분석 보고서를 작성해주세요.
 입력된 정보를 최대한 분석에 반영하고, 일반론적 표현은 피해주세요.
 ${ d.isStartup ? `
 ⚠️ 창업 초기 기업 (개업 ${d.yearsInBusiness !== '' ? d.yearsInBusiness + '년' : '1년 미만'}) — 특별 분석 모드:
@@ -1185,6 +1185,18 @@ ${_buildSurvivalInsights(d, d.survivalData || (typeof window !== 'undefined' && 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 이번 응답에는 executiveSummary, swot, stp, fourP, keyStrategies, specializedAnalysis 6개 필드만 포함하세요.
 kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2차 호출에서 별도로 더 깊이 작성합니다)`;
+
+    if (typeof window !== 'undefined' && window.DiagCommon && d.diagScores) {
+      const commonSummary = DiagCommon.buildPromptSummary(d.diagScores);
+      prompt += '\n\n' + commonSummary;
+    }
+    if (d.bizScale === 'micro' && d.microPrompt) {
+      prompt += '\n\n' + d.microPrompt;
+    } else if (d.bizScale === 'sme' && d.smePrompt) {
+      prompt += '\n\n' + d.smePrompt;
+    }
+
+    return prompt;
   }
 
   /* ── 2차 호출: 실행플랜 사용자 프롬프트 ─────────────────────────────── */
