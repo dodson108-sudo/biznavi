@@ -69,14 +69,7 @@
 
 ## 다음 세션 예정 작업
 
-### 1순위: 나머지 업종 진단 파일 v2.0 교체 (12개 잔여)
-- `mfg_parts.js` · `food_mfg.js` · `local_service.js` · `wholesale.js` · `restaurant.js` · `knowledge_it.js` · `construction.js` · `medical.js` · `finance.js` · `education.js` · `fashion.js` · `media.js`
-
-### 2순위: CrossContext v2.0 AI 프롬프트 연동
-- `ai-engine.js buildPrompt1()` — `CrossContext.buildPromptSummary(industryKey, bmKey, scores)` 결과 주입
-- `wizard.js collect()` — cross-context 경보 데이터 수집 후 `data.crossWarnings` 추가
-
-### 3순위: reference-db.js 데이터 업그레이드
+### 1순위: reference-db.js 데이터 업그레이드
 - `knowledge_base/industry_full_benchmarks.csv` 기준 수치 갱신
 - `small_biz_cost_guide.csv` 소상공인 비용 구조 프롬프트 반영
 
