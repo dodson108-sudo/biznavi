@@ -166,18 +166,18 @@ const AIEngine = (() => {
     };
 
     const bizModelVarMap = {
-      'B2B SaaS': typeof BIZMODEL_B2B_SAAS !== 'undefined' ? BIZMODEL_B2B_SAAS : null,
-      'B2C 구독': typeof BIZMODEL_B2C_SUB !== 'undefined' ? BIZMODEL_B2C_SUB : null,
-      'B2B 솔루션': typeof BIZMODEL_B2B_SOLUTION !== 'undefined' ? BIZMODEL_B2B_SOLUTION : null,
-      'B2C 커머스': typeof BIZMODEL_B2C_COMMERCE !== 'undefined' ? BIZMODEL_B2C_COMMERCE : null,
-      '플랫폼·마켓플레이스': typeof BIZMODEL_PLATFORM !== 'undefined' ? BIZMODEL_PLATFORM : null,
-      '프랜차이즈': typeof BIZMODEL_FRANCHISE !== 'undefined' ? BIZMODEL_FRANCHISE : null,
-      '제조·유통': typeof BIZMODEL_MFG_DIST !== 'undefined' ? BIZMODEL_MFG_DIST : null,
-      '서비스업': typeof BIZMODEL_SERVICE !== 'undefined' ? BIZMODEL_SERVICE : null,
-      '기타': typeof BIZMODEL_ETC !== 'undefined' ? BIZMODEL_ETC : null,
-      '종량제/사용기반': typeof BIZMODEL_USAGE_BASED !== 'undefined' ? BIZMODEL_USAGE_BASED : null,
-      '광고기반':        typeof BIZMODEL_ADVERTISING  !== 'undefined' ? BIZMODEL_ADVERTISING  : null,
-      '딥테크/R&D':      typeof BIZMODEL_DEEPTECH     !== 'undefined' ? BIZMODEL_DEEPTECH     : null,
+      'B2B SaaS': typeof BM_B2B_SAAS !== 'undefined' ? BM_B2B_SAAS : null,
+      'B2C 구독': typeof BM_B2C_SUB !== 'undefined' ? BM_B2C_SUB : null,
+      'B2B 솔루션': typeof BM_B2B_SOLUTION !== 'undefined' ? BM_B2B_SOLUTION : null,
+      'B2C 커머스': typeof BM_B2C_COMMERCE !== 'undefined' ? BM_B2C_COMMERCE : null,
+      '플랫폼·마켓플레이스': typeof BM_PLATFORM !== 'undefined' ? BM_PLATFORM : null,
+      '프랜차이즈': typeof BM_FRANCHISE !== 'undefined' ? BM_FRANCHISE : null,
+      '제조·유통': typeof BM_MFG_DIST !== 'undefined' ? BM_MFG_DIST : null,
+      '서비스업': typeof BM_SERVICE !== 'undefined' ? BM_SERVICE : null,
+      '기타': typeof BM_ETC !== 'undefined' ? BM_ETC : null,
+      '종량제/사용기반': typeof BM_USAGE_BASED !== 'undefined' ? BM_USAGE_BASED : null,
+      '광고기반':        typeof BM_ADVERTISING  !== 'undefined' ? BM_ADVERTISING  : null,
+      '딥테크/R&D':      typeof BM_DEEPTECH     !== 'undefined' ? BM_DEEPTECH     : null,
     };
 
     let insightText = '';
