@@ -1,375 +1,436 @@
-/* ================================================================
-   BizNavi AI — cross-context.js
-   업종 × 사업모델 통합 교차 진단 모듈
-   선택된 두 값이 서로 유기적으로 연계된 4문항을 동적 생성
-   ================================================================ */
+/**
+ * BizNavi AI 경영진단 시스템
+ * cross-context.js — 업종 × BM 교차 트리거 로직 (v2.0)
+ *
+ * 설계 기준:
+ *   - 16개 업종 × 12개 BM 주요 조합에서 발생하는 복합 경고 패턴
+ *   - 단일 진단 파일로는 포착 불가능한 구조적 모순 탐지
+ *   - AI 프롬프트에 교차 경고 자동 삽입
+ *
+ * 작동 방식:
+ *   1. 업종 진단 점수 + BM 진단 점수를 동시에 입력받음
+ *   2. 업종×BM 조합 매트릭스에서 위험 패턴 탐지
+ *   3. CRITICAL·HIGH·MEDIUM 3단계 경고 생성
+ *   4. AI 프롬프트에 교차 경고 텍스트 자동 삽입
+ */
 
 const CrossContext = (() => {
 
-  /* ─────────────────────────────────────────────
-     업종별 컨텍스트 키워드 (Fallback 자동 생성용)
-  ───────────────────────────────────────────── */
-  const IND_CTX = {
-    mfg_parts:    { noun: '제조 공정·생산물',           customer: '바이어·납품처',        work: '생산·제조',      revenue: '납품 단가·수주' },
-    food_mfg:     { noun: '식품·음료 제품',             customer: '유통사·바이어',         work: '생산·가공',      revenue: '납품·판매 단가' },
-    local_service:{ noun: '생활밀착형 서비스',           customer: '지역 고객·기업',        work: '서비스 제공',    revenue: '서비스 단가·수강료' },
-    wholesale:    { noun: '유통 상품·물류 서비스',       customer: '납품처·화주',           work: '유통·배송',      revenue: '마진·물류비' },
-    restaurant:   { noun: '메뉴·식음 서비스',           customer: '방문 고객',             work: '조리·홀 운영',   revenue: '객단가·테이블 회전율' },
-    knowledge_it: { noun: '소프트웨어·IT 솔루션',       customer: '기업·개인 사용자',      work: '개발·운영',      revenue: 'SaaS 구독료·라이선스' },
-    construction: { noun: '시공·인테리어 결과물',        customer: '발주처·건축주',         work: '시공·현장 관리', revenue: '기성금·공사비' },
-    medical:      { noun: '의료·헬스케어 서비스',        customer: '환자·건강관리 대상자',  work: '의료·케어',      revenue: '진료비·구독료' },
-    finance:      { noun: '금융·핀테크 서비스',          customer: '법인·개인 금융 고객',   work: '금융 서비스',    revenue: '수수료·이자' },
-    education:    { noun: '교육 콘텐츠·서비스',          customer: '수강생·기업 교육 담당', work: '강의·교육 운영', revenue: '수강료·교육 단가' },
-    fashion:      { noun: '패션·뷰티 제품·서비스',       customer: '소비자·리셀러',         work: '기획·판매',      revenue: '판매단가·마진' },
-    media:        { noun: '콘텐츠·엔터테인먼트 서비스',  customer: '구독자·광고주',         work: '콘텐츠 제작',    revenue: '광고비·구독료' },
-    etc:          { noun: '제품·서비스',                 customer: '고객',                  work: '업무',           revenue: '매출' },
-  };
+  /* ============================================================
+   * 교차 트리거 규칙 정의
+   * 형식: { industry, bm, triggers[], level, msg }
+   * ============================================================ */
+  const CROSS_RULES = [
 
-  const BIZ_CTX = {
-    b2b_saas:    { model: 'B2B SaaS',        sales: '기업 구독 영업',     retention: '구독 갱신·이탈 방지', growth: '업셀·크로스셀' },
-    b2c_sub:     { model: 'B2C 구독',         sales: '소비자 가입 유도',   retention: '구독 유지',           growth: '요금제 업그레이드' },
-    b2b_solution:{ model: 'B2B 솔루션 납품',  sales: '기업 제안·수주',     retention: '유지보수·AS 계약',    growth: '추가 프로젝트 수주' },
-    b2c_commerce:{ model: 'B2C 커머스',       sales: '소비자 구매 유도',   retention: '재구매·충성 고객화',  growth: '객단가·구매빈도 향상' },
-    platform:    { model: '플랫폼 운영',       sales: '공급자·수요자 확보', retention: '플랫폼 이탈 방지',    growth: '거래량·수수료 확대' },
-    franchise:   { model: '프랜차이즈',        sales: '가맹점 모집·관리',   retention: '가맹점 수익성 유지',  growth: '점포 수·매출 확대' },
-    mfg_dist:    { model: '제조·유통',         sales: '유통 채널 확보',     retention: '거래처 유지',         growth: '채널 다각화·단가 향상' },
-    service:     { model: '서비스 제공',       sales: '수주·계약 체결',     retention: '재계약·장기 관계',    growth: '단가 인상·추가 서비스' },
-    etc:         { model: '사업 운영',         sales: '고객 확보',          retention: '고객 유지',           growth: '매출 성장' },
-  };
+    /* ----------------------------------------------------------
+     * 외식업 × 프랜차이즈 — 이중 자멸 구조
+     * ---------------------------------------------------------- */
+    {
+      id: 'rest_frc_double_collapse',
+      industry: 'restaurant',
+      bm: 'franchise',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'rt_2_3', threshold: 2 }, // 배달 플랫폼 수익률
+        { file: 'bm', key: 'fr_4_4', threshold: 2 },       // 폐점률
+      ],
+      msg: '배달 플랫폼에 종속된 외식 프랜차이즈 구조입니다. 본부도 배달 수수료 압박, 가맹점도 폐점 위기인 이중 자멸 구조입니다. 배달 전용 메뉴 가격 차별화와 가맹점 수익 구조 전면 재설계가 동시에 필요합니다.',
+    },
+    {
+      id: 'rest_frc_quality_collapse',
+      industry: 'restaurant',
+      bm: 'franchise',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'rt_1_1', threshold: 2 }, // 식재료 원가율
+        { file: 'bm', key: 'fr_1_3', threshold: 2 },       // 품질 균일성
+      ],
+      msg: '식재료 원가 관리가 안 되는데 전국 품질 균일성도 무너지고 있습니다. 브랜드 신뢰 붕괴까지 이어지는 3단계 위기 구조입니다. 원가 표준화와 슈퍼바이저 현장 점검을 즉각 강화해야 합니다.',
+    },
 
-  /* ─────────────────────────────────────────────
-     핵심 조합별 특화 교차 진단 4문항
-     Key: industryKey + '_X_' + bizModelKey
-  ───────────────────────────────────────────── */
-  const CROSS_ITEMS = {
+    /* ----------------------------------------------------------
+     * 지식IT × B2B SaaS — 가동률·Churn 이중 위험
+     * ---------------------------------------------------------- */
+    {
+      id: 'kit_saas_utilization_churn',
+      industry: 'knowledge_it',
+      bm: 'b2b_saas',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'ki_3_1', threshold: 2 }, // 가동률
+        { file: 'bm', key: 'bs_4_1', threshold: 2 },       // 갱신율
+      ],
+      msg: '개발 인력 가동률이 낮은데 SaaS 갱신율까지 떨어지고 있습니다. 인건비는 고정 지출인데 매출은 줄어드는 이중 압박 구조입니다. 유휴 인력을 제품 고도화에 즉각 투입하고 고객 성공(CSM) 체계를 강화하십시오.',
+    },
+    {
+      id: 'kit_saas_keyman_churn',
+      industry: 'knowledge_it',
+      bm: 'b2b_saas',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'ki_3_1', threshold: 2 }, // 핵심 인력 의존도
+        { file: 'bm', key: 'bs_1_1', threshold: 2 },       // 제품 차별성
+      ],
+      msg: '특정 개발자 의존도가 높은데 제품 차별성도 낮습니다. 핵심 인력 이탈 시 제품 경쟁력이 동시에 무너지는 위험한 구조입니다. 코드 자산화와 제품 로드맵 다변화가 시급합니다.',
+    },
 
-    /* ───── 건설/부동산 ───── */
-    'construction_X_b2b_solution': [
-      { id:'x1', text:'인테리어·건설 B2B 고객(발주처·기업) 대상 전문 제안서·ROI 분석 역량', min:'견적서·구두 설명만', max:'ROI 분석·전문 제안서 완비' },
-      { id:'x2', text:'시공 완료 후 유지보수·AS 계약(MRO) 기반 반복 매출 비중', min:'없음', max:'반복 매출 40% 이상' },
-      { id:'x3', text:'발주처 설계변경 요청의 계약 기반 범위 통제(Scope 관리)', min:'무조건 무상 수용', max:'변경관리 프로세스 완비' },
-      { id:'x4', text:'건설·인테리어 프로젝트 관리 디지털 툴(PM 소프트웨어·BIM) 도입 수준', min:'수기·엑셀 의존', max:'디지털 통합 운영' },
-    ],
-    'construction_X_service': [
-      { id:'x1', text:'현장 투입 인력(직영+외주) 일별 가동률 최적 배치 수준', min:'파악 안함', max:'최적 배치 자동화 완비' },
-      { id:'x2', text:'시공 서비스 품질의 현장·담당자별 균일성', min:'현장마다 편차 큼', max:'완전 표준화·SOP 완비' },
-      { id:'x3', text:'건설·인테리어 A/S 서비스 신속 대응 체계', min:'방치·지연', max:'전담 대응 체계 완비' },
-      { id:'x4', text:'발주처 대상 장기 시설관리·유지보수 서비스 계약 비중', min:'없음', max:'매출 30% 이상 확보' },
-    ],
-    'construction_X_b2b_saas': [
-      { id:'x1', text:'건설·인테리어 현장 관리 SaaS(발주처 포털·현장 관리 앱) 납품 역량', min:'전무', max:'안정 운영·고도화 중' },
-      { id:'x2', text:'발주처·건설사 대상 구독형 솔루션 영업 사이클 단축 수준', min:'6개월 이상', max:'2개월 이내 계약 완결' },
-      { id:'x3', text:'건설 고객의 프로젝트 종료 후 구독 갱신·재계약률', min:'20% 미만', max:'80% 이상 갱신' },
-      { id:'x4', text:'건설 프로세스(설계→착공→준공) 디지털화·SaaS 연동 수준', min:'0%', max:'핵심 공정 80% 이상 디지털화' },
-    ],
-    'construction_X_mfg_dist': [
-      { id:'x1', text:'주요 자재 직접 소싱·제조 연계를 통한 원가 통제 수준', min:'자재상 100% 의존', max:'직거래·자체 조달 완비' },
-      { id:'x2', text:'시공 후 인테리어·건자재 유통 채널 보유 여부', min:'없음', max:'자체 유통망 완비' },
-      { id:'x3', text:'건설·자재 공급처와 장기 공급 계약(단가 고정) 비중', min:'없음', max:'50% 이상 단가 고정 계약' },
-      { id:'x4', text:'현장별 자재 재고·로스(Loss) 실시간 관리 체계', min:'파악 안함', max:'실시간 재고·폐기 통제' },
-    ],
-    'construction_X_franchise': [
-      { id:'x1', text:'인테리어·건설 시공 표준 패키지(가맹점용) 매뉴얼 완성도', min:'없음', max:'완전 표준화·SOP 완비' },
-      { id:'x2', text:'가맹점 현장 품질 관리·감리 체계(원격·방문 포함)', min:'없음', max:'정기 방문+온라인 실시간 관리' },
-      { id:'x3', text:'가맹점 대상 자재·장비 공동 구매 원가 절감 수준', min:'없음', max:'원가 20% 이상 절감 실현' },
-      { id:'x4', text:'프랜차이즈 시공 패키지 신규 가맹점 모집 역량', min:'없음', max:'연간 신규 10개점 이상 유치' },
-    ],
-    'construction_X_platform': [
-      { id:'x1', text:'건설·인테리어 발주 플랫폼에서의 수주 경쟁력(낙찰률)', min:'10% 미만', max:'50% 이상 낙찰' },
-      { id:'x2', text:'플랫폼 기반 포트폴리오·후기 관리 수준', min:'없음', max:'플랫폼 내 상위 노출 유지' },
-      { id:'x3', text:'자체 플랫폼(건설·인테리어 중개) 운영 역량', min:'없음', max:'안정 운영·거래 성사 중' },
-      { id:'x4', text:'플랫폼 상의 공급자(시공사)·수요자(발주처) 매칭 완결률', min:'40% 미만', max:'80% 이상 완결' },
-    ],
+    /* ----------------------------------------------------------
+     * 수출중소기업 × 종량제(Usage-Based) — 환리스크+번레이트 복합
+     * ---------------------------------------------------------- */
+    {
+      id: 'export_usage_fx_burn',
+      industry: 'export_sme',
+      bm: 'usage_based',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'exp_4_1', threshold: 2 }, // 환리스크 관리
+        { file: 'bm', key: 'ub_3_1', threshold: 2 },        // Gross Margin
+      ],
+      msg: '해외 매출 기반 종량제 서비스인데 환리스크 관리도 마진 관리도 안 되고 있습니다. 환율 급변 시 매출은 있어도 실질 마진이 마이너스가 될 수 있는 구조입니다. 환변동 보험 가입과 과금 단가 외화 기준 재설계를 최우선 처방합니다.',
+    },
 
-    /* ───── IT/소프트웨어 ───── */
-    'knowledge_it_X_b2b_saas': [
-      { id:'x1', text:'IT 솔루션 SaaS 전환 완성도(온프레미스→클라우드 완전 이행)', min:'온프레미스 100%', max:'클라우드 SaaS 100%' },
-      { id:'x2', text:'기업 고객 온보딩 완료 기간(계약→실사용 전환)', min:'3개월 이상', max:'2주 이내 완료' },
-      { id:'x3', text:'MRR 기반 수익 예측 정확도와 이탈 조기 경보 체계', min:'파악 불가', max:'±5% 예측·이탈 자동 감지' },
-      { id:'x4', text:'IT SaaS 파트너 생태계(API·앱 연동) 수준', min:'0개 연동', max:'10개 이상 생태계 완비' },
-    ],
-    'knowledge_it_X_b2b_solution': [
-      { id:'x1', text:'IT 솔루션 특정 도메인 전문성(업종 특화 1위 역량)', min:'범용·차별화 없음', max:'특정 업종 업계 1위 전문성' },
-      { id:'x2', text:'고객사 IT 레거시·보안 요구사항 완전 대응 역량', min:'표준 환경만 지원', max:'어떤 환경도 구현 가능' },
-      { id:'x3', text:'SI·구축형 프로젝트의 수익성(프로젝트당 영업이익률)', min:'10% 미만', max:'30% 이상' },
-      { id:'x4', text:'납품 후 유지보수 MRR 전환율(구축→반복 매출 전환)', min:'없음', max:'납품 고객 70% 이상 전환' },
-    ],
-    'knowledge_it_X_platform': [
-      { id:'x1', text:'IT 플랫폼 공급자(개발사·서비스 제공사) 온보딩 속도', min:'3개월 이상', max:'1주일 이내 완료' },
-      { id:'x2', text:'플랫폼 기술 표준화·오픈 API 개방 수준', min:'폐쇄형·무표준', max:'오픈API·개발자 생태계 완비' },
-      { id:'x3', text:'네트워크 효과 발현 구조(사용자 증가→가치 지수적 증가)', min:'미약·선형 성장만', max:'지수적 네트워크 효과 확인' },
-      { id:'x4', text:'플랫폼 데이터 자산화·AI 활용 수준(핵심 기능화)', min:'데이터 미활용', max:'데이터 기반 핵심 기능 운영' },
-    ],
-    'knowledge_it_X_b2c_sub': [
-      { id:'x1', text:'IT 서비스 개인 사용자 무료→유료 전환율(Freemium 효과)', min:'1% 미만', max:'10% 이상' },
-      { id:'x2', text:'월간 활성 사용자(MAU) 성장률 추세', min:'정체·감소', max:'월 10% 이상 성장' },
-      { id:'x3', text:'구독 이탈률(Churn Rate) 원인 분석·대응 체계', min:'월 10% 이상·파악 불가', max:'월 2% 이하·원인별 자동 대응' },
-      { id:'x4', text:'소비자 대상 IT 서비스 사용성(UX) 만족도', min:'불편·민원 빈번', max:'NPS 70↑ 탁월한 UX 완비' },
-    ],
-    'knowledge_it_X_b2c_commerce': [
-      { id:'x1', text:'IT 기반 커머스(쇼핑몰·마켓) 전환율 최적화(CVR) 수준', min:'1% 미만', max:'5% 이상 CVR 달성' },
-      { id:'x2', text:'IT 추천 알고리즘·개인화 엔진 구현 수준', min:'없음', max:'AI 기반 개인화 완전 운영' },
-      { id:'x3', text:'커머스 데이터(구매·이탈·검색) 실시간 분석·반영 속도', min:'수작업·분기 1회', max:'실시간 자동 분석·즉시 반영' },
-      { id:'x4', text:'소비자 리뷰·UGC 데이터 제품 개선에 반영 수준', min:'없음', max:'리뷰 기반 제품 개선 사이클 완비' },
-    ],
+    /* ----------------------------------------------------------
+     * 제조유통 × B2C 커머스 — OEM+플랫폼 이중 종속
+     * ---------------------------------------------------------- */
+    {
+      id: 'mfg_commerce_double_dependency',
+      industry: 'mfg_parts',
+      bm: 'b2c_commerce',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'mp_4_4', threshold: 2 }, // 가치사슬 위치
+        { file: 'bm', key: 'bc_4_1', threshold: 2 },       // 채널별 순마진
+      ],
+      msg: '하청 Tier 2~3 제조사가 B2C 커머스까지 진출했는데 채널 마진도 관리 안 되고 있습니다. 제조 원가 압박과 플랫폼 수수료 압박을 동시에 받는 이중 종속 구조입니다. 자사 브랜드 구축과 D2C 전환을 장기 전략으로 수립해야 합니다.',
+    },
+    {
+      id: 'food_commerce_margin_collapse',
+      industry: 'food_mfg',
+      bm: 'b2c_commerce',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'fm_2_1', threshold: 2 }, // 수율 관리
+        { file: 'bm', key: 'bc_4_1', threshold: 2 },       // 채널 순마진
+      ],
+      msg: '식품 제조 수율이 낮은데 플랫폼 채널 순마진도 관리 안 됩니다. 원재료 손실 + 수수료 손실이 겹쳐 매출이 늘수록 적자가 커지는 구조입니다. 공정 자동화와 자사몰 전환을 동시에 처방합니다.',
+    },
 
-    /* ───── 제조업 ───── */
-    'mfg_parts_X_mfg_dist': [
-      { id:'x1', text:'제조 직판(D2B/D2C) 채널 비중 및 중간 마진 절감 수준', min:'중간상 100% 의존', max:'직판 50% 이상·마진 내재화' },
-      { id:'x2', text:'생산량 vs 수요 예측 정확도(재고 최적화)', min:'파악 안함', max:'±10% 이내 정밀 예측' },
-      { id:'x3', text:'제조 원가 절감을 유통 마진 확대로 직접 연결하는 체계', min:'미연계·각각 운영', max:'원가 절감→마진 확대 직결' },
-      { id:'x4', text:'바이어·유통사 대상 ODM·OEM 대응 역량', min:'없음', max:'완전 ODM·OEM 대응' },
-    ],
-    'mfg_parts_X_b2b_solution': [
-      { id:'x1', text:'제조 공정 자동화·스마트팩토리 솔루션 도입 수준', min:'수작업 100%', max:'자동화 70% 이상' },
-      { id:'x2', text:'제조 데이터(불량률·가동률) 실시간 수집·분석 역량', min:'없음', max:'실시간 MES·품질 대시보드 완비' },
-      { id:'x3', text:'바이어·고객사 품질 요구사항 대응 솔루션(SPC·품질관리 시스템)', min:'없음', max:'완전 대응·인증 완비' },
-      { id:'x4', text:'제조 솔루션 도입 ROI 입증 사례(생산성 개선 수치 보유)', min:'없음', max:'30% 이상 개선 사례 공개 완비' },
-    ],
-    'mfg_parts_X_b2b_saas': [
-      { id:'x1', text:'제조사 대상 클라우드 MES·ERP SaaS 납품 레퍼런스', min:'없음', max:'안정 운영 레퍼런스 완비' },
-      { id:'x2', text:'제조 고객 보안·규정 준수(IATF·ISO·스마트공장 인증) 대응', min:'미대응', max:'완전 인증·심사 통과' },
-      { id:'x3', text:'제조 현장 모바일·IoT 연동 SaaS 구현 수준', min:'없음', max:'현장 즉시 활용 완비' },
-      { id:'x4', text:'제조 SaaS 구독 갱신률(공장 가동 중단 없는 업데이트 포함)', min:'50% 미만', max:'90% 이상·무중단 업데이트 완비' },
-    ],
-    'mfg_parts_X_b2c_commerce': [
-      { id:'x1', text:'제조 직판 온라인 쇼핑몰(자사몰·오픈마켓) 운영 수준', min:'없음', max:'자사몰 30% 이상·수익성 확보' },
-      { id:'x2', text:'소비자 대상 제조 제품 브랜드 인지도 구축 수준', min:'OEM·무브랜드만', max:'자사 브랜드 인지도 1위' },
-      { id:'x3', text:'제조 직판 제품 리뷰·고객 피드백 제품 개선 반영 속도', min:'피드백 무시', max:'분기별 신제품 개선 사이클 완비' },
-      { id:'x4', text:'제조 원가와 온라인 판매 마진의 목표 수익성 관리', min:'마진 파악 안함', max:'SKU별 수익성 완전 관리' },
-    ],
+    /* ----------------------------------------------------------
+     * 의료헬스케어 × 광고기반 — 의료광고법+신뢰도 충돌
+     * ---------------------------------------------------------- */
+    {
+      id: 'medical_advertising_compliance',
+      industry: 'medical',
+      bm: 'advertising',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'md_4_2', threshold: 2 }, // 의료광고 심의
+        { file: 'bm', key: 'adv_2_1', threshold: 2 },      // 광고 인벤토리
+      ],
+      msg: '의료 서비스가 광고 기반 수익 모델을 운영 중인데 의료법 광고 심의 준수가 미흡합니다. 영업 정지 리스크와 브랜드 신뢰도 붕괴가 동시에 발생할 수 있는 최고 위험 조합입니다. 광고 집행 전 의료광고 심의 완전 준수 체계 구축이 최우선입니다.',
+    },
 
-    /* ───── 서비스업 ───── */
-    'local_service_X_b2c_sub': [
-      { id:'x1', text:'생활밀착형 서비스의 구독·멤버십 전환 비중', min:'없음', max:'매출 50% 이상 구독화' },
-      { id:'x2', text:'구독 고객의 서비스 실제 이용 빈도(활성화율)', min:'가입만 하고 비활성', max:'주 1회 이상 활성 이용' },
-      { id:'x3', text:'구독 패키지별 원가 대비 마진 구조 관리', min:'파악 안함', max:'플랜별 수익성 완전 관리' },
-      { id:'x4', text:'첫 구독 전환 유도 온보딩(체험·쿠폰) 설계 효과', min:'없음', max:'첫 이용 후 전환율 30% 이상' },
-    ],
-    'local_service_X_service': [
-      { id:'x1', text:'생활 서비스 품질의 지점·직원별 균일성', min:'편차 매우 큼', max:'완전 표준화·SOP 완비' },
-      { id:'x2', text:'서비스 예약·일정 관리 디지털화 수준', min:'전화·수기 100%', max:'앱·자동화 완전 운영' },
-      { id:'x3', text:'단골 고객 재방문 유도 CRM(리마인드·적립) 체계', min:'없음', max:'자동 리마인드·적립 완비' },
-      { id:'x4', text:'지역 기반 온라인 평점 관리(네이버·카카오·구글)', min:'파악 안함', max:'4.8점 이상 지속 유지' },
-    ],
-    'local_service_X_b2b_solution': [
-      { id:'x1', text:'생활서비스 업종 대상 B2B 솔루션(예약·관리 시스템) 납품 역량', min:'없음', max:'업종 특화 레퍼런스 완비' },
-      { id:'x2', text:'기업 복지·위탁 서비스(B2B) 계약 비중', min:'없음', max:'매출 40% 이상 B2B 확보' },
-      { id:'x3', text:'기업 고객 대상 서비스 SLA 계약 및 이행 수준', min:'없음', max:'SLA 기반 완전 운영' },
-      { id:'x4', text:'B2B 고객사 추가 수주·업셀(서비스 확장) 프로그램', min:'없음', max:'고객당 연계약 30% 이상 성장' },
-    ],
-    'local_service_X_platform': [
-      { id:'x1', text:'생활서비스 플랫폼(배달·예약·홈케어) 입점 및 수주 경쟁력', min:'플랫폼 미활용', max:'플랫폼 상위 노출·수주 안정화' },
-      { id:'x2', text:'자체 예약·서비스 플랫폼 운영 역량', min:'없음', max:'안정 운영·거래 성사 중' },
-      { id:'x3', text:'플랫폼 수수료 대비 수익성 관리 체계', min:'수수료만 부담·적자 위험', max:'수수료 감안한 채널별 수익 관리' },
-      { id:'x4', text:'서비스 제공자(파트너) 품질 관리·평점 시스템 운영', min:'없음', max:'평점 기반 자동 품질 관리' },
-    ],
+    /* ----------------------------------------------------------
+     * 금융핀테크 × 플랫폼 — FDS+신뢰 이중 위험
+     * ---------------------------------------------------------- */
+    {
+      id: 'finance_platform_trust_fds',
+      industry: 'finance',
+      bm: 'platform',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'fn_2_3', threshold: 2 }, // FDS
+        { file: 'bm', key: 'pl_2_4', threshold: 2 },       // 사기·어뷰징 탐지
+      ],
+      msg: '금융 플랫폼인데 FDS(이상거래탐지)와 어뷰징 탐지 모두 미흡합니다. 금융 사기와 플랫폼 어뷰징이 동시에 발생할 수 있는 최고 위험 구조입니다. 즉각적인 AI 기반 이중 탐지 시스템 구축이 필요합니다.',
+    },
+    {
+      id: 'finance_platform_regulation',
+      industry: 'finance',
+      bm: 'platform',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'fn_2_2', threshold: 2 }, // 금소법 대응
+        { file: 'bm', key: 'pl_3_1', threshold: 2 },       // 수수료 구조
+      ],
+      msg: '금융소비자보호법 준수가 미흡한데 플랫폼 수수료 구조도 불합리합니다. 규제 위반과 공급자 이탈이 동시에 발생하면 플랫폼 생태계가 한 번에 무너집니다. 선 규제 준수 후 수수료 재설계 순서로 접근하십시오.',
+    },
 
-    /* ───── 식품/음료 ───── */
-    'food_mfg_X_mfg_dist': [
-      { id:'x1', text:'식품 제조 후 직판 채널(온라인몰·직영점·자사몰) 비중', min:'없음', max:'직판 40% 이상 확보' },
-      { id:'x2', text:'유통 채널별(대형마트·편의점·온라인) 마진 구조 관리', min:'파악 안함', max:'채널별 수익성 완전 관리' },
-      { id:'x3', text:'식품 제조 원가와 유통 납품 단가 협상력', min:'을의 입장·수용만', max:'단가 주도권 보유·직거래 우위' },
-      { id:'x4', text:'유통기한·재고 관리 체계(폐기 손실률)', min:'10% 이상 폐기', max:'2% 이하 유지·회전율 최적화' },
-    ],
-    'food_mfg_X_b2c_sub': [
-      { id:'x1', text:'식품·음료 구독 박스·정기 배송 체계 완성도', min:'없음', max:'완전 자동화 운영 중' },
-      { id:'x2', text:'구독 이탈 주요 원인(신선도·다양성·가격) 분석·대응', min:'파악 안함', max:'이탈 원인별 자동 대응 완비' },
-      { id:'x3', text:'구독 고객 취향 데이터 수집·개인화 큐레이션 적용', min:'없음', max:'데이터 기반 개인화 완비' },
-      { id:'x4', text:'식품 구독 품질 안전성·배송 신선도 유지 수준', min:'불만·클레임 빈번', max:'클레임 1% 이하·CS 완비' },
-    ],
-    'food_mfg_X_b2b_solution': [
-      { id:'x1', text:'식품 제조 고객사(식품사·외식체인) 대상 B2B 납품 솔루션 역량', min:'없음', max:'업종 레퍼런스 완비' },
-      { id:'x2', text:'HACCP·식품안전 규정을 B2B 계약 경쟁력으로 활용 수준', min:'규정 준수만', max:'인증 기반 B2B 차별화 완비' },
-      { id:'x3', text:'B2B 식품 납품 고객사 장기 공급 계약 비중', min:'없음', max:'매출 60% 이상 장기 계약' },
-      { id:'x4', text:'식품 제조 데이터(생산·품질·원가) B2B 고객사 제공 역량', min:'없음', max:'실시간 데이터 공유·연동 완비' },
-    ],
-    'food_mfg_X_franchise': [
-      { id:'x1', text:'식품 제조 레시피·표준 공급(가맹점용) 표준화 완성도', min:'없음', max:'완전 표준화·SOP 완비' },
-      { id:'x2', text:'가맹점 대상 식자재 공동 구매·배송 시스템 효율', min:'없음', max:'원가 15% 이상 절감 실현' },
-      { id:'x3', text:'가맹점 메뉴·레시피 재현 가능성(신규 가맹점 독립 속도)', min:'3개월 이상 교육 필요', max:'2주 이내 완전 독립 가능' },
-      { id:'x4', text:'제조 직공급 물류(가맹점 납품) 신선도·납기 완성도', min:'불만·지연 빈번', max:'신선도 100%·납기 준수' },
-    ],
+    /* ----------------------------------------------------------
+     * 교육에듀테크 × B2C 구독 — 스타강사+Churn 이중 위험
+     * ---------------------------------------------------------- */
+    {
+      id: 'edu_sub_instructor_churn',
+      industry: 'education',
+      bm: 'b2c_sub',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'ed_3_1', threshold: 2 }, // 스타강사 의존도
+        { file: 'bm', key: 'bc_3_1', threshold: 2 },       // 월간 해지율
+      ],
+      msg: '특정 스타 강사에 매출이 집중된 구독 서비스인데 해지율까지 높습니다. 강사 이탈 시 구독자 대량 이탈로 이어지는 도미노 붕괴 위험이 있습니다. 커리큘럼 IP 자산화와 해지 방어 오퍼를 동시에 강화하십시오.',
+    },
 
-    /* ───── 외식 ───── */
-    'restaurant_X_franchise': [
-      { id:'x1', text:'메뉴·레시피 표준화 완성도(전 가맹점 완전 재현 가능)', min:'점주 재량·편차 큼', max:'완전 표준화·SOP 완비' },
-      { id:'x2', text:'식자재 공동 구매·중앙 공급 체계 효율', min:'없음', max:'원가 15% 이상 절감·안정 공급' },
-      { id:'x3', text:'가맹점 매출 데이터 실시간 모니터링 및 지도 역량', min:'없음', max:'전 가맹점 실시간 관리' },
-      { id:'x4', text:'신규 가맹점 교육 후 독립 운영까지 소요 기간', min:'3개월 이상', max:'2주 이내 독립 가능' },
-    ],
-    'restaurant_X_b2c_sub': [
-      { id:'x1', text:'외식 구독·정기권(식권·할인패스·멤버십) 매출 비중', min:'없음', max:'매출 30% 이상 구독화' },
-      { id:'x2', text:'구독 고객 방문 빈도 vs 일반 고객 방문 빈도 격차', min:'차이 없음', max:'구독 고객 3배 이상 방문' },
-      { id:'x3', text:'외식 구독 플랫폼 연동(배달앱·예약 플랫폼) 활용 수준', min:'없음', max:'플랫폼 구독 완전 연동 운영' },
-      { id:'x4', text:'구독 이탈 방지 혜택(특별 메뉴·우선 예약·포인트) 체계', min:'없음', max:'이탈률 20% 이하 유지' },
-    ],
-    'restaurant_X_platform': [
-      { id:'x1', text:'배달·예약 플랫폼(배민·요기요·카카오) 의존도 vs 자체 채널 균형', min:'플랫폼 100% 의존', max:'자체 채널 40% 이상 확보' },
-      { id:'x2', text:'플랫폼 수수료 대비 수익성 관리 체계', min:'수수료만 부담·적자 위험', max:'채널별 수익성 완전 관리' },
-      { id:'x3', text:'자체 주문 앱·플랫폼 운영 역량', min:'없음', max:'자체 플랫폼 안정 운영 중' },
-      { id:'x4', text:'플랫폼 내 평점·리뷰 관리 수준', min:'방치', max:'4.8점↑ 체계적 관리 완비' },
-    ],
-    'restaurant_X_service': [
-      { id:'x1', text:'외식 서비스 품질(홀 응대·청결도) 매장별 균일성', min:'매장마다 편차 큼', max:'완전 표준화 완비' },
-      { id:'x2', text:'서비스 인력 교육 체계 및 이탈률 관리', min:'교육 없음·이탈 빈번', max:'체계적 교육·이탈률 10% 이하' },
-      { id:'x3', text:'단체·기업 케이터링 B2B 서비스 계약 비중', min:'없음', max:'매출 20% 이상 B2B 확보' },
-      { id:'x4', text:'외식 서비스 예약·웨이팅 디지털 관리 수준', min:'전화·수기', max:'앱·자동화 완전 운영' },
-    ],
+    /* ----------------------------------------------------------
+     * 패션뷰티 × B2C 커머스 — 재고+플랫폼 이중 압박
+     * ---------------------------------------------------------- */
+    {
+      id: 'fashion_commerce_inventory_margin',
+      industry: 'fashion',
+      bm: 'b2c_commerce',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'fs_1_2', threshold: 2 }, // 재고 회전
+        { file: 'bm', key: 'bc_4_1', threshold: 2 },       // 채널 순마진
+      ],
+      msg: '패션 재고 회전이 느린데 플랫폼 채널 순마진도 낮습니다. 재고 부담과 수수료 부담이 겹쳐 할인 세일에 의존하는 악순환이 됩니다. SKU 축소와 D2C 전환을 동시에 추진하십시오.',
+    },
+    {
+      id: 'fashion_sub_seasonal_lock',
+      industry: 'fashion',
+      bm: 'b2c_sub',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'fs_2_1', threshold: 2 }, // 반응 생산 체계
+        { file: 'bm', key: 'bc_3_1', threshold: 2 },       // 해지율
+      ],
+      msg: '패션 구독 서비스인데 반응 생산이 안 되고 해지율도 높습니다. 시즌 상품이 구독자 취향과 맞지 않아 이탈이 가속화되는 구조입니다. 개인화 큐레이션과 반응 생산 체계를 동시에 구축해야 합니다.',
+    },
 
-    /* ───── 교육 ───── */
-    'education_X_b2c_sub': [
-      { id:'x1', text:'교육 구독 콘텐츠 업데이트 주기 및 품질 일관성', min:'연 1회 이하', max:'주 2회 이상 신규 콘텐츠' },
-      { id:'x2', text:'학습 완료율(구독 후 콘텐츠 실제 이수율)', min:'10% 미만', max:'70% 이상 완주' },
-      { id:'x3', text:'구독 기반 학습 성과 측정·수료 인증 체계', min:'없음', max:'성과 기반 인증·경력 연계 완비' },
-      { id:'x4', text:'구독 이탈 전 재참여 유도(학습 성과 가시화) 자동화', min:'없음', max:'이탈 전 자동 재참여 캠페인 완비' },
-    ],
-    'education_X_b2b_solution': [
-      { id:'x1', text:'기업 교육 플랫폼(LMS) 솔루션 납품·운영 역량', min:'없음', max:'업계 인정 레퍼런스 완비' },
-      { id:'x2', text:'기업 고객 맞춤 커리큘럼·콘텐츠 개발 역량', min:'표준 과정만', max:'완전 맞춤화 신속 개발 가능' },
-      { id:'x3', text:'B2B 교육 효과 측정·임원 보고서 자동 제공', min:'없음', max:'KPI 연동 성과 리포트 자동화' },
-      { id:'x4', text:'기업 교육 장기 계약(연간 라이선스) 비중', min:'없음', max:'매출 60% 이상 장기 계약' },
-    ],
-    'education_X_platform': [
-      { id:'x1', text:'교육 플랫폼 강사·콘텐츠 제공자 유치 및 품질 관리', min:'없음', max:'독점 우수 강사·CP 완비' },
-      { id:'x2', text:'학습자 매칭·추천 알고리즘 수준', min:'없음', max:'AI 기반 개인화 추천 완비' },
-      { id:'x3', text:'교육 플랫폼 수강생 커뮤니티·동료 학습 활성화', min:'없음', max:'커뮤니티 기반 재방문 70%↑' },
-      { id:'x4', text:'교육 플랫폼 수수료 수익 모델의 지속 가능성', min:'수익 불투명', max:'거래당 마진 완전 관리' },
-    ],
+    /* ----------------------------------------------------------
+     * 미디어엔터 × 광고기반 — IP부재+eCPM 하락
+     * ---------------------------------------------------------- */
+    {
+      id: 'media_advertising_ip_ecpm',
+      industry: 'media',
+      bm: 'advertising',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'me_1_1', threshold: 2 }, // IP 수익 비중
+        { file: 'bm', key: 'adv_2_2', threshold: 2 },      // eCPM
+      ],
+      msg: '자체 IP 없이 광고 수익만 의존하는데 eCPM까지 하락 중입니다. 트래픽의 질과 양 모두 하락하면 광고 매출 급락이 불가피합니다. 오리지널 콘텐츠 기획 비중 확대와 프리미엄 인벤토리 구축을 처방합니다.',
+    },
 
-    /* ───── 의료/헬스케어 ───── */
-    'medical_X_b2c_sub': [
-      { id:'x1', text:'의료·헬스케어 구독(정기검진·웰니스 멤버십) 매출 비중', min:'없음', max:'매출 40% 이상 구독화' },
-      { id:'x2', text:'구독 환자·회원의 정기 방문 이탈 방지 체계', min:'없음', max:'이탈률 10% 이하 유지' },
-      { id:'x3', text:'디지털 헬스케어 앱·원격 모니터링 구독 서비스 연동', min:'없음', max:'완전 디지털 통합 운영' },
-      { id:'x4', text:'건강 성과 데이터 기반 구독 가치 입증(성과 리포트)', min:'없음', max:'성과 측정·공개 완비' },
-    ],
-    'medical_X_b2b_solution': [
-      { id:'x1', text:'의료기관 대상 솔루션(EMR·HIS·의료기기 관리) 납품 역량', min:'없음', max:'복수 기관 레퍼런스 완비' },
-      { id:'x2', text:'의료 데이터 보안·인증(개인정보보호법·ISMS-P) 대응', min:'미대응', max:'완전 인증·심사 통과' },
-      { id:'x3', text:'의료 고객사 도입 후 실제 사용률·활성화 관리', min:'파악 안함', max:'사용률 80% 이상 유지' },
-      { id:'x4', text:'의료 솔루션 납품 후 유지보수 장기 계약 전환율', min:'없음', max:'납품 고객 80% 이상 장기 전환' },
-    ],
-    'medical_X_platform': [
-      { id:'x1', text:'의료·헬스케어 플랫폼 의사·전문가 신뢰 기반 구축 수준', min:'없음', max:'복수 전문가 인증·참여 완비' },
-      { id:'x2', text:'플랫폼 내 개인 건강 데이터 보안·동의 체계', min:'미구축', max:'완전 보안·동의 자동화' },
-      { id:'x3', text:'의료 플랫폼 보험·약국·병원 생태계 연동 수준', min:'없음', max:'전 의료 생태계 연동 완비' },
-      { id:'x4', text:'플랫폼 규제 기관(식약처·복지부) 인증·허가 대응', min:'미준비', max:'완전 인허가 취득 완비' },
-    ],
+    /* ----------------------------------------------------------
+     * 물류운송 × 플랫폼 — 공차+수수료 이중 비효율
+     * ---------------------------------------------------------- */
+    {
+      id: 'logistics_platform_empty_fee',
+      industry: 'logistics',
+      bm: 'platform',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'log_2_2', threshold: 2 }, // 차량 공차율
+        { file: 'bm', key: 'pl_3_1', threshold: 2 },        // 수수료 구조
+      ],
+      msg: '물류 플랫폼인데 공차율이 높고 수수료 구조도 불합리합니다. 화주는 비싸고 기사는 빈 차로 다니는 양쪽이 모두 손해인 구조입니다. 화물 매칭 알고리즘 고도화와 수수료 인센티브 재설계를 동시에 처방합니다.',
+    },
 
-    /* ───── 금융/핀테크 ───── */
-    'finance_X_b2b_saas': [
-      { id:'x1', text:'금융기관 대상 SaaS 규제 준수(금융위·금감원 심사) 대응력', min:'미준비', max:'완전 인증·승인 완비' },
-      { id:'x2', text:'금융 SaaS 보안 수준(ISO27001·ISMS-P 인증)', min:'미인증', max:'복수 보안 인증 완비' },
-      { id:'x3', text:'금융사 IT 레거시 시스템 연동 역량', min:'불가', max:'어떤 환경도 연동 가능' },
-      { id:'x4', text:'금융 SaaS 구독 갱신률(규제 변경 선제 대응 포함)', min:'50% 미만', max:'95% 이상·규제 자동 업데이트' },
-    ],
-    'finance_X_platform': [
-      { id:'x1', text:'금융 플랫폼 거래 건수 및 대금 결제 완결률', min:'80% 미만', max:'99.9% 이상 완결' },
-      { id:'x2', text:'금융 플랫폼 이용자 KYC·AML 규정 준수 자동화', min:'수작업·미준수', max:'완전 자동화 준수' },
-      { id:'x3', text:'수수료 수익 모델 지속 가능성(거래당 마진 관리)', min:'수익 불투명', max:'거래당 마진 완전 관리' },
-      { id:'x4', text:'핀테크 플랫폼 금융사·은행 API 파트너십 연동 수준', min:'없음', max:'복수 기관 오픈 API 연동 완비' },
-    ],
-    'finance_X_b2b_solution': [
-      { id:'x1', text:'금융 특화 솔루션(핵심 금융 규제 대응 기능) 완성도', min:'미완성', max:'규제 완전 대응·검증 완비' },
-      { id:'x2', text:'금융 고객사 보안 감사·침투 테스트 통과 역량', min:'미경험', max:'복수 감사 통과 이력 완비' },
-      { id:'x3', text:'금융 솔루션 납품 후 규제 변경 자동 업데이트 역량', min:'없음', max:'규제 변경 즉시 반영 체계 완비' },
-      { id:'x4', text:'금융 고객사 장기 라이선스·유지보수 계약 비중', min:'없음', max:'매출 70% 이상 장기 계약' },
-    ],
+    /* ----------------------------------------------------------
+     * 환경에너지 × 딥테크바이오 — 보조금+번레이트 복합
+     * ---------------------------------------------------------- */
+    {
+      id: 'energy_deeptech_subsidy_burn',
+      industry: 'energy',
+      bm: 'deeptech',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'eng_3_1', threshold: 2 }, // 정부 보조금 의존
+        { file: 'bm', key: 'dt_3_2', threshold: 2 },        // 번레이트
+      ],
+      msg: '에너지 딥테크 기업인데 정부 보조금 의존도가 높고 번레이트도 빠릅니다. 정책 변동 시 자금 경색과 사업 중단이 동시에 발생할 수 있습니다. 비희석성 정부 R&D 과제 확보와 민간 PPA 계약 병행이 최우선 과제입니다.',
+    },
 
-    /* ───── 유통/물류 ───── */
-    'wholesale_X_mfg_dist': [
-      { id:'x1', text:'유통 채널별(대형마트·편의점·온라인·도매) 매출 포트폴리오 균형', min:'1채널 80% 집중', max:'균형 분산·리스크 분산 완비' },
-      { id:'x2', text:'물류 자동화·풀필먼트 운영 효율', min:'수작업 100%', max:'자동화 70% 이상' },
-      { id:'x3', text:'재고 회전율 및 폐기 손실 관리', min:'파악 안함', max:'업종 평균 2배 이상 회전율' },
-      { id:'x4', text:'공급사 결제 조건 vs 바이어 수금 조건 갭 관리(운전자본)', min:'자금 공백 심각', max:'완전 최적화·현금 흐름 안정' },
-    ],
-    'wholesale_X_b2b_solution': [
-      { id:'x1', text:'유통·물류 고객사 대상 WMS·TMS 솔루션 납품 역량', min:'없음', max:'업계 인정 레퍼런스 완비' },
-      { id:'x2', text:'물류 솔루션 납품 후 고객사 ERP·주문 시스템 연동 역량', min:'불가', max:'완전 연동 가능' },
-      { id:'x3', text:'유통사 B2B 영업 사이클(Lead→계약) 단축 수준', min:'6개월 이상', max:'3개월 이내 계약 완결' },
-      { id:'x4', text:'물류·유통 솔루션 ROI 입증 사례(비용 절감 수치 공개)', min:'없음', max:'비용 20% 이상 절감 사례 완비' },
-    ],
-    'wholesale_X_platform': [
-      { id:'x1', text:'유통·물류 플랫폼 공급사·바이어 동시 확보 역량', min:'한쪽만 확보', max:'공급·수요 균형 확보' },
-      { id:'x2', text:'플랫폼 내 물류 추적·배송 투명성 제공 수준', min:'없음', max:'실시간 추적·완전 투명성' },
-      { id:'x3', text:'유통 플랫폼 거래 수수료 수익 모델 지속 가능성', min:'수익 불투명', max:'거래당 마진 완전 관리' },
-      { id:'x4', text:'플랫폼 데이터(거래·재고·배송) 분석·인사이트 제공', min:'없음', max:'실시간 데이터 리포트 완비' },
-    ],
+    /* ----------------------------------------------------------
+     * 농림식품 × 프랜차이즈 — 계절성+표준화 충돌
+     * ---------------------------------------------------------- */
+    {
+      id: 'agri_franchise_seasonal_standard',
+      industry: 'agri_food',
+      bm: 'franchise',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'agri_3_3', threshold: 2 }, // 계절 수급 변동
+        { file: 'bm', key: 'fr_1_3', threshold: 2 },          // 품질 균일성
+      ],
+      msg: '농산물 기반 프랜차이즈인데 계절 수급 변동 대응이 안 되고 품질 균일성도 무너지고 있습니다. 제철 재료 의존 브랜드는 비수기에 품질 편차가 심해져 브랜드 신뢰도가 급락합니다. 연중 공급 가능한 대체 식재료 확보와 레시피 표준화가 시급합니다.',
+    },
 
-    /* ───── 패션/뷰티 ───── */
-    'fashion_X_b2c_commerce': [
-      { id:'x1', text:'패션·뷰티 D2C(직접 판매·자사몰) 채널 매출 비중', min:'없음', max:'매출 60% 이상 D2C 확보' },
-      { id:'x2', text:'리뷰·UGC(사용자 콘텐츠) 생성·활용 마케팅 전략', min:'없음', max:'UGC 기반 전환율 30% 이상' },
-      { id:'x3', text:'재구매율 및 고객 LTV 관리(트렌드 이탈 방지 포함)', min:'재구매 10% 미만', max:'재구매 50% 이상 유지' },
-      { id:'x4', text:'인플루언서·SNS 마케팅 ROI 측정 및 채널별 최적화', min:'없음', max:'채널별 ROI 완전 관리' },
-    ],
-    'fashion_X_b2c_sub': [
-      { id:'x1', text:'패션·뷰티 구독 박스·큐레이션 서비스 차별화 수준', min:'없음', max:'업계 상위 구독 모델 운영' },
-      { id:'x2', text:'구독 고객 취향 데이터 기반 개인화 큐레이션', min:'없음', max:'개인화율 80% 이상' },
-      { id:'x3', text:'패션·뷰티 구독 이탈 방지(트렌드 업데이트 속도)', min:'분기 1회 이하 신상품', max:'월 2회 이상 신상품 반영' },
-      { id:'x4', text:'구독 고객 브랜드 충성도 지수(NPS·재구독률)', min:'NPS 30 미만', max:'NPS 70↑·재구독 80% 이상' },
-    ],
-    'fashion_X_platform': [
-      { id:'x1', text:'패션·뷰티 마켓플레이스(무신사·올리브영·쿠팡) 입점 경쟁력', min:'입점 미진·하위 노출', max:'카테고리 상위 입점·노출 우위' },
-      { id:'x2', text:'자체 D2C 플랫폼 vs 오픈마켓 채널 균형 전략', min:'오픈마켓 100% 의존', max:'자사 플랫폼 40% 이상 확보' },
-      { id:'x3', text:'플랫폼 데이터(검색어·트렌드) 상품 기획 반영 속도', min:'데이터 미활용', max:'트렌드 감지 후 2주 이내 반영' },
-      { id:'x4', text:'플랫폼 광고 투자 대비 수익(ROAS) 관리', min:'ROAS 파악 안함', max:'ROAS 3배 이상 유지' },
-    ],
+    /* ----------------------------------------------------------
+     * 소규모건설 × 서비스업 — 미수금+가동률 이중 위험
+     * ---------------------------------------------------------- */
+    {
+      id: 'construction_service_receivable_util',
+      industry: 'construction',
+      bm: 'service',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'cn_4_1', threshold: 2 }, // 기성금·미수금
+        { file: 'bm', key: 'sv_3_1', threshold: 2 },       // 인력 가동률
+      ],
+      msg: '건설 서비스업인데 미수금 회수가 안 되고 인력 가동률도 낮습니다. 현금이 들어오지 않는데 인력 비용은 계속 나가는 자금 출혈 구조입니다. 기성금 청구 주기 단축과 인력 가동률 최적화를 동시에 처방합니다.',
+    },
 
-    /* ───── 미디어/엔터테인먼트 ───── */
-    'media_X_b2c_sub': [
-      { id:'x1', text:'미디어·콘텐츠 구독 가입자 월간 성장률', min:'정체·감소', max:'월 10% 이상 성장' },
-      { id:'x2', text:'구독 콘텐츠 소비량·완주율(이탈 방지 핵심)', min:'20% 미만 완주', max:'70% 이상 완주' },
-      { id:'x3', text:'광고 vs 구독 매출 포트폴리오 균형', min:'광고 100% 의존', max:'구독 50% 이상 확보' },
-      { id:'x4', text:'콘텐츠 제작비 대비 구독 수익 커버리지', min:'50% 미만', max:'130% 이상 흑자 구조' },
-    ],
-    'media_X_platform': [
-      { id:'x1', text:'미디어 플랫폼 콘텐츠 공급자(크리에이터·제작사) 유치 및 독점 역량', min:'없음', max:'독점 우수 CP 완비' },
-      { id:'x2', text:'광고주 대상 타겟팅·효과 측정 데이터 제공 역량', min:'없음', max:'실시간 성과 리포트 자동화' },
-      { id:'x3', text:'플랫폼 사용자 체류시간 및 재방문율', min:'10분 미만·30% 이하', max:'60분↑·재방문 70%↑' },
-      { id:'x4', text:'미디어 플랫폼 저작권·불법 유통 자동 관리 수준', min:'없음', max:'완전 자동화 모니터링' },
-    ],
-    'media_X_b2b_solution': [
-      { id:'x1', text:'미디어·콘텐츠 기업 대상 B2B 솔루션(CMS·광고 플랫폼) 납품 역량', min:'없음', max:'업계 레퍼런스 완비' },
-      { id:'x2', text:'미디어 솔루션 저작권·DRM 기술 대응 수준', min:'미대응', max:'완전 기술 대응 완비' },
-      { id:'x3', text:'B2B 광고주·미디어사 장기 계약 비중', min:'없음', max:'매출 60% 이상 장기 계약' },
-      { id:'x4', text:'미디어 솔루션 납품 후 콘텐츠 성과 분석 리포트 제공', min:'없음', max:'실시간 성과 리포트 자동화' },
-    ],
-  };
+    /* ----------------------------------------------------------
+     * 생활밀착서비스 × B2C 구독 — 재방문+해지 이중 위험
+     * ---------------------------------------------------------- */
+    {
+      id: 'local_service_sub_retention',
+      industry: 'local_service',
+      bm: 'b2c_sub',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'ls_2_1', threshold: 2 }, // 재방문율
+        { file: 'bm', key: 'bc_3_1', threshold: 2 },       // 해지율
+      ],
+      msg: '로컬 서비스 구독 모델인데 재방문율과 구독 유지율이 동시에 낮습니다. 오프라인 고객도 온라인 구독자도 모두 이탈하는 이중 손실 구조입니다. 첫 방문 경험 최적화와 구독 혜택 차별화를 동시에 강화하십시오.',
+    },
 
-  /* ─────────────────────────────────────────────
-     Fallback: 미정의 조합 자동 생성
-  ───────────────────────────────────────────── */
-  function buildFallback(industryKey, bizModelKey) {
-    const ind = IND_CTX[industryKey] || IND_CTX['etc'];
-    const biz = BIZ_CTX[bizModelKey] || BIZ_CTX['etc'];
-    return [
-      { id:'x1', text:`${ind.noun} 기반 ${biz.model} 핵심 경쟁력 보유 수준`, min:'없음·차별화 없음', max:'업계 차별화 우위 완비' },
-      { id:'x2', text:`${biz.sales} 채널과 ${ind.noun} 강점의 유기적 연계 수준`, min:'분리 운영·연계 없음', max:'완전 통합 운영 체계' },
-      { id:'x3', text:`${ind.customer} 대상 ${biz.retention} 체계`, min:'없음', max:'체계적·자동화 완비' },
-      { id:'x4', text:`${ind.work} 데이터를 ${biz.growth} 전략에 활용하는 수준`, min:'데이터 미활용', max:'데이터 기반 의사결정 완비' },
-    ];
+    /* ----------------------------------------------------------
+     * 도소매유통 × 제조유통BM — 재고+CCC 복합 위기
+     * ---------------------------------------------------------- */
+    {
+      id: 'wholesale_mfgdist_inventory_ccc',
+      industry: 'wholesale',
+      bm: 'mfg_dist',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'industry', key: 'ws_2_1', threshold: 2 }, // 악성 재고
+        { file: 'bm', key: 'md_4_2', threshold: 2 },       // CCC
+      ],
+      msg: '유통·제조 겸업 구조인데 악성 재고도 쌓이고 현금 전환 사이클도 깁니다. 재고에 현금이 묶인 채 매출이 늘수록 자금 압박이 심해지는 성장이 독이 되는 구조입니다. 재고 회전율 개선과 매입 조건 재협상을 최우선으로 처방합니다.',
+    },
+
+    /* ----------------------------------------------------------
+     * 뿌리제조 × B2B 솔루션 — 하청종속+수주채널 단일화
+     * ---------------------------------------------------------- */
+    {
+      id: 'mfgparts_solution_single_channel',
+      industry: 'mfg_parts',
+      bm: 'b2b_solution',
+      level: 'HIGH',
+      triggers: [
+        { file: 'industry', key: 'mp_4_1', threshold: 2 }, // 매출 포트폴리오
+        { file: 'bm', key: 'bb_2_1', threshold: 2 },       // 리드 발굴 채널
+      ],
+      msg: '하청 제조 기반 B2B 솔루션 기업인데 주거래처 의존도가 높고 리드 발굴 채널도 소개에만 의존합니다. 주요 거래처 이탈 시 솔루션 매출까지 동시에 끊기는 이중 리스크 구조입니다. 고객 다변화와 콘텐츠 마케팅 기반 인바운드 체계 구축이 시급합니다.',
+    },
+  ];
+
+  /* ============================================================
+   * 교차 트리거 점수 맵 생성
+   * ============================================================ */
+  function buildScoreMap(diagScores) {
+    const map = {};
+    if (!diagScores) return map;
+    Object.entries(diagScores).forEach(([key, val]) => {
+      const score = Number(val);
+      if (!isNaN(score)) map[key] = score;
+    });
+    return map;
   }
 
-  /* ─────────────────────────────────────────────
-     Public API
-  ───────────────────────────────────────────── */
-  function getCrossItems(industryKey, bizModelKey) {
-    const comboKey = industryKey + '_X_' + bizModelKey;
-    return CROSS_ITEMS[comboKey] || buildFallback(industryKey, bizModelKey);
+  /* ============================================================
+   * 교차 경고 탐지 메인 함수
+   * @param {string} industryId — 선택된 업종 ID (예: 'restaurant')
+   * @param {string} bmId — 선택된 BM ID (예: 'franchise')
+   * @param {Object} diagScores — 전체 진단 점수 객체
+   * @returns {Array} 발동된 교차 경고 목록
+   * ============================================================ */
+  function detectCrossWarnings(industryId, bmId, diagScores) {
+    if (!industryId || !bmId || !diagScores) return [];
+
+    const scoreMap = buildScoreMap(diagScores);
+    const warnings = [];
+
+    CROSS_RULES.forEach(rule => {
+      if (rule.industry !== industryId && rule.industry !== '*') return;
+      if (rule.bm !== bmId && rule.bm !== '*') return;
+
+      const triggered = rule.triggers.every(trigger => {
+        const keyPatterns = [
+          `diag-industry-container_${trigger.key}`,
+          `diag-bm-container_${trigger.key}`,
+          `diag-common-container_${trigger.key}`,
+          trigger.key,
+        ];
+        const score = keyPatterns.reduce((found, pattern) => {
+          return found !== null ? found : (scoreMap[pattern] !== undefined ? scoreMap[pattern] : null);
+        }, null);
+
+        return score !== null && score <= trigger.threshold;
+      });
+
+      if (triggered) {
+        warnings.push({
+          id: rule.id,
+          level: rule.level,
+          industry: rule.industry,
+          bm: rule.bm,
+          msg: rule.msg,
+        });
+      }
+    });
+
+    return warnings.sort((a, b) => {
+      const order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
+      return (order[a.level] || 2) - (order[b.level] || 2);
+    });
   }
 
-  function buildCrossArea(industryKey, bizModelKey, industryLabel, bizModelLabel) {
+  /* ============================================================
+   * AI 프롬프트용 교차 경고 요약 텍스트 생성
+   * ============================================================ */
+  function buildPromptSummary(industryId, bmId, diagScores) {
+    const warnings = detectCrossWarnings(industryId, bmId, diagScores);
+    if (warnings.length === 0) {
+      return '[업종×BM 교차 진단]\n복합 경고 없음. 업종과 BM 조합이 안정적입니다.';
+    }
+
+    const lines = warnings.map(w =>
+      `  ⚠ [${w.level}] ${w.msg}`
+    ).join('\n');
+
+    return `[업종×BM 교차 진단 — ${warnings.length}개 복합 경고 발견]\n${lines}`;
+  }
+
+  /* ============================================================
+   * 특정 업종·BM 조합에 해당하는 규칙 목록 반환
+   * ============================================================ */
+  function getRulesFor(industryId, bmId) {
+    return CROSS_RULES.filter(r =>
+      (r.industry === industryId || r.industry === '*') &&
+      (r.bm === bmId || r.bm === '*')
+    );
+  }
+
+  /* ============================================================
+   * 전체 규칙 통계 반환
+   * ============================================================ */
+  function getStats() {
+    const byLevel = { CRITICAL: 0, HIGH: 0, MEDIUM: 0 };
+    CROSS_RULES.forEach(r => { if (byLevel[r.level] !== undefined) byLevel[r.level]++; });
     return {
-      id: 'cross',
-      title: `🔗 통합 진단: ${industryLabel} × ${bizModelLabel}`,
-      description: '선택하신 업종과 사업모델이 서로 얼마나 유기적으로 연계되어 있는지 진단합니다.',
-      items: getCrossItems(industryKey, bizModelKey),
+      total: CROSS_RULES.length,
+      byLevel,
+      industries: [...new Set(CROSS_RULES.map(r => r.industry))],
+      bms: [...new Set(CROSS_RULES.map(r => r.bm))],
     };
   }
 
-  return { buildCrossArea, getCrossItems };
+  /* ============================================================
+   * Public API
+   * ============================================================ */
+  return {
+    detectCrossWarnings,
+    buildPromptSummary,
+    getRulesFor,
+    getStats,
+    CROSS_RULES,
+  };
+
 })();
 
+if (typeof window !== 'undefined') window.CrossContext = CrossContext;
 if (typeof module !== 'undefined') module.exports = CrossContext;
