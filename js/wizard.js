@@ -1104,9 +1104,16 @@ const Wizard = (() => {
 
     // 공통 모듈 렌더링 — 창업 초기면 STARTUP_DIAGNOSIS로 교체
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
-    let commonDiag = isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined'
-      ? STARTUP_DIAGNOSIS
-      : (typeof COMMON_DIAGNOSIS !== 'undefined' ? COMMON_DIAGNOSIS : null);
+    let commonDiag;
+    if (isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined') {
+      commonDiag = STARTUP_DIAGNOSIS;
+    } else if (typeof DiagCommon !== 'undefined') {
+      commonDiag = _diagCommonToAreas(DiagCommon);
+    } else if (typeof COMMON_DIAGNOSIS !== 'undefined') {
+      commonDiag = COMMON_DIAGNOSIS;
+    } else {
+      commonDiag = null;
+    }
     // Dynamic Common Core: 업종별 문구 오버라이드 + DX 탐지 주입 (창업 초기 제외)
     if (commonDiag && !isStartupMode) {
       commonDiag = _applyIndustryWording(commonDiag, industryKey);
@@ -1178,7 +1185,7 @@ const Wizard = (() => {
     const signalAttr = item._signalOnly ? ' data-signal-only="true"' : '';
     const signalCls  = item._signalOnly ? ' diag-signal-item' : '';
     let html = '<div class="diag-item' + signalCls + '" id="diag-item-' + scoreKey + '"' + signalAttr + '>';
-    html += '<div class="diag-item-text">' + item.text + '</div>';
+    html += '<div class="diag-item-text">' + (item.question || item.label || item.text || '') + '</div>';
 
     switch (item.type) {
       case 'numeric': html += _renderNumeric(item, scoreKey, savedRaw, savedScore); break;
@@ -1200,9 +1207,16 @@ const Wizard = (() => {
     5: '🟢 5점 — 우수. 업계 최상위 수준의 핵심 역량입니다.'
   };
 
+  function _scaleToAnchors(scale) {
+    if (!Array.isArray(scale) || scale.length === 0) return null;
+    const anchors = {};
+    scale.forEach(s => { anchors[s.score] = s.desc; });
+    return anchors;
+  }
+
   function _renderBars(item, scoreKey, savedScore) {
-    // anchors가 없으면 기본 설명으로 대체
-    const anchors = item.anchors || GENERIC_ANCHORS;
+    // v2.0 scale 배열 → anchors 객체 변환, 없으면 기본 설명으로 대체
+    const anchors = item.anchors || _scaleToAnchors(item.scale) || GENERIC_ANCHORS;
     let html = '<div class="diag-scale">';
     html += '<span class="diag-scale-label">' + (item.min || '') + '</span>';
     html += '<div class="diag-scale-buttons">';
@@ -1285,15 +1299,26 @@ const Wizard = (() => {
     return html;
   }
 
+  function _diagCommonToAreas(diagCommon) {
+    const schema = diagCommon.getSchema();
+    const areas = schema.domains.map(domain => {
+      const items = Object.entries(schema.items)
+        .filter(([key]) => key.startsWith(`${domain.id}_`))
+        .map(([key, item]) => Object.assign({}, item, { id: key }));
+      return { id: `common_${domain.id}`, label: domain.label, icon: domain.icon, description: domain.desc, items };
+    });
+    return { id: schema.id, label: schema.label, areas };
+  }
+
   function renderDiagModule(containerId, data) {
     const container = document.getElementById(containerId);
     if (!container || !data) return;
     let html = '<div class="diag-module">';
-    html += '<h3 class="diag-module-title">' + data.title + '</h3>';
+    html += '<h3 class="diag-module-title">' + (data.label || data.title || '') + '</h3>';
     data.areas.forEach(area => {
       html += '<div class="diag-area">';
       html += '<div class="diag-area-header">';
-      html += '<h4 class="diag-area-title">' + area.title + '</h4>';
+      html += '<h4 class="diag-area-title">' + (area.icon ? area.icon + ' ' : '') + (area.label || area.title || '') + '</h4>';
       if (area.description) html += '<p class="diag-area-desc">' + area.description + '</p>';
       html += '</div>';
       area.items.forEach(item => {
