@@ -2,7 +2,7 @@
 
 ## 배포 상태 (2026-05-18 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: cross-context.js v2.0 전면 교체 (1050f44)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: CrossContext 업종×BM 교차 트리거 wizard·ai-engine 연동 (c4aa773)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
 
