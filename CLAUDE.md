@@ -1,10 +1,27 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-18 최신)
+## 배포 상태 (2026-05-19 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: CrossContext 업종×BM 교차 트리거 wizard·ai-engine 연동 (c4aa773)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: CrossContext 한글-영문 ID 매핑 + BM 점수 수집 보완 (9f67067)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-19) — CrossContext 한글-영문 ID 매핑 버그 수정
+
+### ① cross-context.js — detectCrossWarnings() ID 정규화 추가 (배포 완료)
+- `data.bizModel`은 한국어 레이블(`'프랜차이즈'`)을 저장하지만 CROSS_RULES는 영문 ID(`'franchise'`) 사용 → 항상 매칭 실패하던 근본 버그 수정
+- `BM_ID_MAP` (12개 BM), `INDUSTRY_ID_MAP` (16개 업종) 룩업 테이블을 `detectCrossWarnings()` 진입부에 추가
+- 함수 시작에서 `industryId = INDUSTRY_ID_MAP[industryId] || industryId` 정규화 → `buildPromptSummary()`도 내부 호출이므로 자동 적용
+- 커밋: `9f67067`
+
+### ② wizard.js — CrossContext 블록 fallback 체인 확장 + BM 프록시 주입 (배포 완료)
+- `industryId` 추출: `data.industryKey || data.industry || data.industryName || ''`
+- `bmId` 추출: `data.bizModel || data.bm || data.bizModelName || ''`
+- `TAB_ORDER = ['common', 'industry']`로 BM 탭 제거 → `diag-bm-container_*` DOM 요소 없음 → BM 트리거 키 점수 수집 불가 버그 수정
+- BM 탭 없을 때 common 도메인 평균값으로 BM 프록시 주입: area1·2 → domain3(BM역량), area3 → domain2(인력운영), area4 → domain4(미래역량)
+- 커밋: `9f67067`
 
 ---
 
