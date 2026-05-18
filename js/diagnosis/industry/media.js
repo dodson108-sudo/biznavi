@@ -1,81 +1,59 @@
 const INDUSTRY_MEDIA = {
-  id: "media",
-  title: "미디어·콘텐츠업 특화 진단",
+  id: 'media',
+  label: '미디어 및 엔터테인먼트',
+  icon: '🎬',
+  description: '영상 제작사·MCN·이벤트 기획·독립 레이블. IP 수익화 역량이 중요.',
   areas: [
     {
-      id: "core",
-      title: "미디어·콘텐츠 핵심 5가지 — 수익 다각화·크리에이터 의존·IP·알고리즘·신규 수익",
+      id: 'med_ip',
+      label: 'IP 자산 및 재무 수익성',
+      icon: '💰',
       items: [
-        {
-          id: "med_1",
-          text: "전체 수익 중 광고(CPM·CPC 등) 이외의 수입(협찬·구독료·IP 라이선스·MD 상품·오프라인 행사 등)이 차지하는 비중이 얼마나 되나요? — 광고 수익만 의존하면 플랫폼 정책 변경 한 번에 수익이 급감합니다.",
-          type: "numeric", unit: "%", inputLabel: "광고 외 수익 비중 (%) — 모르면 아래 선택",
-          placeholder: "예: 30",
-          scoreRanges: [[0,10,1], [10,20,2], [20,35,3], [35,50,4], [50,100,5]],
-          min: "10% 미만 (광고만 의존)", max: "50% 이상 (수익 다각화)"
-        },
-        {
-          id: "med_2",
-          text: "특정 크리에이터·PD·작가 한 명에게 콘텐츠와 팬덤이 집중되어 있나요? — 그 사람이 독립하거나 이탈하면 구독자와 매출이 함께 빠져나갈 수 있습니다.",
-          type: "bars",
-          anchors: {
-            1: "크리에이터 1명에게 구독자·수익의 70% 이상 의존 — 그 사람이 나가면 사업이 흔들림",
-            2: "핵심 크리에이터 1~2명에 의존 — 계약·처우 불만 시 이탈 위험이 높음",
-            3: "크리에이터 3명 이상이 있지만 인기 편차가 크고 팬덤이 사람에게 집중",
-            4: "콘텐츠 포맷과 브랜드로 팬덤이 형성되어 특정 크리에이터 의존도가 30% 이하",
-            5: "크리에이터가 바뀌어도 채널 구독자가 유지될 만큼 브랜드가 독립적"
-          },
-          min: "크리에이터 1명에 70% 의존", max: "브랜드 독립·크리에이터 교체 가능"
-        },
-        {
-          id: "med_3",
-          text: "우리가 만든 콘텐츠(캐릭터·영상·음악·포맷 등)를 원작으로 드라마·굿즈·게임·공연 등 다양한 사업으로 확장할 수 있는 IP(Intellectual Property: 지식재산권 — 콘텐츠를 원소스로 다양한 수익을 창출하는 권리)를 보유하고 있나요?",
-          type: "bars",
-          anchors: {
-            1: "IP 개념을 생각해본 적 없음 — 콘텐츠를 만들고 그냥 올릴 뿐",
-            2: "독자적인 캐릭터나 포맷이 있지만 상표 등록이나 저작권 관리가 되어 있지 않음",
-            3: "상표·저작권 등록은 했지만 IP를 다른 사업(굿즈·라이선스 등)으로 확장한 경험은 없음",
-            4: "IP를 활용한 굿즈·오프라인 행사·협업 수익이 발생하고 있음",
-            5: "IP가 독립적인 브랜드로 성장하여 드라마·게임·글로벌 라이선스 등 다각도로 수익화 중"
-          },
-          min: "IP 없음·관리 안 됨", max: "IP 기반 다각도 수익화"
-        },
-        {
-          id: "med_4",
-          text: "유튜브·인스타그램·틱톡 등의 알고리즘(노출 결정 방식) 변화에 어떻게 대응하고 있나요? — 알고리즘이 바뀌면 조회수가 하루아침에 반토막날 수 있습니다.",
-          type: "bars",
-          anchors: {
-            1: "알고리즘 변화를 모니터링하지 않음 — 갑자기 조회수가 떨어져도 이유를 모름",
-            2: "알고리즘이 바뀌었다는 것은 알지만 콘텐츠 방향을 바꾸지 않음",
-            3: "업계 유튜버·전문가 콘텐츠로 변화를 파악하지만 대응이 느림",
-            4: "콘텐츠 지표(CTR·평균 시청 시간·완주율 등)를 주기적으로 분석하고 포맷을 빠르게 조정",
-            5: "플랫폼별 알고리즘 변화를 즉시 파악하고 멀티 플랫폼 운영으로 특정 알고리즘 의존도를 낮춤"
-          },
-          min: "알고리즘 변화 무방비", max: "멀티 플랫폼·즉각 대응 체계"
-        },
-        {
-          id: "med_5",
-          text: "현재 광고 이외에 실제로 돈이 되는 다른 수익 모델이 있나요? — 구독형·커머스·오프라인 등 수익 다각화 현황을 모두 선택해 주세요.",
-          type: "mixed",
-          choices: [
-            "유료 구독·멤버십 (유튜브 멤버십·패트리온·자체 구독 등)",
-            "브랜드 협찬·PPL (Product Placement: 영상 내 제품 간접 광고)",
-            "MD 굿즈·자체 쇼핑몰 상품 판매",
-            "온·오프라인 행사·팬미팅·강연",
-            "IP 라이선스·캐릭터 협업 계약",
-            "없음 — 현재는 플랫폼 광고 수익만 있음"
-          ],
-          noneValue: "없음 — 현재는 플랫폼 광고 수익만 있음",
-          min: "광고 수익만 있음", max: "4개 이상 수익 모델 운영"
-        }
+        { id:'me_1_1', label:'저작권·IP 수익 비중', type:'bars', question:'단순 용역 매출이 아닌 자체 IP에서 발생하는 로열티 비중을 관리하고 있습니까?', scale:[{score:1,desc:'자체 IP 없음. 용역 매출 100% 의존.'},{score:2,desc:'IP 일부 보유. 수익화 미실현.'},{score:3,desc:'IP 수익 비중 10% 이상. 로열티 수입 발생.'},{score:4,desc:'IP 수익 비중 30% 이상. 라이선싱 계약 다수.'},{score:5,desc:'IP 수익 50% 이상. 오리지널 콘텐츠 주력 수익원화.'}], ai_trigger:{threshold:2,warning:'ip_revenue_low'} },
+        { id:'me_1_2', label:'프로젝트별 ROI 분석', type:'bars', question:'각 콘텐츠 제작 투입비 대비 광고 수익·협찬·배급 수익의 실질 이익 관리 여부를 갖추고 있습니까?', scale:[{score:1,desc:'프로젝트 ROI 파악 없음. 매출만 집계.'},{score:2,desc:'주요 프로젝트 ROI 대략 파악.'},{score:3,desc:'전 프로젝트 ROI 집계. 손익분기 인지.'},{score:4,desc:'프로젝트별 ROI 실시간 추적. 적자 즉각 대응.'},{score:5,desc:'ROI 대시보드. AI 기반 콘텐츠 투자 최적화.'}], ai_trigger:{threshold:2,warning:'project_roi_blind'} },
+        { id:'me_1_3', label:'수익 정산 투명성', type:'bars', question:'아티스트·크리에이터와의 배분 정산 시스템 자동화 및 정산 보고서 제공 주기를 갖추고 있습니까?', scale:[{score:1,desc:'정산 기준 없음. 분쟁 빈번.'},{score:2,desc:'정산 기준 존재. 수동 계산 위주.'},{score:3,desc:'정산 자동화 일부. 월 보고서 제공.'},{score:4,desc:'정산 완전 자동화. 실시간 수익 확인 가능.'},{score:5,desc:'블록체인 기반 정산. 투명성 완전 보장.'}], ai_trigger:{threshold:2,warning:'settlement_transparency_weak'} },
+        { id:'me_1_4', label:'외부 투자·현금흐름', type:'bars', question:'제작비 선투입에 따른 현금 고갈 리스크 관리 및 투자 유치 역량을 갖추고 있습니까?', scale:[{score:1,desc:'현금흐름 관리 없음. 제작비 조달 즉흥적.'},{score:2,desc:'현금 잔액 확인 수준. 투자 유치 경험 없음.'},{score:3,desc:'현금흐름 예측. 기본 투자자 네트워크 보유.'},{score:4,desc:'현금흐름 실시간 관리. 투자 유치 정기 실행.'},{score:5,desc:'다양한 자금 조달 포트폴리오. 현금 고갈 리스크 0%.'}], ai_trigger:{threshold:2,warning:'cashflow_risk_high'} },
       ]
-    }
+    },
+    {
+      id: 'med_production',
+      label: '제작 프로세스 및 기술',
+      icon: '🎥',
+      items: [
+        { id:'me_2_1', label:'제작 리드타임 관리', type:'bars', question:'기획부터 최종 편집·송출까지의 소요 시간 표준화 및 마감 준수율을 관리하고 있습니까?', scale:[{score:1,desc:'리드타임 측정 없음. 마감 지연 빈번.'},{score:2,desc:'평균 제작 시간 대략 파악. 표준화 없음.'},{score:3,desc:'콘텐츠 유형별 리드타임 표준화. 마감 준수율 집계.'},{score:4,desc:'마감 준수율 90% 이상. 제작 캘린더 자동화.'},{score:5,desc:'AI 제작 스케줄 최적화. 마감 100% 달성 체계.'}], ai_trigger:{threshold:2,warning:'production_leadtime_high'} },
+        { id:'me_2_2', label:'저작권 리스크 검수', type:'bars', question:'음원·폰트·초상권 등 법적 분쟁 리스크를 사전에 필터링하는 내부 검수 시스템을 보유하고 있습니까?', scale:[{score:1,desc:'저작권 검수 없음. 분쟁 위험 높음.'},{score:2,desc:'주요 음원만 확인. 체계적 검수 없음.'},{score:3,desc:'저작권 체크리스트 운영. 주요 리스크 사전 제거.'},{score:4,desc:'법무 검토 프로세스. 저작권 분쟁 0건.'},{score:5,desc:'AI 저작권 자동 검수. 실시간 리스크 탐지.'}], ai_trigger:{threshold:2,warning:'copyright_risk_unmanaged'} },
+        { id:'me_2_3', label:'디지털 에셋 자산화', type:'bars', question:'원본 소스·미사용 컷 등의 체계적 DB화를 통한 후속 프로젝트 재활용 수준을 갖추고 있습니까?', scale:[{score:1,desc:'에셋 관리 없음. 매번 처음부터 제작.'},{score:2,desc:'일부 에셋 보관. 체계적 분류 없음.'},{score:3,desc:'에셋 DB 구축. 재활용률 30% 이상.'},{score:4,desc:'에셋 재활용률 60% 이상. 제작 효율 2배.'},{score:5,desc:'에셋 자동 분류 AI. 재활용률 80% 이상.'}], ai_trigger:{threshold:2,warning:'asset_db_missing'} },
+        { id:'me_2_4', label:'기술 장비·S/W 현대화', type:'bars', question:'4K/8K 촬영 장비·고사양 편집 시스템·AI 제작 툴 도입을 통한 생산성 향상을 갖추고 있습니까?', scale:[{score:1,desc:'노후 장비 사용. AI 툴 미도입.'},{score:2,desc:'기본 장비 보유. 최신 툴 미활용.'},{score:3,desc:'4K 장비 + 기본 AI 편집 툴 도입.'},{score:4,desc:'최신 제작 환경 완비. AI 툴 적극 활용.'},{score:5,desc:'업계 최고 사양 장비 + AI 자동화. 제작 효율 최고.'}], ai_trigger:{threshold:2,warning:'equipment_outdated'} },
+      ]
+    },
+    {
+      id: 'med_hr',
+      label: '인적 자원 및 창작 환경',
+      icon: '🎭',
+      items: [
+        { id:'me_3_1', label:'아티스트·PD 전속 계약률', type:'bars', question:'핵심 창작자와의 장기 계약 비중 및 이탈 방지 매니지먼트 체계를 갖추고 있습니까?', scale:[{score:1,desc:'전속 계약 없음. 프리랜서 100% 의존.'},{score:2,desc:'일부 전속 계약. 이탈 방지 체계 없음.'},{score:3,desc:'핵심 창작자 전속 계약 50% 이상.'},{score:4,desc:'전속 계약 80% 이상. 이탈 방지 인센티브 운영.'},{score:5,desc:'전속 생태계 완성. 창작자 이탈 0% 달성 체계.'}], ai_trigger:{threshold:2,warning:'exclusive_contract_low'} },
+        { id:'me_3_2', label:'인력 이탈 리스크 관리', type:'bars', question:'핵심 편집자·작가 이탈 시 백업 인력 풀 확보 여부를 갖추고 있습니까?', scale:[{score:1,desc:'백업 인력 없음. 핵심 이탈 시 제작 중단.'},{score:2,desc:'이탈 리스크 인지. 대응 체계 없음.'},{score:3,desc:'핵심 직무별 백업 지정. 인수인계 프로토콜.'},{score:4,desc:'백업 인력 풀 완비. 이탈 영향 최소화.'},{score:5,desc:'인력 이탈 0% 체계. 창작 연속성 완전 보장.'}], ai_trigger:{threshold:2,warning:'backup_talent_missing'} },
+        { id:'me_3_3', label:'협업 문화·소통 효율', type:'bars', question:'감독·작가·제작팀 간의 비전 공유 및 협업 툴을 통한 의사소통 속도를 갖추고 있습니까?', scale:[{score:1,desc:'소통 체계 없음. 혼선 빈번.'},{score:2,desc:'메신저 위주 소통. 협업 툴 없음.'},{score:3,desc:'협업 툴 도입. 프로젝트 히스토리 관리.'},{score:4,desc:'실시간 협업 환경. 의사결정 속도 2배.'},{score:5,desc:'AI 협업 지원. 창작 효율 업계 최고.'}], ai_trigger:{threshold:2,warning:'collaboration_inefficient'} },
+        { id:'me_3_4', label:'창의적 성과 보상', type:'bars', question:'콘텐츠 흥행 시 창작자에게 주어지는 인센티브 구조의 명확성을 갖추고 있습니까?', scale:[{score:1,desc:'성과 보상 없음. 고정급만 지급.'},{score:2,desc:'대표 재량 보너스. 기준 불명확.'},{score:3,desc:'흥행 성과 기반 인센티브 기준 문서화.'},{score:4,desc:'성과 자동 산출 + 즉각 지급 체계.'},{score:5,desc:'성과 보상 완전 자동화. 창작 동기 최고 수준.'}], ai_trigger:{threshold:2,warning:'creative_reward_unclear'} },
+      ]
+    },
+    {
+      id: 'med_fandom',
+      label: '채널 영향력 및 팬덤',
+      icon: '⭐',
+      items: [
+        { id:'me_4_1', label:'팬덤 참여·충성도', type:'bars', question:'구독자 대비 시청 지속 시간·댓글 수 등 팬덤의 실질적 화력(Engagement)을 관리하고 있습니까?', scale:[{score:1,desc:'팬덤 지표 없음. 구독자 수만 집계.'},{score:2,desc:'시청 시간 대략 파악. 팬덤 분석 없음.'},{score:3,desc:'팬덤 지표 정기 집계. 참여율 목표 설정.'},{score:4,desc:'팬덤 참여율 업계 평균 이상. 충성 팬 관리 체계.'},{score:5,desc:'팬덤 커뮤니티 자산화. 팬덤이 콘텐츠 제작에 참여.'}], ai_trigger:{threshold:2,warning:'fandom_engagement_low'} },
+        { id:'me_4_2', label:'글로벌 확장성', type:'bars', question:'해외 시청자 비중 및 다국어 자막·더빙·글로벌 플랫폼 진출 역량을 갖추고 있습니까?', scale:[{score:1,desc:'글로벌 진출 계획 없음. 국내 시장만 집중.'},{score:2,desc:'해외 시청자 일부. 다국어 대응 없음.'},{score:3,desc:'영문 자막 제공. 글로벌 플랫폼 일부 입점.'},{score:4,desc:'다국어 자막·더빙. 글로벌 매출 20% 이상.'},{score:5,desc:'글로벌 멀티 플랫폼 완전 진출. 해외 매출 40% 이상.'}], ai_trigger:{threshold:2,warning:'global_expansion_weak'} },
+        { id:'me_4_3', label:'광고·스폰서십 유치', type:'bars', question:'채널 영향력을 기반으로 한 직접 광고(PPL) 및 브랜드 협업 수주 경쟁력을 갖추고 있습니까?', scale:[{score:1,desc:'광고 유치 없음. 플랫폼 광고 수익만 의존.'},{score:2,desc:'소규모 PPL 일부. 브랜드 협업 없음.'},{score:3,desc:'정기 PPL + 브랜드 협업 계약 보유.'},{score:4,desc:'광고 매출 비중 30% 이상. 직접 영업 체계.'},{score:5,desc:'브랜드 광고 파트너십 완성. 광고 매출 안정화.'}], ai_trigger:{threshold:2,warning:'sponsorship_revenue_low'} },
+        { id:'me_4_4', label:'원 소스 멀티 유즈(OSMU)', type:'bars', question:'영상 IP를 웹툰·굿즈·오프라인 전시 등으로 확장하여 수익을 극대화하는 능력을 갖추고 있습니까?', scale:[{score:1,desc:'OSMU 개념 없음. 단일 채널 수익만 존재.'},{score:2,desc:'OSMU 검토 중. 미실행.'},{score:3,desc:'굿즈 또는 웹툰 등 1개 확장 실행.'},{score:4,desc:'OSMU 2개 이상 확장. IP 수익 다각화.'},{score:5,desc:'IP 생태계 완성. OSMU 수익 30% 이상.'}], ai_trigger:{threshold:2,warning:'osmu_not_utilized'} },
+      ]
+    },
   ],
-  insights: [
-    "광고 수익 의존도 80% 이상이면 플랫폼 정책 변경 한 번에 매출이 30~50% 급감할 수 있습니다.",
-    "IP 없이는 콘텐츠가 일회성 소비로 끝납니다 — 캐릭터나 포맷의 상표 등록부터 시작하세요.",
-    "멀티 플랫폼 운영은 알고리즘 의존도를 낮추는 가장 현실적인 방법입니다."
-  ]
+  ai_analysis: [
+    { trigger:'ip_revenue_low+project_roi_blind', level:'CRITICAL', msg:'매출은 크지만 자체 IP 비중이 낮다면 하청 기지로 전락합니다. 오리지널 콘텐츠 기획 비중을 연간 30% 이상 확보하는 전략적 투자를 처방합니다.' },
+    { trigger:'fandom_engagement_low+global_expansion_weak', level:'HIGH', msg:'구독자는 늘지만 시청 지속 시간이 짧다면 콘텐츠 매력도 하락입니다. 숏폼 강화 및 초반 3초 후킹 전략 재설계를 제안합니다.' },
+    { trigger:'production_leadtime_high+equipment_outdated', level:'HIGH', msg:'제작 리드타임이 길고 장비가 노후화되었다면 인건비 낭비입니다. AI 편집 툴 도입 및 클라우드 협업 환경 구축을 처방합니다.' },
+  ],
 };
-
+if (typeof window !== 'undefined') window.INDUSTRY_MEDIA = INDUSTRY_MEDIA;
 if (typeof module !== 'undefined') module.exports = INDUSTRY_MEDIA;
