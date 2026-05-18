@@ -339,6 +339,40 @@ const CrossContext = (() => {
    * @returns {Array} 발동된 교차 경고 목록
    * ============================================================ */
   function detectCrossWarnings(industryId, bmId, diagScores) {
+    const BM_ID_MAP = {
+      '프랜차이즈': 'franchise',
+      'B2B SaaS': 'b2b_saas',
+      'B2C 구독': 'b2c_sub',
+      'B2B 솔루션': 'b2b_solution',
+      'B2C 커머스': 'b2c_commerce',
+      '플랫폼·마켓플레이스': 'platform',
+      '제조·유통': 'mfg_dist',
+      '서비스업 (일반)': 'service',
+      '기타': 'etc',
+      '종량제': 'usage_based',
+      '광고 기반': 'advertising',
+      '딥테크·바이오': 'deeptech',
+    };
+    const INDUSTRY_ID_MAP = {
+      '외식 및 휴게음식업': 'restaurant',
+      '지식 서비스 및 IT 개발': 'knowledge_it',
+      '수출 주도형 중소기업': 'export_sme',
+      '뿌리 제조 및 부품가공업': 'mfg_parts',
+      '식품 제조 및 가공업': 'food_mfg',
+      '생활밀착형 서비스업': 'local_service',
+      '전문 유통 및 도소매업': 'wholesale',
+      '소규모 건설 및 인테리어': 'construction',
+      '의료 및 헬스케어': 'medical',
+      '금융 및 핀테크': 'finance',
+      '교육 서비스 및 에듀테크': 'education',
+      '패션 및 뷰티 브랜드': 'fashion',
+      '미디어 및 엔터테인먼트': 'media',
+      '물류 및 운송업': 'logistics',
+      '환경 및 에너지업': 'energy',
+      '농림 및 식품원료업': 'agri_food',
+    };
+    industryId = INDUSTRY_ID_MAP[industryId] || industryId;
+    bmId = BM_ID_MAP[bmId] || bmId;
     if (!industryId || !bmId || !diagScores) return [];
 
     const scoreMap = buildScoreMap(diagScores);

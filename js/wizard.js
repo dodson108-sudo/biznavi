@@ -2158,12 +2158,35 @@ const Wizard = (() => {
     data.bizScale = bizScale;
 
     if (window.CrossContext) {
-      const industryId = data.industryKey || data.industry || '';
-      const bmId = data.bizModel || data.bm || '';
+      const industryId = data.industryKey || data.industry || data.industryName || '';
+      const bmId = data.bizModel || data.bm || data.bizModelName || '';
       const allScores = {};
       document.querySelectorAll('[id^="diag-"]').forEach(el => {
         if (el.value) allScores[el.id] = Number(el.value);
       });
+
+      // BM 탭이 제거된 경우(TAB_ORDER=['common','industry']), common 점수로 BM 프록시 주입
+      const hasBmScores = Object.keys(allScores).some(k => k.startsWith('diag-bm-container_'));
+      if (!hasBmScores) {
+        const domainAvg = {};
+        [1, 2, 3, 4, 5].forEach(d => {
+          const vals = Object.entries(allScores)
+            .filter(([k]) => k.includes(`diag-common-container_${d}_`))
+            .map(([, v]) => v);
+          domainAvg[d] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 3;
+        });
+        // BM 영역 번호 → common 도메인 매핑: 1→3(BM역량), 2→3, 3→2(인력운영), 4→4(미래)
+        const BM_AREA_TO_DOMAIN = { 1: 3, 2: 3, 3: 2, 4: 4 };
+        ['fr', 'bs', 'bc', 'bb', 'pl', 'ub', 'adv', 'dt', 'sv', 'md'].forEach(prefix => {
+          [1, 2, 3, 4].forEach(area => {
+            [1, 2, 3, 4].forEach(item => {
+              const key = `diag-bm-container_${prefix}_${area}_${item}`;
+              allScores[key] = domainAvg[BM_AREA_TO_DOMAIN[area] || 3];
+            });
+          });
+        });
+      }
+
       data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, allScores);
       data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, allScores);
     }
