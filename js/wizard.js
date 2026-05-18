@@ -2157,6 +2157,17 @@ const Wizard = (() => {
     data.scaleScores = scaleScores;
     data.bizScale = bizScale;
 
+    if (window.CrossContext) {
+      const industryId = data.industryKey || data.industry || '';
+      const bmId = data.bizModel || data.bm || '';
+      const allScores = {};
+      document.querySelectorAll('[id^="diag-"]').forEach(el => {
+        if (el.value) allScores[el.id] = Number(el.value);
+      });
+      data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, allScores);
+      data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, allScores);
+    }
+
     return data;
   }
 

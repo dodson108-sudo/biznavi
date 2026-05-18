@@ -1195,6 +1195,9 @@ kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2�
     } else if (d.bizScale === 'sme' && d.smePrompt) {
       prompt += '\n\n' + d.smePrompt;
     }
+    if (d.crossPrompt) {
+      prompt += '\n\n' + d.crossPrompt;
+    }
 
     return prompt;
   }
