@@ -1,10 +1,38 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-17 최신)
+## 배포 상태 (2026-05-18 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: BM 진단 파일 v2.0 전면 교체 (5d73c9c)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: cross-context.js v2.0 전면 교체 (1050f44)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-18) — BM 진단 시스템 v2.0 완성 + 렌더링 버그 수정
+
+### ① 나머지 BM 진단 파일 9개 v2.0 전면 교체 (배포 완료)
+- 교체 파일: `b2b_saas.js` · `b2c_sub.js` · `b2b_solution.js` · `b2c_commerce.js` · `platform.js` · `franchise.js` · `mfg_dist.js` · `service.js` · `etc.js`
+- 신규 포맷: `BM_XXX` 변수명, 4 areas × 4 items, `scale:[{score:1~5,desc}]`, `ai_trigger`, `ai_analysis` 배열
+- 커밋: `998087b`
+
+### ② ai-engine.js BM 변수명 통일 (배포 완료)
+- `bizModelVarMap` 내 `BIZMODEL_XXX` → `BM_XXX` 12개 전체 교체
+- 커밋: `233726b`
+
+### ③ wizard.js v2.0 포맷 렌더링 5개 버그 수정 (배포 완료)
+- `_diagCommonToAreas()` 헬퍼 추가 — DiagCommon.getSchema() 결과를 renderDiagModule 호환 포맷으로 변환
+- `loadDiagnosisUI()` — COMMON_DIAGNOSIS → DiagCommon 우선 분기 추가
+- `renderDiagModule` — `data.label||data.title`, `area.label||area.title` fallback 추가
+- `_renderItemHtml` — `item.question||item.label||item.text` fallback 추가
+- `_scaleToAnchors()` 헬퍼 추가 — `scale:[{score,desc}]` → `anchors:{1:'...',5:'...'}` 변환
+- 커밋: `04f1749`
+
+### ④ cross-context.js v2.0 전면 교체 (배포 완료)
+- CrossContext v2.0 IIFE 모듈 — 20개 CROSS_RULES (업종×BM 핵심 조합)
+- CRITICAL 9개 규칙: restaurant×franchise, export_sme×usage_based, medical×advertising 등
+- HIGH 11개 규칙: knowledge_it×b2b_saas, fashion×b2c_commerce, logistics×platform 등
+- Public API: `detectCrossWarnings(industryId, bmId, diagScores)` · `buildPromptSummary()` · `getRulesFor()` · `getStats()`
+- 커밋: `1050f44`
 
 ---
 
@@ -41,19 +69,20 @@
 
 ## 다음 세션 예정 작업
 
-### 1순위: 나머지 BM 진단 파일 v2.0 교체
-- `b2b_saas.js` · `b2c_sub.js` · `b2b_solution.js` · `b2c_commerce.js` · `platform.js` · `franchise.js` · `mfg_dist.js` · `service.js` · `etc.js` (9개)
+### 1순위: 나머지 업종 진단 파일 v2.0 교체 (12개 잔여)
+- `mfg_parts.js` · `food_mfg.js` · `local_service.js` · `wholesale.js` · `restaurant.js` · `knowledge_it.js` · `construction.js` · `medical.js` · `finance.js` · `education.js` · `fashion.js` · `media.js`
 
-### 2순위: 나머지 업종 진단 파일 v2.0 교체
-- `mfg_parts.js` · `food_mfg.js` · `local_service.js` · `wholesale.js` · `restaurant.js` · `knowledge_it.js` · `construction.js` · `medical.js` · `finance.js` · `education.js` · `fashion.js` · `media.js` (12개)
+### 2순위: CrossContext v2.0 AI 프롬프트 연동
+- `ai-engine.js buildPrompt1()` — `CrossContext.buildPromptSummary(industryKey, bmKey, scores)` 결과 주입
+- `wizard.js collect()` — cross-context 경보 데이터 수집 후 `data.crossWarnings` 추가
 
-### 3순위: wizard.js 진단 UI 연동 — v2.0 포맷 렌더링
-- `loadDiagnosisUI()` — 새 포맷(`areas → items → scale`) 기반 UI 렌더링 확인
-- `ai_trigger` 경보 → `detectCrossWarnings()` 연동
-
-### 4순위: reference-db.js 데이터 업그레이드
+### 3순위: reference-db.js 데이터 업그레이드
 - `knowledge_base/industry_full_benchmarks.csv` 기준 수치 갱신
 - `small_biz_cost_guide.csv` 소상공인 비용 구조 프롬프트 반영
+
+### 4순위: 진단 시스템 end-to-end 실전 테스트
+- biznavi.vercel.app에서 업종×BM 조합 3종 이상 실제 진단 실행
+- v2.0 렌더링(scale → BARS) 정상 출력, cross-context 경보 카드 표시 확인
 
 ---
 
