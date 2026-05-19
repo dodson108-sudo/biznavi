@@ -2,13 +2,33 @@
 
 ## 배포 상태 (2026-05-19 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: CrossContext 한글-영문 ID 매핑 + BM 점수 수집 보완 (9f67067)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: docs: /fix-dart 스킬 업데이트 (ea487eb)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
-## 최근 수정 이력 (2026-05-19) — CrossContext 한글-영문 ID 매핑 버그 수정
+## 최근 수정 이력 (2026-05-19 오후) — XBRL 재무분석 개선 4건
+
+### ① XBRL 계정명 매칭 강화 + 분기보고서 rcept_no 수정 (배포 완료) — 커밋 f8d498f
+- `_parseXbrl()` 계정명 후보 추가: `Cash`, `FinishedGoods`, `Merchandise`, `BorrowingsFromFinancialInstitutions`, `LongTermBorrowings`, `CostOfRevenues`
+- `_supplementWithXbrl()` 분기/반기 키워드 분기 추가 — 기존에 항상 `사업보고서` rcept_no만 사용하던 버그 수정
+- 분기: `분기보고서` 키워드로 해당 연도 제출 파일 우선 탐색, 없으면 `사업보고서` fallback
+
+### ② XBRL 파일명 기준 연도 자동 보정 (배포 완료) — 커밋 255087a
+- 근본 원인: 분기→사업보고서 fallback 시 `_parseXbrl(xml, 2026)` 호출하지만 실제 XBRL은 `entity_2025-12-31.xbrl` → 연도 불일치 → 전부 null
+- 수정: `xbrlEntry.entryName.match(/(\d{4})-\d{2}-\d{2}/)` 로 파일명에서 연도 추출 → `_parseXbrl(xml, xbrlYear)` 사용
+
+### ③ 당좌자산 파생계산 + 전년도매출액 자동입력 (배포 완료) — 커밋 846473d
+- 당좌자산: IFRS 기업은 별도 항목 없음 → `유동자산 - 재고자산` 파생 계산 자동 주입
+- 전년도매출액: `getPrev()` 함수 추가 (`frmtrm_amount` 전용) + `prevRevenue` 필드 → `finance-wizard.js` `_setField('fin_prev_revenue')` 연결
+
+### ④ /fix-dart 스킬 업데이트 — 커밋 ea487eb
+- 오늘 발견된 4개 패턴 추가: XBRL year 불일치 / 분기 rcept_no 버그 / 당좌자산 파생 / 전년도매출액 매핑
+
+---
+
+## 최근 수정 이력 (2026-05-19 오전) — CrossContext 한글-영문 ID 매핑 버그 수정
 
 ### ① cross-context.js — detectCrossWarnings() ID 정규화 추가 (배포 완료)
 - `data.bizModel`은 한국어 레이블(`'프랜차이즈'`)을 저장하지만 CROSS_RULES는 영문 ID(`'franchise'`) 사용 → 항상 매칭 실패하던 근본 버그 수정
