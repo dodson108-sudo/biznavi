@@ -79,13 +79,16 @@ async function _loadCorpList(apiKey) {
 // scenario 필터는 IFRS 연결/별도 explicitMember까지 걸러내므로 사용 안 함
 // 대신 contextRef ID의 CFY 패턴으로 당기 데이터만 추출
 function _parseXbrl(xml, year) {
-  // 당기 패턴 (12월 결산: CFY2024, 3·6월 결산법인: CFY year+1 허용)
+  // 당기 패턴:
+  //   IFRS 연간: CFY{year}, 3·6월 결산법인: CFY{year+1}
+  //   K-GAAP 연간: D{year}0101T{year}1231 → String(year)로 매칭
+  //   분기·반기: D{year}0101T{year}0331 등 날짜형 contextRef → String(year)로 매칭
   const cfyPat  = `CFY${year}`;
   const cfyPat2 = `CFY${year + 1}`;
 
   function getVal(...names) {
-    // new RegExp()의 \\w 이스케이프 문제 회피 → indexOf 기반 문자열 탐색
-    // IFRS: contextRef에 CFY{year} 패턴, K-GAAP: 날짜 기반 컨텍스트(D20240101T20241231 등)
+    // contextRef에 year 문자열이 포함되면 당기로 판단
+    // (분기: D20240101T20240331, 연간: D20240101T20241231, IFRS: CFY2024 모두 커버)
     const patterns = [cfyPat, cfyPat2, String(year), String(year + 1)];
     for (const name of names) {
       for (const pat of patterns) {
@@ -142,10 +145,11 @@ function _parseXbrl(xml, year) {
     );
 
   const result = {
-    cash:           getVal('CashAndCashEquivalents', 'CashAndBankDeposits', 'CashAndDueFromBanks',
-                           'CashAndShortTermInvestments', 'CashEquivalents'),
+    cash:           getVal('CashAndCashEquivalents', 'Cash', 'CashAndBankDeposits', 'CashAndDueFromBanks',
+                           'CashAndShortTermInvestments', 'CashEquivalents',
+                           'ShortTermFinancialInstruments', 'CurrentFinancialAssets'),
     inventory:      getVal('Inventories', 'GoodsAndProducts', 'FinishedGoodsAndGoods',
-                           'TotalInventories', 'InventoriesNet'),
+                           'FinishedGoods', 'Merchandise', 'TotalInventories', 'InventoriesNet'),
     tangibleAssets: getVal('PropertyPlantAndEquipment', 'PropertyPlantAndEquipmentNet',
                            'TangibleAssets', 'PropertyPlantEquipmentAndBearerPlants'),
     receivable:     getVal('TradeAndOtherCurrentReceivables', 'TradeReceivablesNet',
@@ -155,8 +159,9 @@ function _parseXbrl(xml, year) {
                            'TradeAndOtherPayables', 'AccountsPayable', 'TradePayablesAndOtherCurrentLiabilities',
                            'ShortTermTradePayables'),
     borrowings:     getVal('Borrowings', 'ShortTermBorrowings', 'ShorttermBorrowings',
-                           'CurrentBorrowings', 'BorrowingsAndDebts', 'BankLoansAndBorrowings'),
-    costOfSales:    getVal('CostOfSales', 'CostOfGoodsSold', 'CostOfRevenue',
+                           'CurrentBorrowings', 'BorrowingsFromFinancialInstitutions', 'LongTermBorrowings',
+                           'BorrowingsAndDebts', 'BankLoansAndBorrowings'),
+    costOfSales:    getVal('CostOfSales', 'CostOfGoodsSold', 'CostOfRevenue', 'CostOfRevenues',
                            'CostOfSalesAndServices', 'ManufacturingCost', 'TotalCostOfSales'),
     grossProfit:    getVal('GrossProfit', 'SalesGrossProfit', 'GrossProfitFromSales', 'GrossProfitLoss'),
     interestExpense:getVal('FinanceCosts', 'InterestExpense', 'FinanceExpenses',
@@ -195,15 +200,33 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data, reprtCode = '11
       return data;
     }
 
-    // 12월 결산법인: year 사업보고서는 year+1 년도에 제출
-    // 3·6월 결산법인: year+1 제출일 기준으로도 허용
+    // 보고서 종류별 list.json 키워드 매핑
+    // 분기·반기는 해당 연도에 제출 (Q1→5월, H1→8월, Q3→11월)
+    // 사업보고서는 다음 연도에 제출 (12월 결산 기준 year+1 3월)
+    const yearStr  = String(year);
     const nextYear = String(year + 1);
-    const filing =
-      listData.list.find(f => f.report_nm?.includes('사업보고서') && f.rcept_dt?.startsWith(nextYear)) ||
-      listData.list.find(f => f.report_nm?.includes('사업보고서') && !f.report_nm?.startsWith('[기재정정]')) ||
-      listData.list.find(f => f.report_nm?.includes('사업보고서'));
+    const REPRT_KEYWORD = { '11011': '사업보고서', '11012': '반기보고서', '11013': '분기보고서', '11014': '분기보고서' };
+    const keyword = REPRT_KEYWORD[reprtCode] || '사업보고서';
+    const isAnnual = reprtCode === '11011';
 
-    if (!filing) { console.log('[XBRL] 사업보고서 공시 없음'); return data; }
+    let filing;
+    if (isAnnual) {
+      filing =
+        listData.list.find(f => f.report_nm?.includes(keyword) && f.rcept_dt?.startsWith(nextYear)) ||
+        listData.list.find(f => f.report_nm?.includes(keyword) && !f.report_nm?.startsWith('[기재정정]')) ||
+        listData.list.find(f => f.report_nm?.includes(keyword));
+    } else {
+      // 분기·반기: 해당 연도 제출분 우선, 없으면 keyword만 일치하는 최신 공시
+      filing =
+        listData.list.find(f => f.report_nm?.includes(keyword) && f.rcept_dt?.startsWith(yearStr)) ||
+        listData.list.find(f => f.report_nm?.includes(keyword) && f.rcept_dt?.startsWith(nextYear)) ||
+        listData.list.find(f => f.report_nm?.includes(keyword)) ||
+        // fallback: 분기보고서가 없으면 사업보고서로 XBRL 시도
+        listData.list.find(f => f.report_nm?.includes('사업보고서') && f.rcept_dt?.startsWith(nextYear)) ||
+        listData.list.find(f => f.report_nm?.includes('사업보고서'));
+    }
+
+    if (!filing) { console.log('[XBRL] 공시 없음 (reprtCode:', reprtCode, ')'); return data; }
 
     console.log('[XBRL] rcept_no:', filing.rcept_no, '| 공시년도:', filing.bsns_year);
 
