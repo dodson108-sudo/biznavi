@@ -588,6 +588,7 @@ const FinWizard = (() => {
     _setField('fin_interest_expense', f(d.interestExpense));
     _setField('fin_net_income',       f(d.netIncome));
     _setField('fin_labor_cost',       f(d.laborCost));
+    _setField('fin_prev_revenue',     f(d.prevRevenue));
   }
 
   function _fmtComma(n) {

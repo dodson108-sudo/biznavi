@@ -434,6 +434,19 @@ module.exports = async function handler(req, res) {
       return null;
     };
 
+    // 전기(전년도) 값만 추출 — 성장률 계산용
+    const getPrev = (...names) => {
+      for (const nm of names) {
+        const norm = nm.replace(/\s/g, '');
+        const found = items.find(i => i.account_nm?.replace(/\s/g, '').includes(norm));
+        if (found) {
+          const val = found.frmtrm_amount || found.frmtrm_add_amount;
+          if (val && val !== '0') return val;
+        }
+      }
+      return null;
+    };
+
     const toEok = v => { if (!v) return null; const n = parseInt(v.replace(/,/g, ''), 10); return isNaN(n) ? null : Math.round(n / 100000000); };
     const r = v => v ? { raw: v, eok: toEok(v) } : null;
 
@@ -482,7 +495,20 @@ module.exports = async function handler(req, res) {
       netIncome:          r(get('당기순이익', '당기순손익')),
       // K-GAAP: 판관비+제조원가 인건비 합산 우선, 단일 항목 fallback
       laborCost:          laborCombined ? r(laborCombined) : r(laborSGA),
+      // 전기 매출액 — 성장률 계산용 (frmtrm_amount 우선)
+      prevRevenue:        r(getPrev('매출액', '영업수익', '수익(매출액)', '매출', '이자수익', '순영업수익', '영업수익합계')),
     };
+
+    // 당좌자산 파생: 유동자산 - 재고자산 (IFRS 기업은 당좌자산 별도 항목 없음)
+    if (!result.quickAssets && result.currentAssets && result.inventory) {
+      const ca  = parseInt(result.currentAssets.raw.replace(/,/g, ''));
+      const inv = parseInt(result.inventory.raw.replace(/,/g, ''));
+      if (!isNaN(ca) && !isNaN(inv) && ca > inv) {
+        const qa = ca - inv;
+        result.quickAssets = { raw: qa.toLocaleString('ko-KR'), eok: Math.round(qa / 100000000) };
+        console.log('[DART] quickAssets 파생:', result.quickAssets.eok, '억 (유동-재고)');
+      }
+    }
 
     // K-GAAP: grossProfit 없고 revenue·costOfSales 있으면 파생 계산
     if (!result.grossProfit && result.revenue && result.costOfSales) {
