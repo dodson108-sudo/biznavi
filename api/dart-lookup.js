@@ -264,7 +264,13 @@ async function _supplementWithXbrl(apiKey, corpCode, year, data, reprtCode = '11
     const xml = xbrlEntry.getData().toString('utf-8');
     console.log('[XBRL] 파싱 중:', xbrlEntry.entryName, '크기:', xml.length);
 
-    const xbrl = _parseXbrl(xml, year);
+    // 파일명에서 연도 추출 (예: entity00113261_2025-12-31.xbrl → 2025)
+    // fallback으로 사업보고서 XBRL을 쓸 경우 year 불일치 방지
+    const fnYearMatch = xbrlEntry.entryName.match(/(\d{4})-\d{2}-\d{2}/);
+    const xbrlYear = fnYearMatch ? parseInt(fnYearMatch[1]) : year;
+    if (xbrlYear !== year) console.log('[XBRL] 연도 보정:', year, '→', xbrlYear, '(파일명 기준)');
+
+    const xbrl = _parseXbrl(xml, xbrlYear);
     console.log('[XBRL] 파싱 결과:', JSON.stringify(xbrl));
 
     // 기존 data에 XBRL 값으로 누락 보완 (null만 채움, 기존값 절대 덮어쓰지 않음)
