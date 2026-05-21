@@ -316,6 +316,147 @@ const CrossContext = (() => {
       ],
       msg: '하청 제조 기반 B2B 솔루션 기업인데 주거래처 의존도가 높고 리드 발굴 채널도 소개에만 의존합니다. 주요 거래처 이탈 시 솔루션 매출까지 동시에 끊기는 이중 리스크 구조입니다. 고객 다변화와 콘텐츠 마케팅 기반 인바운드 체계 구축이 시급합니다.',
     },
+
+    /* ==========================================================
+     * 소상공인 7대 분야 교차 트리거 규칙 (bizScale='micro')
+     * trigger.key에 diag-micro-container_x_x 리터럴 키 사용
+     * micro 점수가 없는 일반 기업은 null 체크로 자동 비발동
+     * ========================================================== */
+
+    /* ----------------------------------------------------------
+     * micro × * — ACM미산출 + 프라임코스트 초과 = 매출↑손실↑
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_sell_more_lose_more',
+      industry: '*',
+      bm: '*',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_1_3', threshold: 2 }, // 프라임코스트 통제
+        { file: 'micro', key: 'diag-micro-container_1_4', threshold: 2 }, // ACM 산출
+      ],
+      msg: '[소상공인 긴급] 프라임코스트 60% 초과 + ACM 미산출 — 매출이 늘수록 손실이 커지는 구조입니다. ACM 기반 Dog 메뉴 즉각 제거 및 원가 표준화가 최우선입니다.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × * — 계좌혼용 + 현금흐름 미관리 = 흑자 도산
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_profitable_bankruptcy',
+      industry: '*',
+      bm: '*',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_5_1', threshold: 2 }, // 계좌 분리
+        { file: 'micro', key: 'diag-micro-container_5_2', threshold: 2 }, // 린 현금흐름
+      ],
+      msg: '[소상공인 긴급] 가계·매장 계좌 혼용 + 현금흐름 미관리 — 매출이 있어도 현금이 없는 흑자 도산 위험 구간입니다. 사업 전용 계좌 분리와 14일 현금흐름 시뮬레이션이 즉각 필요합니다.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × * — BEP 미관리 + 현금위기 = 생존주기 임계
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_survival_crisis',
+      industry: '*',
+      bm: '*',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_6_1', threshold: 2 }, // 비즈니스 5단계
+        { file: 'micro', key: 'diag-micro-container_5_2', threshold: 2 }, // 현금흐름
+      ],
+      msg: '[소상공인 긴급] BEP 미트래킹 + 현금흐름 공백 — 경영 지속 가능성이 3개월 이내 임계점에 도달할 수 있습니다. 소진공 희망리턴패키지 요건 확인과 긴급 자금 확보가 시급합니다.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × restaurant — 프라임코스트 + 플레이스 불일치
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_rest_prime_place',
+      industry: 'restaurant',
+      bm: '*',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_1_3', threshold: 2 }, // 프라임코스트
+        { file: 'micro', key: 'diag-micro-container_2_2', threshold: 2 }, // 플레이스 일치도
+      ],
+      msg: '[외식 소상공인 긴급] 원가 구조가 무너진 상태에서 온라인 플레이스 관리도 소홀합니다. 손님이 줄어도 마진도 없는 이중 압박 구조입니다. ACM 기반 메뉴 정리와 플레이스 대표 이미지 교체를 동시에 실행하십시오.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × local_service — 플레이스 SEO + 리뷰 이중 부재
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_local_digital_void',
+      industry: 'local_service',
+      bm: '*',
+      level: 'CRITICAL',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_2_2', threshold: 2 }, // 플레이스 일치도
+        { file: 'micro', key: 'diag-micro-container_7_3', threshold: 2 }, // 영수증 리뷰
+      ],
+      msg: '[생활서비스 소상공인 긴급] 오프라인·온라인 플레이스 불일치 + 리뷰 관리 전무 — 신규 고객이 온라인 검색으로 찾아올 수 없는 구조입니다. 플레이스 정보 동기화와 리뷰 QR 스탠드 부착이 Day 1·2 즉각 과제입니다.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × franchise — OHI 위임도 + D2C 부재 = 프랜차이즈 리스크
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_franchise_ohi_d2c',
+      industry: 'restaurant',
+      bm: 'franchise',
+      level: 'HIGH',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_1_5', threshold: 2 }, // OHI 위임도
+        { file: 'micro', key: 'diag-micro-container_3_5', threshold: 2 }, // D2C 채널
+      ],
+      msg: '[외식 프랜차이즈 소상공인] 오너 의존 운영 + D2C 고객 채널 부재 — 본부 지원이 없으면 즉시 운영 불가 상태이며, 배달 플랫폼 수수료를 모두 납부하고 있습니다. OHI 위임 체계 구축과 카카오채널 단골 직주문 유도를 병행하십시오.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × * — 스마트DX 효과 없음 + 오너 의존 = 성장 불능
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_dx_ohi_bottleneck',
+      industry: '*',
+      bm: '*',
+      level: 'HIGH',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_4_3', threshold: 2 }, // 노동시간 절감
+        { file: 'micro', key: 'diag-micro-container_1_5', threshold: 2 }, // OHI 위임도
+      ],
+      msg: '[소상공인 경고] 스마트 기기 도입 효과가 없고 오너 의존도도 높습니다. 사장이 매장에 묶여 있어 휴가·부재·확장이 모두 불가능한 구조입니다. 위임 매뉴얼 수립과 기기 TCO 재점검이 시급합니다.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × * — AI·SNS 부재 + 플레이스 CTR 저조 = 디지털 고립
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_digital_isolated',
+      industry: '*',
+      bm: '*',
+      level: 'HIGH',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_7_1', threshold: 2 }, // AI 카피라이팅
+        { file: 'micro', key: 'diag-micro-container_7_5', threshold: 2 }, // 플레이스 CTR
+      ],
+      msg: '[소상공인 경고] AI 마케팅 도구 미활용 + 플레이스 CTR 저조 — SNS와 검색 모두에서 이 매장의 존재감이 없습니다. ChatGPT 프롬프트 템플릿 저장과 플레이스 시그니처 사진 교체로 7일 내 즉각 개선이 가능합니다.',
+    },
+
+    /* ----------------------------------------------------------
+     * micro × * — 노동법 미준수 + 세무 투명성 부족 = 법률 위험
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_legal_tax_risk',
+      industry: '*',
+      bm: '*',
+      level: 'HIGH',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_5_3', threshold: 2 }, // 근로계약 준수
+        { file: 'micro', key: 'diag-micro-container_5_4', threshold: 2 }, // 세무 투명성
+      ],
+      msg: '[소상공인 경고] 근로계약서 미작성 + 세무 증빙 체계 부실 — 근로감독 및 세무조사 시 대규모 가산세·벌금 위험이 있습니다. 전자 근로계약서 당일 교부와 홈택스 현금영수증 전액 발행이 Day 1 최우선 과제입니다.',
+    },
   ];
 
   /* ============================================================

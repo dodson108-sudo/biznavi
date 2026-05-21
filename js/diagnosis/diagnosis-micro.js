@@ -1,49 +1,517 @@
 /**
  * BizNavi AI 경영진단 시스템
- * diagnosis-micro.js — 소상공인 전용 분기 진단 v1.0
+ * diagnosis-micro.js — 소상공인 전용 7대 분야 진단 v2.0
  * 적용 조건: bizScale === 'micro'
- * 구조: 3영역 × 5항목 = 15항목
- *   영역A: 로컬 SEO & 디지털 평판 (PLACE 기반)
- *   영역B: 메뉴·상품 수익 엔지니어링 (ACM 기반)
- *   영역C: 위임 시스템 구축도 (OHI 기반)
+ * 출처: 소상공인 오퍼레이션 고도화 및 디지털 전환(DX)을 위한 7대 분야 융합 진단·솔루션 경영컨설팅 보고서
+ * 구조: 7영역 × 5항목 = 35항목
  */
 
 const DiagMicro = (() => {
 
   const DOMAINS = [
-    { id:'A', key:'local_seo', label:'로컬 SEO & 디지털 평판', icon:'📍', desc:'소비자 여정 90% 이상이 포털 검색으로 시작됩니다.', weight:0.35 },
-    { id:'B', key:'menu_engineering', label:'메뉴·상품 수익 엔지니어링', icon:'📊', desc:'메뉴별 ACM과 판매량을 교차 분석하여 수익 포트폴리오를 진단합니다.', weight:0.35 },
-    { id:'C', key:'delegation', label:'위임 시스템 구축도', icon:'🏗️', desc:'사장 없이도 매장이 365일 안정 가동되는 수준을 진단합니다.', weight:0.30 },
+    { id:'1', key:'mgmt_profit',  label:'경영진단·손익분석',    icon:'📊', desc:'POS·ACM·프라임코스트 기반 정량 수익 구조를 진단합니다.',             weight:0.18 },
+    { id:'2', key:'place_seo',    label:'점포환경·PLACE SEO',  icon:'📍', desc:'파사드 시선 주목도와 로컬 SEO 연동 최적화를 진단합니다.',             weight:0.15 },
+    { id:'3', key:'multichannel', label:'다채널 판로',          icon:'🛒', desc:'오프라인·배달·이커머스 판로 확장과 수수료 방어력을 진단합니다.',       weight:0.14 },
+    { id:'4', key:'smart_dx',     label:'스마트DX',             icon:'🤖', desc:'스마트 기기 도입 효율과 오퍼레이션 자동화 수준을 진단합니다.',         weight:0.14 },
+    { id:'5', key:'funds_esg',    label:'운영자금·ESG보증',     icon:'💰', desc:'현금흐름 관리, ESG 실천, 정책보증 연계 역량을 진단합니다.',           weight:0.13 },
+    { id:'6', key:'exit_tax',     label:'사업정리·폐업세무',    icon:'⚖️', desc:'비즈니스 생존주기 인식과 폐업 세무 리스크 통제력을 진단합니다.',       weight:0.12 },
+    { id:'7', key:'sns_ai',       label:'SNS·생성형AI',         icon:'✨', desc:'AI 도구 활용 마케팅 자립도와 플레이스 CTR 최적화를 진단합니다.',      weight:0.14 },
   ];
 
   const ITEMS = {
-    'A_1': { label:'플랫폼 프로파일링 (Profiling)', question:'네이버 스마트플레이스·카카오맵의 상호명에 거점 지명과 핵심 업종 키워드가 자연스럽게 통합되어 있으며 대표 이미지 5~7장 이상이 고화질로 등록되어 있습니까?', guide:'상호명·업종 키워드 일치성은 검색 로봇 유사도 판정의 1차 가중치', scale:[{score:1,desc:'상호명만 단순 등록. 키워드·이미지 전략 없음.'},{score:2,desc:'등록됐으나 키워드 미반영. 저화질 사진 1~2장.'},{score:3,desc:'업종 키워드 수동 매칭. 표준 품질 사진 3~4장.'},{score:4,desc:'타겟 키워드 자연 통합. 고화질 5~7장. 정기 업데이트.'},{score:5,desc:'지역별 랜딩페이지 구축. Schema 마크업. 실시간 키워드 최적화.'}], ai_trigger:{threshold:2,warning:'profiling_weak'} },
-    'A_2': { label:'지역성 최적화 (Localization)', question:'구글 비즈니스 프로필에 외국인 대응 다국어 정보·인근 랜드마크 연계 안내가 구축되어 있으며 지역 커뮤니티(맘카페·당근마켓 등) 네트워크를 활용하고 있습니까?', guide:'구글 로컬 알고리즘 = 물리적 거리 + 글로벌 리뷰 신뢰도 가중', scale:[{score:1,desc:'국문 주소만 노출. 지역 커뮤니티 활동 없음.'},{score:2,desc:'영문 번역 부분 탑재. 지역 네트워크 미활용.'},{score:3,desc:'영문 기본 정보 완비. 지역 맘카페 가끔 활용.'},{score:4,desc:'다국어 메뉴판·랜드마크 안내 완비. 커뮤니티 정기 활동.'},{score:5,desc:'다국어 최적화 + 지역 오프라인 협약 + 당근 지역 광고 ROI 추적.'}], ai_trigger:{threshold:2,warning:'localization_weak'} },
-    'A_3': { label:'오가닉 리뷰 축적 (Algorithm)', question:'어뷰징 없이 주간 단위로 오가닉 영수증 리뷰와 "저장하기" 트래픽이 꾸준히 축적되고 있으며 주 평균 리뷰 증가 수를 파악하고 있습니까?', guide:'플랫폼 어뷰징 적발 시 영구 노출 제외 처벌', scale:[{score:1,desc:'리뷰 누적 없음. 어뷰징 대행사 사용 중.'},{score:2,desc:'간헐적 이벤트로 월 평균 5건 미만.'},{score:3,desc:'정기 이벤트로 월 평균 10건 내외 유지.'},{score:4,desc:'결제 직후 리뷰 요청 동선 설계. 주 10~20건 축적.'},{score:5,desc:'주 평균 20건 이상 오가닉 리뷰 일관 생성.'}], ai_trigger:{threshold:2,warning:'review_stagnant'} },
-    'A_4': { label:'콘텐츠 탁월성 (Content Excellence)', question:'인스타그램 릴스·네이버 플레이스 소식 탭에 최신 트렌드를 반영한 고화질 메뉴·프로모션 콘텐츠가 주간 단위로 업데이트되고 있습니까?', guide:'"요즘뜨는" 필터 = 최신성 × 시각적 매력도 × CTR', scale:[{score:1,desc:'1년 이상 방치된 저화질 사진뿐. 소식 탭 공백.'},{score:2,desc:'월 1회 미만 수동 업데이트. 트렌드 미반영.'},{score:3,desc:'월 2~3회 업데이트. 스마트폰 직접 촬영.'},{score:4,desc:'주 1회 고화질 업데이트. Canva AI 템플릿 활용.'},{score:5,desc:'ChatGPT 카피 + AI 디자인 자동화로 주 3회 예약 발행.'}], ai_trigger:{threshold:2,warning:'content_outdated'} },
-    'A_5': { label:'고객 상호작용 (Engagement)', question:'플랫폼 리뷰에 48시간 내 맞춤형 답글을 제공하며 "알림 받기" 설정을 적극 유도하고 AI를 활용한 리뷰 응대 자동화가 이루어지고 있습니까?', guide:'예약·스마트콜·알림 받기 → 종합 인기도 지수 자극', scale:[{score:1,desc:'답변율 10% 미만. 리뷰 방치.'},{score:2,desc:'매크로 복사 기계적 답변.'},{score:3,desc:'주요 리뷰 수동 맞춤 답글. 답변율 50%.'},{score:4,desc:'AI 초안 생성 후 검수·발행. 답변율 90% 이상.'},{score:5,desc:'불만 유형별 감정 필터링 + n8n 자동 응대 파이프라인. 100% 즉시 처리.'}], ai_trigger:{threshold:2,warning:'engagement_low'} },
 
-    'B_1': { label:'식재료·원가율 정밀 관리', question:'메뉴별 표준 레시피에 따른 식재료·원가율을 산출하고 있으며 인플레이션 가중 ACM 산식으로 실제 남는 마진을 추적하고 있습니까?', guide:'외식업 식재료 원가율 기준: 30~35% 이하 / 60% 이상 = 위험', scale:[{score:1,desc:'원가율 개념 없음. 감으로 가격 책정.'},{score:2,desc:'대략적 식재료 비용은 알지만 메뉴별 원가율 미산출.'},{score:3,desc:'주요 메뉴 원가율 월 단위 계산. 기준치 비교.'},{score:4,desc:'전 메뉴 레시피 기반 원가율 산출. 변동 가격 주 단위 반영.'},{score:5,desc:'ACM 산식(인플레이션·노동 변동 가중)으로 메뉴별 실시간 마진 시뮬레이션.'}], ai_trigger:{threshold:2,warning:'food_cost_blind'} },
-    'B_2': { label:'메뉴 엔지니어링 4분면 분석', question:'전체 메뉴를 ACM과 판매량 기준으로 Star·Plowhorse·Puzzle·Dog 4분면으로 분류하고 각 전략을 실행하고 있습니까?', guide:'Dog 메뉴 제거 → 식재료 폐기 비용 즉시 절감 + 운영 복잡성 감소', scale:[{score:1,desc:'메뉴 분석 경험 없음. 관성으로 메뉴 유지.'},{score:2,desc:'잘 팔리는 메뉴는 알지만 마진 기준 분류 없음.'},{score:3,desc:'판매량 기준 ABC 분석 분기 1회 실시.'},{score:4,desc:'ACM + 판매량 교차 분석으로 Dog 메뉴 분기 정기 제거.'},{score:5,desc:'4분면 분석 월 단위 자동화. Star 전면 배치 + Dog 즉시 폐기 체계.'}], ai_trigger:{threshold:2,warning:'menu_mix_unmanaged'} },
-    'B_3': { label:'Portion 통제 및 폐기 관리', question:'식재료 정량 배식(Portion Control)을 주방 저울로 실행하고 있으며 일일 폐기 식재료의 원가 가치를 기록하고 감축 목표를 관리하고 있습니까?', guide:'폐기율 1% 감소 = ACM 직접 개선. 주방 저울 1개로 즉시 시작', scale:[{score:1,desc:'Portion 개념 없음. 폐기 관리 전무.'},{score:2,desc:'숙련 직원 감각에만 의존. 폐기량 미기록.'},{score:3,desc:'주요 메뉴 레시피 표준화. 폐기 발생 시 기록.'},{score:4,desc:'전 메뉴 주방 저울 Portion 통제. 일일 폐기 원가 산출.'},{score:5,desc:'폐기율 목표 설정 + ACM 연동 자동 계산 + 전처리 최적화.'}], ai_trigger:{threshold:2,warning:'portion_uncontrolled'} },
-    'B_4': { label:'Prime Cost 비율 관리', question:'식재료 원가(COGS)와 직접 인건비 합계(Prime Cost)가 매출 대비 60% 이하로 제어되고 있으며 피크 타임 인력 스케줄링이 POS 데이터와 연동되고 있습니까?', guide:'외식업 Prime Cost 목표: 55~60% / 65% 초과 시 위험', scale:[{score:1,desc:'Prime Cost 개념 모름. 합산 관리 없음.'},{score:2,desc:'인건비·원재료비는 알지만 합산 비율 미관리.'},{score:3,desc:'월 단위 Prime Cost 비율 산출. 기준치 초과 시 인지.'},{score:4,desc:'POS 피크 타임 데이터로 인력 스케줄 최적화.'},{score:5,desc:'Prime Cost 실시간 대시보드. 유휴 노무비 자동 감지.'}], ai_trigger:{threshold:2,warning:'prime_cost_exceeded'} },
-    'B_5': { label:'현금흐름 병목 추적 (POS 마이닝)', question:'POS 거래 타임스탬프와 배달 플랫폼 정산 데이터를 매칭하여 주문→조리→배차→정산 각 단계의 시간 누수와 정산 오차를 추적하고 있습니까?', guide:'배달앱 정산 주기 D+3~7 → 현금 유동성 공백 선제 파악 필수', scale:[{score:1,desc:'통장 입금액만 확인. 단계별 추적 없음.'},{score:2,desc:'POS 일 마감과 통장 입금을 월 단위 비교.'},{score:3,desc:'배달앱 정산 주기 파악. 자금 공백 월 단위 예측.'},{score:4,desc:'POS + 배달앱 수동 매칭으로 주간 병목 파악.'},{score:5,desc:'POS·배달앱·통장 실시간 연동 대시보드. 정산 오차 자동 감지.'}], ai_trigger:{threshold:2,warning:'cashflow_bottleneck'} },
+    /* ===================== 영역 1: 경영진단·손익분석 ===================== */
+    '1_1': {
+      label: '상권 빅데이터 분석',
+      question: '매장 반경 500m 이내 유동인구 증감 추이와 경쟁점 입점 밀도를 연계하여 상권 매력도 변동을 주기적으로 예측하는가?',
+      scale: [
+        { score:1, desc:'상권 데이터를 전혀 보지 않고 감에 의존해 마케팅을 시행함.' },
+        { score:2, desc:'상권 정보를 가끔 보지만 메뉴·영업 기획에 연결하지 못함.' },
+        { score:3, desc:'분기별로 상권 정보를 조회하지만 정산이나 기획에 활용하지 못함.' },
+        { score:4, desc:'월 단위로 유동인구 데이터를 분석하여 메뉴 공급 조정에 반영함.' },
+        { score:5, desc:'주간 단위로 유동인구 데이터와 경쟁점 매출 변화를 파악해 메뉴 공급을 조절함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'market_blind' },
+    },
+    '1_2': {
+      label: 'POS 데이터 분석',
+      question: '일별·시간대별 POS 결제 내역을 통해 테이블 단가, 세트 판매 기여도, 피크타임 매출 병목 요인을 진단하고 있는가?',
+      scale: [
+        { score:1, desc:'POS를 오직 단순 결제 및 매출 총액 확인용으로만 방치함.' },
+        { score:2, desc:'일일 총매출은 보지만 시간대·메뉴별 분석은 없음.' },
+        { score:3, desc:'시간대별 매출 추이는 인지하나 메뉴 조합 간의 연관 분석까지는 도달하지 못함.' },
+        { score:4, desc:'요일별 피크타임과 주력 메뉴 조합을 연계 분석하여 인력 배치에 반영함.' },
+        { score:5, desc:'요일·시간대별 메뉴 상관관계를 도출하여 시그니처 결합 상품 구성에 반영함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'pos_unused' },
+    },
+    '1_3': {
+      label: '프라임 코스트 통제',
+      question: '총매출액 대비 프라임 코스트(식재료비 + 인건비) 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+      scale: [
+        { score:1, desc:'프라임 코스트의 개념을 모르며 월말 정산 전까지 지출 원가 비중을 파악하지 못함.' },
+        { score:2, desc:'식재료 원가는 대략 알지만 인건비를 더한 합산 비율을 관리하지 않음.' },
+        { score:3, desc:'대략적인 식재료 원가는 파악하나, 인건비를 결합한 프라임 코스트가 상시 60%를 초과함.' },
+        { score:4, desc:'월 단위로 프라임 코스트를 산출하고 60% 초과 시 원가 조정 조치를 취함.' },
+        { score:5, desc:'식재료 손실 통제와 탄력적 인력 배치로 프라임 코스트를 60% 이하로 엄격히 관리함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'prime_cost_exceeded' },
+    },
+    '1_4': {
+      label: '조정 기여 마진(ACM) 산출',
+      question: '개별 메뉴의 식재료 원가뿐만 아니라 조리에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+      scale: [
+        { score:1, desc:'개별 메뉴의 제조 시간이나 원자재 가격 편차를 고려하지 않고 가격을 책정함.' },
+        { score:2, desc:'원재료 원가는 알지만 노동 시간 가산 개념 없이 단순 마진만 계산함.' },
+        { score:3, desc:'메뉴별 식재료 원가는 파악하나, 조리에 소요되는 시간당 인건비 가산율을 누락함.' },
+        { score:4, desc:'주요 메뉴에 한해 조리 시간 × 시급 기반 ACM을 분기 1회 계산함.' },
+        { score:5, desc:'전 메뉴의 직접 노동 원가를 반영하여 정밀한 조정 기여 마진을 정기 정산함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'acm_blind' },
+    },
+    '1_5': {
+      label: 'OHI 조직 위임도',
+      question: '매장 내 주요 메뉴 준비, 고객 응대, 원자재 발주 업무 중 점주가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
+      scale: [
+        { score:1, desc:'오너가 주방 조리와 카운터 결제, 매장 청소를 100% 전담하여 자리를 비울 수 없음.' },
+        { score:2, desc:'직원이 일부 보조하지만 핵심 의사결정과 발주는 오너만 가능함.' },
+        { score:3, desc:'매장 직원이 조리는 담당하나 발주, 마케팅, 컴플레인 해결은 오직 오너만 처리 가능함.' },
+        { score:4, desc:'점장에게 일일 운영 권한이 위임되어 오너 부재 중 단기 가동이 가능함.' },
+        { score:5, desc:'매뉴얼 수립과 직무 위임이 완비되어 오너가 부재해도 홀과 주방이 정상 가동됨.' },
+      ],
+      ai_trigger: { threshold:2, warning:'owner_dependency' },
+    },
 
-    'C_1': { label:'매출 목표 공유 (Direction)', question:'일일·주간 매출 목표가 POS 모니터·화이트보드 등에 상시 게시되며 직원이 인지하고 목표 달성을 위해 능동적으로 행동하고 있습니까?', guide:'방향성 공유 = 직원 주인의식 → 점주 개입 시간 대폭 감소', scale:[{score:1,desc:'목표 없이 단순 노동. 직원이 목표 모름.'},{score:2,desc:'구두로 대략적 목표만 통지. 게시 없음.'},{score:3,desc:'POS·화이트보드에 일 목표 상시 게시.'},{score:4,desc:'목표 달성률 직원별 추적. 주간 피드백 제공.'},{score:5,desc:'실시간 대시보드 공유 + 목표 달성 시 즉각 인센티브.'}], ai_trigger:{threshold:2,warning:'direction_missing'} },
-    'C_2': { label:'역할 책임 체크리스트 (Accountability)', question:'오픈·마감·위생 검수 등 시간대별 핵심 임무에 대한 담당자 지정과 체크리스트 서명 체계가 갖춰져 있어 점주 부재 시에도 오퍼레이션이 유지됩니까?', guide:'체크리스트 서명 = 법적 책임 소재 명확화 + 노무 리스크 방어', scale:[{score:1,desc:'문제 시에만 점주 질타·개입. R&R 없음.'},{score:2,desc:'업무 분장은 됐으나 체크리스트·서명 없음.'},{score:3,desc:'오픈·마감 체크리스트 존재. 담당자 서명 수기 보관.'},{score:4,desc:'체크리스트 디지털 기록. 미이행 시 점주 자동 알림.'},{score:5,desc:'책임 달성률 인센티브 연동. 365일 무결점 가동.'}], ai_trigger:{threshold:2,warning:'accountability_none'} },
-    'C_3': { label:'원격 감사·디지털 통제 (Coordination)', question:'클라우드 POS·CCTV 원격 열람 등을 통해 점주가 매장에 없을 때도 매출·재고·이상 징후를 실시간으로 파악할 수 있습니까?', guide:'클라우드 시스템 = 다점포 확장의 기술적 전제 조건', scale:[{score:1,desc:'현장 이탈 시 상황 파악 불가.'},{score:2,desc:'직원 유선 보고에만 의존.'},{score:3,desc:'CCTV 원격 열람 + POS 마감 리포트 문자 수신.'},{score:4,desc:'클라우드 POS로 실시간 매출·결제 스마트폰 확인.'},{score:5,desc:'통합 대시보드로 매출·인력·재고·이상 거래 원격 완전 감사.'}], ai_trigger:{threshold:2,warning:'remote_control_none'} },
-    'C_4': { label:'동영상 SOP 교육 매뉴얼 (Capability)', question:'신입 직원이 동영상 SOP·QR코드 매뉴얼만으로 주요 공정을 독립 수행할 수 있으며 점주 교육 없이도 일정 품질이 유지됩니까?', guide:'스마트폰 60초 숏폼 + QR코드 = 비용 0원, 7일 내 구축 가능', scale:[{score:1,desc:'점주 한 달 이상 상주 교육. 매뉴얼 전무.'},{score:2,desc:'고참 직원 눈대중 전수. 문서화 없음.'},{score:3,desc:'텍스트 매뉴얼 존재. 핵심 공정 기록.'},{score:4,desc:'동영상 SOP + QR코드 현장 부착. 자기 학습 가능.'},{score:5,desc:'LMS 연동 + 이수율 자동 추적 + 숙련도 평가 체계.'}], ai_trigger:{threshold:2,warning:'sop_none'} },
-    'C_5': { label:'성과 인센티브 동기 부여 (Motivation)', question:'리뷰 언급·매출 달성 등 객관적 성과 지표와 연계된 인센티브 제도가 정식 운영되어 직원이 주인의식을 가지고 오퍼레이션에 참여하고 있습니까?', guide:'성과 계약 + 보상 체계 = 직원 도덕적 해이 원천 방지', scale:[{score:1,desc:'성과 무관하게 최저 시급만 지급.'},{score:2,desc:'점주 재량으로 가끔 성의 표시. 기준 없음.'},{score:3,desc:'월 매출 목표 달성 시 소정 보상. 기준 구두 합의.'},{score:4,desc:'리뷰 보상 + 매출 보상 체계 정식 문서화 운영.'},{score:5,desc:'성과 KPI 대시보드 공유 + 인센티브 자동 산출.'}], ai_trigger:{threshold:2,warning:'motivation_weak'} },
+    /* ===================== 영역 2: 점포환경·PLACE SEO ===================== */
+    '2_1': {
+      label: '109초 시선 주목도(파사드)',
+      question: '매장 전면부 파사드·외부 배너·윈도우 글래스가 이동 중인 보행자의 시선을 109초 이내에 강하게 붙잡을 수 있는 핵심 USP를 담고 있는가?',
+      scale: [
+        { score:1, desc:'매장 정체성이 모호하며 지저분한 인쇄물들이 흩어져 있어 보행자가 그냥 스쳐 지나감.' },
+        { score:2, desc:'상호는 보이지만 무슨 음식·서비스인지 한눈에 파악이 안 됨.' },
+        { score:3, desc:'상호와 주요 메뉴는 인식 가능하나, 경쟁 점포 대비 109초 내에 차별적 매력을 이끌어내지 못함.' },
+        { score:4, desc:'시그니처 메뉴·가격·특전을 파사드에 명확히 표시하여 보행자 시선을 확보함.' },
+        { score:5, desc:'브랜드 아이덴티티와 킬러 콘텐츠가 109초 내에 눈에 띄며 보행자의 진입 동선을 촉진함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'fasade_weak' },
+    },
+    '2_2': {
+      label: '로컬 SEO(PLACE) 일치도',
+      question: '오프라인 간판의 브랜드 상호명 및 비주얼 테마가 네이버·카카오 플레이스 등 온라인 지도 플랫폼의 정보와 정합성을 이루는가?',
+      scale: [
+        { score:1, desc:'간판 이름과 지도 서비스 등록명이 달라 소비자가 검색으로 찾아오지 못함.' },
+        { score:2, desc:'상호명은 같지만 주소·영업시간 등 기본 정보가 부정확하거나 방치됨.' },
+        { score:3, desc:'상호명은 같으나 플레이스 상의 대표 비주얼 이미지나 시그니처 설명이 과거 오프라인 정보에 멈춰 있음.' },
+        { score:4, desc:'플레이스 정보·사진·업종 키워드를 분기 1회 이상 업데이트하여 일치도를 유지함.' },
+        { score:5, desc:'오프라인 파사드와 온라인 플레이스 환경이 일체화되어 로컬 검색 유입이 오프라인 방문으로 완벽히 이어짐.' },
+      ],
+      ai_trigger: { threshold:2, warning:'place_inconsistent' },
+    },
+    '2_3': {
+      label: '홀 고객 편의 동선',
+      question: '고객이 매장에 들어와 주문하고, 대기하며, 퇴장하기까지의 전 과정에서 다른 고객의 동선 혹은 퇴식 카트와 마주치며 정체가 생기지 않는가?',
+      scale: [
+        { score:1, desc:'입구와 카운터, 대기석이 꼬여서 피크타임에 결제 고객과 입점 고객이 뒤엉켜 극심한 정체가 발생함.' },
+        { score:2, desc:'좁은 통로에서 직원과 고객이 자주 부딪혀 이용 불편 컴플레인이 발생함.' },
+        { score:3, desc:'구역은 나뉘어 있으나 이동로가 좁아 카운터와 테이블 간 이동 시 간섭이 빈번히 발생함.' },
+        { score:4, desc:'입장·주문·착석 흐름이 구분되어 피크타임에도 동선 충돌이 드뭄.' },
+        { score:5, desc:'동선이 외길 순환형(One-way)으로 유도되어 직원의 이동 선로와 고객의 점유 구역이 완전 분리됨.' },
+      ],
+      ai_trigger: { threshold:2, warning:'flow_congested' },
+    },
+    '2_4': {
+      label: '조리 편차 지수(σ_prep)',
+      question: '동일 메뉴를 피크타임에 조리하든 숙련도가 다른 작업자가 조리하든 최종 조리 완료 시간의 표준편차가 180초 이내로 통제되는가?',
+      scale: [
+        { score:1, desc:'작업자 컨디션에 따라 동일 메뉴의 조리 완료 간격이 10분 이상 들쑥날쑥함.' },
+        { score:2, desc:'숙련 직원과 신규 직원 간 조리 시간 편차가 3분 이상 발생함.' },
+        { score:3, desc:'매뉴얼은 구비되어 있으나 바쁜 시간 주문이 밀리면 조리 편차가 표준(180초)을 상시 초과함.' },
+        { score:4, desc:'레시피 표준화로 피크타임에도 편차가 180~300초 내로 유지됨.' },
+        { score:5, desc:'조리 표준 프로세스가 확립되어 언제 어떤 작업자가 조리하든 180초 이내의 최소 편차를 보임.' },
+      ],
+      ai_trigger: { threshold:2, warning:'cooking_inconsistent' },
+    },
+    '2_5': {
+      label: '주방 3각 작업 삼각형(Work Triangle)',
+      question: '싱크대, 열기구(화구), 준비대가 최단 이동 삼각형(Work Triangle)을 이루고 있으며 주방 작업 동선상 교차 충돌이 일어나지 않는가?',
+      scale: [
+        { score:1, desc:'세척용 식기와 조리 준비 재료가 같은 동선에서 충돌하여 작업 중 멈춤이 발생하고 물기가 바닥에 낭자함.' },
+        { score:2, desc:'주방 동선이 일자형이 아니어서 조리 중 뒤로 돌아가는 이동이 빈번함.' },
+        { score:3, desc:'주방 설비 배치는 표준을 따르나 재료 보관고와 화구 간 거리가 멀어 불필요한 보행 거리가 생김.' },
+        { score:4, desc:'싱크-전처리-화구 삼각형 구성이 완성되어 이동 낭비가 크게 줄어듦.' },
+        { score:5, desc:'제자리에서 몸을 회전하는 행동만으로 세척-전처리-조리가 원스톱으로 이루어져 간섭이 전혀 없음.' },
+      ],
+      ai_trigger: { threshold:2, warning:'kitchen_triangle_broken' },
+    },
+
+    /* ===================== 영역 3: 다채널 판로 ===================== */
+    '3_1': {
+      label: '온·오프 다채널 기획력',
+      question: '오프라인 매장 판매 외에 배달 앱, 스마트스토어 개설, B2B 납품 등 2개 이상의 독립된 유통 판로를 주도적으로 전개하는가?',
+      scale: [
+        { score:1, desc:'로컬 단골 고객의 현장 유입 매출에 전적으로 의존하며 대체 유통로가 없음.' },
+        { score:2, desc:'배달 앱 1곳에만 입점해 있고 다른 판로 확장 계획이 없음.' },
+        { score:3, desc:'배달 플랫폼은 입점했으나 온라인 택배 판매 채널의 세팅 구조는 모름.' },
+        { score:4, desc:'배달 + 스마트스토어 2채널을 병행하며 채널별 매출 비중을 파악함.' },
+        { score:5, desc:'배달, 이커머스 스마트스토어, 로컬 유통망을 통합 제어하며 판로를 넓힘.' },
+      ],
+      ai_trigger: { threshold:2, warning:'single_channel_risk' },
+    },
+    '3_2': {
+      label: '패키징 규격 생산력',
+      question: '매장 주력 메뉴를 장거리 배송이나 신선 포장이 가능하도록 진공 포장, 급속 냉동, 위생 검증을 마친 밀키트로 가공할 수 있는가?',
+      scale: [
+        { score:1, desc:'밀포장 도구가 없어 배송 자체가 불가하며 즉석 수동 포장 수준에 머물러 있음.' },
+        { score:2, desc:'스티로폼 박스에 담아 보내는 수준이나 냉장·냉동 기준을 갖추지 못함.' },
+        { score:3, desc:'단순 플라스틱 용기에 은박 씰링은 가능하나 유통 보존 기한이 3일 미만으로 극히 짧음.' },
+        { score:4, desc:'진공 씰링 포장이 가능하고 냉동 보존 기한 1주일 이상 확보됨.' },
+        { score:5, desc:'열 접합 밀봉 포장 및 영하 40도 급랭 시스템을 통해 규격화된 상품화에 성공함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'packaging_weak' },
+    },
+    '3_3': {
+      label: '수수료 손익 분석력',
+      question: '플랫폼별 중개 수수료, 정산 지연 일수, PG 수수료를 반영한 최저 마진 확보 판매 단가를 정확히 역산해 통제하고 있는가?',
+      scale: [
+        { score:1, desc:'플랫폼 수수료 및 카드 수수료율을 전혀 계산하지 않고 오프라인 단가와 동일하게 판매함.' },
+        { score:2, desc:'수수료가 있다는 것은 알지만 실제 정산 단가를 계산해 본 적이 없음.' },
+        { score:3, desc:'대략적인 수수료율(예: 10%대)은 인지하나 결제 대행 정산 수수료를 정밀 연동하지 않음.' },
+        { score:4, desc:'채널별 수수료율을 계산하여 배달 전용 가격을 오프라인보다 높게 설정함.' },
+        { score:5, desc:'수수료 방어가 가능한 최적 단가를 각 유통 플랫폼별로 차별화하여 역산 기입함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'fee_blind' },
+    },
+    '3_4': {
+      label: '온라인 마케팅 효율(ROAS)',
+      question: '쇼핑몰 유입 클릭률(CTR), 구매전환율(CVR) 및 투입 마케팅비 대비 매출액(ROAS)을 트래킹하여 비용 낭비를 걸러내는가?',
+      scale: [
+        { score:1, desc:'쇼핑몰 광고비를 상시 집행하지만, 그로 인한 실제 매출 유입 성과를 모름.' },
+        { score:2, desc:'광고를 집행 중이나 클릭 수만 보고 실제 구매 전환율은 계산하지 않음.' },
+        { score:3, desc:'단순 스마트스토어 일일 유입 수치는 보나, 광고 클릭 단가 대비 실 구매 비율을 환산하지 못함.' },
+        { score:4, desc:'월 단위로 ROAS를 계산하여 성과 낮은 광고를 선별 중단함.' },
+        { score:5, desc:'일별 ROAS 수치를 기반으로 손실 유발형 무작위 광고 채널을 즉시 걸러냄.' },
+      ],
+      ai_trigger: { threshold:2, warning:'ad_waste' },
+    },
+    '3_5': {
+      label: 'D2C 단골 이전 인프라',
+      question: '배달 앱이나 종합 마켓을 통한 일회성 유입 고객을 수수료가 들지 않는 자체 채널(카카오톡 채널, 전화 주문)로 재유치시키는가?',
+      scale: [
+        { score:1, desc:'모든 배달/쇼핑몰 고객이 일회성에 머물며 고객의 전화번호나 인적 정보를 유치하지 못함.' },
+        { score:2, desc:'단골 고객이 있지만 플랫폼 외 직접 연락 채널이 없어 수수료를 매번 납부함.' },
+        { score:3, desc:'스마트스토어 알림받기를 통해 소량의 단골 보유 중이나, 다이렉트 주문 혜택 연동은 미약함.' },
+        { score:4, desc:'카카오톡 채널을 운영하여 단골 고객의 직접 주문 유도를 시도함.' },
+        { score:5, desc:'자체 CRM 채널로 고객을 마이그레이션시켜 플랫폼 중개 수수료 지출을 완전히 방어함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'d2c_none' },
+    },
+
+    /* ===================== 영역 4: 스마트DX ===================== */
+    '4_1': {
+      label: '주문 접수 지연율(R_delay)',
+      question: '피크타임 밀집 상황 시, 대면 주문 지체나 벨 호출 오작동으로 인한 주문 접수 지연율을 표준치(5% 이하)로 관리하는가?',
+      scale: [
+        { score:1, desc:'무조건 직원이 테이블로 찾아가 구두 주문을 수령해 피크 시 결제 누락 및 15분 이상 지연이 빈번함.' },
+        { score:2, desc:'벨 호출 시스템이 있지만 오작동·무반응이 잦아 고객 불만이 발생함.' },
+        { score:3, desc:'키오스크를 1대 도입했으나 설명 부족으로 입구 부근에 긴 정체줄이 상시 유발됨.' },
+        { score:4, desc:'테이블오더 또는 키오스크로 피크 시 지연율이 10% 내외로 감소함.' },
+        { score:5, desc:'테이블오더 또는 양방향 키오스크 시스템을 완비해 피크 시에도 접수 지연율을 5% 이하로 통제함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'order_delay' },
+    },
+    '4_2': {
+      label: '단순 육체노동 단축',
+      question: '홀 퇴식, 서빙, 식기 잔여물 세척 시 서빙 로봇이나 세척기 등의 가동을 통해 홀 직원의 단순 보조 노동을 제거하는가?',
+      scale: [
+        { score:1, desc:'직원이 무거운 식기를 들고 장거리를 왕복 보행하며, 100% 손설거지 방식으로 체력 고갈이 유발됨.' },
+        { score:2, desc:'소형 가정용 식기세척기는 있지만 처리 용량이 부족해 피크 시에는 수동이 병행됨.' },
+        { score:3, desc:'서빙 로봇을 리스했으나 매장 집기 충돌로 인해 실질 가동률이 30% 이하로 매몰되어 있음.' },
+        { score:4, desc:'업소용 식기세척기 도입으로 손설거지가 크게 줄었고 서빙 효율이 개선됨.' },
+        { score:5, desc:'로봇이 주요 이동로 서빙과 퇴식을 전담하고 고속 식기세척기 도입으로 직원의 피로를 영점화함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'labor_intensive' },
+    },
+    '4_3': {
+      label: '직접 노동 시간(H_l) 세이브',
+      question: '스마트 기기 운용을 통해 근무자의 일일 직접 단순 노동 시간을 정량 단축하고 이를 효율적 시프트로 구조 조정했는가?',
+      scale: [
+        { score:1, desc:'스마트 기기를 수 대 도입했음에도 불구하고 직원의 근무 형태나 일일 근무시간 조정을 시도하지 않음.' },
+        { score:2, desc:'기기 도입 후 직원이 편해졌다고 느끼지만 실제 인건비 절감은 측정하지 않음.' },
+        { score:3, desc:'근무는 다소 편해졌으나 실 인건비 절감이나 유연 근무제 스케줄 전환 등의 인사 조치는 취하지 못함.' },
+        { score:4, desc:'기기 도입 후 직접 노동 시간이 주당 5~10시간 감소하여 파트타임 1명 축소함.' },
+        { score:5, desc:'스마트 기기 도입 후 홀 단순 상주 시간이 주당 15시간 이상 실질 절감되어 즉각 인건비를 감축함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'dx_no_effect' },
+    },
+    '4_4': {
+      label: '도입 기기 TCO 효율',
+      question: '스마트 디바이스 리스/렌탈 지출비 대비 매월 회수되는 고용 노동 절감 마진이 양수(+) 구조를 견고히 유지하는가?',
+      scale: [
+        { score:1, desc:'기기 렌탈비 대비 인력 효율 증진이 전혀 없고 매달 기기 오류 수리 비용이 추가 유출됨.' },
+        { score:2, desc:'렌탈비는 나가지만 실제 노동 절감 효과가 미미하여 손익이 불분명함.' },
+        { score:3, desc:'월 리스 요금 수준의 인력 보완은 이루어지고 있으나 오퍼레이션 최적화는 아직 체감되지 않음.' },
+        { score:4, desc:'월 렌탈비의 1.5배 수준의 노동 절감 마진을 확보하여 수지 타산이 맞음.' },
+        { score:5, desc:'월 렌탈 비용 대비 약 2배 이상의 실질 노동 절약 마진율을 확보하며 경제적 수혜를 누림.' },
+      ],
+      ai_trigger: { threshold:2, warning:'tco_negative' },
+    },
+    '4_5': {
+      label: '약식 OHI 위임성(오토파일럿)',
+      question: '스마트 오퍼레이션 시스템 구축을 기반으로 점주가 매장에 부재하더라도 정상 운영이 유지되는 위임 체계를 구현했는가?',
+      scale: [
+        { score:1, desc:'오너가 매장 결제 시스템 전체 암호를 가졌고, 세부 기기 작동 조작 권한을 홀 직원에게 일체 위임하지 않음.' },
+        { score:2, desc:'직원이 POS는 조작하지만 기기 오류나 특수 상황 시 오너에게 의존함.' },
+        { score:3, desc:'점장에게 임시 권한은 부여했으나 시스템 오작동 대응 요령 매뉴얼이 전무해 항시 점주에게 연락함.' },
+        { score:4, desc:'기기별 트러블슈팅 매뉴얼이 있어 점주 없이도 오류 대응이 가능함.' },
+        { score:5, desc:'시스템 기반의 권한 분배와 기기 가동 체계가 정립되어 완벽한 오너 부재 자립 경영을 실행함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'system_dependency' },
+    },
+
+    /* ===================== 영역 5: 운영자금·ESG보증 ===================== */
+    '5_1': {
+      label: '가계·매장 계좌 분리',
+      question: '개인 용도로 생활 자금을 인출하는 통장과 매출 대금 정산 및 매장 필요 경비를 지급하는 전용 계좌를 완전히 격리하는가?',
+      scale: [
+        { score:1, desc:'통장 한 개로 사업장 수입 지출과 아이 교육비, 보험료 인출을 전부 뒤섞어서 사용함.' },
+        { score:2, desc:'사업 계좌가 있지만 개인 지출이 혼재되어 실제 사업 수익 파악이 어려움.' },
+        { score:3, desc:'사업용 계좌는 마련했으나 규칙성이 미비하여 시시때때로 오너의 개인 현금을 이체 충당함.' },
+        { score:4, desc:'사업 계좌와 개인 계좌를 분리하고 월 급여일에만 개인 계좌로 이체함.' },
+        { score:5, desc:'모든 매장 지출은 고유한 기업 계정 및 카드로만 집행되며 혼용률이 0%에 수렴함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'account_mixed' },
+    },
+    '5_2': {
+      label: '린 현금 가치 흐름',
+      question: '요일별 카드 매출 대금 유입 시점과 원재료 대금 결제 주기 간의 밸런스를 예측하여 흑자 도산 방어 여력을 파악하는가?',
+      scale: [
+        { score:1, desc:'당장 내일 빠져나갈 월세나 결제 대금이 통장 잔고에 있는지 상시 인지하지 못함.' },
+        { score:2, desc:'월말 고정 지출일에 자금이 모자란 적이 있어 급하게 가계 돈을 충당한 경험이 있음.' },
+        { score:3, desc:'월 단위 총 수입과 총 지출 규모는 알고 있으나, 정산 미스매칭 일자의 현금 고갈 리스크가 상존함.' },
+        { score:4, desc:'향후 2주치 카드 입금 예정일과 주요 지출일을 달력에 표시하여 자금 공백을 관리함.' },
+        { score:5, desc:'14일 치의 예상 카드 입금 내역과 원가 지출일을 일별로 달력에 대조하고 시뮬레이션함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'cashflow_risk' },
+    },
+    '5_3': {
+      label: '근로계약 준수(Social)',
+      question: '고용 형태(알바, 초단기 등)를 불문하고 채용 당일에 표준근로계약서를 필히 작성 및 교부하며 급여대장을 정량 제공하는가?',
+      scale: [
+        { score:1, desc:'계약서 작성 없이 구두 합의로 시급을 책정하고, 주휴수당 기준을 적용하지 않고 지급함.' },
+        { score:2, desc:'계약서는 작성하지만 주휴수당이나 4대 보험 적용 기준을 정확히 모름.' },
+        { score:3, desc:'서면 계약서는 작성했으나 일부 직원의 소정근로시간 변경 분에 대한 갱신을 미룸.' },
+        { score:4, desc:'전 직원 근로계약서 체결, 주휴수당 정확히 지급, 4대 보험 가입 완료.' },
+        { score:5, desc:'모바일 전자 근로계약서로 정식 체결하여 영구 보존하고 주휴수당을 투명하게 계산 지급함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'labor_law_risk' },
+    },
+    '5_4': {
+      label: '친환경·세무 투명성(Eco/Gov)',
+      question: '일회용 쓰레기 감량 실천과 부가가치세 및 원천세를 탈루 없이 투명하게 자진 신고하는 정기 세무 프로세스가 작동하는가?',
+      scale: [
+        { score:1, desc:'세금계산서 증빙 매칭을 기피하고 현금 영수증을 임의 기각하며 플라스틱 쓰레기를 과도하게 방출함.' },
+        { score:2, desc:'현금 매출을 일부 누락 신고하거나 분리배출 기준을 지키지 않음.' },
+        { score:3, desc:'분리배출은 준수하나 투명 증빙 세무 체계가 부실하여 간헐적인 부과금 위험이 존재함.' },
+        { score:4, desc:'현금영수증 전액 발행, 세금계산서 매칭 관리, 플라스틱 대안 용기 일부 도입.' },
+        { score:5, desc:'친환경 용기 전환율 50% 이상이며 매일 홈택스 기반의 세무 매칭 증빙 관리를 실행함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'tax_risk' },
+    },
+    '5_5': {
+      label: '정책자금 및 보증 연계',
+      question: '신용보증재단이나 소진공 특례보증 신청 시 가점 확보가 가능한 동반성장 및 모범납세자 우대 제도를 인지하고 적극 활용하는가?',
+      scale: [
+        { score:1, desc:'정부와 지역재단의 저금리 우대 및 보증료 할인 제도 정보를 접해본 적이 없음.' },
+        { score:2, desc:'소상공인 대출 제도를 알지만 조건이 복잡하여 신청을 미루고 있음.' },
+        { score:3, desc:'보증 신청은 시도하나 특례 가점 요건을 만족하지 못해 최저 등급 보증료를 납부함.' },
+        { score:4, desc:'지역신보 특례보증 조건을 파악하고 1~2가지 가점 요건을 확보하여 신청함.' },
+        { score:5, desc:'신보 특별 협약 가점, 육아 지원, 상생 협력 동반성장 이력을 매칭해 보증 한도와 최저 우대 금리를 획득함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'policy_fund_missed' },
+    },
+
+    /* ===================== 영역 6: 사업정리·폐업세무 ===================== */
+    '6_1': {
+      label: '비즈니스 5단계 생존주기 인식',
+      question: '매장이 창업(Existence) 단계를 지나 생존(Survival) 단계 마지노선을 3개월 넘게 충족하지 못하며 지속 이탈하고 있는가를 인식하는가?',
+      scale: [
+        { score:1, desc:'고정 자산을 매각하고 대출을 빌려서 적자 상태의 임차료를 수개월째 간신히 납입함.' },
+        { score:2, desc:'적자인지 흑자인지 모른 채 버티고 있으며 BEP 개념을 계산해 본 적이 없음.' },
+        { score:3, desc:'겨우 본인의 무임금 노동으로 가계 손실은 메우고 있으나 권리금 회수 가치나 발전성이 제로임.' },
+        { score:4, desc:'BEP를 주기적으로 계산하고 하한선 접근 시 원가 조정·메뉴 정리를 실행함.' },
+        { score:5, desc:'매월 정확한 BEP 돌파율을 트래킹하며, 하한선 도달 시 퇴출(Exit) 출구전략 기획이 완료됨.' },
+      ],
+      ai_trigger: { threshold:2, warning:'survival_crisis' },
+    },
+    '6_2': {
+      label: '폐업 세무 기한 수호',
+      question: '세법에서 정한 폐업 부가가치세 신고 기한(폐업일 다음 달 25일까지) 및 종합소득세 연동 일정을 인지하는가?',
+      scale: [
+        { score:1, desc:'폐업하면 즉시 사업자 의무가 소멸하므로 추가 세금 세무 신고는 필요 없다고 오판함.' },
+        { score:2, desc:'폐업 후 세금 신고가 있다는 것은 알지만 기한과 종류를 모름.' },
+        { score:3, desc:'대강의 일정은 아나 매입세액 공제 서류 마감 기한과 잔존재화 가산세의 관계를 이해하지 못함.' },
+        { score:4, desc:'폐업 후 부가세 신고 기한과 종합소득세 신고 일정을 인지하고 세무사와 상담 계획이 있음.' },
+        { score:5, desc:'다음 달 25일 부가세 세무 신고 및 이듬해 5월 종합소득세 신고 일정을 스케줄러에 등록함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'tax_deadline_unknown' },
+    },
+    '6_3': {
+      label: '노동·임대차 정리(Legal)',
+      question: '직원의 해고 사전 예고(30일 전) 또는 퇴직금 지급 기한(14일 이내) 수호 및 임대차 복구 한계선을 이해하는가?',
+      scale: [
+        { score:1, desc:'폐업 당일에 직원에게 해고를 통보하고, 임대인이 보증금에서 과도하게 청구하는 원상복구 비용에 맹종함.' },
+        { score:2, desc:'퇴직금 지급 의무는 알지만 기한이 14일이라는 것을 모르고 임대차 복구 범위를 협상하지 않음.' },
+        { score:3, desc:'근로자 퇴사 4대 보험 정리는 대략 하나, 임대 계약 종료서 상 원상복구 한계 협상이 부실함.' },
+        { score:4, desc:'해고 예고 30일 전 통보 또는 해고예고수당을 인지하며 임대차 복구 범위 협상을 시도함.' },
+        { score:5, desc:'퇴직금 14일 이내 지급 및 임대계약 조항에 따른 표준 복구 범위를 완전 합의함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'legal_risk_exit' },
+    },
+    '6_4': {
+      label: '폐업 잔존재화 세무 방어',
+      question: '폐업 당시 매장 내에 잔류하는 재고 및 감가상각 대상 설비를 양도·처분할 때 발생하는 간주공급 과세 리스크를 아는가?',
+      scale: [
+        { score:1, desc:'잔존하는 기기와 재고를 세무 정산 없이 지인에게 주거나 보관하여 나중에 가산세를 맞음.' },
+        { score:2, desc:'간주공급이라는 개념이 있다는 것은 들었지만 실제 어떻게 처리해야 하는지 모름.' },
+        { score:3, desc:'대략의 간주공급은 인지하나 부가세 납부 의무를 없애는 포괄양도양수 계약서 적용법을 모름.' },
+        { score:4, desc:'설비 매각 시 세금계산서를 발행하거나 포괄양수도 조건을 세무사에게 문의한 경험이 있음.' },
+        { score:5, desc:'포괄양수도 계약 조건 충족 또는 정상 매각 세금계산서 정밀 발급을 설계하여 위험을 제거함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'asset_disposal_risk' },
+    },
+    '6_5': {
+      label: '희망리턴패키지 자격 준비',
+      question: '소상공인시장진흥공단의 철거비 무상 지원(최대 400~600만 원 한도) 가이드와 전직 장려 수당을 인지하고 사전 절차를 알고 있는가?',
+      scale: [
+        { score:1, desc:'폐업 철거 공사를 자력으로 개시해 버린 뒤 사후에 철거 지원금을 신청하려 함(지급 기각 대상).' },
+        { score:2, desc:'희망리턴패키지라는 제도가 있다는 것은 들었지만 신청 요건과 절차를 모름.' },
+        { score:3, desc:'지원 제도는 알고 있으나 공단 사전 승인 요건 및 기 운영 일수 60일 경과 기준을 체크하지 못함.' },
+        { score:4, desc:'희망리턴패키지 신청 순서(사전 신청→현장 실사→승인→착공)를 숙지하고 있음.' },
+        { score:5, desc:'사전에 희망리턴패키지를 신청 접수해 승인받은 뒤 사업정리 컨설팅 및 철거비 수령을 준비함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'exit_support_missed' },
+    },
+
+    /* ===================== 영역 7: SNS·생성형AI ===================== */
+    '7_1': {
+      label: 'AI 카피라이팅 자립도',
+      question: 'ChatGPT 등 생성형 AI를 활용하여 인스타그램 피드나 네이버 스마트플레이스 소식을 작성하기 위한 전용 프롬프트 템플릿을 소장하고 있는가?',
+      scale: [
+        { score:1, desc:'AI 기술을 전혀 활용할 줄 모르며 SNS에 올릴 텍스트 작성이 힘들어 수개월간 게시를 중단함.' },
+        { score:2, desc:'ChatGPT를 가끔 쓰지만 매번 처음부터 입력하여 일관성 없는 문구를 얻음.' },
+        { score:3, desc:'ChatGPT에 단순한 일회성 질문을 입력하여 개성 없는 어조의 단문만 가끔 생성함.' },
+        { score:4, desc:'매장 USP와 타겟 고객이 정의된 프롬프트 초안을 보유하고 주기적으로 활용함.' },
+        { score:5, desc:'시그니처 메뉴와 매장 고유의 킬러 USP가 설정된 프롬프트 양식을 활용해 3분 만에 마케팅 문장을 제작함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'ai_marketing_none' },
+    },
+    '7_2': {
+      label: 'AI 그래픽 무외주화',
+      question: 'Canva나 미리캔버스 등 웹 기반 AI 디자인 도구를 자유롭게 가동하여 외부 디자인 기획 대행 비용을 0원으로 유도하는가?',
+      scale: [
+        { score:1, desc:'메뉴판 폰트 수정이나 신메뉴 홍보 포스터 하나 인쇄할 때마다 외주 인테리어 대행업체에 고가의 의뢰 비용을 낭비함.' },
+        { score:2, desc:'디자인 외주에 월 10만 원 이상을 지출 중이며 AI 도구를 사용해 본 적이 없음.' },
+        { score:3, desc:'템플릿 사이트를 사용하긴 하나 폰트 결합도가 낮고 이미지 배치 레이아웃이 어색함.' },
+        { score:4, desc:'Canva·미리캔버스로 기본 SNS 콘텐츠를 자체 제작하여 외주비를 절반 이하로 줄임.' },
+        { score:5, desc:'세련된 메뉴 이미지 포맷과 SNS 피드용 배너 콘텐츠를 기획 외주 없이 완전 자율 제작함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'design_outsource_cost' },
+    },
+    '7_3': {
+      label: '영수증 리뷰 유도 시스템',
+      question: '매장을 방문 완료한 고객을 대상으로 오가닉 영수증 리뷰를 능동적이고도 유기적으로 대량 생성하는 매장 내 기계적 보상 체계가 작동하는가?',
+      scale: [
+        { score:1, desc:'고객에게 리뷰 작성을 요청하지 않아 몇 달 전에 달린 부정적 별점 리뷰가 첫 노출 화면에 방치되어 있음.' },
+        { score:2, desc:'리뷰를 부탁하지만 방법이 막연하여 월 평균 3건 미만만 달림.' },
+        { score:3, desc:'영수증을 주면 서비스 메뉴를 준다는 단순 권장은 하나, 실제 참여 고객 비중이 5% 미만임.' },
+        { score:4, desc:'리뷰 QR 스탠드를 테이블에 부착하고 서비스 제공으로 월 10건 이상 확보함.' },
+        { score:5, desc:'리뷰 작성률을 극대화하는 QR 유입 보상 기법이 정착되어 매주 15개 이상의 긍정 리뷰가 갱신됨.' },
+      ],
+      ai_trigger: { threshold:2, warning:'review_stagnant' },
+    },
+    '7_4': {
+      label: '플레이스 저장하기(하트) 유도',
+      question: '자사 플레이스 채널을 향한 방문자의 "저장하기" 및 "공유하기" 트래픽 지수를 합법적이고 유기적으로 폭증시키는 보상 구조가 완비되어 있는가?',
+      scale: [
+        { score:1, desc:'"저장하기"가 네이버 로컬 SEO 유입 가중치 형성에 관여한다는 인과관계를 모름.' },
+        { score:2, desc:'"저장하기"가 중요하다는 것은 알지만 별도 유도 이벤트를 해 본 적이 없음.' },
+        { score:3, desc:'메뉴판 구석에 저장하기 유도 아이콘만 인쇄해 놓았으며, 능동적으로 이벤트를 실행하지 않음.' },
+        { score:4, desc:'테이블에 QR 스탠드를 부착하여 저장하기 유도 이벤트를 정기 운영함.' },
+        { score:5, desc:'"저장 후 알림받기 신청 완료 시 10% 추가 혜택 적용" 등 능동적이고 직관적인 저장하기 유도 장치를 가동함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'place_save_low' },
+    },
+    '7_5': {
+      label: '플레이스 CTR 최적화',
+      question: '네이버 플레이스 프로필 상 시그니처 대표 컷 구성과 타이틀 검색어 매칭을 통해 고객 노출 대비 클릭률(CTR)을 관리하는가?',
+      scale: [
+        { score:1, desc:'매장 외경이나 흐릿한 고기 사진을 스마트플레이스 대표 이미지로 방치하여 검색자 유입이 낮음.' },
+        { score:2, desc:'사진은 업로드했지만 언제 찍은 사진인지 기억도 안 나고 검색 유입이 저조함.' },
+        { score:3, desc:'매장 사진은 업로드했으나, 유입율을 높일 최적화 세팅에 관한 이론이 없음.' },
+        { score:4, desc:'시그니처 메뉴 고화질 사진으로 교체하고 타이틀에 핵심 키워드를 추가하여 CTR이 개선됨.' },
+        { score:5, desc:'정밀 배치된 대표 썸네일과 검색어 최적 매칭으로 클릭 매력도를 기하급수적으로 증진함.' },
+      ],
+      ai_trigger: { threshold:2, warning:'place_ctr_low' },
+    },
   };
 
   const ACTION_PLAN_7DAY = [
-    { day:1, title:'로컬 플레이스 정보 동기화 + 키워드 최적화', desc:'네이버 스마트플레이스·카카오맵 NAP 일치 확인. 상호명에 거점 지명 + 업종 키워드 통합.', tool:'스마트플레이스 관리자 / 카카오맵 사업자 센터', output:'로컬 유저 검색 랭킹 노출 1단계 진입', trigger_domains:['A'] },
-    { day:2, title:'시그니처 메뉴 고화질 사진 5~7장 교체', desc:'스마트폰 최대 밝기·자연광 활용 촬영. 플레이스 소식 탭 주간 혜택 쿠폰 등록.', tool:'스마트폰 카메라 / Canva AI', output:'플레이스 CTR 상승 + "요즘뜨는" 점수 확보', trigger_domains:['A'] },
-    { day:3, title:'Dog 메뉴 한시 중단 + Star 메뉴 Portion 저울 통제', desc:'ACM 기준 하위 Dog 메뉴 1~2종 판매 중지. Star 메뉴 정량 가이드 주방 저울 앞 부착.', tool:'주방 전용 정밀 저울', output:'주간 식재료 폐기 감축 + 즉각 마진율 개선', trigger_domains:['B'] },
-    { day:4, title:'전 직원 근로계약서 전수 감사 + 노무 리스크 제거', desc:'일용직 포함 전 직원 계약서 체결 누락 감사. 전자 서명 플랫폼으로 당일 교부.', tool:'알밤 / 싸인나우 등 전자 계약 플랫폼', output:'노무 리스크 및 근로감독 벌금 처분율 영점화', trigger_domains:['C'] },
-    { day:5, title:'AI 카피라이팅으로 주말 마케팅 예약 발행', desc:'ChatGPT에 매장 정보·타겟 페르소나 입력 → 피드 문구 5종 생성 → 인스타그램 예약 발행.', tool:'ChatGPT / Meta Business Suite', output:'주말 예약 방문 유입률 즉각 개선', trigger_domains:['A','B'] },
-    { day:6, title:'핵심 역할 위임 + 마감 체크리스트 디지털 정립', desc:'홀·주방 책임 직원 지정. POS 마감 정산 로그 자동 전송 + 체크리스트 제출 규범 수립.', tool:'마감 체크리스트 1장 / 카카오워크', output:'점주 매장 상주 시간 감소 + 시스템 독립 가동 개시', trigger_domains:['C'] },
-    { day:7, title:'마이크로 ESG 실천 + 지자체 상생 프로그램 신청', desc:'식재료 일 단위 전처리·폐기 기록. 안심식당 등 지자체 위생 가맹 신청 접수.', tool:'구청 위생과 신청 양식', output:'로컬 신뢰 평판 획득 + 장기 고객 신뢰 구축', trigger_domains:['B','C'] },
+    {
+      day: 1,
+      title: 'POS 원본 데이터 추출 + Dog 메뉴 제거',
+      desc: '최근 1개월 POS 데이터를 엑셀로 추출하여 메뉴별 판매수·단가·총매출을 정렬. ACM 하위 Dog 메뉴 1~2종 판매 중단.',
+      tool: 'POS 관리자 / 엑셀',
+      output: '원가율 즉각 개선 + 주간 식재료 폐기 감축',
+      trigger_area: ['1'],
+    },
+    {
+      day: 2,
+      title: '파사드 시선 촬영 + 플레이스 대표 사진 교체',
+      desc: '매장 앞 109초 시선 녹화로 개선점 도출. 시그니처 메뉴 고화질 사진 5장 촬영하여 네이버·카카오 플레이스 대표 이미지 즉시 교체.',
+      tool: '스마트폰 카메라 / Canva AI',
+      output: '플레이스 CTR 상승 + "요즘뜨는" 점수 확보',
+      trigger_area: ['2'],
+    },
+    {
+      day: 3,
+      title: '플랫폼별 수수료 역산 + D2C 쿠폰 설계',
+      desc: '배달·스마트스토어 정산 명세서 확인, 채널별 실질 수익률 역산. 카카오채널 직주문 전환 유도 QR 쿠폰 Canva로 제작.',
+      tool: '배달 플랫폼 정산 페이지 / Canva',
+      output: '수수료 누수 파악 + D2C 채널 첫 가동',
+      trigger_area: ['3'],
+    },
+    {
+      day: 4,
+      title: '직접 노동 시간 실측 + 스마트 기기 비교 견적',
+      desc: '직원 하루 동선을 스톱워치로 관찰해 단순 노동 시간 산출. 소상공인 지원 프로그램 렌탈 공급사 2곳 제안서 비교.',
+      tool: '스톱워치 / 소상공인 스마트화 지원 포털',
+      output: 'TCO 분석 기반 스마트 기기 도입 계획 수립',
+      trigger_area: ['4'],
+    },
+    {
+      day: 5,
+      title: '사업 전용 계좌 분리 + 14일 현금흐름 달력 작성',
+      desc: '개인 생활비 계좌와 매장 수익 계좌를 완전 분리. 향후 14일간 카드 입금 예정일과 고정비 지출일을 달력에 매핑.',
+      tool: '인터넷뱅킹 / 구글 캘린더',
+      output: '흑자 도산 위험 사전 파악 + 자금 공백 0일화',
+      trigger_area: ['5'],
+    },
+    {
+      day: 6,
+      title: '월간 BEP 돌파율 계산 + 희망리턴패키지 요건 확인',
+      desc: '이번 달 총매출 vs 고정비+변동비 합산으로 BEP 달성률 계산. 소진공 희망리턴패키지 요건(개업 60일 이상) 자가 점검.',
+      tool: '엑셀 BEP 템플릿 / 소진공 포털',
+      output: '경영 단계 인식 + 만약의 폐업 시 안전망 확인',
+      trigger_area: ['6'],
+    },
+    {
+      day: 7,
+      title: 'AI 카피라이팅 프롬프트 고정 + 저장하기 QR 스탠드 부착',
+      desc: 'ChatGPT에 매장 USP·타겟 페르소나·키워드 정의한 프롬프트 템플릿 메모 저장. 테이블에 "저장하기 혜택" QR 스탠드 즉시 부착.',
+      tool: 'ChatGPT / 미리캔버스 / 아크릴 QR 스탠드(5,000원)',
+      output: 'SNS 콘텐츠 외주 0원 달성 + 플레이스 저장 수 증가',
+      trigger_area: ['7'],
+    },
   ];
 
   function calcScores(scores) {
@@ -51,37 +519,81 @@ const DiagMicro = (() => {
     DOMAINS.forEach(domain => {
       const keys = Object.keys(ITEMS).filter(k => k.startsWith(`${domain.id}_`));
       const vals = keys.map(k => scores[`diag-micro-container_${k}`]).filter(v => v !== undefined && v !== null && v !== '');
-      const avg = vals.length > 0 ? vals.reduce((a,b) => a + Number(b), 0) / vals.length : 0;
-      domainScores[domain.key] = { label:domain.label, avg:Math.round(avg*10)/10, pct:Math.round((avg/5)*100), weight:domain.weight };
+      const avg = vals.length > 0 ? vals.reduce((a, b) => a + Number(b), 0) / vals.length : 0;
+      domainScores[domain.key] = { label: domain.label, avg: Math.round(avg * 10) / 10, pct: Math.round((avg / 5) * 100), weight: domain.weight };
     });
-    const totalPct = DOMAINS.reduce((sum,d) => sum + (domainScores[d.key].pct * d.weight), 0);
-    return { domains:domainScores, total:Math.round(totalPct) };
+    const totalPct = DOMAINS.reduce((sum, d) => sum + (domainScores[d.key].pct * d.weight), 0);
+    return { domains: domainScores, total: Math.round(totalPct) };
   }
 
   function detectCrossWarnings(scores) {
     const warnings = [];
     const get = key => Number(scores[`diag-micro-container_${key}`] || 0);
-    if (get('A_1') <= 2 && get('A_4') <= 2) warnings.push({ level:'HIGH', code:'digital_invisible', msg:'온라인 검색에서 이 가게는 존재하지 않는 상태입니다. 지금 이 순간도 경쟁자가 손님을 가져가고 있습니다.' });
-    if (get('B_2') <= 2 && get('B_4') <= 2) warnings.push({ level:'CRITICAL', code:'sell_more_lose_more', msg:'수익 없는 메뉴를 팔면서 인건비까지 초과하고 있습니다. 매출이 늘수록 손실이 커지는 구조입니다.' });
-    if (get('C_4') <= 2 && get('C_5') <= 2) warnings.push({ level:'HIGH', code:'staff_dependency_collapse', msg:'핵심 직원이 이탈하면 즉시 운영 불가 상태입니다. 시스템화와 동기 부여 체계가 시급합니다.' });
-    if (get('A_3') <= 2 && get('A_5') <= 2 && get('A_1') >= 3) warnings.push({ level:'HIGH', code:'reputation_backfire', msg:'검색 노출은 되는데 리뷰 관리가 안 되면 노출될수록 나쁜 이미지가 퍼집니다. 마케팅을 잠시 중단하고 내부 품질부터 개선해야 합니다.' });
-    if (get('B_5') <= 2 && get('B_4') <= 2) warnings.push({ level:'CRITICAL', code:'profitable_bankruptcy', msg:'매출이 발생해도 현금이 없는 흑자 도산 위험 구간입니다. 배달앱 정산 주기와 현금 공백을 즉시 파악해야 합니다.' });
+
+    if (get('1_3') <= 2 && get('1_4') <= 2)
+      warnings.push({ level:'CRITICAL', code:'sell_more_lose_more', msg:'프라임 코스트 60% 초과 + ACM 미산출 — 매출이 늘수록 손실이 커지는 구조입니다. ACM 기반 Dog 메뉴 정리가 즉각 필요합니다.' });
+
+    if (get('2_2') <= 2 && get('7_5') <= 2)
+      warnings.push({ level:'CRITICAL', code:'digital_invisible', msg:'오프라인 간판 정보와 플레이스 정보가 불일치하고 CTR도 낮습니다. 이 매장은 온라인에서 존재하지 않는 상태입니다.' });
+
+    if (get('3_1') <= 2 && get('3_3') <= 2)
+      warnings.push({ level:'HIGH', code:'single_channel_feewaste', msg:'배달 단일 채널 의존 + 수수료 역산 미실시 — 매출이 있어도 수수료가 이익을 갉아먹는 구조입니다.' });
+
+    if (get('4_3') <= 2 && get('1_5') <= 2)
+      warnings.push({ level:'HIGH', code:'owner_bottleneck', msg:'스마트DX 효과 없음 + 오너 의존도 높음 — 사장이 매장에 묶여 있어 성장·휴식이 모두 불가합니다.' });
+
+    if (get('5_1') <= 2 && get('5_2') <= 2)
+      warnings.push({ level:'CRITICAL', code:'profitable_bankruptcy', msg:'계좌 혼용 + 현금흐름 미관리 — 매출이 있어도 현금이 없는 흑자 도산 위험 구간입니다.' });
+
+    if (get('6_1') <= 2 && get('5_2') <= 2)
+      warnings.push({ level:'CRITICAL', code:'survival_crisis', msg:'BEP 미관리 + 현금흐름 공백 — 경영 지속 가능성이 3개월 이내에 임계점에 도달할 수 있습니다.' });
+
+    if (get('7_1') <= 2 && get('7_3') <= 2 && get('2_2') >= 3)
+      warnings.push({ level:'HIGH', code:'reputation_backfire', msg:'검색 노출은 되지만 SNS 콘텐츠와 리뷰 관리가 없습니다. 노출될수록 부정 이미지가 확산될 수 있습니다.' });
+
     return warnings;
   }
 
   function buildPromptSummary(scores) {
     const result = calcScores(scores);
     const warnings = detectCrossWarnings(scores);
-    const domainLines = DOMAINS.map(d => { const ds = result.domains[d.key]; const level = ds.pct >= 80 ? '우수' : ds.pct >= 60 ? '보통' : ds.pct >= 40 ? '취약' : '위험'; return `  - ${ds.label}: ${ds.pct}점 (${level})`; }).join('\n');
-    const warnLines = warnings.length > 0 ? warnings.map(w => `  ⚠ [${w.level}] ${w.msg}`).join('\n') : '  - 복합 경고 없음';
+    const domainLines = DOMAINS.map(d => {
+      const ds = result.domains[d.key];
+      const level = ds.pct >= 80 ? '우수' : ds.pct >= 60 ? '보통' : ds.pct >= 40 ? '취약' : '위험';
+      return `  - ${ds.label}: ${ds.pct}점 (${level})`;
+    }).join('\n');
+    const warnLines = warnings.length > 0
+      ? warnings.map(w => `  ⚠ [${w.level}] ${w.msg}`).join('\n')
+      : '  - 복합 경고 없음';
     const criticalItems = [];
-    Object.entries(ITEMS).forEach(([key,item]) => { const val = Number(scores[`diag-micro-container_${key}`] || 0); if (val <= 2) criticalItems.push(`${item.label}(${val}점)`); });
-    const weakDomains = DOMAINS.filter(d => result.domains[d.key].pct < 60).map(d => d.id);
-    const recommendedActions = ACTION_PLAN_7DAY.filter(a => a.trigger_domains.some(td => weakDomains.includes(td))).map(a => `  Day${a.day}: ${a.title}`).join('\n');
-    return `[소상공인 전용 진단 결과 — diagnosis-micro.js v1.0]\n종합 점수: ${result.total}점 / 100점\n\n[영역별 점수]\n${domainLines}\n\n[복합 경고 신호]\n${warnLines}\n\n[즉각 처방 필요 항목 (2점 이하)]\n${criticalItems.length > 0 ? criticalItems.map(i => `  - ${i}`).join('\n') : '  - 없음'}\n\n[권장 7일 즉시 액션]\n${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'}`.trim();
+    Object.entries(ITEMS).forEach(([key, item]) => {
+      const val = Number(scores[`diag-micro-container_${key}`] || 0);
+      if (val > 0 && val <= 2) criticalItems.push(`${item.label}(${val}점)`);
+    });
+    const weakAreaIds = DOMAINS.filter(d => result.domains[d.key].pct < 60).map(d => d.id);
+    const recommendedActions = ACTION_PLAN_7DAY
+      .filter(a => a.trigger_area.some(ta => weakAreaIds.includes(ta)))
+      .map(a => `  Day${a.day}: ${a.title}`)
+      .join('\n');
+    return `[소상공인 전용 진단 결과 — 7대 분야 융합 진단 v2.0]
+종합 점수: ${result.total}점 / 100점
+
+[영역별 점수]
+${domainLines}
+
+[복합 경고 신호]
+${warnLines}
+
+[즉각 처방 필요 항목 (2점 이하)]
+${criticalItems.length > 0 ? criticalItems.map(i => `  - ${i}`).join('\n') : '  - 없음'}
+
+[권장 7일 즉시 액션]
+${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'}`.trim();
   }
 
-  function getSchema() { return { id:'micro', label:'소상공인 전용 진단', version:'1.0', bizScale:'micro', domains:DOMAINS, items:ITEMS, actionPlan:ACTION_PLAN_7DAY }; }
+  function getSchema() {
+    return { id: 'micro', label: '소상공인 7대 분야 융합 진단', version: '2.0', bizScale: 'micro', domains: DOMAINS, items: ITEMS, actionPlan: ACTION_PLAN_7DAY };
+  }
 
   return { getSchema, calcScores, detectCrossWarnings, buildPromptSummary, ACTION_PLAN_7DAY, DOMAINS, ITEMS };
 })();
