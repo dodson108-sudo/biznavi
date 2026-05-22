@@ -466,6 +466,58 @@ const CrossContext = (() => {
       ],
       msg: '[소상공인 경고] 근로계약서 미작성 + 세무 증빙 체계 부실 — 근로감독 및 세무조사 시 대규모 가산세·벌금 위험이 있습니다. 전자 근로계약서 당일 교부와 홈택스 현금영수증 전액 발행이 Day 1 최우선 과제입니다.',
     },
+
+    /* ----------------------------------------------------------
+     * 소상공인 추가 교차 트리거 — DX 투자 낭비 / 홀 운영 붕괴 / ACM×AI 미스매치 / 패키징×채널
+     * ---------------------------------------------------------- */
+    {
+      id: 'micro_dx_investment_wasted',
+      industry: '*',
+      bm: '*',
+      bizScale: 'micro',
+      level: 'HIGH',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_4_3', threshold: 2 }, // DX 투자 ROI
+        { file: 'micro', key: 'diag-micro-container_4_4', threshold: 2 }, // 데이터 활용 수준
+      ],
+      msg: '스마트 기기 도입했지만 ROI도 안 나오고 데이터 활용도 없어 DX 투자가 낭비되고 있습니다. ΔProfit 계산과 POS 오퍼레이션 마이닝 설정이 시급합니다.',
+    },
+    {
+      id: 'micro_ops_margin_collapse',
+      industry: '*',
+      bm: '*',
+      bizScale: 'micro',
+      level: 'HIGH',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_2_4', threshold: 2 }, // 테이블 회전율
+        { file: 'micro', key: 'diag-micro-container_1_2', threshold: 2 }, // Prime Cost
+      ],
+      msg: '조리 시간이 들쑥날쑥해 테이블 회전율이 낮고 Prime Cost까지 높아 홀 운영과 마진이 동시에 무너지고 있습니다. Work Triangle 재배치와 Portion Control 도입이 우선입니다.',
+    },
+    {
+      id: 'micro_acm_marketing_mismatch',
+      industry: '*',
+      bm: '*',
+      bizScale: 'micro',
+      level: 'MEDIUM',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_1_3', threshold: 2 }, // ACM 메뉴 분류
+        { file: 'micro', key: 'diag-micro-container_7_1', threshold: 2 }, // AI 콘텐츠 활용
+      ],
+      msg: '마진 낮은 Dog 메뉴를 AI 없이 무작위 홍보하는 악순환입니다. ACM 4분면 분류 후 Star·Puzzle 메뉴 중심 AI 카피 프롬프트를 연결해야 홍보 효과와 마진이 함께 개선됩니다.',
+    },
+    {
+      id: 'micro_packaging_channel_gap',
+      industry: '*',
+      bm: '*',
+      bizScale: 'micro',
+      level: 'MEDIUM',
+      triggers: [
+        { file: 'micro', key: 'diag-micro-container_3_3', threshold: 2 }, // 패키징 역량
+        { file: 'micro', key: 'diag-micro-container_3_1', threshold: 2 }, // 판로 다양성
+      ],
+      msg: '패키징 역량도 없고 판로도 단일 채널이어서 비수기나 악천후 시 매출 보완이 불가능합니다. 밀키트 시범 포장 테스트와 스마트스토어 입점을 병행 추진해야 합니다.',
+    },
   ];
 
   /* ============================================================
