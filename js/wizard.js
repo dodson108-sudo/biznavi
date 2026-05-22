@@ -2187,8 +2187,8 @@ const Wizard = (() => {
         });
       }
 
-      data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, allScores);
-      data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, allScores);
+      data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, allScores, bizScale);
+      data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, allScores, bizScale);
     }
 
     return data;

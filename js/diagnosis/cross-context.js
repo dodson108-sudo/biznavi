@@ -486,9 +486,10 @@ const CrossContext = (() => {
    * @param {string} industryId — 선택된 업종 ID (예: 'restaurant')
    * @param {string} bmId — 선택된 BM ID (예: 'franchise')
    * @param {Object} diagScores — 전체 진단 점수 객체
+   * @param {string} [bizScale] — 'micro' | 'sme' | '' (optional, 규모별 필터링)
    * @returns {Array} 발동된 교차 경고 목록
    * ============================================================ */
-  function detectCrossWarnings(industryId, bmId, diagScores) {
+  function detectCrossWarnings(industryId, bmId, diagScores, bizScale) {
     const BM_ID_MAP = {
       '프랜차이즈': 'franchise',
       'B2B SaaS': 'b2b_saas',
@@ -531,6 +532,7 @@ const CrossContext = (() => {
     CROSS_RULES.forEach(rule => {
       if (rule.industry !== industryId && rule.industry !== '*') return;
       if (rule.bm !== bmId && rule.bm !== '*') return;
+      if (rule.bizScale && bizScale && rule.bizScale !== bizScale) return;
 
       const triggered = rule.triggers.every(trigger => {
         const keyPatterns = [
@@ -566,8 +568,8 @@ const CrossContext = (() => {
   /* ============================================================
    * AI 프롬프트용 교차 경고 요약 텍스트 생성
    * ============================================================ */
-  function buildPromptSummary(industryId, bmId, diagScores) {
-    const warnings = detectCrossWarnings(industryId, bmId, diagScores);
+  function buildPromptSummary(industryId, bmId, diagScores, bizScale) {
+    const warnings = detectCrossWarnings(industryId, bmId, diagScores, bizScale);
     if (warnings.length === 0) {
       return '[업종×BM 교차 진단]\n복합 경고 없음. 업종과 BM 조합이 안정적입니다.';
     }
