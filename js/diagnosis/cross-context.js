@@ -330,6 +330,7 @@ const CrossContext = (() => {
       id: 'micro_sell_more_lose_more',
       industry: '*',
       bm: '*',
+      bizScale: 'micro',
       level: 'CRITICAL',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_1_3', threshold: 2 }, // 프라임코스트 통제
@@ -345,6 +346,7 @@ const CrossContext = (() => {
       id: 'micro_profitable_bankruptcy',
       industry: '*',
       bm: '*',
+      bizScale: 'micro',
       level: 'CRITICAL',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_5_1', threshold: 2 }, // 계좌 분리
@@ -360,6 +362,7 @@ const CrossContext = (() => {
       id: 'micro_survival_crisis',
       industry: '*',
       bm: '*',
+      bizScale: 'micro',
       level: 'CRITICAL',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_6_1', threshold: 2 }, // 비즈니스 5단계
@@ -375,6 +378,7 @@ const CrossContext = (() => {
       id: 'micro_rest_prime_place',
       industry: 'restaurant',
       bm: '*',
+      bizScale: 'micro',
       level: 'CRITICAL',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_1_3', threshold: 2 }, // 프라임코스트
@@ -390,6 +394,7 @@ const CrossContext = (() => {
       id: 'micro_local_digital_void',
       industry: 'local_service',
       bm: '*',
+      bizScale: 'micro',
       level: 'CRITICAL',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_2_2', threshold: 2 }, // 플레이스 일치도
@@ -405,6 +410,7 @@ const CrossContext = (() => {
       id: 'micro_franchise_ohi_d2c',
       industry: 'restaurant',
       bm: 'franchise',
+      bizScale: 'micro',
       level: 'HIGH',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_1_5', threshold: 2 }, // OHI 위임도
@@ -420,6 +426,7 @@ const CrossContext = (() => {
       id: 'micro_dx_ohi_bottleneck',
       industry: '*',
       bm: '*',
+      bizScale: 'micro',
       level: 'HIGH',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_4_3', threshold: 2 }, // 노동시간 절감
@@ -435,6 +442,7 @@ const CrossContext = (() => {
       id: 'micro_digital_isolated',
       industry: '*',
       bm: '*',
+      bizScale: 'micro',
       level: 'HIGH',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_7_1', threshold: 2 }, // AI 카피라이팅
@@ -450,6 +458,7 @@ const CrossContext = (() => {
       id: 'micro_legal_tax_risk',
       industry: '*',
       bm: '*',
+      bizScale: 'micro',
       level: 'HIGH',
       triggers: [
         { file: 'micro', key: 'diag-micro-container_5_3', threshold: 2 }, // 근로계약 준수
