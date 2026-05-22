@@ -1,10 +1,31 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-19 최신)
+## 배포 상태 (2026-05-22 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: docs: /fix-dart 스킬 업데이트 (ea487eb)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: CrossContext micro 추가 규칙 4개 (a533921)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-22) — 소상공인 7대 영역 진단 v2.0 완성
+
+### ① diagnosis-micro.js 7대 영역 35항목 전면 교체 (배포 완료) — 커밋 ba7d54b
+- 기존 3영역 15항목 → 7대 영역 35항목 전면 재설계
+- D1 경영진단·손익분석 / D2 점포환경·PLACE SEO / D3 다채널 판로
+  D4 스마트DX / D5 운영자금·ESG보증 / D6 사업정리·폐업세무 / D7 SNS·생성형AI
+- 출처: knowledge_base/소상공인_오퍼레이션_고도화_및_디지털_전환_DX_을_위한_7대.txt
+- 5점 BARS 척도 + ai_trigger + ACTION_PLAN_7DAY 7일 린 액션 연결
+
+### ② cross-context.js 소상공인 교차 트리거 13개 추가 (배포 완료) — 커밋 a533921
+- CRITICAL 5개: 프라임코스트+ACM, 계좌혼용+현금위기, BEP미관리, 외식+플레이스, 생활서비스+리뷰
+- HIGH 6개: 프랜차이즈+OHI+D2C, DX+오너의존, 디지털고립, 노동법+세무, DX투자낭비, 조리편차+PrimeCost
+- MEDIUM 2개: ACM+AI마케팅, 패키징+단일채널
+- bizScale 필터 + diag-micro-container_ 키 패턴 추가
+
+### ③ wizard.js bizScale 주입 패치 (배포 완료) — 커밋 dc4e92e
+- CrossContext 호출 시 allScores._bizScale = bizScale 추가
+- micro 전용 교차 규칙 정상 발동 확인
 
 ---
 
