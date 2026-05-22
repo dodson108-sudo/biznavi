@@ -1102,24 +1102,40 @@ const Wizard = (() => {
     const industryKey = forceIndustryKey || aiKey || INDUSTRY_MAP[industry] || 'local_service';
     const bizModelKey = _inferredBmKey || 'etc';
 
-    // 공통 모듈 렌더링 — 창업 초기면 STARTUP_DIAGNOSIS로 교체
+    // bizScale 감지 — 소상공인 전용 진단 분기
+    const empVal = document.getElementById('employees')?.value || '';
+    const explicitScale = document.getElementById('bizScale')?.value || document.getElementById('bizScaleSelect')?.value || '';
+    const currentBizScale = explicitScale || ((!empVal || empVal === '1~5명') ? 'micro' : 'sme');
+    const isMicro = currentBizScale === 'micro' && typeof DiagMicro !== 'undefined';
+
+    const microContainer  = document.getElementById('diag-micro-container');
+    const commonContainer = document.getElementById('diag-common-container');
+
+    // 공통 모듈 렌더링 — micro: DiagMicro 7대 분야 / startup: STARTUP_DIAGNOSIS / 그 외: DiagCommon
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
-    let commonDiag;
-    if (isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined') {
-      commonDiag = STARTUP_DIAGNOSIS;
-    } else if (typeof DiagCommon !== 'undefined') {
-      commonDiag = _diagCommonToAreas(DiagCommon);
-    } else if (typeof COMMON_DIAGNOSIS !== 'undefined') {
-      commonDiag = COMMON_DIAGNOSIS;
+    if (isMicro) {
+      renderDiagModule('diag-micro-container', _diagMicroToAreas(DiagMicro));
+      if (microContainer)  microContainer.classList.remove('hidden');
+      if (commonContainer) commonContainer.classList.add('hidden');
     } else {
-      commonDiag = null;
+      if (microContainer)  microContainer.classList.add('hidden');
+      if (commonContainer) commonContainer.classList.remove('hidden');
+      let commonDiag;
+      if (isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined') {
+        commonDiag = STARTUP_DIAGNOSIS;
+      } else if (typeof DiagCommon !== 'undefined') {
+        commonDiag = _diagCommonToAreas(DiagCommon);
+      } else if (typeof COMMON_DIAGNOSIS !== 'undefined') {
+        commonDiag = COMMON_DIAGNOSIS;
+      } else {
+        commonDiag = null;
+      }
+      if (commonDiag && !isStartupMode) {
+        commonDiag = _applyIndustryWording(commonDiag, industryKey);
+        commonDiag = _injectDxDetect(commonDiag);
+      }
+      renderDiagModule('diag-common-container', commonDiag);
     }
-    // Dynamic Common Core: 업종별 문구 오버라이드 + DX 탐지 주입 (창업 초기 제외)
-    if (commonDiag && !isStartupMode) {
-      commonDiag = _applyIndustryWording(commonDiag, industryKey);
-      commonDiag = _injectDxDetect(commonDiag);
-    }
-    renderDiagModule('diag-common-container', commonDiag);
 
     // 업종 특화 모듈 렌더링
     const industryVarMap = {
@@ -1153,12 +1169,14 @@ const Wizard = (() => {
     const tabIndustry = document.getElementById('diagTabBtn-industry');
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단 (5문항)';
 
-    // 창업 초기 모드: 탭 레이블을 창업 전용으로 변경
+    // 탭 레이블 — micro / 창업 초기 / 기본 경영 분기
     const tabCommon = document.getElementById('diagTabBtn-common');
     if (tabCommon) {
-      tabCommon.textContent = isStartupMode
-        ? '🚀 창업 초기 진단 (8문항)'
-        : '📋 기본 경영 진단 (8문항)';
+      tabCommon.textContent = isMicro
+        ? '🏪 소상공인 7대 분야 (35문항)'
+        : isStartupMode
+          ? '🚀 창업 초기 진단 (8문항)'
+          : '📋 기본 경영 진단 (8문항)';
     }
 
     // 진행률 카운터 총 항목 수 동적 갱신 (signal-only 제외)
@@ -1306,6 +1324,17 @@ const Wizard = (() => {
         .filter(([key]) => key.startsWith(`${domain.id}_`))
         .map(([key, item]) => Object.assign({}, item, { id: key }));
       return { id: `common_${domain.id}`, label: domain.label, icon: domain.icon, description: domain.desc, items };
+    });
+    return { id: schema.id, label: schema.label, areas };
+  }
+
+  function _diagMicroToAreas(diagMicro) {
+    const schema = diagMicro.getSchema();
+    const areas = schema.domains.map(domain => {
+      const items = Object.entries(schema.items)
+        .filter(([key]) => key.startsWith(`${domain.id}_`))
+        .map(([key, item]) => Object.assign({}, item, { id: key }));
+      return { id: `micro_${domain.id}`, label: domain.label, icon: domain.icon, description: domain.desc, items };
     });
     return { id: schema.id, label: schema.label, areas };
   }
