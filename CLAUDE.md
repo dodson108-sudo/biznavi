@@ -2,7 +2,7 @@
 
 ## 배포 상태 (2026-05-22 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: CrossContext micro 추가 규칙 4개 (a533921)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: DiagMicro 7대 분야 진단 탭 렌더링 연결 (720b3de)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
 
@@ -24,8 +24,19 @@
 - bizScale 필터 + diag-micro-container_ 키 패턴 추가
 
 ### ③ wizard.js bizScale 주입 패치 (배포 완료) — 커밋 dc4e92e
-- CrossContext 호출 시 allScores._bizScale = bizScale 추가
-- micro 전용 교차 규칙 정상 발동 확인
+- CrossContext 호출 시 bizScale 4번째 인수로 전달
+- detectCrossWarnings(): rule.bizScale 불일치 규칙 skip → micro 규칙 오발동 방지
+
+### ④ CrossContext micro 추가 규칙 4개 (배포 완료) — 커밋 a533921
+- HIGH: micro_dx_investment_wasted (DX ROI없음+데이터미활용), micro_ops_margin_collapse (테이블회전율+PrimeCost)
+- MEDIUM: micro_acm_marketing_mismatch (ACM분류+AI콘텐츠), micro_packaging_channel_gap (패키징+단일채널)
+- 총 CROSS_RULES: 34개, micro 규칙 13개
+
+### ⑤ DiagMicro 7대 분야 진단 탭 렌더링 연결 (배포 완료, 테스트 완료) — 커밋 720b3de
+- index.html: diagTab-common 안에 diag-micro-container 추가 (hidden 기본)
+- wizard.js loadDiagnosisUI(): bizScale 감지 → isMicro=true 시 diag-micro-container 렌더, diag-common-container 숨김
+- wizard.js _diagMicroToAreas(): DiagMicro.getSchema() → renderDiagModule 호환 포맷 변환
+- 탭 레이블 → '🏪 소상공인 7대 분야 (35문항)', score key = diag-micro-container_X_Y → calcScores() 정상 연동
 
 ---
 
