@@ -1,10 +1,24 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-22 최신)
+## 배포 상태 (2026-05-23 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: DiagMicro 7대 분야 진단 탭 렌더링 연결 (720b3de)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: 소상공인 전용 AI 2차 프롬프트 7단계 구조 교체 (fc09ceb)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-23) — 소상공인 전용 AI 7단계 프롬프트 교체
+
+### ① ai-engine.js 소상공인 전용 AI 2차 프롬프트 7단계 구조 (배포 완료) — 커밋 fc09ceb
+- `_SYSTEM_EXEC_MICRO` 신규: 소상공인 2차 시스템 프롬프트 (leanCanvas 생략, D1~D7 7항목)
+  - `lifecycleStage` + `kpi` + `roadmap(3단계)` + `sixSystems(D1~D7)` + `plan90days` 5개 필드
+  - 각 D영역별 action은 무료·저비용 도구 + 소상공인진흥공단 지원사업 중심
+- `buildPrompt1` 소상공인 모드 1차 추가 지침: `lifecycleStage` 필드, STP 포지셔닝 맵, executiveSummary 레이블
+- `_buildPrompt2Micro()` 신규: 소상공인 전용 2차 사용자 프롬프트
+  - D1~D7 처방 지침, 90일 액션 무료도구 우선, govSupport 소상공인진흥공단·지자체 포함
+- `buildPrompt2`: micro 시 `_buildPrompt2Micro()` 분기
+- `callClaude`: `bizScale === 'micro'` 시 `_SYSTEM_EXEC_MICRO` 사용 (기존 `_SYSTEM_EXEC` 대체)
 
 ---
 
