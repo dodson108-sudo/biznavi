@@ -1326,8 +1326,8 @@ ${d.bizScale === 'micro' ? `[소상공인 모드 — 1차 최소 응답 (토큰 
 {
   "executiveSummary": "3줄 이내",
   "lifecycleStage": "창업기|생존기|성장기|성숙기|전환기 중 하나 + 한 줄 근거",
-  "swot": { "S": ["강점 1개"], "W": ["약점 1개"], "O": ["기회 1개"], "T": ["위협 1개"] },
-  "stp": { "segment": "1줄", "target": "1줄", "positioning": "1줄" },
+  "swot": { "strengths": ["강점 1개"], "weaknesses": ["약점 1개"], "opportunities": ["기회 1개"], "threats": ["위협 1개"] },
+  "stp": { "segmentation": "1줄", "target": "1줄", "positioning": "1줄" },
   "tam": "TAM 수치+단위",
   "sam": "SAM 수치+단위",
   "som": "SOM 수치+단위"
@@ -1368,7 +1368,7 @@ ${execSummary || '(없음)'}
 ${diagSummary ? `\n[D1~D4 진단 점수]\n${diagSummary}` : ''}
 
 [SWOT 요약 (1차)]
-S: ${(r1.swot && r1.swot.S && r1.swot.S[0]) || '미확인'} | W: ${(r1.swot && r1.swot.W && r1.swot.W[0]) || '미확인'}
+S: ${(r1.swot && r1.swot.strengths && r1.swot.strengths[0]) || '미확인'} | W: ${(r1.swot && r1.swot.weaknesses && r1.swot.weaknesses[0]) || '미확인'}
 
 [작성 지침] system prompt의 JSON 구조(6개 필드)로만 응답.
 keyStrategies(4~6개), fourP, specializedAnalysis를 소상공인 업종·진단 점수에 맞춰 구체 작성.
