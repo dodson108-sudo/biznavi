@@ -1466,11 +1466,12 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
       return null;
     }
 
-    // /api/claude-analyze-1|2 프록시 호출 헬퍼 (maxTokens: micro 2차 = 6000, 일반 = default)
-    async function apiCall(systemPrompt, userPrompt, _callLabel, maxTokens) {
+    // /api/claude-analyze-1|2 프록시 호출 헬퍼
+    // micro 1차: noSearch=true + maxTokens=8000 → web_search 비활성화 (300초 타임아웃 방지)
+    // micro 2차: maxTokens=6000 → 응답 생성 시간 단축
+    async function apiCall(systemPrompt, userPrompt, _callLabel, opts) {
       const endpoint = _callLabel === '1차' ? '/api/claude-analyze-1' : '/api/claude-analyze-2';
-      const payload = { systemPrompt, userPrompt };
-      if (maxTokens) payload.maxTokens = maxTokens;
+      const payload = { systemPrompt, userPrompt, ...opts };
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1488,8 +1489,11 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
 
     // ── 1차 호출: 진단·전략 (executiveSummary·SWOT·STP·4P·핵심전략·유형별특화분석)
     console.log('[BizNavi] 1차 분석 시작 — 진단·전략...');
-    const _t1Start = Date.now();
-    const text1 = await apiCall(SYSTEM, buildPrompt1(formData), '1차');
+    const _t1Start  = Date.now();
+    const _isMicro  = formData.bizScale === 'micro';
+    // micro 1차: web_search 비활성화(noSearch) + max_tokens 8000 → 300초 타임아웃 방지
+    const _opts1    = _isMicro ? { noSearch: true, maxTokens: 8000 } : {};
+    const text1 = await apiCall(SYSTEM, buildPrompt1(formData), '1차', _opts1);
     console.log(`[TIMING] 클라이언트 — 1차 호출 왕복: ${Date.now() - _t1Start}ms`);
     console.log('1차 응답 (처음 400자):', text1.substring(0, 400));
     const result1 = extractJSON(text1);
@@ -1498,9 +1502,10 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     // ── 2차 호출: 실행플랜 (KPI·로드맵·6시스템·90일플랜·린캔버스)
     console.log('[BizNavi] 2차 분석 시작 — 실행플랜...');
     const _t2Start = Date.now();
-    const _sysExec2    = formData.bizScale === 'micro' ? _SYSTEM_EXEC_MICRO : _SYSTEM_EXEC;
-    const _maxTokens2  = formData.bizScale === 'micro' ? 6000 : undefined;
-    const text2 = await apiCall(_sysExec2, buildPrompt2(formData, result1), '2차', _maxTokens2);
+    const _sysExec2 = _isMicro ? _SYSTEM_EXEC_MICRO : _SYSTEM_EXEC;
+    // micro 2차: max_tokens 6000 → 응답 생성 시간 단축
+    const _opts2    = _isMicro ? { maxTokens: 6000 } : {};
+    const text2 = await apiCall(_sysExec2, buildPrompt2(formData, result1), '2차', _opts2);
     console.log(`[TIMING] 클라이언트 — 2차 호출 왕복: ${Date.now() - _t2Start}ms`);
     console.log('2차 응답 (처음 400자):', text2.substring(0, 400));
     const result2 = extractJSON(text2);
