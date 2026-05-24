@@ -1,10 +1,35 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-23 최신)
+## 배포 상태 (2026-05-24 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: 소상공인 전용 AI 2차 프롬프트 7단계 구조 교체 (fc09ceb)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: micro 모드 3차 호출 구조 재설계 (D1~D4/D5~D7 분리) (99f824c)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-24) — micro 모드 504 타임아웃 수정 + 3차 호출 재설계
+
+### ① micro 모드 1차 호출 504 타임아웃 근본 수정 (배포 완료) — 커밋 a46eab4
+- **원인**: `claude-analyze-1`의 `web_search` tool_use → 검색 → pause_turn/continue 루프 3턴 × ~100초 = 300초 초과
+- **수정**: `noSearch: true` 파라미터 → micro 1차에서 web_search 완전 비활성화 → 단일 Anthropic 턴으로 완료
+- `api/claude-analyze-1.js`: `noSearch`/`maxTokens` 파라미터 수신 구조 추가
+- `ai-engine.js callClaude()`: micro 1차 `{ noSearch: true, maxTokens: 8000 }` 전달
+
+### ② micro 모드 3차 호출 구조 재설계 (배포 완료) — 커밋 99f824c
+- **설계**: 1차(전략) + 2차(D1~D4+KPI+로드맵) + 3차(D5~D7+plan90days) 3분할
+- `api/claude-analyze-3.js` 신규: micro 전용 3차 함수 (maxDuration:60, max_tokens:4000)
+- `vercel.json`: `claude-analyze-3.js` 등록 (icn1, 60초)
+- `ai-engine.js`:
+  - `_SYSTEM_EXEC_MICRO` → `_SYSTEM_EXEC_MICRO_2`(D1~D4+KPI+로드맵) + `_SYSTEM_EXEC_MICRO_3`(D5~D7+plan90days) 분리
+  - `_buildPrompt2Micro()`: D1~D4 집중 프롬프트로 교체
+  - `_buildPrompt3Micro()` 신규: D5~D7 처방 + 90일 캘린더 + govSupport
+  - `apiCall()`: `'3차'` → `/api/claude-analyze-3` 엔드포인트 추가
+  - `callClaude()`: micro 3차 호출 추가 + `mergedSixSystems = [...D1~D4, ...D5~D7]` 7개 병합
+  - micro 1차 maxTokens: 8000 → 3000 (응답 시간 단축)
+- `wizard.js animateLoading(isMicro)`: micro 모드 로딩 레이블 4단계 동적 변경
+  - `생애주기·전략 분석 (1차)` → `D1~D4 경영진단 처방 (2차)` → `D5~D7·정부지원 처방 (3차)` → `보고서 통합 완성 중`
+- `app.js`: `animateLoading(data.bizScale === 'micro')` 전달
 
 ---
 
@@ -152,11 +177,19 @@
 
 ## 다음 세션 예정 작업
 
-### 1순위: reference-db.js 데이터 업그레이드
+### 1순위: 소상공인 AI 분석 3차 호출 end-to-end 실전 테스트
+- biznavi.vercel.app에서 소상공인 모드로 실제 분석 1회 실행
+- 1차: lifecycleStage·STP·executiveSummary 정상 출력 확인
+- 2차: D1~D4 + KPI(5개) + 로드맵(3단계) 정상 출력 확인
+- 3차: D5~D7 + plan90days(3개월, govSupport 포함) 정상 출력 확인
+- 대시보드: renderSixSystems 7항목(D1~D7) 카드 정상 표시 확인
+- 로딩 스텝 레이블 micro 4단계 정상 표시 확인
+
+### 2순위: reference-db.js 데이터 업그레이드
 - `knowledge_base/industry_full_benchmarks.csv` 기준 수치 갱신
 - `small_biz_cost_guide.csv` 소상공인 비용 구조 프롬프트 반영
 
-### 4순위: 진단 시스템 end-to-end 실전 테스트
+### 3순위: 진단 시스템 end-to-end 실전 테스트
 - biznavi.vercel.app에서 업종×BM 조합 3종 이상 실제 진단 실행
 - v2.0 렌더링(scale → BARS) 정상 출력, cross-context 경보 카드 표시 확인
 
