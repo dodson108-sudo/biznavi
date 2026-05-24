@@ -4,14 +4,15 @@
  * 담당: kpi · roadmap · sixSystems · plan90days · leanCanvas
  */
 
-const ANTHROPIC_BASE = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL   = 'claude-sonnet-4-6';
-const MAX_TOKENS     = 16000;
+const ANTHROPIC_BASE     = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_MODEL       = 'claude-sonnet-4-6';
+const MAX_TOKENS_DEFAULT = 16000;
+const MAX_TOKENS_MICRO   = 6000;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { systemPrompt, userPrompt } = req.body || {};
+  const { systemPrompt, userPrompt, maxTokens } = req.body || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY 미설정' });
   if (!userPrompt) return res.status(400).json({ error: '필수 파라미터 누락 (userPrompt)' });
@@ -29,7 +30,7 @@ module.exports = async (req, res) => {
       headers,
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: MAX_TOKENS,
+        max_tokens: maxTokens || MAX_TOKENS_DEFAULT,
         system: systemPrompt || '',
         messages: [{ role: 'user', content: userPrompt }],
       }),

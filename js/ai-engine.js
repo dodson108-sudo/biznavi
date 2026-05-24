@@ -1363,53 +1363,25 @@ ${d.bizScale === 'micro' ? `
   /* ── 소상공인 전용 2차 프롬프트 ─────────────────────────────── */
   function _buildPrompt2Micro(d, r1) {
     const keyStrategiesRef = (r1.keyStrategies || [])
-      .map((s, i) => `${i + 1}. [${s.priority || 'medium'}] ${s.title}: ${(s.description || '').substring(0, 120)}`)
+      .map((s, i) => `${i + 1}. ${s.title}: ${(s.description || '').substring(0, 80)}`)
       .join('\n');
+    const lifecycleStage = r1.lifecycleStage || '미판별';
+    const diagSummary = d.microPrompt ? d.microPrompt.substring(0, 600) : '';
 
-    const diagSummary = d.microPrompt || '';
-    const lifecycleStage = r1.lifecycleStage || '(1차에서 판별)';
+    return `[소상공인 2차 실행플랜]
+상호: ${d.companyName} | 업종: ${d.industryKey || d.industry || '미입력'} | 직원: ${d.employees || '미입력'} | 매출: ${d.revenue || '미입력'}
+지역: ${d.region || '미입력'} | 생애주기: ${lifecycleStage} | 유형: ${d.consultingType || '미확인'}
 
-    return `[소상공인 2차 실행플랜 — 7단계 소상공인 처방 작성 요청]
+[핵심전략 (1차 참고)]
+${keyStrategiesRef || '(없음 — 업종·진단 점수 기반 작성)'}
 
-## 기업 기본 정보
-- 상호명: ${d.companyName}
-- 업종: ${d.industryKey || d.industry || '미입력'}
-- 규모: 소상공인 (직원 5명 이하 / 연매출 10억 미만)
-- 생애주기 (1차 판별): ${lifecycleStage}
-- 사업지역: ${d.region || '미입력'}
-- 직원수: ${d.employees || '미입력'}
-- 연매출: ${d.revenue || '미입력'}
-- 컨설팅 유형: ${d.consultingType || '미확인'}
-- 목표기간: 90일
+[경영진 요약 요약]
+${(r1.executiveSummary || '').substring(0, 200)}
+${diagSummary ? `\n[D1~D7 진단 점수]\n${diagSummary}` : ''}
 
-## 1차 분석 핵심전략 (이 전략과 완전히 일관된 실행플랜 작성)
-${keyStrategiesRef || '(핵심전략 없음 — 업종·진단 점수 기반으로 실행플랜 작성)'}
-
-## 경영진 요약 (1차 참고)
-${(r1.executiveSummary || '').substring(0, 300)}
-
-${diagSummary ? `## DiagMicro 7대 영역 진단 점수 (D1~D7)
-${diagSummary}` : ''}
-
-[소상공인 7단계 처방 작성 지침]
-STEP3 7대 진단 영역별 처방(D1~D7) → sixSystems 7항목으로 출력:
-  D1 경영진단·손익분석: ACM(식재료·인건비·임대료) 비율 + Prime Cost 65% 이하 목표
-  D2 점포환경·PLACE SEO: 109초 파사드 개선 + 네이버 플레이스 랭킹 액션
-  D3 다채널 판로: 배달수수료 역산표 + D2C 전환 1단계
-  D4 스마트DX: 매장 유형별 무료·저비용 스마트 도구 처방
-  D5 운영자금·ESG보증: 소상공인진흥공단 정책자금 + 마이크로ESG 보증료 우대
-  D6 사업정리·폐업세무: 폐업 세무 타임라인 + 희망리턴패키지 활용 가이드
-  D7 SNS·생성형AI: ChatGPT 카피 템플릿 + 플레이스 CTR 개선
-- KPI: 5~7개, 소상공인 현실 지표 (재방문율·Prime Cost·플레이스 순위 등), 90일 달성 가능한 수치
-- 로드맵 3단계: 1단계(생존 위협 제거·1~30일) / 2단계(수익성 회복·31~60일) / 3단계(재방문 도약·61~90일)
-- plan90days: 월별 액션 — 이번 주 당장 실행 가능한 구체 액션 중심, 무료·저비용 도구 우선
-- govSupport: 소상공인진흥공단·지자체 포함 (사업명 + 신청 기관 + 마감월)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-웹 검색 활용 지침 (실행플랜 보강)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-web_search 도구로 다음을 검색하여 plan90days·roadmap의 govSupport에 반영할 것:
-① "${d.industryKey || d.industry || ''} 소상공인 지원사업 2025 신청"
-② "소상공인진흥공단 ${d.consultingType === 'digital_strategy' ? '스마트상점 기술보급 디지털 전환 바우처' : '경영안정자금 컨설팅 지원'} 2025"`;
+[작성 지침] system prompt의 JSON 구조(5개 필드)로만 응답. D1~D7 각 항목은 진단 점수 기반으로 구체 서술. KPI 5개, 로드맵 3단계, 90일 캘린더 3개월.
+govSupport: 소상공인진흥공단 + 지자체 포함 (사업명+마감월). 무료·저비용 도구 우선.
+검색: "${d.industryKey || d.industry || ''} 소상공인 지원사업 2025"`;
   }
 
   /* ── 2차 호출: 실행플랜 사용자 프롬프트 ─────────────────────────────── */
@@ -1494,13 +1466,15 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
       return null;
     }
 
-    // /api/claude-analyze-1|2 프록시 호출 헬퍼 (1차·2차 별도 함수로 분리 — 60초 타임아웃 방지)
-    async function apiCall(systemPrompt, userPrompt, _callLabel) {
+    // /api/claude-analyze-1|2 프록시 호출 헬퍼 (maxTokens: micro 2차 = 6000, 일반 = default)
+    async function apiCall(systemPrompt, userPrompt, _callLabel, maxTokens) {
       const endpoint = _callLabel === '1차' ? '/api/claude-analyze-1' : '/api/claude-analyze-2';
+      const payload = { systemPrompt, userPrompt };
+      if (maxTokens) payload.maxTokens = maxTokens;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt, userPrompt }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         let msg = 'API 호출 실패 (' + res.status + ')';
@@ -1524,8 +1498,9 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     // ── 2차 호출: 실행플랜 (KPI·로드맵·6시스템·90일플랜·린캔버스)
     console.log('[BizNavi] 2차 분석 시작 — 실행플랜...');
     const _t2Start = Date.now();
-    const _sysExec2 = formData.bizScale === 'micro' ? _SYSTEM_EXEC_MICRO : _SYSTEM_EXEC;
-    const text2 = await apiCall(_sysExec2, buildPrompt2(formData, result1), '2차');
+    const _sysExec2    = formData.bizScale === 'micro' ? _SYSTEM_EXEC_MICRO : _SYSTEM_EXEC;
+    const _maxTokens2  = formData.bizScale === 'micro' ? 6000 : undefined;
+    const text2 = await apiCall(_sysExec2, buildPrompt2(formData, result1), '2차', _maxTokens2);
     console.log(`[TIMING] 클라이언트 — 2차 호출 왕복: ${Date.now() - _t2Start}ms`);
     console.log('2차 응답 (처음 400자):', text2.substring(0, 400));
     const result2 = extractJSON(text2);
