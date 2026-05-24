@@ -2,13 +2,34 @@
 
 ## 배포 상태 (2026-05-24 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: micro 모드 3차 호출 구조 재설계 (D1~D4/D5~D7 분리) (99f824c)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: micro 1차 SWOT/STP 키 불일치 수정 (c38cc6a)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
 
 ---
 
-## 최근 수정 이력 (2026-05-24) — micro 모드 504 타임아웃 수정 + 3차 호출 재설계
+## 최근 수정 이력 (2026-05-24) — micro 3차 구조 재설계 + 1차 JSON 절단 수정 완결
+
+### ⑥ micro 1차 SWOT/STP 키 불일치 수정 (배포 완료) — 커밋 c38cc6a
+- **원인**: 1차 JSON 템플릿이 `S/W/O/T` 키, `segment` 키를 사용했으나 dashboard.js는 `strengths/weaknesses/opportunities/threats`, `segmentation` 키를 기대함 → 대시보드 SWOT·STP 렌더링 공백
+- **수정**: `buildPrompt1()` micro 분기 JSON 예시 → `strengths/weaknesses/opportunities/threats` + `segmentation`
+- **수정**: `_buildPrompt2Micro()` SWOT 참조 → `r1.swot.S[0]` → `r1.swot.strengths[0]` / `r1.swot.W[0]` → `r1.swot.weaknesses[0]`
+
+### ⑤ micro 1차 JSON 절단 수정 (배포 완료) — 커밋 3b6e4be
+- **원인**: 1차가 executiveSummary·SWOT(6개씩)·STP·fourP·keyStrategies·specializedAnalysis 전부 요청 → 3000 토큰 초과로 JSON 중간 절단
+- **수정**: 1차 출력을 7개 최소 필드만으로 축소 (executiveSummary 3줄, lifecycleStage 1줄, swot 각 1개, stp 1줄씩, tam/sam/som)
+- **수정**: `claude-analyze-1.js` `MAX_TOKENS_MICRO` 8000 → 2000
+- **수정**: keyStrategies·fourP·specializedAnalysis 전부 2차로 이동
+
+### ④ micro 모드 3차 호출 구조 재설계 (배포 완료) — 커밋 99f824c
+- `api/claude-analyze-3.js` 신규: D5~D7 처방 + plan90days (maxDuration:60)
+- `vercel.json`: claude-analyze-3.js 등록 (icn1, 60초)
+- `_SYSTEM_EXEC_MICRO_2` → D1~D4+KPI+로드맵+전략, `_SYSTEM_EXEC_MICRO_3` → D5~D7+plan90days
+- `callClaude()`: micro 3차 호출 + mergedSixSystems(D1~D4+D5~D7) 7개 병합
+
+---
+
+## 최근 수정 이력 (2026-05-24) — micro 모드 504 타임아웃 수정 + 3차 호출 재설계 (이전 기록)
 
 ### ① micro 모드 1차 호출 504 타임아웃 근본 수정 (배포 완료) — 커밋 a46eab4
 - **원인**: `claude-analyze-1`의 `web_search` tool_use → 검색 → pause_turn/continue 루프 3턴 × ~100초 = 300초 초과
