@@ -609,82 +609,66 @@ const AIEngine = (() => {
   }
 }`;
 
-  /* ── 소상공인 전용 2차 시스템 프롬프트 — D1~D4 처방 + KPI·로드맵 ─── */
+  /* ── 소상공인 전용 2차 시스템 프롬프트 — 전략 + D1~D4 처방 + KPI·로드맵 ─── */
   const _SYSTEM_EXEC_MICRO_2 = `[절대 규칙]
-반드시 다음 JSON 구조로만 응답 (lifecycleStage, kpi, roadmap, sixSystems 4개 필드 — D1~D4):
+반드시 다음 JSON 구조로만 응답 (keyStrategies, fourP, specializedAnalysis, kpi, roadmap, sixSystems 6개 필드):
 
 {
-  "lifecycleStage": "창업기(0~2년)|생존기(3~5년)|성장기(6~10년)|성숙기(10+년)|전환기(사업재편 필요) 중 하나 + 한 줄 근거",
+  "keyStrategies": [
+    {
+      "title": "전략 제목 (소상공인 현실 — 즉시 실행 가능한 핵심 전략)",
+      "description": "[진단] 현황 1문장. [방침] 방향 1문장. [행동] 이번 주 당장 실행 가능한 구체 액션 3가지 (무료 도구명 포함)",
+      "priority": "high|medium|low",
+      "owner": "대표 본인",
+      "timeline": "30일|60일|90일"
+    }
+  ],
+  "fourP": {
+    "product": "제품·서비스 핵심 차별화 포인트 (메뉴·서비스명 포함, 2문장)",
+    "price": "가격 전략 — 단가·수수료·프리미엄 구조 현황과 개선 방향",
+    "place": "오프라인 입지 현황 + 온라인(플레이스·배달앱·SNS) 채널 구성",
+    "promotion": "StoryBrand: [고객 문제] → [해결책] → [CTA] 구조로 SNS·플레이스 활용 방법"
+  },
+  "specializedAnalysis": {
+    "type": "micro_ops",
+    "framework": "소상공인 생존 진단",
+    "summary": "현재 가장 긴급한 처방 2문장",
+    "blocks": [
+      { "label": "Prime Cost 현황", "content": "ACM 비율 진단 및 개선 포인트" },
+      { "label": "상권 경쟁 포지션", "content": "네이버 플레이스·구글 지도 경쟁 현황" },
+      { "label": "D2C 채널 기회", "content": "직접 판매 채널 확보 방향" }
+    ]
+  },
   "kpi": [
     {
-      "title": "KPI 명칭 (소상공인 현실 지표 — 예: 월 재방문율, Prime Cost 비율, 네이버 플레이스 순위)",
-      "current": "현재값 (측정 가능한 수치 — 모르면 '미파악')",
-      "target": "목표값 (90일 내 달성 가능한 현실적 수치)",
-      "unit": "단위 (%, 원, 건, 위, 점 등)",
-      "method": "측정 방법 (어디서 어떻게 확인하는지 — 무료 도구 우선)",
-      "owner": "측정 담당 (대표 본인 or 직원명)"
+      "title": "KPI 명칭 (소상공인 현실 지표 — 예: 월 재방문율, Prime Cost 비율, 플레이스 순위)",
+      "current": "현재값 (모르면 '미파악')",
+      "target": "목표값 (90일 달성 가능)",
+      "unit": "단위 (%, 원, 건, 위 등)",
+      "method": "측정 방법 (무료 도구 우선)",
+      "owner": "대표 본인"
     }
   ],
   "roadmap": [
     {
       "phase": "1단계: 즉시 실행 — 생존 위협 제거",
       "period": "1~30일",
-      "budget": "예상 예산 (소상공인 현실 기준 — 무료·저비용 우선)",
-      "framework": "🔥 린 스타트업 — 최소 비용·최대 효과",
-      "tasks": ["이번 주 당장 실행 가능한 액션 (무료 도구명 포함)", "2주차 실행", "3~4주차 실행", "소상공인진흥공단·지자체 지원사업 신청 (사업명 + 마감일)"]
+      "budget": "예상 예산 (무료·저비용 우선)",
+      "framework": "🔥 린 스타트업",
+      "tasks": ["이번 주 실행 가능한 액션 (도구명 포함)", "2주차 실행", "3~4주차 실행", "소상공인진흥공단 지원사업 신청 (사업명+마감일)"]
     },
-    {
-      "phase": "2단계: 구조 개선 — 수익성 회복",
-      "period": "31~60일",
-      "budget": "예상 예산",
-      "framework": "📈 취약 D영역 집중 처방",
-      "tasks": ["액션 1", "액션 2", "액션 3", "액션 4"]
-    },
-    {
-      "phase": "3단계: 성장 도약 — 재방문·단가 상승",
-      "period": "61~90일",
-      "budget": "예상 예산",
-      "framework": "🌱 플라이휠 — 재방문 고객 → 입소문 → 신규 고객",
-      "tasks": ["액션 1", "액션 2", "액션 3", "액션 4"]
-    }
+    { "phase": "2단계: 구조 개선 — 수익성 회복", "period": "31~60일", "budget": "예상 예산", "framework": "📈 취약 D영역 처방", "tasks": ["액션 1", "액션 2", "액션 3", "액션 4"] },
+    { "phase": "3단계: 성장 도약 — 재방문·단가 상승", "period": "61~90일", "budget": "예상 예산", "framework": "🌱 플라이휠", "tasks": ["액션 1", "액션 2", "액션 3", "액션 4"] }
   ],
   "sixSystems": [
-    {
-      "name": "D1. 경영진단·손익분석",
-      "icon": "📊",
-      "status": "취약|보통|강점 중 하나",
-      "issue": "ACM(식재료·인건비·임대료) 비율 현황과 Prime Cost 목표치 대비 실태를 입력값 기반으로 2~3문장 구체 서술",
-      "actions": ["ACM 비율 계산 — 이번 주 식재료비·인건비·임대료를 엑셀/앱에 기록", "Prime Cost 65% 이하 목표 대비 현황 점검 및 개선 1가지", "월 손익계산서 자동화 (구글시트·가계부 앱) 도입"],
-      "resource": "소상공인진흥공단 경영컨설팅 / 국세청 홈택스 단순경비율 조회"
-    },
-    {
-      "name": "D2. 점포환경·PLACE SEO",
-      "icon": "🏪",
-      "status": "취약|보통|강점",
-      "issue": "네이버 플레이스·구글 지도 랭킹과 109초 파사드(외관 첫인상) 현황을 진단 점수 기반으로 2~3문장 구체 서술",
-      "actions": ["네이버 스마트플레이스 정보 완성도 100% 점검 (영업시간·메뉴·사진)", "대표 메뉴 사진 5장 신규 업로드 (자연광·정면 구도)", "파사드 개선 포인트 3가지 식별 및 당주 실행"],
-      "resource": "네이버 스마트플레이스 무료 관리 / 소상공인 간판 개선 지원사업"
-    },
-    {
-      "name": "D3. 다채널 판로",
-      "icon": "🛒",
-      "status": "취약|보통|강점",
-      "issue": "배달앱·SNS·오프라인 채널별 수수료 구조와 D2C 직접 판매 비중 현황을 진단 점수 기반으로 2~3문장 구체 서술",
-      "actions": ["채널별 수수료 역산표 작성 (실제 남는 수익 계산)", "D2C 채널(카카오채널·자체 예약링크) 1개 신설 검토", "배달앱 의존도 줄이는 오프라인 단골 관리 시작 (스탬프카드·문자 마케팅)"],
-      "resource": "소상공인 온라인 판로개척 지원 / 배달의민족·쿠팡이츠 정산서 분석"
-    },
-    {
-      "name": "D4. 스마트DX",
-      "icon": "📱",
-      "status": "취약|보통|강점",
-      "issue": "POS·키오스크·예약시스템 등 스마트 기기 도입 현황과 실제 ROI를 진단 점수 기반으로 2~3문장 구체 서술",
-      "actions": ["현재 도구 ROI 계산 (월 비용 대비 시간 절감·매출 증가 효과)", "무료 DX 도구 1개 신규 도입 (카카오채널·네이버예약·구글폼)", "소상공인 스마트상점 기술보급 지원사업 신청 자격 확인"],
-      "resource": "소상공인 스마트상점 기술보급 지원 / 중소벤처기업부 디지털 전환 바우처"
-    }
+    { "name": "D1. 경영진단·손익분석", "icon": "📊", "status": "취약|보통|강점", "issue": "ACM 비율·Prime Cost 현황 2~3문장", "actions": ["ACM 계산", "Prime Cost 65% 목표 점검", "손익 자동화 도입"], "resource": "소상공인진흥공단 경영컨설팅 / 국세청 홈택스" },
+    { "name": "D2. 점포환경·PLACE SEO", "icon": "🏪", "status": "취약|보통|강점", "issue": "플레이스 랭킹·파사드 현황 2~3문장", "actions": ["스마트플레이스 완성도 100%", "대표메뉴 사진 5장", "파사드 개선 3가지"], "resource": "네이버 스마트플레이스 / 소상공인 간판지원" },
+    { "name": "D3. 다채널 판로", "icon": "🛒", "status": "취약|보통|강점", "issue": "채널별 수수료·D2C 비중 2~3문장", "actions": ["수수료 역산표 작성", "D2C 채널 1개 신설", "단골 관리 시작"], "resource": "소상공인 온라인 판로개척 지원" },
+    { "name": "D4. 스마트DX", "icon": "📱", "status": "취약|보통|강점", "issue": "스마트기기 ROI 현황 2~3문장", "actions": ["현재 도구 ROI 계산", "무료 DX 도구 1개 도입", "스마트상점 지원사업 자격 확인"], "resource": "소상공인 스마트상점 기술보급 / 디지털 전환 바우처" }
   ]
 }
 
-leanCanvas·plan90days는 생략. D1~D4 4개 항목만 sixSystems에 작성. KPI 5개. 각 항목은 진단 점수(D1~D4)와 업종·규모에 맞춰 구체적으로 작성.`;
+lifecycleStage·plan90days·D5~D7은 생략. keyStrategies 4~6개, KPI 5개. 소상공인 현실 기준 — 무료·저비용 도구 우선.`;
 
   /* ── 소상공인 전용 3차 시스템 프롬프트 — D5~D7 처방 + plan90days ── */
   const _SYSTEM_EXEC_MICRO_3 = `[절대 규칙]
@@ -1336,15 +1320,22 @@ ${_buildSurvivalInsights(d, d.survivalData || (typeof window !== 'undefined' && 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ★ 1차 호출 응답 범위 (반드시 준수) ★
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-이번 응답에는 executiveSummary, swot, stp, fourP, keyStrategies, specializedAnalysis 6개 필드만 포함하세요.
-kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2차 호출에서 별도로 더 깊이 작성합니다)
-${d.bizScale === 'micro' ? `
-[소상공인 모드 — 1차 추가 지침]
-- 1차 응답에 lifecycleStage 필드 추가 (창업기/생존기/성장기/성숙기/전환기 중 하나 + 2줄 근거)
-- stp.positioning에 가격×품질 포지셔닝 맵 서술 (경쟁점 2~3곳 위치 포함)
-- executiveSummary에 [생애주기] [상권현황] [최우선 처방 D영역] 레이블 반드시 포함
-- SWOT 기회·전략은 소상공인 현실(무료·저비용 도구, 정부지원사업 연계) 중심으로 작성
-- leanCanvas 생략` : ''}`;
+${d.bizScale === 'micro' ? `[소상공인 모드 — 1차 최소 응답 (토큰 절약)]
+아래 7개 필드만 작성. 각 항목 반드시 최소화.
+
+{
+  "executiveSummary": "3줄 이내",
+  "lifecycleStage": "창업기|생존기|성장기|성숙기|전환기 중 하나 + 한 줄 근거",
+  "swot": { "S": ["강점 1개"], "W": ["약점 1개"], "O": ["기회 1개"], "T": ["위협 1개"] },
+  "stp": { "segment": "1줄", "target": "1줄", "positioning": "1줄" },
+  "tam": "TAM 수치+단위",
+  "sam": "SAM 수치+단위",
+  "som": "SOM 수치+단위"
+}
+
+keyStrategies, fourP, specializedAnalysis, kpi, roadmap, sixSystems, plan90days, leanCanvas는 모두 생략.
+전략 상세·처방은 2차·3차에서 작성.` : `이번 응답에는 executiveSummary, swot, stp, fourP, keyStrategies, specializedAnalysis 6개 필드만 포함하세요.
+kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2차 호출에서 별도로 더 깊이 작성합니다)`}`;
 
     if (typeof window !== 'undefined' && window.DiagCommon && d.diagScores) {
       const commonSummary = DiagCommon.buildPromptSummary(d.diagScores);
@@ -1362,26 +1353,25 @@ ${d.bizScale === 'micro' ? `
     return prompt;
   }
 
-  /* ── 소상공인 전용 2차 프롬프트 — D1~D4 처방 + KPI·로드맵 ────────── */
+  /* ── 소상공인 전용 2차 프롬프트 — 전략 + D1~D4 처방 + KPI·로드맵 ── */
   function _buildPrompt2Micro(d, r1) {
-    const keyStrategiesRef = (r1.keyStrategies || [])
-      .map((s, i) => `${i + 1}. ${s.title}: ${(s.description || '').substring(0, 80)}`)
-      .join('\n');
     const lifecycleStage = r1.lifecycleStage || '미판별';
-    const diagSummary = d.microPrompt ? d.microPrompt.substring(0, 500) : '';
+    const execSummary   = (r1.executiveSummary || '').substring(0, 200);
+    const diagSummary   = d.microPrompt ? d.microPrompt.substring(0, 500) : '';
 
-    return `[소상공인 2차 실행플랜 — D1~D4 처방 + KPI·로드맵]
+    return `[소상공인 2차 실행플랜 — 전략·4P·D1~D4 처방 + KPI·로드맵]
 상호: ${d.companyName} | 업종: ${d.industryKey || d.industry || '미입력'} | 직원: ${d.employees || '미입력'} | 매출: ${d.revenue || '미입력'}
 지역: ${d.region || '미입력'} | 생애주기: ${lifecycleStage} | 유형: ${d.consultingType || '미확인'}
 
-[핵심전략 (1차 참고)]
-${keyStrategiesRef || '(없음 — 업종·진단 점수 기반 작성)'}
-
-[경영진 요약]
-${(r1.executiveSummary || '').substring(0, 200)}
+[1차 분석 요약]
+${execSummary || '(없음)'}
 ${diagSummary ? `\n[D1~D4 진단 점수]\n${diagSummary}` : ''}
 
-[작성 지침] system prompt의 JSON 구조(4개 필드)로만 응답.
+[SWOT 요약 (1차)]
+S: ${(r1.swot && r1.swot.S && r1.swot.S[0]) || '미확인'} | W: ${(r1.swot && r1.swot.W && r1.swot.W[0]) || '미확인'}
+
+[작성 지침] system prompt의 JSON 구조(6개 필드)로만 응답.
+keyStrategies(4~6개), fourP, specializedAnalysis를 소상공인 업종·진단 점수에 맞춰 구체 작성.
 D1~D4(경영진단·점포환경·판로·스마트DX) 4개 항목만 sixSystems에 작성. D5~D7은 3차에서 처리.
 KPI 5개, 로드맵 3단계. 무료·저비용 도구 우선. 소상공인진흥공단 지원사업 연계.`;
   }
@@ -1494,8 +1484,8 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     }
 
     // /api/claude-analyze-1|2|3 프록시 호출 헬퍼
-    // micro 1차: noSearch=true + maxTokens=3000 → web_search 비활성화 (타임아웃 방지)
-    // micro 2차: maxTokens=4000 — D1~D4 처방 + KPI·로드맵
+    // micro 1차: noSearch=true + maxTokens=2000 → 7개 최소 필드만 (JSON 절단 방지)
+    // micro 2차: maxTokens=4000 — 전략+4P+specializedAnalysis+D1~D4+KPI·로드맵
     // micro 3차: maxTokens=4000 — D5~D7 처방 + plan90days
     async function apiCall(systemPrompt, userPrompt, _callLabel, opts) {
       const endpoint = _callLabel === '1차' ? '/api/claude-analyze-1'
@@ -1520,8 +1510,8 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     // ── 1차 호출: 진단·전략 (executiveSummary·SWOT·STP·4P·핵심전략·유형별특화분석)
     console.log('[BizNavi] 1차 분석 시작 — 진단·전략...');
     const _isMicro  = formData.bizScale === 'micro';
-    // micro 1차: web_search 비활성화(noSearch) + max_tokens 3000 → 타임아웃 방지
-    const _opts1    = _isMicro ? { noSearch: true, maxTokens: 3000 } : {};
+    // micro 1차: web_search 비활성화(noSearch) + max_tokens 2000 → 7개 최소 필드만 → JSON 절단 방지
+    const _opts1    = _isMicro ? { noSearch: true, maxTokens: 2000 } : {};
     const text1 = await apiCall(SYSTEM, buildPrompt1(formData), '1차', _opts1);
     console.log('1차 응답 (처음 400자):', text1.substring(0, 400));
     const result1 = extractJSON(text1);
@@ -1538,7 +1528,10 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     if (!result2) throw new Error('2차 실행플랜 JSON 파싱 실패: ' + text2.substring(0, 200));
 
     // ── 1차 키 보호 목록 (2차·3차가 덮어쓰지 않도록)
-    const FIRST_PASS_KEYS = ['executiveSummary', 'swot', 'stp', 'fourP', 'keyStrategies', 'specializedAnalysis'];
+    // micro: 1차는 7개 최소 필드만 → keyStrategies/fourP/specializedAnalysis는 2차에서 제공
+    const FIRST_PASS_KEYS = _isMicro
+      ? ['executiveSummary', 'swot', 'stp', 'lifecycleStage', 'tam', 'sam', 'som']
+      : ['executiveSummary', 'swot', 'stp', 'fourP', 'keyStrategies', 'specializedAnalysis'];
     const r2Clean = Object.fromEntries(
       Object.entries(result2).filter(([k]) => !FIRST_PASS_KEYS.includes(k))
     );
