@@ -166,7 +166,7 @@ const App = (() => {
     data.consultingTypeSecondary = _ctResult?.secondary || '';
     data.domainScores            = _domScores;
     show('loading');
-    Wizard.animateLoading();
+    Wizard.animateLoading(data.bizScale === 'micro');
 
     // KOSIS + 기업마당 — AI 호출 전에 병렬 조회 (프롬프트 반영용)
     await Promise.allSettled([

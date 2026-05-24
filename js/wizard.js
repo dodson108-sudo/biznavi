@@ -2223,10 +2223,19 @@ const Wizard = (() => {
     return data;
   }
 
-  function animateLoading() {
+  function animateLoading(isMicro) {
     const ids = ['ls1', 'ls2', 'ls3', 'ls4'];
-    // 각 스텝 대기 시간(ms): 웹검색~1차(긴 대기), 1차→2차(중간), 2차→완료(짧은 대기)
-    const delays = [3000, 5000, 5000];
+    // micro: 각 call ~60~80s × 3회 → 스텝별 55000ms씩
+    // standard: 웹검색+1차(긴), 2차(중간), 완료
+    const delays = isMicro ? [55000, 55000, 55000] : [3000, 5000, 5000];
+    // micro 모드일 때 로딩 스텝 레이블 동적 변경
+    if (isMicro) {
+      const labels = ['생애주기·전략 분석 (1차)', 'D1~D4 경영진단 처방 (2차)', 'D5~D7·정부지원 처방 (3차)', '보고서 통합 완성 중'];
+      ids.forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) { const span = el.querySelector('span'); if (span) span.textContent = labels[idx]; }
+      });
+    }
     ids.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
