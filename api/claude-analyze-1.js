@@ -21,6 +21,7 @@ module.exports = async (req, res) => {
 
   const useSearch = !noSearch;
   const resolvedMaxTokens = maxTokens || (noSearch ? MAX_TOKENS_MICRO : MAX_TOKENS_DEFAULT);
+  console.log(`[DIAG-1] 호출 파라미터: noSearch=${noSearch}, maxTokens=${maxTokens}, resolvedMaxTokens=${resolvedMaxTokens}, useSearch=${useSearch}`);
 
   const headers = {
     'Content-Type': 'application/json',
@@ -69,10 +70,14 @@ module.exports = async (req, res) => {
     const turnText = content.filter(b => b.type === 'text').map(b => b.text).join('');
     if (turnText) finalText += turnText;
 
+    console.log(`[DIAG-1] turn=${turn} stop_reason=${data.stop_reason} input_tokens=${data.usage?.input_tokens} output_tokens=${data.usage?.output_tokens}`);
+    console.log(`[DIAG-1] turnText 앞100자: ${turnText.substring(0, 100).replace(/\n/g, '↵')}`);
+
     if (data.stop_reason === 'end_turn') break;
 
     if (data.stop_reason === 'max_tokens') {
       console.log(`[ERROR] 1차 max_tokens 초과 — JSON 절단. output_tokens: ${data.usage?.output_tokens}`);
+      console.log(`[DIAG-1] 절단된 finalText 뒤100자: ${finalText.slice(-100).replace(/\n/g, '↵')}`);
       return res.status(500).json({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' });
     }
 
@@ -103,5 +108,8 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Claude 1차 응답에서 텍스트를 추출할 수 없습니다.' });
   }
 
+  console.log(`[DIAG-1] 최종 finalText 길이=${finalText.length}`);
+  console.log(`[DIAG-1] finalText 앞200자: ${finalText.substring(0, 200).replace(/\n/g, '↵')}`);
+  console.log(`[DIAG-1] finalText 뒤200자: ${finalText.slice(-200).replace(/\n/g, '↵')}`);
   return res.json({ text: finalText });
 };
