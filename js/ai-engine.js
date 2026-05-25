@@ -1510,8 +1510,8 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     // ── 1차 호출: 진단·전략 (executiveSummary·SWOT·STP·4P·핵심전략·유형별특화분석)
     console.log('[BizNavi] 1차 분석 시작 — 진단·전략...');
     const _isMicro  = formData.bizScale === 'micro';
-    // micro 1차: web_search 비활성화(noSearch) + max_tokens 2000 → 7개 최소 필드만 → JSON 절단 방지
-    const _opts1    = _isMicro ? { noSearch: true, maxTokens: 2000 } : {};
+    // micro 1차: noSearch=true → 서버에서 stream:true + max_tokens:16000 적용 (JSON 절단 방지)
+    const _opts1    = _isMicro ? { noSearch: true } : {};
     const text1 = await apiCall(SYSTEM, buildPrompt1(formData), '1차', _opts1);
     console.log('1차 응답 (처음 400자):', text1.substring(0, 400));
     const result1 = extractJSON(text1);
