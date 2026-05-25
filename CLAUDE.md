@@ -1,10 +1,34 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-24 최신)
+## 배포 상태 (2026-05-25 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: micro 1차 SWOT/STP 키 불일치 수정 (c38cc6a)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: SYSTEM 상수 micro 1차 과잉 생성 유발 지침 3개 제거 (22ff99e)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-25) — micro 전 구간 스트리밍 전환 + SYSTEM 지침 경량화
+
+### ① micro 1차 스트리밍 전환 (배포 완료) — 커밋 c18d83d
+- **원인**: max_tokens=2000으로도 SYSTEM의 executiveSummary 5-label 지침만으로 토큰이 부족 → max_tokens 초과 반복
+- **수정**: `claude-analyze-1.js` micro 분기(`noSearch=true`) → `stream:true`, max_tokens:16000, SSE 청크 누적 방식으로 전환
+- 스트리밍 경로: `response.body.getReader()` + `TextDecoder` → `content_block_delta.text_delta` 누적 → 완성 후 반환
+
+### ② micro 2차·3차도 동일 스트리밍 전환 (배포 완료) — 커밋 08e9baa
+- `claude-analyze-2.js`: `noSearch=true` 분기에 스트리밍 추가 (micro 전용 라우팅 신호로 재활용)
+- `claude-analyze-3.js`: micro 전용 함수이므로 항상 스트리밍, max_tokens:16000
+- `ai-engine.js`: `_opts2: { noSearch: true }` (streaming 트리거), 3차 opts `{}` (서버에서 항상 스트리밍)
+
+### ③ SYSTEM 상수 micro 1차 과잉 생성 유발 지침 제거 (배포 완료) — 커밋 22ff99e
+- **원인**: 스트리밍 16000으로도 `stop_reason=max_tokens, output_tokens=16000` → SYSTEM에 sixSystems·plan90days JSON 템플릿이 있어 Claude가 1차에서도 전부 생성
+- **제거 항목 3개**:
+  - `[인과사슬 3축 진단]` 블록 17줄 — executiveSummary·SWOT 상세 서술 강제
+  - `[executiveSummary 출력 포맷 지침]` 12줄 — 5-label 구조 강제
+  - `sixSystems` 7항목 + `plan90days` 3항목 JSON 템플릿 — 1차 호출인데도 생성 유도
+- `[사업 규모별 모드 분기]` micro 7단계 상세 설명 → 1줄 요약으로 축소
+- `buildPrompt1()` micro 분기 맨 앞에 강제 규칙 추가:
+  `[1차 호출 절대 규칙] 너는 지금 1차 호출이다. 아래 7개 필드만 JSON으로 출력하고 절대 다른 내용을 추가하지 마라: executiveSummary, lifecycleStage, swot, stp, tam, sam, som`
 
 ---
 
@@ -198,12 +222,13 @@
 
 ## 다음 세션 예정 작업
 
-### 1순위: 소상공인 AI 분석 3차 호출 end-to-end 실전 테스트
+### 1순위: 소상공인 AI 분석 end-to-end 실전 테스트 (⚠ 테스트 대기 중)
 - biznavi.vercel.app에서 소상공인 모드로 실제 분석 1회 실행
-- 1차: lifecycleStage·STP·executiveSummary 정상 출력 확인
-- 2차: D1~D4 + KPI(5개) + 로드맵(3단계) 정상 출력 확인
+- 1차: 7개 필드만 응답 확인 (executiveSummary·lifecycleStage·swot·stp·tam·sam·som), max_tokens 초과 없어야 함
+- 2차: keyStrategies·fourP·D1~D4 + KPI(5개) + 로드맵(3단계) 정상 출력 확인
 - 3차: D5~D7 + plan90days(3개월, govSupport 포함) 정상 출력 확인
 - 대시보드: renderSixSystems 7항목(D1~D7) 카드 정상 표시 확인
+- SWOT strengths/weaknesses/opportunities/threats 렌더링 확인
 - 로딩 스텝 레이블 micro 4단계 정상 표시 확인
 
 ### 2순위: reference-db.js 데이터 업그레이드
