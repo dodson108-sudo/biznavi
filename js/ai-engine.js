@@ -1484,9 +1484,9 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     }
 
     // /api/claude-analyze-1|2|3 프록시 호출 헬퍼
-    // micro 1차: noSearch=true + maxTokens=2000 → 7개 최소 필드만 (JSON 절단 방지)
-    // micro 2차: maxTokens=4000 — 전략+4P+specializedAnalysis+D1~D4+KPI·로드맵
-    // micro 3차: maxTokens=4000 — D5~D7 처방 + plan90days
+    // micro 1차: noSearch=true → 서버에서 stream:true + max_tokens:16000
+    // micro 2차: noSearch=true → 서버에서 stream:true + max_tokens:16000
+    // micro 3차: 항상 stream:true + max_tokens:16000 (micro 전용 함수)
     async function apiCall(systemPrompt, userPrompt, _callLabel, opts) {
       const endpoint = _callLabel === '1차' ? '/api/claude-analyze-1'
                      : _callLabel === '3차' ? '/api/claude-analyze-3'
@@ -1520,8 +1520,8 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     // ── 2차 호출: 실행플랜 (KPI·로드맵·6시스템 or micro D1~D4)
     console.log('[BizNavi] 2차 분석 시작 — 실행플랜...');
     const _sysExec2 = _isMicro ? _SYSTEM_EXEC_MICRO_2 : _SYSTEM_EXEC;
-    // micro 2차: max_tokens 4000 — D1~D4 처방 + KPI·로드맵
-    const _opts2    = _isMicro ? { maxTokens: 4000 } : {};
+    // micro 2차: noSearch=true → 서버 stream:true + max_tokens:16000
+    const _opts2    = _isMicro ? { noSearch: true } : {};
     const text2 = await apiCall(_sysExec2, buildPrompt2(formData, result1), '2차', _opts2);
     console.log('2차 응답 (처음 400자):', text2.substring(0, 400));
     const result2 = extractJSON(text2);
@@ -1539,7 +1539,7 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     // ── micro 전용 3차 호출: D5~D7 처방 + plan90days
     if (_isMicro) {
       console.log('[BizNavi] 3차 분석 시작 — D5~D7·90일플랜...');
-      const text3 = await apiCall(_SYSTEM_EXEC_MICRO_3, _buildPrompt3Micro(formData, result1, result2), '3차', { maxTokens: 4000 });
+      const text3 = await apiCall(_SYSTEM_EXEC_MICRO_3, _buildPrompt3Micro(formData, result1, result2), '3차', {});
       console.log('3차 응답 (처음 400자):', text3.substring(0, 400));
       const result3 = extractJSON(text3);
       if (!result3) throw new Error('3차 실행플랜 JSON 파싱 실패: ' + text3.substring(0, 200));
