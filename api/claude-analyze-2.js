@@ -56,6 +56,9 @@ module.exports = async (req, res) => {
       return res.status(claudeRes.status).json({ error: msg });
     }
 
+    // CDN TTFB 타임아웃 방지: Claude 응답 확인 즉시 200 OK 헤더 전송
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+
     const reader = claudeRes.body.getReader();
     const decoder = new TextDecoder();
     let sseBuffer = '';
@@ -95,12 +98,12 @@ module.exports = async (req, res) => {
 
     if (stopReason === 'max_tokens') {
       console.log(`[ERROR] 2차-micro max_tokens 초과 — output_tokens: ${outputTokens}`);
-      return res.status(500).json({ error: 'max_tokens 초과 — 2차 응답 절단됨 (JSON 불완전)' });
+      return res.end(JSON.stringify({ error: 'max_tokens 초과 — 2차 응답 절단됨 (JSON 불완전)' }));
     }
     if (!fullText) {
-      return res.status(500).json({ error: 'Claude 2차 응답에서 텍스트를 추출할 수 없습니다.' });
+      return res.end(JSON.stringify({ error: 'Claude 2차 응답에서 텍스트를 추출할 수 없습니다.' }));
     }
-    return res.json({ text: fullText });
+    return res.end(JSON.stringify({ text: fullText }));
   }
 
   // ── SME/일반 모드: 기존 단일 요청 ────────────────────────────────────────

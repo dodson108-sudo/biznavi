@@ -5,6 +5,9 @@
  *
  * stream: true → SSE 청크 누적 → 완성 후 반환
  * max_tokens: 16000
+ *
+ * CDN TTFB 타임아웃 방지: Claude 응답 확인 즉시 200 OK 헤더 전송
+ * → 브라우저/Cloudflare가 TTFB(첫 바이트) 기준으로 연결 유지
  */
 
 const ANTHROPIC_BASE = 'https://api.anthropic.com/v1/messages';
@@ -19,7 +22,7 @@ module.exports = async (req, res) => {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY 미설정' });
   if (!userPrompt) return res.status(400).json({ error: '필수 파라미터 누락 (userPrompt)' });
 
-  const headers = {
+  const claudeHeaders = {
     'Content-Type': 'application/json',
     'x-api-key': apiKey,
     'anthropic-version': '2023-06-01',
@@ -31,7 +34,7 @@ module.exports = async (req, res) => {
   try {
     claudeRes = await fetch(ANTHROPIC_BASE, {
       method: 'POST',
-      headers,
+      headers: claudeHeaders,
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: MAX_TOKENS,
@@ -49,6 +52,10 @@ module.exports = async (req, res) => {
     try { const e = await claudeRes.json(); msg = e.error?.message || msg; } catch (_) {}
     return res.status(claudeRes.status).json({ error: msg });
   }
+
+  // Claude 응답 수신 확인 즉시 200 OK 헤더 전송
+  // → CDN(Cloudflare) TTFB 타임아웃 방지 (SSE 누적 60~120초 동안 연결 유지)
+  res.writeHead(200, { 'Content-Type': 'application/json' });
 
   const reader = claudeRes.body.getReader();
   const decoder = new TextDecoder();
@@ -89,10 +96,10 @@ module.exports = async (req, res) => {
 
   if (stopReason === 'max_tokens') {
     console.log(`[ERROR] 3차-micro max_tokens 초과 — output_tokens: ${outputTokens}`);
-    return res.status(500).json({ error: 'max_tokens 초과 — 3차 응답 절단됨 (JSON 불완전)' });
+    return res.end(JSON.stringify({ error: 'max_tokens 초과 — 3차 응답 절단됨 (JSON 불완전)' }));
   }
   if (!fullText) {
-    return res.status(500).json({ error: 'Claude 3차 응답에서 텍스트를 추출할 수 없습니다.' });
+    return res.end(JSON.stringify({ error: 'Claude 3차 응답에서 텍스트를 추출할 수 없습니다.' }));
   }
-  return res.json({ text: fullText });
+  return res.end(JSON.stringify({ text: fullText }));
 };

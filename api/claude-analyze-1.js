@@ -59,6 +59,9 @@ module.exports = async (req, res) => {
       return res.status(claudeRes.status).json({ error: msg });
     }
 
+    // CDN TTFB 타임아웃 방지: Claude 응답 확인 즉시 200 OK 헤더 전송
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+
     // SSE 스트림 읽기 → 텍스트 조립
     const reader = claudeRes.body.getReader();
     const decoder = new TextDecoder();
@@ -101,12 +104,12 @@ module.exports = async (req, res) => {
 
     if (stopReason === 'max_tokens') {
       console.log(`[ERROR] 1차-micro max_tokens 초과 — output_tokens: ${outputTokens}`);
-      return res.status(500).json({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' });
+      return res.end(JSON.stringify({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' }));
     }
     if (!fullText) {
-      return res.status(500).json({ error: 'Claude 1차 응답에서 텍스트를 추출할 수 없습니다.' });
+      return res.end(JSON.stringify({ error: 'Claude 1차 응답에서 텍스트를 추출할 수 없습니다.' }));
     }
-    return res.json({ text: fullText });
+    return res.end(JSON.stringify({ text: fullText }));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
