@@ -1,10 +1,44 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-25 최신)
+## 배포 상태 (2026-05-26 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: SYSTEM 상수 micro 1차 과잉 생성 유발 지침 3개 제거 (22ff99e)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: micro 스트리밍 3개 함수 CDN TTFB 타임아웃 방지 (b681af2)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-26) — micro 역량 프로파일 D1~D7 교체 + Failed to fetch 근본 수정
+
+### ① 3차-micro 504 타임아웃 수정 (배포 완료) — 커밋 105aa7f
+- **원인**: `claude-analyze-3.js` maxDuration=60초, D5~D7+plan90days 스트리밍이 60초 초과
+- **수정**: `vercel.json` claude-analyze-3.js maxDuration 60 → 300
+- **수정**: `claude-analyze-3.js` MAX_TOKENS 16000 → 8000 (이후 다시 16000으로 상향)
+
+### ② micro 대시보드 신규 섹션 추가 (배포 완료) — 커밋 5fb2459
+- `sec-lifecycle` (생애주기 진단 — 창업기/생존기/성장기/성숙기/전환기 시각화) 추가
+- `sec-market-micro` (상권 STP + TAM/SAM/SOM 3카드) 추가
+- `buildNav(isMicro)` micro 전용 7링크로 교체
+- `sec-six-systems` micro에서 "7대 영역 처방 (D1~D7)"으로 제목 동적 변경
+- `sec-lean-canvas` micro에서 smeOnly에 포함 (leanCanvas 미생성)
+- CSS: lifecycle-stage-banner/steps + tsm-grid (TAM=골드·SAM=블루·SOM=그린) 추가
+
+### ③ micro 역량 프로파일 D1~D7 레이더차트 교체 (배포 완료) — 커밋 dadad52
+- `MICRO_DOMAIN_EXPLAIN`: D1~D7 해설 카드 7개 추가
+- `_calcMicroDomainScores()`: `diag-micro-container_X_Y` 키 파싱 → D1~D7 점수 계산
+- `showDiagReveal()`: `isMicro` 분기 추가
+  - micro: 7개 축 레이더차트 + D1~D7 점수 바 + "소상공인 7대 영역 진단" 고정
+  - SME: 기존 5대 역량 도메인 유지
+
+### ④ claude-analyze-3.js MAX_TOKENS 8000 → 16000 (배포 완료) — 커밋 5885672
+- 소상공인 내용 대폭 수정 시 D5~D7+plan90days JSON 절단 방지
+
+### ⑤ micro 스트리밍 CDN TTFB 타임아웃 방지 — Failed to fetch 근본 수정 (배포 완료) — 커밋 b681af2
+- **근본 원인**: Claude SSE 누적(60~120초) 동안 브라우저에 아무것도 안 보내다가 한꺼번에 응답 → Cloudflare CDN이 TTFB 기준으로 연결 끊음 → "Failed to fetch"
+- Vercel 로그에서는 1~3차 모두 성공으로 표시되지만 응답이 클라이언트에 미전달
+- **수정**: `claudeRes.ok` 확인 직후 `res.writeHead(200, {'Content-Type':'application/json'})` 즉시 전송
+- 이후 SSE 누적 완료 시 `res.end(JSON.stringify({text: fullText}))` 전송
+- `claude-analyze-1.js` / `claude-analyze-2.js` / `claude-analyze-3.js` 모두 적용
 
 ---
 
