@@ -229,6 +229,42 @@
 .dac-bar.high{background:#4ADE80}.dac-bar.mid{background:#FACC15}.dac-bar.low{background:#FB923C}.dac-bar.risk{background:#F87171}
 .dac-insight{font-size:0.82rem;color:rgba(255,255,255,.7);line-height:1.55;margin:0}
 
+/* ===== 생애주기 진단 (micro 전용) ===== */
+.lifecycle-content{padding:4px 0}
+.lifecycle-stage-banner{
+  display:flex;align-items:flex-start;gap:16px;
+  background:rgba(245,192,48,.08);
+  border:1px solid rgba(245,192,48,.25);
+  border-radius:12px;padding:20px 24px;margin-bottom:20px
+}
+.lc-stage-icon{font-size:2.2rem;line-height:1;flex-shrink:0;margin-top:2px}
+.lc-stage-body{flex:1}
+.lc-stage-name{font-size:1.3rem;font-weight:700;color:var(--gold);margin-bottom:6px;font-family:'Noto Serif KR',serif}
+.lc-stage-desc{font-size:0.9rem;color:var(--txt2);line-height:1.65}
+.lifecycle-steps{display:flex;align-items:center;flex-wrap:wrap;gap:0;overflow-x:auto;padding:4px 0}
+.lc-step{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;border-radius:8px;opacity:.4;flex-shrink:0;min-width:70px}
+.lc-step-active{opacity:1;background:rgba(245,192,48,.12);border:1px solid rgba(245,192,48,.3)}
+.lc-step-icon{font-size:1.2rem}
+.lc-step-name{font-size:0.75rem;color:var(--txt2);font-weight:600;text-align:center}
+.lc-step-active .lc-step-name{color:var(--gold)}
+.lc-step-arrow{color:rgba(255,255,255,.2);font-size:0.9rem;padding:0 2px;line-height:3.5;flex-shrink:0}
+
+/* ===== 상권 STP · TAM/SAM/SOM (micro 전용) ===== */
+.micro-sub-h4{font-size:0.85rem;color:var(--txt2);margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.micro-stp-wrap{margin-bottom:28px}
+.tsm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tsm-card{
+  background:rgba(15,22,41,.8);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:18px 16px;text-align:center
+}
+.tsm-abbr{font-size:1.3rem;font-weight:800;letter-spacing:.05em;margin-bottom:4px;font-family:'Noto Serif KR',serif}
+.tsm-full{font-size:0.72rem;color:var(--txt3);margin-bottom:10px}
+.tsm-val{font-size:0.88rem;color:var(--txt1);line-height:1.55}
+.tsm-tam .tsm-abbr{color:#F5C030}.tsm-tam{border-color:rgba(245,192,48,.2)}
+.tsm-sam .tsm-abbr{color:#60A5FA}.tsm-sam{border-color:rgba(96,165,250,.2)}
+.tsm-som .tsm-abbr{color:#4ADE80}.tsm-som{border-color:rgba(74,222,128,.2)}
+
 @media(max-width:768px){
   .diag-dash-wrap{flex-direction:column}
   .diag-radar-wrap{width:100%;height:240px}
@@ -237,6 +273,8 @@
   .plan90-timeline::before{left:18px}
   .plan90-num-wrap{left:-52px;width:36px}
   .plan90-num{width:36px;height:36px;font-size:14px}
+  .tsm-grid{grid-template-columns:1fr}
+  .lifecycle-steps{justify-content:center}
 }
 
 /* ===== KPI ===== */

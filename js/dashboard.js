@@ -134,18 +134,94 @@ const Dashboard = (() => {
     }
   }
 
+  // ── 생애주기 진단 렌더링 (micro 전용) ────────────────────────
+  function renderLifecycleMicro(data) {
+    const section = document.getElementById('sec-lifecycle');
+    if (!section) return;
+    if (!data.lifecycleStage) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    const el = document.getElementById('lifecycleContent');
+    if (!el) return;
+
+    const raw = data.lifecycleStage || '';
+    const stageMatch = raw.match(/^(창업기|생존기|성장기|성숙기|전환기)/);
+    const stageName = stageMatch ? stageMatch[1] : raw.split(/[\s—\-]/)[0].trim();
+    const stageDesc = raw.replace(stageName, '').replace(/^[\s—\-:]+/, '').trim();
+
+    const icons  = { '창업기': '🌱', '생존기': '⚡', '성장기': '🚀', '성숙기': '🌟', '전환기': '🔄' };
+    const stages = ['창업기', '생존기', '성장기', '성숙기', '전환기'];
+    const icon   = icons[stageName] || '📍';
+
+    el.innerHTML = `
+      <div class="lifecycle-stage-banner">
+        <span class="lc-stage-icon">${icon}</span>
+        <div class="lc-stage-body">
+          <div class="lc-stage-name">${stageName}</div>
+          ${stageDesc ? `<div class="lc-stage-desc">${stageDesc}</div>` : ''}
+        </div>
+      </div>
+      <div class="lifecycle-steps">
+        ${stages.map(s =>
+          `<div class="lc-step ${s === stageName ? 'lc-step-active' : ''}">
+            <div class="lc-step-icon">${icons[s] || ''}</div>
+            <div class="lc-step-name">${s}</div>
+          </div>
+          ${s !== stages[stages.length - 1] ? '<div class="lc-step-arrow">→</div>' : ''}`
+        ).join('')}
+      </div>`;
+  }
+
+  // ── 상권 STP · TAM/SAM/SOM 렌더링 (micro 전용) ──────────────
+  function renderMarketMicro(data) {
+    const section = document.getElementById('sec-market-micro');
+    if (!section) return;
+    const hasStp = data.stp && (data.stp.segmentation || data.stp.targeting || data.stp.target || data.stp.positioning);
+    const hasTsm = data.tam || data.sam || data.som;
+    if (!hasStp && !hasTsm) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    const el = document.getElementById('marketMicroContent');
+    if (!el) return;
+
+    let html = '';
+    if (hasStp) {
+      const stp = data.stp;
+      html += `<div class="micro-stp-wrap">
+        <h4 class="micro-sub-h4">STP 분석</h4>
+        <div class="stp-grid">
+          <div class="stp-card"><div class="stp-big">S</div><div class="stp-label">Segmentation · 세분화</div><div class="stp-txt">${stp.segmentation || ''}</div></div>
+          <div class="stp-card"><div class="stp-big">T</div><div class="stp-label">Targeting · 타겟팅</div><div class="stp-txt">${stp.targeting || stp.target || ''}</div></div>
+          <div class="stp-card"><div class="stp-big">P</div><div class="stp-label">Positioning · 포지셔닝</div><div class="stp-txt">${stp.positioning || ''}</div></div>
+        </div>
+      </div>`;
+    }
+    if (hasTsm) {
+      html += `<div class="micro-tsm-wrap">
+        <h4 class="micro-sub-h4">상권 시장 규모 (TAM / SAM / SOM)</h4>
+        <div class="tsm-grid">
+          ${data.tam ? `<div class="tsm-card tsm-tam"><div class="tsm-abbr">TAM</div><div class="tsm-full">전체 유효 시장</div><div class="tsm-val">${data.tam}</div></div>` : ''}
+          ${data.sam ? `<div class="tsm-card tsm-sam"><div class="tsm-abbr">SAM</div><div class="tsm-full">서비스 제공 가능 시장</div><div class="tsm-val">${data.sam}</div></div>` : ''}
+          ${data.som ? `<div class="tsm-card tsm-som"><div class="tsm-abbr">SOM</div><div class="tsm-full">획득 가능 시장</div><div class="tsm-val">${data.som}</div></div>` : ''}
+        </div>
+      </div>`;
+    }
+    el.innerHTML = html;
+  }
+
   // ── 동적 목차 네비게이션 생성 ─────────────────────────────────
   function buildNav(isMicro) {
     const nav = document.getElementById('reportNav');
     if (!nav) return;
 
     const links = isMicro ? [
-      { href: 'sec-summary',      label: 'Executive Summary' },
-      { href: 'sec-diag',         label: '경영 진단' },
-      { href: 'sec-lean-canvas',  label: '비즈니스 캔버스' },
-      { href: 'sec-six-systems',  label: '6가지 시스템' },
-      { href: 'sec-plan90',       label: '90일 실행 플랜' },
-      { href: 'sec-gov',          label: '정부지원사업' },
+      { href: 'sec-summary',       label: 'Executive Summary' },
+      { href: 'sec-lifecycle',     label: '생애주기 진단' },
+      { href: 'sec-market-micro',  label: '상권 STP · 시장규모' },
+      { href: 'sec-diag',          label: '경영 진단' },
+      { href: 'sec-six-systems',   label: '7대 영역 처방' },
+      { href: 'sec-plan90',        label: '90일 실행 로드맵' },
+      { href: 'sec-gov',           label: '정부지원사업' },
     ] : [
       { href: 'sec-summary',      label: 'Executive Summary' },
       { href: 'sec-diag',         label: '경영 진단' },
@@ -466,16 +542,28 @@ const Dashboard = (() => {
     // 동적 목차 생성
     buildNav(isMicro);
 
-    // 소기업 모드 전용 섹션 표시 제어
-    const smeOnly = ['sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap'];
+    // SME 전용 섹션 — micro 모드에서 숨김
+    const smeOnly = ['sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas'];
     smeOnly.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = isMicro ? 'none' : '';
     });
 
-    // 소상공인 모드에서는 린 캔버스를 비즈니스 캔버스로 타이틀 변경
-    const lcTitle = document.querySelector('#sec-lean-canvas .sec-title h3');
-    if (lcTitle) lcTitle.textContent = isMicro ? '비즈니스 캔버스' : '린 캔버스 (Lean Canvas)';
+    // micro 전용 섹션 — SME 모드에서 숨김 (렌더 함수가 세부 표시 제어)
+    ['sec-lifecycle', 'sec-market-micro'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isMicro ? '' : 'none';
+    });
+
+    // sec-six-systems 제목 micro vs SME
+    const sixSysTitle = document.querySelector('#sec-six-systems .sec-title h3');
+    if (sixSysTitle) sixSysTitle.textContent = isMicro ? '7대 영역 처방 (D1~D7)' : '도널드 밀러 6가지 비즈니스 시스템';
+    const sixSysBadge = document.querySelector('#sec-six-systems .badge');
+    if (sixSysBadge) sixSysBadge.textContent = isMicro ? '소상공인 7대 처방' : '사업 체질 개선';
+    const sixSysIntro = document.querySelector('#sec-six-systems .six-sys-intro');
+    if (sixSysIntro) sixSysIntro.textContent = isMicro
+      ? '소상공인 7대 영역(D1~D7) 진단 결과에 따른 맞춤 처방입니다. 각 영역별 현재 상태와 즉시 실행 가능한 개선 액션을 제시합니다.'
+      : '건강한 사업체는 6가지 핵심 시스템이 유기적으로 작동합니다. 각 시스템의 현재 상태를 진단하고, 즉시 실행 가능한 개선 액션을 제시합니다.';
 
     document.getElementById('dTitle').textContent = (fd.companyName || '기업') + ' 경영전략 분석 리포트';
     const dateStr = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
@@ -567,11 +655,17 @@ const Dashboard = (() => {
     // 진단 분석 섹션 (레이더 차트 + 취약 배너)
     renderDiagSection(fd);
 
+    // micro 전용 — 생애주기 진단 + 상권 STP/TAM/SAM/SOM
+    if (isMicro) {
+      renderLifecycleMicro(data);
+      renderMarketMicro(data);
+    }
+
     // 컨설팅 유형별 특화 분석 섹션 (소기업 모드)
     if (!isMicro) renderSpecializedSection(data, fd);
 
-    // 린 캔버스 시각화 섹션 (양쪽 모드 모두)
-    renderLeanCanvas(data, fd);
+    // 린 캔버스 시각화 섹션 (소기업 모드 — micro에서는 AI가 생성하지 않음)
+    if (!isMicro) renderLeanCanvas(data, fd);
 
     // 6가지 시스템 섹션 (양쪽 모드 모두)
     renderSixSystems(data);
@@ -620,7 +714,7 @@ const Dashboard = (() => {
     // ③ 목차 클릭은 buildNav()에서 이미 처리됨
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록 (표시된 섹션만)
-    const allSecIds = ['sec-summary','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov'];
+    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov'];
     const secIds = allSecIds.filter(id => {
       const el = document.getElementById(id);
       return el && el.style.display !== 'none';
