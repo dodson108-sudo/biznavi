@@ -9,7 +9,7 @@
 
 const ANTHROPIC_BASE = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL   = 'claude-sonnet-4-6';
-const MAX_TOKENS     = 16000;
+const MAX_TOKENS     = 8000;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
     'anthropic-version': '2023-06-01',
   };
 
-  console.log(`[3차-micro] 스트리밍 시작 (max_tokens=${MAX_TOKENS})`);
+  console.log(`[3차-micro] 스트리밍 시작 (max_tokens=${MAX_TOKENS}, maxDuration=300)`);
 
   let claudeRes;
   try {
