@@ -1823,21 +1823,116 @@ const Wizard = (() => {
     }
   };
 
+  const MICRO_DOMAIN_EXPLAIN = {
+    d1: {
+      icon: '📊', what: '매출 현황·원가 구조·손익분기점(BEP)·현금흐름 관리 수준을 진단한 결과입니다.',
+      high: '경영 수치 파악이 잘 되어 있습니다. ACM 관리와 프라임코스트 최적화를 계속 강화하세요.',
+      low:  '손익 데이터 파악이 부족합니다. BEP 계산과 일별 매출·지출 기록부터 시작하세요.'
+    },
+    d2: {
+      icon: '📍', what: '점포 환경·네이버 플레이스·로컬SEO 최적화 수준을 진단한 결과입니다.',
+      high: '온·오프라인 상권 노출이 잘 되어 있습니다. 리뷰 관리와 사진 품질을 지속 유지하세요.',
+      low:  '네이버 플레이스 최적화가 미흡합니다. 사진·영업시간·메뉴 업데이트가 즉시 필요합니다.'
+    },
+    d3: {
+      icon: '🛒', what: '오프라인·배달앱·SNS 등 다채널 판로 운영 현황을 진단한 결과입니다.',
+      high: '다채널 판로가 잘 구축되어 있습니다. 채널별 수익성 분석으로 집중 채널을 선택하세요.',
+      low:  '단일 채널 의존도가 높습니다. 배달앱 1개라도 추가 등록하여 매출 위험을 분산하세요.'
+    },
+    d4: {
+      icon: '💻', what: '키오스크·POS·업무 자동화 등 디지털 전환(DX) 도입 수준을 측정한 결과입니다.',
+      high: '디지털 도구 활용이 앞서 있습니다. 데이터 기반 의사결정으로 경쟁 우위를 확대하세요.',
+      low:  '수작업 위주의 운영이 비효율을 만들고 있습니다. 무료 POS·예약 앱부터 도입해보세요.'
+    },
+    d5: {
+      icon: '💰', what: '운영자금 관리·정책금융 활용·ESG 보증 연계 수준을 진단한 결과입니다.',
+      high: '자금 관리와 지원사업 활용이 양호합니다. ESG·녹색보증 등 추가 지원 채널을 탐색하세요.',
+      low:  '자금 위기 가능성이 있습니다. 소진공 정책자금·지역신용보증재단 방문이 시급합니다.'
+    },
+    d6: {
+      icon: '⚖️', what: '사업 지속성·폐업 세무 절차·권리금 회수 준비 수준을 진단한 결과입니다.',
+      high: '사업 지속·전환 준비가 양호합니다. 임대차 계약 갱신권과 권리금 보호 규정을 미리 확인하세요.',
+      low:  '사업 지속 리스크가 있습니다. 폐업 지원금·세금 감면 혜택 확인을 통해 선택지를 넓히세요.'
+    },
+    d7: {
+      icon: '📱', what: 'SNS 운영·생성형AI 활용·콘텐츠 마케팅 수준을 진단한 결과입니다.',
+      high: '디지털 마케팅을 잘 활용하고 있습니다. AI 도구로 콘텐츠 생산 속도를 더욱 높이세요.',
+      low:  'SNS 활용이 미흡합니다. ChatGPT·클로바X로 주 2회 메뉴 사진+글 올리기를 시작해보세요.'
+    }
+  };
+
+  /* ── micro 7대 영역 점수 계산 ── */
+  function _calcMicroDomainScores(scores) {
+    var MICRO_DOMAINS = [
+      { key: 'd1', label: 'D1. 경영진단·손익분析', color: '#4ADE80' },
+      { key: 'd2', label: 'D2. 점포환경·PLACE SEO', color: '#60A5FA' },
+      { key: 'd3', label: 'D3. 다채널 판로',        color: '#C084FC' },
+      { key: 'd4', label: 'D4. 스마트DX',           color: '#FB923C' },
+      { key: 'd5', label: 'D5. 운영자금·ESG보증',   color: '#F5C030' },
+      { key: 'd6', label: 'D6. 사업정리·폐업세무',  color: '#F87171' },
+      { key: 'd7', label: 'D7. SNS·생성형AI',       color: '#34D399' },
+    ];
+    var buckets = {};
+    MICRO_DOMAINS.forEach(function(d, i) {
+      buckets[i] = { key: d.key, label: d.label, color: d.color, scores: [] };
+    });
+    Object.entries(scores || {}).forEach(function(entry) {
+      var key = entry[0], val = entry[1];
+      if (!val || !val.score) return;
+      var m = key.match(/^diag-micro-container_(\d)_/);
+      if (!m) return;
+      var idx = parseInt(m[1], 10);
+      if (buckets[idx]) buckets[idx].scores.push(val.score);
+    });
+    var result = {};
+    MICRO_DOMAINS.forEach(function(_, i) {
+      var b = buckets[i];
+      var avg = b.scores.length > 0
+        ? b.scores.reduce(function(a, v) { return a + v; }, 0) / b.scores.length : 0;
+      result[b.key] = { label: b.label, avg: Math.round(avg * 10) / 10, color: b.color };
+    });
+    return result;
+  }
+
   /* ── 진단유형 확인 화면 렌더링 ── */
   function showDiagReveal(data, currentSnap) {
     const scores = data.diagScores || diagScores;
     const isStartup = !!(data.isStartup);
-    const domainScores = calcDomainScores(scores, isStartup);
-    const explainMap = isStartup ? STARTUP_DOMAIN_EXPLAIN : DOMAIN_EXPLAIN;
-    const { primary, secondary } = classifyConsultingType(domainScores);
-    const pType = CONSULTING_TYPES[primary]   || CONSULTING_TYPES.growth_strategy;
-    const sType = CONSULTING_TYPES[secondary] || CONSULTING_TYPES.differentiation_strategy;
+    const isMicro   = (data.bizScale === 'micro');
+    const domainScores = isMicro
+      ? _calcMicroDomainScores(scores)
+      : calcDomainScores(scores, isStartup);
+    const explainMap = isMicro ? MICRO_DOMAIN_EXPLAIN
+      : (isStartup ? STARTUP_DOMAIN_EXPLAIN : DOMAIN_EXPLAIN);
+
+    let primary, secondary, pType, sType;
+    if (isMicro) {
+      primary = 'micro_diag'; secondary = '';
+      pType = {
+        icon: '🏪', label: '소상공인 7대 영역 진단',
+        desc: '경영·점포·판로·DX·자금·사업정리·SNS 7대 영역을 종합 진단했습니다. 취약 영역 처방을 우선 실행하세요.',
+        preview: [
+          'D1 경영진단·손익 개선 — BEP·ACM 관리',
+          'D2 네이버 플레이스·상권 SEO 최적화',
+          'D3 배달앱·SNS 다채널 판로 확장',
+          'D4 무료 DX 도구 단계적 도입',
+          'D5 소진공 정책자금·보증 연계',
+          'D7 생성형AI 콘텐츠 마케팅 시작'
+        ]
+      };
+      sType = { icon: '', label: '', desc: '' };
+    } else {
+      const ct = classifyConsultingType(domainScores);
+      primary = ct.primary; secondary = ct.secondary;
+      pType = CONSULTING_TYPES[primary]   || CONSULTING_TYPES.growth_strategy;
+      sType = CONSULTING_TYPES[secondary] || CONSULTING_TYPES.differentiation_strategy;
+    }
 
     const elPrimary   = document.getElementById('drTypePrimary');
     const elSecondary = document.getElementById('drTypeSecondary');
     const elDesc      = document.getElementById('drTypeDesc');
     if (elPrimary)   elPrimary.textContent   = pType.icon + ' ' + pType.label;
-    if (elSecondary) elSecondary.textContent = '보조 유형: ' + sType.icon + ' ' + sType.label;
+    if (elSecondary) elSecondary.textContent = isMicro ? '' : ('보조 유형: ' + sType.icon + ' ' + sType.label);
     if (elDesc)      elDesc.textContent      = pType.desc;
 
     const elScoreList = document.getElementById('drScoreList');
