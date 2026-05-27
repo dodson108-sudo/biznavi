@@ -856,6 +856,98 @@ const DiagMicro = (() => {
     },
   ];
 
+  const ACTION_PLAN_7DAY_BY_GROUP = {
+    /* ── D1 경영진단·손익분석 (domainKey: profit_ops) ── */
+    profit_ops: {
+      beauty: [
+        { day:1, title:'예약 시스템 시술별 매출 데이터 추출' },
+        { day:2, title:'시술별 재료비(VCi) 산출 — 실제 투입 재료 단가 정산' },
+        { day:3, title:'시술별 소요 시간(Ti) 스톱워치 3회 평균 측정' },
+        { day:4, title:'ACM 매트릭스 도식화 — Star·Plowhorse·Puzzle·Dog 분류' },
+        { day:5, title:'Dog 시술 예약 메뉴에서 비노출 처리' },
+        { day:6, title:'Star 시술 홍보 강화 + 세트 시술 구성' },
+        { day:7, title:'Prime Cost 주간 정산서 취합' },
+      ],
+      retail: [
+        { day:1, title:'POS 상품별 매출 데이터 추출' },
+        { day:2, title:'상품별 매입원가(VCi) 산출' },
+        { day:3, title:'상품별 진열·처리 시간(Ti) 측정' },
+        { day:4, title:'ACM 매트릭스 도식화 — 4분면 분류' },
+        { day:5, title:'Dog 상품 진열 제거·반품 처리' },
+        { day:6, title:'Star 상품 전면 진열 + 묶음 구성' },
+        { day:7, title:'Prime Cost 주간 정산서 취합' },
+      ],
+      edu_service: [
+        { day:1, title:'강좌별 수강생 수·매출 데이터 추출' },
+        { day:2, title:'강좌별 교재비(VCi) 산출' },
+        { day:3, title:'강좌별 수업 준비 시간(Ti) 측정' },
+        { day:4, title:'ACM 매트릭스 도식화 — 4분면 분류' },
+        { day:5, title:'Dog 강좌 폐강 또는 통합 처리' },
+        { day:6, title:'Star 강좌 홍보 강화 + 패키지 구성' },
+        { day:7, title:'Prime Cost 주간 정산서 취합' },
+      ],
+      pro_service: [
+        { day:1, title:'서비스별 수임 건수·매출 데이터 추출' },
+        { day:2, title:'서비스별 외주·소모품비(VCi) 산출' },
+        { day:3, title:'서비스별 처리 시간(Ti) 측정' },
+        { day:4, title:'ACM 매트릭스 도식화 — 4분면 분류' },
+        { day:5, title:'Dog 서비스 수임 중단 처리' },
+        { day:6, title:'Star 서비스 홍보 강화 + 패키지 계약 구성' },
+        { day:7, title:'Prime Cost 주간 정산서 취합' },
+      ],
+    },
+
+    /* ── D2 점포환경·PLACE SEO (domainKey: place_seo) ── */
+    place_seo: {
+      beauty: [
+        { day:1, title:'매장 전면 시술 전·후 사진 촬영 — 시선 주목도 체크' },
+        { day:2, title:'낡은 홍보 스티커·광고 부착물 제거' },
+        { day:3, title:'네이버 플레이스 시술 카테고리 키워드 최적화' },
+        { day:4, title:'시술실·샴푸대·접수대 동선 실측' },
+        { day:5, title:'최다 사용 재료·도구 시술 의자 반경 1m 이내 배치' },
+        { day:6, title:'플레이스 예약 QR 아크릴 스탠드 설치' },
+        { day:7, title:'시술 시간 편차 재측정·기록' },
+      ],
+      retail: [
+        { day:1, title:'매장 전면 진열 시선 주목도 촬영' },
+        { day:2, title:'낡은 가격표·홍보물 제거·정리' },
+        { day:3, title:'네이버 플레이스 상품 카테고리 키워드 최적화' },
+        { day:4, title:'창고·진열대·계산대 동선 실측' },
+        { day:5, title:'베스트셀러 상품 계산대 근접 배치' },
+        { day:6, title:'플레이스 방문 유도 QR 스탠드 설치' },
+        { day:7, title:'계산 처리 시간 편차 재측정·기록' },
+      ],
+      edu_service: [
+        { day:1, title:'강의실·입구 시선 주목도 촬영' },
+        { day:2, title:'낡은 커리큘럼 안내물 제거·정리' },
+        { day:3, title:'네이버 플레이스 강좌 카테고리 키워드 최적화' },
+        { day:4, title:'교구실·강의실·접수대 동선 실측' },
+        { day:5, title:'수업 자료·교구 강의실 근접 배치' },
+        { day:6, title:'플레이스 수강 신청 QR 스탠드 설치' },
+        { day:7, title:'수업 시작 시간 편차 재측정·기록' },
+      ],
+      pro_service: [
+        { day:1, title:'사무실 전면 전문성 어필 시각물 촬영' },
+        { day:2, title:'낡은 자격증·홍보물 정리·교체' },
+        { day:3, title:'네이버 플레이스 서비스 카테고리 키워드 최적화' },
+        { day:4, title:'파일실·상담실·접수대 동선 실측' },
+        { day:5, title:'자주 쓰는 서류·자료 상담실 근접 배치' },
+        { day:6, title:'플레이스 상담 예약 QR 스탠드 설치' },
+        { day:7, title:'상담 대기 시간 편차 재측정·기록' },
+      ],
+    },
+  };
+
+  /* 도메인 ID → 그룹별 액션 플랜 키 매핑 */
+  const DOMAIN_TO_ACTION_KEY = { '1': 'profit_ops', '2': 'place_seo' };
+
+  function getActionPlan(domainKey, industryGroup) {
+    var group = industryGroup || 'food';
+    var domainMap = ACTION_PLAN_7DAY_BY_GROUP[domainKey];
+    if (!domainMap) return null;
+    return domainMap[group] || null;
+  }
+
   function calcScores(scores) {
     const domainScores = {};
     DOMAINS.forEach(domain => {
@@ -915,10 +1007,18 @@ const DiagMicro = (() => {
       if (val > 0 && val <= 2) criticalItems.push(`${item.label}(${val}점)`);
     });
     const weakAreaIds = DOMAINS.filter(d => result.domains[d.key].pct < 60).map(d => d.id);
-    const recommendedActions = ACTION_PLAN_7DAY
-      .filter(a => a.trigger_area.some(ta => weakAreaIds.includes(ta)))
-      .map(a => `  Day${a.day}: ${a.title}`)
-      .join('\n');
+    const actionLines = [];
+    weakAreaIds.forEach(function(areaId) {
+      var actionKey = DOMAIN_TO_ACTION_KEY[areaId];
+      var groupPlan = actionKey ? getActionPlan(actionKey, group) : null;
+      if (groupPlan) {
+        groupPlan.forEach(function(a) { actionLines.push('  Day' + a.day + ': ' + a.title); });
+      } else {
+        var baseItem = ACTION_PLAN_7DAY.find(function(a) { return a.trigger_area.indexOf(areaId) !== -1; });
+        if (baseItem) actionLines.push('  Day' + baseItem.day + ': ' + baseItem.title);
+      }
+    });
+    const recommendedActions = actionLines.join('\n');
     return `[소상공인 전용 진단 결과 — 7대 분야 융합 진단 v2.0]
 [업종 그룹]: ${groupLabel}
 종합 점수: ${result.total}점 / 100점
@@ -961,7 +1061,7 @@ ${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'
     return { id: 'micro', label: '소상공인 7대 분야 융합 진단', version: '2.0', bizScale: 'micro', industryGroup: group, domains: DOMAINS, items: finalItems, actionPlan: ACTION_PLAN_7DAY };
   }
 
-  return { getSchema, getGroup, calcScores, detectCrossWarnings, buildPromptSummary, ACTION_PLAN_7DAY, DOMAINS, ITEMS, INDUSTRY_GROUP_MAP, GROUP_LABELS };
+  return { getSchema, getGroup, getActionPlan, calcScores, detectCrossWarnings, buildPromptSummary, ACTION_PLAN_7DAY, ACTION_PLAN_7DAY_BY_GROUP, DOMAINS, ITEMS, INDUSTRY_GROUP_MAP, GROUP_LABELS };
 })();
 
 if (typeof window !== 'undefined') window.DiagMicro = DiagMicro;
