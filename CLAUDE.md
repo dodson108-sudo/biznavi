@@ -1,10 +1,43 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-26 최신)
+## 배포 상태 (2026-05-27 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: micro 스트리밍 3개 함수 CDN TTFB 타임아웃 방지 (b681af2)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: diagnosis-micro BARS scale 1~5 + ai_trigger warning_msg 업종별 분기 (6014eee)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-05-27) — 소상공인 진단 업종 그룹별 용어 치환 + BARS scale 업종 분기
+
+### ① /fix-js-edit 스킬 신규 생성 (배포 완료) — 커밋 37278a2
+- `.claude/commands/fix-js-edit.md` 신규: JS 파일 편집 반복 실패(old_string not found) 진단·수정 스킬
+- 증상별 원인: Read 미실행 / anchor 불일치(공백·한글 인코딩) / 중복 문자열
+- 대형 파일 패턴: Grep → offset Read → Edit (wizard.js·ai-engine.js 2000줄+)
+- `fix-ai-error.md`, `fix-pdf.md`에서 `/fix-micro`와 중복된 CDN TTFB·PDF 공란 섹션 제거
+
+### ② diagnosis-micro.js 업종 그룹별 용어 치환 맵 (1차 — label·question) (배포 완료) — 커밋 d590d60
+- `INDUSTRY_GROUP_MAP`: 16개 업종 키 → 5그룹 매핑 (food/beauty/retail/edu_service/pro_service)
+- `GROUP_LABELS`: 그룹별 한국어 레이블
+- `INDUSTRY_WORDING`: 4그룹 × ~14항목 label·question 오버라이드
+  - food-전용 항목 완전 교체: `2_5` (Work Triangle → 그룹별 작업 동선), `3_2` (밀키트 → 그룹별 패키지)
+  - D5·D6 절대 미접촉
+- `getGroup(industryKey)`, `getSchema(industryGroup)` API 추가
+- `buildPromptSummary()`: `[업종 그룹]` 라인 AI 프롬프트 주입
+
+### ③ wizard.js micro 진단 업종 그룹 연동 (배포 완료) — 커밋 27a2b3b
+- `loadDiagnosisUI()`: `DiagMicro.getGroup(industryKey)` → `_diagMicroToAreas(DiagMicro, microGroup)` 전달
+- `_diagMicroToAreas(diagMicro, industryGroup)`: 파라미터 추가 → `getSchema(industryGroup)` 호출
+- `collect()`: `DiagMicro.getGroup(data.industryKey)` → `buildPromptSummary(allScores, microGroup)` 전달
+
+### ④ diagnosis-micro.js BARS scale 1~5 + ai_trigger warning_msg 업종별 분기 (배포 완료) — 커밋 6014eee
+- **적용 항목**: 4그룹 × 3항목 = scale 12개 배열 / 4그룹 × 2항목 = warning_msg 8개
+  - `1_3` (Prime Cost): beauty·retail·edu_service·pro_service 각 scale 5단계 + warning_msg
+  - `1_4` (ACM): beauty·retail·edu_service·pro_service 각 scale 5단계 + warning_msg
+  - `2_4` (편차 통제): beauty·retail·edu_service·pro_service 각 scale 5단계
+- **getSchema() deep-merge**: `ai_trigger` 오버라이드 시 기존 `threshold·warning` 보존, `warning_msg` 추가
+  - `merged.ai_trigger = Object.assign({}, ITEMS[key].ai_trigger, overrides[key].ai_trigger)`
+- food 그룹 기존 텍스트 100% 유지, D5·D6 미접촉
 
 ---
 
