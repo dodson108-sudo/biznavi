@@ -45,20 +45,6 @@ PDF 인쇄·저장 시 반복 발생한 버그 패턴.
 - 수정: `@media print { canvas { display:none } }` 추가하거나
   Canvas를 PNG로 변환 후 `<img>`로 삽입
 
-### 경영전략 대시보드 PDF — 첫 페이지 공란
-
-대시보드 PDF 저장 시 첫 페이지가 빈 페이지로 나오는 경우.
-
-**원인**: `css/dashboard.css` `#dashboard { padding: 80px 0 80px }` 가 `@media print`에서 오버라이드 안 됨
-→ printCover(245mm) + 상단 padding(약 21mm) > A4 가용 높이(259mm) → 표지가 2페이지로 밀림
-
-**수정**: `css/print.css` `@media print` 블록 안에 추가
-```css
-#dashboard { padding: 0 !important; }
-```
-
----
-
 ## 진단 순서
 
 1. Ctrl+Shift+R (강제 캐시 새로고침) 후 재테스트
