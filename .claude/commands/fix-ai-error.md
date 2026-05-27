@@ -96,6 +96,29 @@ Claude가 JSON을 반환할 때 발생하는 3가지 문제와 대응:
 
 ---
 
+---
+
+## micro 전용 — CDN TTFB "Failed to fetch"
+
+Vercel 로그는 성공인데 클라이언트에서 "Failed to fetch" 발생하는 경우.
+
+**원인**: Claude SSE 스트리밍을 서버에서 60~120초 누적 후 전송 → Cloudflare CDN이 TTFB(첫 바이트) 기준으로 연결 끊음
+
+**해당 파일**: `api/claude-analyze-1.js` (noSearch 분기) / `api/claude-analyze-2.js` (noSearch 분기) / `api/claude-analyze-3.js`
+
+**수정**: `claudeRes.ok` 확인 직후 즉시 200 헤더 전송
+```javascript
+if (!claudeRes.ok) { return res.status(...).json({ error: ... }); }
+// ↓ 이 줄 추가
+res.writeHead(200, { 'Content-Type': 'application/json' });
+// ... SSE 루프 ...
+return res.end(JSON.stringify({ text: fullText }));   // json() 사용 불가
+```
+
+> 자세한 내용: `/fix-micro` 스킬 참고
+
+---
+
 ## 빠른 수정 명령어
 
 ```powershell
