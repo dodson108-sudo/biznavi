@@ -18,6 +18,34 @@ const DiagMicro = (() => {
     { id:'7', key:'sns_ai',       label:'SNS·생성형AI',         icon:'✨', desc:'AI 도구 활용 마케팅 자립도와 플레이스 CTR 최적화를 진단합니다.',      weight:0.14 },
   ];
 
+  /* 소상공인 industryKey → 업종 그룹 매핑 */
+  const INDUSTRY_GROUP_MAP = {
+    restaurant:    'food',
+    food_mfg:      'food',
+    agri_food:     'food',
+    mfg_parts:     'food',
+    local_service: 'beauty',
+    wholesale:     'retail',
+    fashion:       'retail',
+    logistics:     'retail',
+    construction:  'retail',
+    export_sme:    'retail',
+    education:     'edu_service',
+    medical:       'pro_service',
+    knowledge_it:  'pro_service',
+    finance:       'pro_service',
+    media:         'pro_service',
+    energy:        'pro_service',
+  };
+
+  const GROUP_LABELS = {
+    food:        '외식업 (음식점·카페·베이커리)',
+    beauty:      '미용·뷰티 (미용실·네일·피부관리)',
+    retail:      '소매·판매 (편의점·의류·잡화)',
+    edu_service: '서비스·학원 (학원·세탁·펫샵)',
+    pro_service: '전문서비스 (세무·의원·컨설팅)',
+  };
+
   const ITEMS = {
 
     /* ===================== 영역 1: 경영진단·손익분석 ===================== */
@@ -455,6 +483,228 @@ const DiagMicro = (() => {
     },
   };
 
+  /* ── 업종 그룹별 label·question 오버라이드 맵 ──
+     food 그룹은 기본값(ITEMS) 그대로 사용.
+     key 값(D1_1~D7_5)은 절대 변경하지 않음. */
+  const INDUSTRY_WORDING = {
+
+    /* =============================================================== */
+    beauty: {
+      '1_2': {
+        label: '예약 시스템 分析',
+        question: '일별·시간대별 예약 및 결제 내역을 통해 시술별 단가, 예약 밀도, 예약 집중 시간대 매출 병목 요인을 진단하고 있는가?',
+      },
+      '1_3': {
+        label: '프라임 코스트 통제',
+        question: '총매출액 대비 프라임 코스트(시술재료비 + 인건비) 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+      },
+      '1_4': {
+        label: '시술별 ACM 산출',
+        question: '개별 시술의 재료 원가뿐만 아니라 시술에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+      },
+      '1_5': {
+        question: '매장 내 시술 준비, 고객 응대, 시술재료 발주 업무 중 점주가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
+      },
+      '2_3': {
+        label: '대기·시술실 편의 동선',
+        question: '고객이 매장에 들어와 접수하고 대기하며 시술 받고 퇴장하기까지의 전 과정에서 다른 고객의 동선 혹은 직원 이동 경로와 마주치며 정체가 생기지 않는가?',
+      },
+      '2_4': {
+        label: '시술 편차 지수(σ_serv)',
+        question: '동일 시술을 예약 집중 시간에 진행하든 숙련도가 다른 작업자가 진행하든 최종 시술 완료 시간의 표준편차가 5분 이내로 통제되는가?',
+      },
+      '2_5': {
+        label: '시술 동선 삼각형',
+        question: '샴푸대, 시술 의자, 약품·도구 수납장이 최단 이동 삼각형을 이루고 있으며 직원 이동 충돌이 일어나지 않는가?',
+      },
+      '3_1': {
+        question: '오프라인 매장 시술 외에 카카오뷰티·네이버 예약 앱 입점, 기업 출장 시술 계약 등 2개 이상의 독립된 유통 판로를 주도적으로 전개하는가?',
+      },
+      '3_2': {
+        label: '홈케어 제품 패키지 판매',
+        question: '시술 후 홈케어 제품(샴푸·앰플·크림)을 키트로 묶어 재방문 없이 별도 판매할 수 있는 상품 구성을 갖추었는가?',
+      },
+      '3_5': {
+        label: 'D2C 단골 직예약 인프라',
+        question: '예약 앱을 통한 일회성 유입 고객을 수수료가 들지 않는 자체 채널(카카오톡 채널, 전화 예약)로 재유치시키는가?',
+      },
+      '4_1': {
+        label: '예약 접수 지연율(R_delay)',
+        question: '예약 집중 시간 밀집 상황 시, 전화 예약 지체나 온라인 예약 오작동으로 인한 예약 접수 지연율을 표준치(5% 이하)로 관리하는가?',
+      },
+      '4_2': {
+        label: '단순 반복 작업 단축',
+        question: '예약 확인 문자 발송, 고객 알림, 세척 작업 시 자동 예약 확인 시스템이나 전용 세척 기기 등의 가동을 통해 직원의 단순 반복 작업을 제거하는가?',
+      },
+      '7_1': {
+        question: 'ChatGPT 등 생성형 AI를 활용하여 인스타그램 피드나 네이버 플레이스 소식을 작성하기 위한 전용 프롬프트 템플릿(시그니처 시술·USP·타겟 고객 설정)을 소장하고 있는가?',
+      },
+      '7_5': {
+        question: '네이버 플레이스 프로필 상 시그니처 시술 비포애프터 사진 구성과 타이틀 검색어 매칭을 통해 고객 노출 대비 클릭률(CTR)을 관리하는가?',
+      },
+    },
+
+    /* =============================================================== */
+    retail: {
+      '1_2': {
+        label: 'POS 판매 데이터 分析',
+        question: '일별·시간대별 POS 결제 내역을 통해 상품별 단가, 묶음 판매 기여도, 피크타임 계산 처리 병목 요인을 진단하고 있는가?',
+      },
+      '1_3': {
+        label: '상품원가+인건비 통제',
+        question: '총매출액 대비 상품원가와 인건비의 합산 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+      },
+      '1_4': {
+        label: '상품별 ACM 산출',
+        question: '개별 상품의 매입 원가뿐만 아니라 상품 처리 및 진열에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+      },
+      '1_5': {
+        question: '매장 내 재고 관리, 고객 응대, 상품 발주 업무 중 점주가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
+      },
+      '2_3': {
+        label: '매장 쇼핑 편의 동선',
+        question: '고객이 매장에 들어와 상품을 탐색하고 계산대에서 결제하고 퇴장하기까지의 전 과정에서 다른 고객의 동선 혹은 직원 재고 보충 경로와 마주치며 정체가 생기지 않는가?',
+      },
+      '2_4': {
+        label: '계산 처리 편차 지수',
+        question: '동일 상품 구매를 피크타임에 계산하든 숙련도가 다른 직원이 계산하든 최종 결제 처리 시간의 표준편차가 3분 이내로 통제되는가?',
+      },
+      '2_5': {
+        label: '창고·진열·계산 동선',
+        question: '창고, 진열대, 계산대가 최단 이동 경로를 이루고 있으며 재고 보충 시 고객 통로를 방해하지 않는가?',
+      },
+      '3_1': {
+        question: '오프라인 매장 판매 외에 스마트스토어·배달 앱 입점, B2B 도매 납품 등 2개 이상의 독립된 유통 판로를 주도적으로 전개하는가?',
+      },
+      '3_2': {
+        label: '묶음상품·기프트셋 구성력',
+        question: '시즌별 기프트셋 구성과 묶음 상품 패키지를 온라인 택배 판매가 가능한 수준으로 기획하고 재고 소진율 개선에 활용하는가?',
+      },
+      '4_1': {
+        label: '계산 대기 지연율(R_delay)',
+        question: '피크타임 밀집 상황 시, 계산대 혼잡이나 바코드 오작동으로 인한 계산 처리 지연율을 표준치(5% 이하)로 관리하는가?',
+      },
+      '4_2': {
+        label: '단순 재고·계산 작업 단축',
+        question: '재고 수량 집계, 바코드 스캔, 가격표 부착 시 바코드 스캐너나 자동 재고 집계 시스템 등의 가동을 통해 직원의 단순 반복 작업을 제거하는가?',
+      },
+      '7_1': {
+        question: 'ChatGPT 등 생성형 AI를 활용하여 인스타그램 피드나 스마트스토어 상품 소개를 작성하기 위한 전용 프롬프트 템플릿(시그니처 상품·USP·타겟 고객 설정)을 소장하고 있는가?',
+      },
+      '7_5': {
+        question: '네이버 플레이스 프로필 상 시그니처 상품 고화질 사진 구성과 타이틀 검색어 매칭을 통해 고객 노출 대비 클릭률(CTR)을 관리하는가?',
+      },
+    },
+
+    /* =============================================================== */
+    edu_service: {
+      '1_2': {
+        label: '등록·출결 데이터 分析',
+        question: '강좌별·월별 등록 현황과 출결 데이터를 통해 강좌별 단가, 수강 지속률, 등록 집중 시기 매출 병목 요인을 진단하고 있는가?',
+      },
+      '1_3': {
+        label: '재료·교재비+인건비 통제',
+        question: '총매출액 대비 재료비·교재비와 인건비의 합산 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+      },
+      '1_4': {
+        label: '강좌별 ACM 산출',
+        question: '개별 강좌의 재료·교재 원가뿐만 아니라 수업 준비에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+      },
+      '1_5': {
+        question: '매장 내 수업 진행, 고객 응대, 교재·재료 발주 업무 중 점주가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
+      },
+      '2_3': {
+        label: '교실·대기실 편의 동선',
+        question: '고객이 매장에 들어와 접수하고 대기하며 교실에서 수강하고 퇴장하기까지의 전 과정에서 다른 고객의 동선 혹은 직원 이동 경로와 마주치며 정체가 생기지 않는가?',
+      },
+      '2_4': {
+        label: '수업 진행 편차 지수',
+        question: '동일 강좌를 수강생이 많든 적든, 어떤 강사가 진행하든 수업 시작·종료 시간의 표준편차가 5분 이내로 통제되는가?',
+      },
+      '2_5': {
+        label: '교구·교실·출력 동선',
+        question: '교구실, 교실, 복합기·출력 공간이 최단 이동 경로를 이루고 있으며 수업 중 이동 낭비가 없는가?',
+      },
+      '3_1': {
+        question: '오프라인 매장 수업 외에 클래스101·탈잉 등 온라인 플랫폼 입점, B2B 기업 교육 계약 등 2개 이상의 독립된 판로를 주도적으로 전개하는가?',
+      },
+      '3_2': {
+        label: '교육 콘텐츠 패키지화',
+        question: '오프라인 수업 내용을 VOD·PDF 자료로 패키지화하여 비대면 판매가 가능한 수준으로 온라인 콘텐츠를 구성했는가?',
+      },
+      '3_5': {
+        label: 'D2C 단골 직등록 인프라',
+        question: '온라인 플랫폼을 통한 일회성 유입 수강생을 수수료가 들지 않는 자체 채널(카카오톡 채널, 전화 등록)로 재유치시키는가?',
+      },
+      '4_1': {
+        label: '등록·접수 지연율(R_delay)',
+        question: '등록 집중 시기 밀집 상황 시, 접수 지체나 온라인 등록 오작동으로 인한 접수 지연율을 표준치(5% 이하)로 관리하는가?',
+      },
+      '4_2': {
+        label: '단순 행정 업무 단축',
+        question: '출결 확인, 수강료 안내, 학습 자료 배포 시 학습관리시스템(LMS)이나 복합기 자동화 등의 가동을 통해 강사의 단순 행정 업무를 제거하는가?',
+      },
+      '7_1': {
+        question: 'ChatGPT 등 생성형 AI를 활용하여 인스타그램 피드나 수강생 모집 안내를 작성하기 위한 전용 프롬프트 템플릿(시그니처 강좌·USP·타겟 수강생 설정)을 소장하고 있는가?',
+      },
+      '7_5': {
+        question: '네이버 플레이스 프로필 상 시그니처 강좌·수업 장면 사진 구성과 타이틀 검색어 매칭을 통해 고객 노출 대비 클릭률(CTR)을 관리하는가?',
+      },
+    },
+
+    /* =============================================================== */
+    pro_service: {
+      '1_2': {
+        label: '예약·청구 데이터 分析',
+        question: '서비스별·월별 예약 및 청구 내역을 통해 서비스별 단가, 재방문율, 예약 집중 시간대 매출 병목 요인을 진단하고 있는가?',
+      },
+      '1_3': {
+        label: '업무원가+인건비 통제',
+        question: '총매출액 대비 외주비·소모품비와 인건비의 합산 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+      },
+      '1_4': {
+        label: '서비스별 ACM 산출',
+        question: '개별 서비스의 직접 원가뿐만 아니라 상담·처리에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+      },
+      '1_5': {
+        question: '사무실 내 상담·처리 수행, 고객 응대, 외주·소모품 발주 업무 중 대표가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
+      },
+      '2_3': {
+        label: '대기실·접수 편의 동선',
+        question: '고객이 사무실에 들어와 접수하고 대기하며 상담실에서 상담 받고 퇴장하기까지의 전 과정에서 다른 고객의 동선 혹은 직원 이동 경로와 마주치며 정체가 생기지 않는가?',
+      },
+      '2_4': {
+        label: '상담 처리 편차 지수',
+        question: '동일 서비스를 예약이 몰리는 시간에 처리하든 숙련도가 다른 직원이 처리하든 최종 상담 완료 시간의 표준편차가 10분 이내로 통제되는가?',
+      },
+      '2_5': {
+        label: '자료·상담·접수 동선',
+        question: '파일실, 상담실, 접수대가 최단 이동 경로를 이루고 있으며 자료를 찾는 동선 낭비가 없는가?',
+      },
+      '3_1': {
+        question: '오프라인 매장 상담 외에 크몽·숨고 등 온라인 플랫폼 입점, B2B 자문 계약 등 2개 이상의 독립된 판로를 주도적으로 전개하는가?',
+      },
+      '3_2': {
+        label: '서비스 패키지 상품화',
+        question: '단건 의뢰를 월정액·패키지 계약 구조로 전환하여 반복 수익을 확보하는 서비스 상품 구성을 갖추었는가?',
+      },
+      '4_1': {
+        label: '예약·접수 지연율(R_delay)',
+        question: '예약 집중 시간 밀집 상황 시, 전화 접수 지체나 온라인 예약 오작동으로 인한 접수 지연율을 표준치(5% 이하)로 관리하는가?',
+      },
+      '4_2': {
+        label: '단순 행정 업무 단축',
+        question: '예약 확인 문자 발송, 계약서 작성, 서류 정리 시 전자문서 시스템이나 CRM 자동화 등의 가동을 통해 직원의 단순 반복 행정 작업을 제거하는가?',
+      },
+      '7_1': {
+        question: 'ChatGPT 등 생성형 AI를 활용하여 인스타그램 피드나 서비스 안내문을 작성하기 위한 전용 프롬프트 템플릿(시그니처 서비스·전문성·타겟 고객 설정)을 소장하고 있는가?',
+      },
+      '7_5': {
+        question: '네이버 플레이스 프로필 상 전문가 프로필·고객 후기 사진 구성과 타이틀 검색어 매칭을 통해 고객 노출 대비 클릭률(CTR)을 관리하는가?',
+      },
+    },
+  };
+
   const ACTION_PLAN_7DAY = [
     {
       day: 1,
@@ -554,7 +804,9 @@ const DiagMicro = (() => {
     return warnings;
   }
 
-  function buildPromptSummary(scores) {
+  function buildPromptSummary(scores, industryGroup) {
+    const group = industryGroup || 'food';
+    const groupLabel = GROUP_LABELS[group] || '외식업';
     const result = calcScores(scores);
     const warnings = detectCrossWarnings(scores);
     const domainLines = DOMAINS.map(d => {
@@ -576,6 +828,7 @@ const DiagMicro = (() => {
       .map(a => `  Day${a.day}: ${a.title}`)
       .join('\n');
     return `[소상공인 전용 진단 결과 — 7대 분야 융합 진단 v2.0]
+[업종 그룹]: ${groupLabel}
 종합 점수: ${result.total}점 / 100점
 
 [영역별 점수]
@@ -591,11 +844,26 @@ ${criticalItems.length > 0 ? criticalItems.map(i => `  - ${i}`).join('\n') : '  
 ${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'}`.trim();
   }
 
-  function getSchema() {
-    return { id: 'micro', label: '소상공인 7대 분야 융합 진단', version: '2.0', bizScale: 'micro', domains: DOMAINS, items: ITEMS, actionPlan: ACTION_PLAN_7DAY };
+  function getGroup(industryKey) {
+    return INDUSTRY_GROUP_MAP[industryKey] || 'food';
   }
 
-  return { getSchema, calcScores, detectCrossWarnings, buildPromptSummary, ACTION_PLAN_7DAY, DOMAINS, ITEMS };
+  function getSchema(industryGroup) {
+    var group = industryGroup || 'food';
+    var overrides = INDUSTRY_WORDING[group] || {};
+    var finalItems = ITEMS;
+    if (Object.keys(overrides).length > 0) {
+      finalItems = {};
+      Object.keys(ITEMS).forEach(function(key) {
+        finalItems[key] = overrides[key]
+          ? Object.assign({}, ITEMS[key], overrides[key])
+          : ITEMS[key];
+      });
+    }
+    return { id: 'micro', label: '소상공인 7대 분야 융합 진단', version: '2.0', bizScale: 'micro', industryGroup: group, domains: DOMAINS, items: finalItems, actionPlan: ACTION_PLAN_7DAY };
+  }
+
+  return { getSchema, getGroup, calcScores, detectCrossWarnings, buildPromptSummary, ACTION_PLAN_7DAY, DOMAINS, ITEMS, INDUSTRY_GROUP_MAP, GROUP_LABELS };
 })();
 
 if (typeof window !== 'undefined') window.DiagMicro = DiagMicro;
