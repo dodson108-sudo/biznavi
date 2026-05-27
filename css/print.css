@@ -106,6 +106,7 @@
   .pcov-footer     { margin-top: 30pt; font-size: 8pt; color: #aaa !important; }
 
   /* ── 대시보드 레이아웃 ──────────────────────────────────────── */
+  #dashboard       { padding: 0 !important; }
   .dash-inner      { padding: 0 !important; max-width: none !important; }
   .dash-layout     { display: block !important; }
   .dash-hdr        { display: none !important; }

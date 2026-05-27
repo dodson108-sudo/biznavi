@@ -574,12 +574,24 @@ const Dashboard = (() => {
       '분석일: ' + dateStr + ' &nbsp;<span class="mode-badge-inline">' + modeBadge + '</span>&nbsp;<span class="' + badgeCls + '">' + badgeTxt + '</span>';
     document.getElementById('demoBadge').classList.add('hidden');
 
-    // Executive Summary
-    document.getElementById('execSummary').innerHTML =
-      (data.executiveSummary || '')
-        .replace(/\n/g, '<br>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\[([^\]]+)\]/g, '<strong class="es-label">[$1]</strong>');
+    // Executive Summary — [소제목] 단락 구조 렌더링
+    const rawSummary = (data.executiveSummary || '').trim();
+    let execHtml;
+    if (rawSummary.includes('[')) {
+      const parts = rawSummary.split(/(?=\[)/);
+      execHtml = parts.map(part => {
+        if (!part.trim()) return '';
+        const m = part.match(/^\[([^\]]+)\]([\s\S]*)/);
+        if (m) {
+          const content = m[2].trim().replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          return `<p class="es-block"><strong class="es-label">[${m[1]}]</strong> ${content}</p>`;
+        }
+        return '<p class="es-block">' + part.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') + '</p>';
+      }).join('');
+    } else {
+      execHtml = rawSummary.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    }
+    document.getElementById('execSummary').innerHTML = execHtml;
 
     // SWOT (항상 렌더링 — 소상공인 모드에선 섹션 자체가 hidden)
     const renderSwotList = (id, arr) => {

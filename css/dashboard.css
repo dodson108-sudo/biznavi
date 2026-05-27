@@ -9,6 +9,7 @@
 
 /* ===== Executive Summary 레이블 ===== */
 .es-label{color:var(--gold);font-weight:700;}
+.es-block{margin-bottom:10px;}.es-block:last-child{margin-bottom:0;}
 
 /* ===== 상단 헤더 ===== */
 .dash-hdr{margin-bottom:32px}

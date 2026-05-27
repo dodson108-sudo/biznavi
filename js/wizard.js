@@ -1874,7 +1874,7 @@ const Wizard = (() => {
     ];
     var buckets = {};
     MICRO_DOMAINS.forEach(function(d, i) {
-      buckets[i] = { key: d.key, label: d.label, color: d.color, scores: [] };
+      buckets[i + 1] = { key: d.key, label: d.label, color: d.color, scores: [] }; // 1-indexed: key _1_~_7_ 와 일치
     });
     Object.entries(scores || {}).forEach(function(entry) {
       var key = entry[0], val = entry[1];
@@ -1886,7 +1886,7 @@ const Wizard = (() => {
     });
     var result = {};
     MICRO_DOMAINS.forEach(function(_, i) {
-      var b = buckets[i];
+      var b = buckets[i + 1]; // 1-indexed
       var avg = b.scores.length > 0
         ? b.scores.reduce(function(a, v) { return a + v; }, 0) / b.scores.length : 0;
       result[b.key] = { label: b.label, avg: Math.round(avg * 10) / 10, color: b.color };
@@ -1971,6 +1971,32 @@ const Wizard = (() => {
     const elPreview = document.getElementById('drPreviewList');
     if (elPreview) {
       elPreview.innerHTML = pType.preview.map(p => '<li>' + p + '</li>').join('');
+    }
+
+    // 역량 프로파일 섹션 타이틀 동적 변경 (micro: 7대 영역 / SME: 5대 역량)
+    const elProfileTitle = document.getElementById('drProfileTitle');
+    const elProfileDesc  = document.getElementById('drProfileDesc');
+    if (isMicro) {
+      if (elProfileTitle) elProfileTitle.textContent = '📊 7대 영역 진단 프로파일';
+      if (elProfileDesc)  elProfileDesc.textContent  = '소상공인 7대 분야(D1~D7) 진단 결과입니다. 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다.';
+    } else {
+      if (elProfileTitle) elProfileTitle.textContent = '📊 5대 역량 프로파일';
+      if (elProfileDesc)  elProfileDesc.textContent  = '진단 응답을 바탕으로 귀사의 핵심 역량을 5개 영역별로 수치화한 결과입니다. 5점이 최고, 1점이 최저이며 3점이 업종 평균 수준입니다. 점수가 낮은 영역부터 솔루션 보고서에서 우선 개선 전략이 제시됩니다.';
+    }
+
+    // micro D1 미입력 시 진행 버튼 비활성화
+    const drProceedBtn = document.querySelector('.dr-proceed-btn');
+    if (isMicro && drProceedBtn) {
+      const d1Avg = (domainScores.d1 && domainScores.d1.avg) || 0;
+      if (d1Avg === 0) {
+        drProceedBtn.disabled = true;
+        drProceedBtn.setAttribute('title', 'D1 경영진단·손익 항목을 먼저 입력해주세요');
+        drProceedBtn.textContent = '⚠ D1 미입력 — 진단 수정 후 진행하세요';
+      } else {
+        drProceedBtn.disabled = false;
+        drProceedBtn.removeAttribute('title');
+        drProceedBtn.textContent = '솔루션 전체 보고서 보기 →';
+      }
     }
 
     drawRadarChart('radarChart', domainScores);
