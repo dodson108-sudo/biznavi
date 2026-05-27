@@ -2,7 +2,7 @@
 
 ## 배포 상태 (2026-05-27 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: diagnosis-micro BARS scale 1~5 + ai_trigger warning_msg 업종별 분기 (6014eee)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: diagnosis-micro ACTION_PLAN_7DAY 업종 그룹별 분기 (120be37)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
 
@@ -38,6 +38,15 @@
 - **getSchema() deep-merge**: `ai_trigger` 오버라이드 시 기존 `threshold·warning` 보존, `warning_msg` 추가
   - `merged.ai_trigger = Object.assign({}, ITEMS[key].ai_trigger, overrides[key].ai_trigger)`
 - food 그룹 기존 텍스트 100% 유지, D5·D6 미접촉
+
+### ⑤ diagnosis-micro.js ACTION_PLAN_7DAY 업종 그룹별 분기 (배포 완료) — 커밋 120be37
+- `ACTION_PLAN_7DAY_BY_GROUP` 상수 추가: 2개 도메인 × 4그룹 × 7일 = 56개 액션 항목
+  - `profit_ops` (D1 경영진단): beauty·retail·edu_service·pro_service 각 7일 플랜
+  - `place_seo` (D2 점포환경): beauty·retail·edu_service·pro_service 각 7일 플랜
+- `DOMAIN_TO_ACTION_KEY`: 도메인 ID `'1'`→`profit_ops`, `'2'`→`place_seo` 매핑
+- `getActionPlan(domainKey, industryGroup)`: 그룹별 플랜 반환, 없으면 `null` (food → base fallback)
+- `buildPromptSummary()` 수정: 취약 도메인 D1·D2는 그룹 전용 7일 플랜, D3~D7은 `ACTION_PLAN_7DAY` 단일 액션 fallback
+- food 그룹 `ACTION_PLAN_7DAY` 100% 유지, D5·D6 미접촉
 
 ---
 
