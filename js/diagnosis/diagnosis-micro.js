@@ -497,10 +497,26 @@ const DiagMicro = (() => {
       '1_3': {
         label: '프라임 코스트 통제',
         question: '총매출액 대비 프라임 코스트(시술재료비 + 인건비) 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+        scale: [
+          { score:1, desc:'시술재료비+인건비 개념 없음. 매출 대비 비율 파악 불가.' },
+          { score:2, desc:'시술재료비는 알지만 인건비 결합 비율 상시 60% 초과.' },
+          { score:3, desc:'월 단위 비율 산출. 기준치 초과 시 인지.' },
+          { score:4, desc:'시술별 재료비 통제 + 탄력 인력 배치. 주간 관리.' },
+          { score:5, desc:'시술재료비 손실 통제 + 탄력 인력으로 Prime Cost 60% 이하 엄격 관리.' },
+        ],
+        ai_trigger: { warning_msg: '시술재료비+인건비가 60%를 초과합니다. 시술별 ACM 분석이 시급합니다.' },
       },
       '1_4': {
         label: '시술별 ACM 산출',
         question: '개별 시술의 재료 원가뿐만 아니라 시술에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+        scale: [
+          { score:1, desc:'시술별 원가·시간 미고려. 감으로 가격 책정.' },
+          { score:2, desc:'시술재료비는 알지만 시술 노동 원가 누락.' },
+          { score:3, desc:'시술별 ABC 분석 분기 1회. ACM 미산출.' },
+          { score:4, desc:'ACM + 판매량 교차 분석으로 저수익 시술 분기 정기 제거.' },
+          { score:5, desc:'전 시술 ACM 월 단위 자동화. Star 시술 전면 배치.' },
+        ],
+        ai_trigger: { warning_msg: '저수익 시술을 무작위 홍보 중입니다. 시술별 ACM 분류가 필요합니다.' },
       },
       '1_5': {
         question: '매장 내 시술 준비, 고객 응대, 시술재료 발주 업무 중 점주가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
@@ -512,6 +528,13 @@ const DiagMicro = (() => {
       '2_4': {
         label: '시술 편차 지수(σ_serv)',
         question: '동일 시술을 예약 집중 시간에 진행하든 숙련도가 다른 작업자가 진행하든 최종 시술 완료 시간의 표준편차가 5분 이내로 통제되는가?',
+        scale: [
+          { score:1, desc:'시술 시간 들쑥날쑥. 고객 대기 15분 이상 빈번.' },
+          { score:2, desc:'주요 시술 대략 표준화. 신규 직원 편차 큼.' },
+          { score:3, desc:'주요 시술 매뉴얼화. 일부 편차 남음.' },
+          { score:4, desc:'전 시술 ±5분 이내 대부분 통제.' },
+          { score:5, desc:'어떤 직원이든 전 시술 ±5분 이내 완벽 통제.' },
+        ],
       },
       '2_5': {
         label: '시술 동선 삼각형',
@@ -553,10 +576,26 @@ const DiagMicro = (() => {
       '1_3': {
         label: '상품원가+인건비 통제',
         question: '총매출액 대비 상품원가와 인건비의 합산 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+        scale: [
+          { score:1, desc:'상품원가+인건비 개념 없음. 매출 대비 비율 파악 불가.' },
+          { score:2, desc:'상품원가는 알지만 인건비 결합 비율 상시 60% 초과.' },
+          { score:3, desc:'월 단위 비율 산출. 기준치 초과 시 인지.' },
+          { score:4, desc:'상품별 원가 통제 + 탄력 인력 배치. 주간 관리.' },
+          { score:5, desc:'상품원가 손실 통제 + 탄력 인력으로 Prime Cost 60% 이하 엄격 관리.' },
+        ],
+        ai_trigger: { warning_msg: '상품원가+인건비가 60%를 초과합니다. 상품별 마진 분석이 시급합니다.' },
       },
       '1_4': {
         label: '상품별 ACM 산출',
         question: '개별 상품의 매입 원가뿐만 아니라 상품 처리 및 진열에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+        scale: [
+          { score:1, desc:'상품별 원가·처리시간 미고려. 감으로 가격 책정.' },
+          { score:2, desc:'상품원가는 알지만 처리 노동 원가 누락.' },
+          { score:3, desc:'상품별 ABC 분석 분기 1회. ACM 미산출.' },
+          { score:4, desc:'ACM + 판매량 교차 분석으로 저마진 상품 분기 정기 제거.' },
+          { score:5, desc:'전 상품 ACM 월 단위 자동화. Star 상품 전면 배치.' },
+        ],
+        ai_trigger: { warning_msg: '저마진 상품을 무작위 홍보 중입니다. 상품별 ACM 분류가 필요합니다.' },
       },
       '1_5': {
         question: '매장 내 재고 관리, 고객 응대, 상품 발주 업무 중 점주가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
@@ -568,6 +607,13 @@ const DiagMicro = (() => {
       '2_4': {
         label: '계산 처리 편차 지수',
         question: '동일 상품 구매를 피크타임에 계산하든 숙련도가 다른 직원이 계산하든 최종 결제 처리 시간의 표준편차가 3분 이내로 통제되는가?',
+        scale: [
+          { score:1, desc:'계산 처리 지연 빈번. 피크타임 줄 빈번.' },
+          { score:2, desc:'주요 상품 처리 대략 표준화. 신규 직원 편차 큼.' },
+          { score:3, desc:'주요 상품 처리 매뉴얼화. 일부 지연 남음.' },
+          { score:4, desc:'계산 처리 3분 이내 대부분 통제.' },
+          { score:5, desc:'어떤 직원이든 계산 처리 3분 이내 완벽 통제.' },
+        ],
       },
       '2_5': {
         label: '창고·진열·계산 동선',
@@ -605,10 +651,26 @@ const DiagMicro = (() => {
       '1_3': {
         label: '재료·교재비+인건비 통제',
         question: '총매출액 대비 재료비·교재비와 인건비의 합산 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+        scale: [
+          { score:1, desc:'재료·교재비+인건비 개념 없음. 매출 대비 비율 파악 불가.' },
+          { score:2, desc:'교재비는 알지만 인건비 결합 비율 상시 60% 초과.' },
+          { score:3, desc:'월 단위 비율 산출. 기준치 초과 시 인지.' },
+          { score:4, desc:'강좌별 교재비 통제 + 탄력 강사 배치. 주간 관리.' },
+          { score:5, desc:'교재비 손실 통제 + 탄력 강사로 Prime Cost 60% 이하 엄격 관리.' },
+        ],
+        ai_trigger: { warning_msg: '교재비+인건비가 60%를 초과합니다. 강좌별 수익성 분석이 시급합니다.' },
       },
       '1_4': {
         label: '강좌별 ACM 산출',
         question: '개별 강좌의 재료·교재 원가뿐만 아니라 수업 준비에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+        scale: [
+          { score:1, desc:'강좌별 원가·준비시간 미고려. 감으로 수강료 책정.' },
+          { score:2, desc:'교재비는 알지만 수업 준비 노동 원가 누락.' },
+          { score:3, desc:'강좌별 ABC 분석 분기 1회. ACM 미산출.' },
+          { score:4, desc:'ACM + 수강생 수 교차 분석으로 저수익 강좌 분기 정기 폐강.' },
+          { score:5, desc:'전 강좌 ACM 월 단위 자동화. Star 강좌 전면 배치.' },
+        ],
+        ai_trigger: { warning_msg: '수익성 낮은 강좌를 운영 중입니다. 강좌별 ACM 분류가 필요합니다.' },
       },
       '1_5': {
         question: '매장 내 수업 진행, 고객 응대, 교재·재료 발주 업무 중 점주가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
@@ -620,6 +682,13 @@ const DiagMicro = (() => {
       '2_4': {
         label: '수업 진행 편차 지수',
         question: '동일 강좌를 수강생이 많든 적든, 어떤 강사가 진행하든 수업 시작·종료 시간의 표준편차가 5분 이내로 통제되는가?',
+        scale: [
+          { score:1, desc:'수업 시작 지연 빈번. 학생 불만 빈발.' },
+          { score:2, desc:'주요 강좌 대략 표준화. 강사별 편차 큼.' },
+          { score:3, desc:'강좌 매뉴얼화. 일부 지연 남음.' },
+          { score:4, desc:'수업 시작 지연 5분 이내 대부분 통제.' },
+          { score:5, desc:'어떤 강사든 수업 시작 지연 5분 이내 완벽 통제.' },
+        ],
       },
       '2_5': {
         label: '교구·교실·출력 동선',
@@ -661,10 +730,26 @@ const DiagMicro = (() => {
       '1_3': {
         label: '업무원가+인건비 통제',
         question: '총매출액 대비 외주비·소모품비와 인건비의 합산 비율을 60% 이하로 선제 제어할 수 있는 표준 원가 관리 체계를 갖추었는가?',
+        scale: [
+          { score:1, desc:'외주·소모품비+인건비 개념 없음. 매출 대비 비율 파악 불가.' },
+          { score:2, desc:'외주비는 알지만 인건비 결합 비율 상시 60% 초과.' },
+          { score:3, desc:'월 단위 비율 산출. 기준치 초과 시 인지.' },
+          { score:4, desc:'서비스별 외주비 통제 + 탄력 인력 배치. 주간 관리.' },
+          { score:5, desc:'외주비 손실 통제 + 탄력 인력으로 Prime Cost 60% 이하 엄격 관리.' },
+        ],
+        ai_trigger: { warning_msg: '외주비+인건비가 60%를 초과합니다. 서비스별 수익성 분석이 시급합니다.' },
       },
       '1_4': {
         label: '서비스별 ACM 산출',
         question: '개별 서비스의 직접 원가뿐만 아니라 상담·처리에 소요되는 직접 노동 시간을 반영한 조정 기여 마진(ACM)을 계산해 보았는가?',
+        scale: [
+          { score:1, desc:'서비스별 원가·처리시간 미고려. 감으로 단가 책정.' },
+          { score:2, desc:'외주비는 알지만 처리 노동 원가 누락.' },
+          { score:3, desc:'서비스별 ABC 분석 분기 1회. ACM 미산출.' },
+          { score:4, desc:'ACM + 수임 건수 교차 분석으로 저수익 서비스 분기 정기 제거.' },
+          { score:5, desc:'전 서비스 ACM 월 단위 자동화. Star 서비스 전면 배치.' },
+        ],
+        ai_trigger: { warning_msg: '저수익 서비스를 무작위 수임 중입니다. 서비스별 ACM 분류가 필요합니다.' },
       },
       '1_5': {
         question: '사무실 내 상담·처리 수행, 고객 응대, 외주·소모품 발주 업무 중 대표가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
@@ -676,6 +761,13 @@ const DiagMicro = (() => {
       '2_4': {
         label: '상담 처리 편차 지수',
         question: '동일 서비스를 예약이 몰리는 시간에 처리하든 숙련도가 다른 직원이 처리하든 최종 상담 완료 시간의 표준편차가 10분 이내로 통제되는가?',
+        scale: [
+          { score:1, desc:'상담 대기 지연 빈번. 고객 이탈 빈발.' },
+          { score:2, desc:'주요 서비스 대략 표준화. 담당자별 편차 큼.' },
+          { score:3, desc:'서비스 매뉴얼화. 일부 지연 남음.' },
+          { score:4, desc:'상담 대기 10분 이내 대부분 통제.' },
+          { score:5, desc:'어떤 담당자든 상담 대기 10분 이내 완벽 통제.' },
+        ],
       },
       '2_5': {
         label: '자료·상담·접수 동선',
@@ -855,9 +947,15 @@ ${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'
     if (Object.keys(overrides).length > 0) {
       finalItems = {};
       Object.keys(ITEMS).forEach(function(key) {
-        finalItems[key] = overrides[key]
-          ? Object.assign({}, ITEMS[key], overrides[key])
-          : ITEMS[key];
+        if (!overrides[key]) {
+          finalItems[key] = ITEMS[key];
+        } else {
+          var merged = Object.assign({}, ITEMS[key], overrides[key]);
+          if (ITEMS[key].ai_trigger && overrides[key].ai_trigger) {
+            merged.ai_trigger = Object.assign({}, ITEMS[key].ai_trigger, overrides[key].ai_trigger);
+          }
+          finalItems[key] = merged;
+        }
       });
     }
     return { id: 'micro', label: '소상공인 7대 분야 융합 진단', version: '2.0', bizScale: 'micro', industryGroup: group, domains: DOMAINS, items: finalItems, actionPlan: ACTION_PLAN_7DAY };
