@@ -2,9 +2,35 @@
 
 ## 배포 상태 (2026-05-27 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: diagnosis-micro ACTION_PLAN_7DAY 업종 그룹별 분기 (120be37)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: diagnosis-micro ACTION_PLAN_7DAY_BY_GROUP D3·D4·D7 업종 그룹별 분기 추가 (c85f4a3)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 업종별 맞춤 진단 v2.0 완성 (2026-05-27)
+
+### 업종 그룹 5개
+- food: 외식업 (기본값)
+- beauty: 미용·뷰티
+- retail: 소매·판매
+- edu_service: 서비스·학원
+- pro_service: 전문서비스
+
+### 완료 작업
+1차: 질문 텍스트·용어 치환 (D2_5·D3_2 완전 교체 포함)
+2차: BARS 1~5점 척도 + ai_trigger 경고 메시지 업종별 분기
+3차·4차: D1~D4·D7 7일 액션 플랜 업종별 분기 (총 140개)
+
+### 불변 항목
+- D5·D6 전체 (자금·세무·폐업 — 업종 무관 공통)
+- food 그룹 기존 텍스트 100% 유지
+- 키값 D1_1~D7_5 변경 없음
+
+### 핵심 함수
+- DiagMicro.getSchema(industryGroup)
+- DiagMicro.getActionPlan(domainKey, industryGroup)
+- DiagMicro.buildPromptSummary(allScores, industryGroup)
 
 ---
 
@@ -39,13 +65,22 @@
   - `merged.ai_trigger = Object.assign({}, ITEMS[key].ai_trigger, overrides[key].ai_trigger)`
 - food 그룹 기존 텍스트 100% 유지, D5·D6 미접촉
 
-### ⑤ diagnosis-micro.js ACTION_PLAN_7DAY 업종 그룹별 분기 (배포 완료) — 커밋 120be37
+### ⑤ diagnosis-micro.js ACTION_PLAN_7DAY 업종 그룹별 분기 3차 (배포 완료) — 커밋 120be37
 - `ACTION_PLAN_7DAY_BY_GROUP` 상수 추가: 2개 도메인 × 4그룹 × 7일 = 56개 액션 항목
   - `profit_ops` (D1 경영진단): beauty·retail·edu_service·pro_service 각 7일 플랜
   - `place_seo` (D2 점포환경): beauty·retail·edu_service·pro_service 각 7일 플랜
 - `DOMAIN_TO_ACTION_KEY`: 도메인 ID `'1'`→`profit_ops`, `'2'`→`place_seo` 매핑
 - `getActionPlan(domainKey, industryGroup)`: 그룹별 플랜 반환, 없으면 `null` (food → base fallback)
 - `buildPromptSummary()` 수정: 취약 도메인 D1·D2는 그룹 전용 7일 플랜, D3~D7은 `ACTION_PLAN_7DAY` 단일 액션 fallback
+- food 그룹 `ACTION_PLAN_7DAY` 100% 유지, D5·D6 미접촉
+
+### ⑥ diagnosis-micro.js ACTION_PLAN_7DAY D3·D4·D7 업종 그룹별 분기 4차 (배포 완료) — 커밋 c85f4a3
+- `ACTION_PLAN_7DAY_BY_GROUP`에 3개 도메인 추가: 3개 도메인 × 4그룹 × 7일 = 84개 액션 항목
+  - `multichannel` (D3 다채널 판로): beauty·retail·edu_service·pro_service 각 7일 플랜
+  - `smart_dx` (D4 스마트DX): beauty·retail·edu_service·pro_service 각 7일 플랜
+  - `sns_ai` (D7 SNS·생성형AI): beauty·retail·edu_service·pro_service 각 7일 플랜
+- `DOMAIN_TO_ACTION_KEY` 확장: `'3'`→`multichannel`, `'4'`→`smart_dx`, `'7'`→`sns_ai` 추가
+- D1~D4·D7 총 5개 도메인 × 4그룹 × 7일 = 140개 그룹별 액션 플랜 완성
 - food 그룹 `ACTION_PLAN_7DAY` 100% 유지, D5·D6 미접촉
 
 ---
