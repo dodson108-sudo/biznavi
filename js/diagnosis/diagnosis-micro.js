@@ -936,10 +936,130 @@ const DiagMicro = (() => {
         { day:7, title:'상담 대기 시간 편차 재측정·기록' },
       ],
     },
+
+    /* ── D3 다채널 판로 (domainKey: multichannel) ── */
+    multichannel: {
+      beauty: [
+        { day:1, title:'카카오뷰티·네이버예약 입점 현황 파악' },
+        { day:2, title:'플랫폼별 수수료율 역산 — 실제 순이익 계산' },
+        { day:3, title:'홈케어 제품(샴푸·앰플) 패키지 구성 테스트' },
+        { day:4, title:'홈케어 패키지 상품 사진 5장 촬영' },
+        { day:5, title:'D2C 재방문 쿠폰 디자인 — 직예약 혜택 명시' },
+        { day:6, title:'비효율 유료 광고 즉시 Off' },
+        { day:7, title:'D2C 쿠폰 시술 후 고객에게 배포 → 반응 체크' },
+      ],
+      retail: [
+        { day:1, title:'스마트스토어·도매 입점 현황 파악' },
+        { day:2, title:'플랫폼별 수수료율 역산 — 실제 순이익 계산' },
+        { day:3, title:'시즌 기프트셋 구성 테스트' },
+        { day:4, title:'기프트셋 상품 사진 5장 촬영' },
+        { day:5, title:'D2C 재구매 쿠폰 디자인 — 직구매 혜택 명시' },
+        { day:6, title:'비효율 유료 광고 즉시 Off' },
+        { day:7, title:'D2C 쿠폰 구매 고객에게 배포 → 반응 체크' },
+      ],
+      edu_service: [
+        { day:1, title:'클래스101·탈잉 입점 현황 파악' },
+        { day:2, title:'플랫폼별 수수료율 역산 — 실제 순이익 계산' },
+        { day:3, title:'오프라인 수업 VOD 1개 촬영 테스트' },
+        { day:4, title:'VOD 콘텐츠 썸네일 사진 5장 촬영' },
+        { day:5, title:'D2C 재등록 쿠폰 디자인 — 직등록 혜택 명시' },
+        { day:6, title:'비효율 유료 광고 즉시 Off' },
+        { day:7, title:'D2C 쿠폰 수강생에게 배포 → 반응 체크' },
+      ],
+      pro_service: [
+        { day:1, title:'크몽·숨고 입점 현황 파악' },
+        { day:2, title:'플랫폼별 수수료율 역산 — 실제 순이익 계산' },
+        { day:3, title:'단건 서비스 → 월정액 패키지 구성 테스트' },
+        { day:4, title:'서비스 패키지 소개 자료 제작' },
+        { day:5, title:'D2C 재계약 쿠폰 디자인 — 직계약 혜택 명시' },
+        { day:6, title:'비효율 유료 광고 즉시 Off' },
+        { day:7, title:'D2C 쿠폰 기존 고객에게 배포 → 반응 체크' },
+      ],
+    },
+
+    /* ── D4 스마트DX (domainKey: smart_dx) ── */
+    smart_dx: {
+      beauty: [
+        { day:1, title:'예약·접수 단순 업무 투입 시간 실측' },
+        { day:2, title:'온라인 예약 시스템 렌탈 비용 비교 수집' },
+        { day:3, title:'예약 지연율 피크타임 측정' },
+        { day:4, title:'온라인 예약 시스템 설치 위치 설계' },
+        { day:5, title:'카카오뷰티 무상 테스트 신청' },
+        { day:6, title:'카카오 알림톡 예약 확인 자동 발송 연계' },
+        { day:7, title:'도입 후 예약 처리 시간 단축 확인 + ΔProfit 계산' },
+      ],
+      retail: [
+        { day:1, title:'계산·재고 단순 업무 투입 시간 실측' },
+        { day:2, title:'셀프계산대·바코드 스캐너 렌탈 비용 비교' },
+        { day:3, title:'계산 지연율 피크타임 측정' },
+        { day:4, title:'셀프계산대 설치 위치 설계' },
+        { day:5, title:'키오스크 브랜드 무상 데모 신청' },
+        { day:6, title:'재고 자동 집계 시스템 POS 연계' },
+        { day:7, title:'도입 후 계산 처리 시간 단축 확인 + ΔProfit 계산' },
+      ],
+      edu_service: [
+        { day:1, title:'출결·수강료 행정 단순 업무 투입 시간 실측' },
+        { day:2, title:'LMS·복합기 렌탈 비용 비교 수집' },
+        { day:3, title:'등록 지연율 집중 등록 기간 측정' },
+        { day:4, title:'온라인 등록 시스템 설치 설계' },
+        { day:5, title:'LMS 브랜드 무상 테스트 신청' },
+        { day:6, title:'카카오 알림톡 수업 알림 자동 발송 연계' },
+        { day:7, title:'도입 후 행정 시간 단축 확인 + ΔProfit 계산' },
+      ],
+      pro_service: [
+        { day:1, title:'서류·상담 단순 업무 투입 시간 실측' },
+        { day:2, title:'전자문서·CRM 렌탈 비용 비교 수집' },
+        { day:3, title:'상담 지연율 피크타임 측정' },
+        { day:4, title:'전자문서 시스템 도입 위치 설계' },
+        { day:5, title:'CRM 브랜드 무상 테스트 신청' },
+        { day:6, title:'카카오 알림톡 상담 확인 자동 발송 연계' },
+        { day:7, title:'도입 후 상담 처리 시간 단축 확인 + ΔProfit 계산' },
+      ],
+    },
+
+    /* ── D7 SNS·생성형AI (domainKey: sns_ai) ── */
+    sns_ai: {
+      beauty: [
+        { day:1, title:'플레이스 대표 이미지 — 시술 전·후 사진 매력도 체크' },
+        { day:2, title:'ChatGPT로 시술 USP 카피 3개 도출' },
+        { day:3, title:'미리캔버스로 네이버 저장하기 혜택 포스터 제작' },
+        { day:4, title:'시술 전·후 사진 QR 스탠드 포스터 프린팅' },
+        { day:5, title:'전 시술 의자 옆 QR 스탠드 부착' },
+        { day:6, title:'시술 완료 고객에게 리뷰 권유 스크립트 교육' },
+        { day:7, title:'스마트플레이스 유입 클릭수·저장수 증가 추이 확인' },
+      ],
+      retail: [
+        { day:1, title:'플레이스 대표 이미지 — 베스트셀러 상품 사진 매력도 체크' },
+        { day:2, title:'ChatGPT로 상품 USP 카피 3개 도출' },
+        { day:3, title:'미리캔버스로 네이버 저장하기 혜택 포스터 제작' },
+        { day:4, title:'베스트셀러 상품 QR 스탠드 포스터 프린팅' },
+        { day:5, title:'계산대 옆 QR 스탠드 부착' },
+        { day:6, title:'구매 완료 고객에게 리뷰 권유 스크립트 교육' },
+        { day:7, title:'스마트플레이스 유입 클릭수·저장수 증가 추이 확인' },
+      ],
+      edu_service: [
+        { day:1, title:'플레이스 대표 이미지 — 강의 현장 사진 매력도 체크' },
+        { day:2, title:'ChatGPT로 강좌 USP 카피 3개 도출' },
+        { day:3, title:'미리캔버스로 네이버 저장하기 혜택 포스터 제작' },
+        { day:4, title:'강좌 커리큘럼 QR 스탠드 포스터 프린팅' },
+        { day:5, title:'강의실 입구 QR 스탠드 부착' },
+        { day:6, title:'수업 종료 수강생에게 리뷰 권유 스크립트 교육' },
+        { day:7, title:'스마트플레이스 유입 클릭수·저장수 증가 추이 확인' },
+      ],
+      pro_service: [
+        { day:1, title:'플레이스 대표 이미지 — 전문성 어필 사진 매력도 체크' },
+        { day:2, title:'ChatGPT로 서비스 USP 카피 3개 도출' },
+        { day:3, title:'미리캔버스로 네이버 저장하기 혜택 포스터 제작' },
+        { day:4, title:'서비스 소개 QR 스탠드 포스터 프린팅' },
+        { day:5, title:'접수대 옆 QR 스탠드 부착' },
+        { day:6, title:'상담 완료 고객에게 리뷰 권유 스크립트 교육' },
+        { day:7, title:'스마트플레이스 유입 클릭수·저장수 증가 추이 확인' },
+      ],
+    },
   };
 
   /* 도메인 ID → 그룹별 액션 플랜 키 매핑 */
-  const DOMAIN_TO_ACTION_KEY = { '1': 'profit_ops', '2': 'place_seo' };
+  const DOMAIN_TO_ACTION_KEY = { '1': 'profit_ops', '2': 'place_seo', '3': 'multichannel', '4': 'smart_dx', '7': 'sns_ai' };
 
   function getActionPlan(domainKey, industryGroup) {
     var group = industryGroup || 'food';
