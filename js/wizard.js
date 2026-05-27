@@ -1114,7 +1114,8 @@ const Wizard = (() => {
     // 공통 모듈 렌더링 — micro: DiagMicro 7대 분야 / startup: STARTUP_DIAGNOSIS / 그 외: DiagCommon
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
     if (isMicro) {
-      renderDiagModule('diag-micro-container', _diagMicroToAreas(DiagMicro));
+      const microGroup = DiagMicro.getGroup(industryKey);
+      renderDiagModule('diag-micro-container', _diagMicroToAreas(DiagMicro, microGroup));
       if (microContainer)  microContainer.classList.remove('hidden');
       if (commonContainer) commonContainer.classList.add('hidden');
     } else {
@@ -1328,8 +1329,8 @@ const Wizard = (() => {
     return { id: schema.id, label: schema.label, areas };
   }
 
-  function _diagMicroToAreas(diagMicro) {
-    const schema = diagMicro.getSchema();
+  function _diagMicroToAreas(diagMicro, industryGroup) {
+    const schema = diagMicro.getSchema(industryGroup);
     const areas = schema.domains.map(domain => {
       const items = Object.entries(schema.items)
         .filter(([key]) => key.startsWith(`${domain.id}_`))
@@ -2295,9 +2296,10 @@ const Wizard = (() => {
     let scaleScores = {};
     if (bizScale === 'micro' && window.DiagMicro) {
       const allScores = collectAllScores ? collectAllScores() : {};
+      const microGroup = DiagMicro.getGroup(data.industryKey || '');
       scaleScores = DiagMicro.calcScores(allScores);
       data.microWarnings = DiagMicro.detectCrossWarnings(allScores);
-      data.microPrompt = DiagMicro.buildPromptSummary(allScores);
+      data.microPrompt = DiagMicro.buildPromptSummary(allScores, microGroup);
     } else if (bizScale === 'sme' && window.DiagSme) {
       const allScores = collectAllScores ? collectAllScores() : {};
       scaleScores = DiagSme.calcScores(allScores);
