@@ -648,8 +648,7 @@ const Wizard = (() => {
     const bizItem = (document.getElementById('bizItem')?.value || '').toLowerCase();
 
     const result = document.getElementById('bizInferResult');
-    const industrySelect = document.getElementById('industry');
-    if (!result || !industrySelect) return;
+    if (!result) return;
 
     const scores = {};
     BIZ_TYPE_MAP.forEach(entry => {
@@ -675,7 +674,14 @@ const Wizard = (() => {
     }
 
     const [topIndustry, topScore] = sorted[0];
-    industrySelect.value = topIndustry;
+
+    // aiIndustryKey hidden 필드에 추론 결과 저장
+    const aiKeyEl = document.getElementById('aiIndustryKey');
+    if (aiKeyEl) aiKeyEl.value = topIndustry;
+
+    // 레거시 select 지원 (존재하는 경우에만)
+    const industrySelect = document.getElementById('industry');
+    if (industrySelect) industrySelect.value = topIndustry;
 
     // 2위 점수가 1위의 70% 이상이면 후보 2개 표시
     let msg = '✓ 업종 자동 설정: ' + topIndustry;
@@ -687,7 +693,33 @@ const Wizard = (() => {
     result.className = 'biz-infer-result biz-infer-ok';
     result.textContent = msg;
     result.classList.remove('hidden');
-    onIndustryChange();
+
+    // 추론된 업종으로 placeholder 즉시 업데이트
+    updateBizPlaceholders(topIndustry);
+    updateRiskPlaceholder(topIndustry);
+
+    // BM 추론 (inferredBmDisplay가 있는 경우)
+    const display = document.getElementById('inferredBmDisplay');
+    if (display) {
+      const formData = {
+        products: document.getElementById('products')?.value || '',
+        coreStrength: document.getElementById('coreStrength')?.value || '',
+        customerProblem: document.getElementById('customerProblem')?.value || '',
+        unfairAdvantage: document.getElementById('unfairAdvantage')?.value || ''
+      };
+      const bmResult = inferBizModel(topIndustry, formData);
+      _inferredBmKey = bmResult.primary;
+      const hiddenBm = document.getElementById('bizModel');
+      if (hiddenBm) hiddenBm.value = BM_LABELS[_inferredBmKey] || _inferredBmKey;
+      let html = '';
+      bmResult.candidates.forEach((bm, idx) => {
+        const label = BM_LABELS[bm] || bm;
+        html += '<span class="bm-tag' + (idx === 0 ? ' primary' : '') + '">' +
+                (idx === 0 ? '★ ' : '') + label + '</span>';
+      });
+      html += '<span class="bm-infer-hint">★ 1순위 적용 · 진단은 자동 연동됩니다</span>';
+      display.innerHTML = html;
+    }
   }
 
   // 사업자 조회 블록 건너뛰기

@@ -823,11 +823,11 @@
         </div>
         <div class="form-group">
           <label>업태 * <span class="field-hint">사업자등록증 그대로</span></label>
-          <input type="text" id="bizType" placeholder="예: 서비스, 제조, 음식점" maxlength="30" />
+          <input type="text" id="bizType" placeholder="예: 서비스, 제조, 음식점" maxlength="30" oninput="Wizard.inferIndustryFromType()" />
         </div>
         <div class="form-group">
           <label>종목 * <span class="field-hint">사업자등록증 그대로</span></label>
-          <input type="text" id="bizItem" placeholder="예: 미용업, 자동차부품, 한식" maxlength="40" />
+          <input type="text" id="bizItem" placeholder="예: 미용업, 자동차부품, 한식" maxlength="40" oninput="Wizard.inferIndustryFromType()" />
         </div>
         <div class="form-group">
           <label>개업연도</label>
