@@ -646,9 +646,9 @@ const Wizard = (() => {
   function inferIndustryFromType() {
     const bizType = (document.getElementById('bizType')?.value || '').toLowerCase();
     const bizItem = (document.getElementById('bizItem')?.value || '').toLowerCase();
+    if (!(bizType + bizItem).trim()) return;
 
-    const result = document.getElementById('bizInferResult');
-    if (!result) return;
+    const resultEl = document.getElementById('bizInferResult'); // optional display element
 
     const scores = {};
     BIZ_TYPE_MAP.forEach(entry => {
@@ -665,10 +665,10 @@ const Wizard = (() => {
     const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
     if (sorted.length === 0) {
-      if ((bizType + bizItem).trim().length > 0) {
-        result.className = 'biz-infer-result biz-infer-warn';
-        result.textContent = '⚠ 업종을 자동 판별하지 못했습니다. 아래 업종 드롭다운에서 직접 선택해주세요.';
-        result.classList.remove('hidden');
+      if (resultEl) {
+        resultEl.className = 'biz-infer-result biz-infer-warn';
+        resultEl.textContent = '⚠ 업종을 자동 판별하지 못했습니다. 아래 업종 드롭다운에서 직접 선택해주세요.';
+        resultEl.classList.remove('hidden');
       }
       return;
     }
@@ -690,9 +690,11 @@ const Wizard = (() => {
     } else {
       msg += ' — 아래에서 확인 후 변경 가능합니다.';
     }
-    result.className = 'biz-infer-result biz-infer-ok';
-    result.textContent = msg;
-    result.classList.remove('hidden');
+    if (resultEl) {
+      resultEl.className = 'biz-infer-result biz-infer-ok';
+      resultEl.textContent = msg;
+      resultEl.classList.remove('hidden');
+    }
 
     // 추론된 업종으로 placeholder 즉시 업데이트
     updateBizPlaceholders(topIndustry);
