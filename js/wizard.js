@@ -674,10 +674,12 @@ const Wizard = (() => {
     }
 
     const [topIndustry, topScore] = sorted[0];
+    // BIZ_TYPE_MAP.industry는 한국어 레이블 → INDUSTRY_MAP으로 영문 키 변환
+    const topKey = INDUSTRY_MAP[topIndustry] || topIndustry;
 
-    // aiIndustryKey hidden 필드에 추론 결과 저장
+    // aiIndustryKey hidden 필드에 영문 키 저장
     const aiKeyEl = document.getElementById('aiIndustryKey');
-    if (aiKeyEl) aiKeyEl.value = topIndustry;
+    if (aiKeyEl) aiKeyEl.value = topKey;
 
     // 레거시 select 지원 (존재하는 경우에만)
     const industrySelect = document.getElementById('industry');
@@ -696,9 +698,9 @@ const Wizard = (() => {
       resultEl.classList.remove('hidden');
     }
 
-    // 추론된 업종으로 placeholder 즉시 업데이트
-    updateBizPlaceholders(topIndustry);
-    updateRiskPlaceholder(topIndustry);
+    // 추론된 업종(영문 키)으로 placeholder 즉시 업데이트
+    updateBizPlaceholders(topKey);
+    updateRiskPlaceholder(topKey);
 
     // BM 추론 (inferredBmDisplay가 있는 경우)
     const display = document.getElementById('inferredBmDisplay');
@@ -709,7 +711,7 @@ const Wizard = (() => {
         customerProblem: document.getElementById('customerProblem')?.value || '',
         unfairAdvantage: document.getElementById('unfairAdvantage')?.value || ''
       };
-      const bmResult = inferBizModel(topIndustry, formData);
+      const bmResult = inferBizModel(topKey, formData);
       _inferredBmKey = bmResult.primary;
       const hiddenBm = document.getElementById('bizModel');
       if (hiddenBm) hiddenBm.value = BM_LABELS[_inferredBmKey] || _inferredBmKey;
