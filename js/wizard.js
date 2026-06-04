@@ -936,6 +936,9 @@ const Wizard = (() => {
     });
     html += '<span class="bm-infer-hint">★ 1순위 적용 · 진단은 자동 연동됩니다</span>';
     display.innerHTML = html;
+
+    updateBizPlaceholders(industryKey);
+    updateRiskPlaceholder(industryKey);
   }
 
   /* ── biz-context 화면 렌더링 ── */
@@ -2558,6 +2561,101 @@ const Wizard = (() => {
     const hint = document.getElementById('riskExampleHint');
     const ph = _RISK_PLACEHOLDER[industryKey];
     if (hint && ph) hint.textContent = ph;
+  }
+
+  /* ── 업종별 주요제품·핵심강점·고객문제 placeholder 동적 업데이트 ── */
+  const _BIZ_PLACEHOLDERS = {
+    mfg_parts: {
+      products:        '예: CNC 선반 정밀 가공 부품, 자동차 브라켓·샤프트, 플라스틱 사출 케이스',
+      coreStrength:    '예: 정밀도 ±0.01mm 보장, ISO 9001 인증, 납기 준수율 98% — 월 최대 50만 개 생산',
+      customerProblem: '예: 소량 발주 시 단가가 너무 높고, 납기 지연·품질 불량으로 라인 스톱이 반복됩니다'
+    },
+    food_mfg: {
+      products:        '예: HMR 간편식·냉동 만두, OEM 소스·양념류, 냉장 반찬 패키지',
+      coreStrength:    '예: HACCP 인증 공장, 자체 레시피 30종 보유, 대형마트·급식업체 납품 이력 5년',
+      customerProblem: '예: 원물 가격 급등 시 마진이 급감하고, 유통기한 관리·반품 처리가 어렵습니다'
+    },
+    local_service: {
+      products:        '예: 세탁·수선 당일 처리, 반려동물 미용·호텔링, 홈클리닝·이사 청소',
+      coreStrength:    '예: 당일 픽업·배달, 지역 10년 단골 고객 기반, 친절한 응대와 빠른 AS',
+      customerProblem: '예: 예약 없이 방문하면 대기가 길고, 서비스 가격·소요시간이 미리 안내되지 않습니다'
+    },
+    wholesale: {
+      products:        '예: 식자재 도매 공급, 공산품·생활용품 총판, B2B 대량 납품·배송',
+      coreStrength:    '예: 전국 당일 배송망, 대량 구매 가격 경쟁력, 안정적 재고 1,000SKU 보유',
+      customerProblem: '예: 소량 주문 시 배송비 부담이 크고, 재고 소진 후 납품 지연이 반복됩니다'
+    },
+    restaurant: {
+      products:        '예: 한식 정식 코스, 프리미엄 런치 도시락, 배달 전용 세트 메뉴',
+      coreStrength:    '예: 직접 개발한 시그니처 소스, 산지 직계약 식재료, 주방장 20년 경력',
+      customerProblem: '예: 점심 피크타임 대기가 길고, 배달 주문 시 음식이 식거나 담김이 부실합니다'
+    },
+    knowledge_it: {
+      products:        '예: 웹·앱 개발 외주, SaaS 솔루션 구축, IT 컨설팅·유지보수',
+      coreStrength:    '예: 풀스택 개발팀 5인(평균 경력 7년), 납기 준수율 95%, 레퍼런스 30건',
+      customerProblem: '예: 요구사항 변경 때마다 추가 비용이 발생하고, 납기 지연·소통 누락이 잦습니다'
+    },
+    construction: {
+      products:        '예: 상가·사무실 인테리어 시공, 주택 리모델링, 소규모 건축·증개축',
+      coreStrength:    '예: 자체 시공팀 10인, 준공 후 AS 2년 보증, 견적 당일 제공',
+      customerProblem: '예: 공사비 초과 청구·일정 지연이 잦고, 완공 후 하자 처리가 느립니다'
+    },
+    medical: {
+      products:        '예: 내과·가정의학과 진료, 건강검진 패키지, 비급여 주사·피부 시술',
+      coreStrength:    '예: 전문의 2인 체제, 평균 대기 15분, EMR 전자차트·예약 시스템 완비',
+      customerProblem: '예: 예약 없이 방문 시 대기가 길고, 진료비·비급여 가격 안내가 불명확합니다'
+    },
+    finance: {
+      products:        '예: 중소기업 대출 중개, 법인보험 설계, 개인 자산관리·은퇴 설계 컨설팅',
+      coreStrength:    '예: 금융 경력 15년, 20개 금융사 제휴, 고객 맞춤 포트폴리오 무료 설계',
+      customerProblem: '예: 상품 구조가 복잡하고, 수수료·해지 조건이 가입 전에 명확히 안내되지 않습니다'
+    },
+    education: {
+      products:        '예: 수학·영어 입시 전문반, 1:1 맞춤 과외, 온라인 실시간 강의',
+      coreStrength:    '예: 전임 강사 5인(평균 경력 8년), 반별 정원 8명 소수 정예, 매월 성적 리포트 제공',
+      customerProblem: '예: 수업 후 개인 복습이 부족하고, 성적 향상이 눈에 보이지 않아 불안합니다'
+    },
+    fashion: {
+      products:        '예: 여성 캐주얼 의류, OEM 자체 브랜드 생산, 온라인 단독 한정 컬렉션',
+      coreStrength:    '예: 자체 디자인팀, 트렌드 반영 4주 기획→출시, 재구매율 45% 이상',
+      customerProblem: '예: 원하는 사이즈·컬러가 품절이고, 반품·환불 절차가 번거롭습니다'
+    },
+    media: {
+      products:        '예: 브랜드 영상 제작·편집, 유튜브 채널 운영 대행, SNS 콘텐츠 기획·발행',
+      coreStrength:    '예: 조회수 10만↑ 레퍼런스 다수, 기획~배포 원스톱 처리, 평균 납기 5일',
+      customerProblem: '예: 콘텐츠 발행 후 조회수·반응이 없고, 일관된 브랜드 톤 유지가 어렵습니다'
+    },
+    logistics: {
+      products:        '예: 전국 택배·화물 대행, 냉장·냉동 특송, B2B 기업 간 정기 배송',
+      coreStrength:    '예: 자차 5톤 트럭 3대·냉장 창고 보유, 당일 배송 가능, 파손율 0.1% 미만',
+      customerProblem: '예: 배송 지연·파손이 발생하고, 실시간 위치 추적이 안 돼 고객 문의가 폭증합니다'
+    },
+    energy: {
+      products:        '예: 태양광 발전 시스템 설치·AS, ESS 에너지 저장 솔루션, 탄소배출권 컨설팅',
+      coreStrength:    '예: 산업부 인증 시공사, 자체 유지보수팀, 발전량 실시간 원격 모니터링',
+      customerProblem: '예: 초기 설치 비용 부담이 크고, 정부 보조금 신청 절차가 복잡합니다'
+    },
+    agri_food: {
+      products:        '예: 국내산 쌀·잡곡 산지 직거래, 냉동 농산물 가공품, 친환경 농산물 선물 세트',
+      coreStrength:    '예: 직영 농장 보유, GAP 인증, 수확~배송 콜드체인 완비로 신선도 유지',
+      customerProblem: '예: 기후 변화로 수확량이 불안정하고, 유통 마진이 커서 실제 농가 수익이 낮습니다'
+    },
+    export_sme: {
+      products:        '예: OEM 완제품 수출, 자체 브랜드 해외 판매, 바이어 맞춤 주문 생산',
+      coreStrength:    '예: CE·FDA 인증 보유, 7개국 바이어 네트워크, 영어·중국어 커뮤니케이션 대응',
+      customerProblem: '예: 환율 변동에 채산성이 흔들리고, 해외 바이어 대금 회수가 지연됩니다'
+    }
+  };
+
+  function updateBizPlaceholders(industryKey) {
+    const ph = _BIZ_PLACEHOLDERS[industryKey];
+    if (!ph) return;
+    const elProducts = document.getElementById('products');
+    const elStrength = document.getElementById('coreStrength');
+    const elProblem  = document.getElementById('customerProblem');
+    if (elProducts && !elProducts.value) elProducts.placeholder = ph.products;
+    if (elStrength && !elStrength.value) elStrength.placeholder = ph.coreStrength;
+    if (elProblem  && !elProblem.value)  elProblem.placeholder  = ph.customerProblem;
   }
 
   return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };
