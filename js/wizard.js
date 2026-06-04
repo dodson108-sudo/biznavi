@@ -843,6 +843,9 @@ const Wizard = (() => {
         fill('bizItem',     data.bizItem,     '종목');
         fill('foundedYear', yearOnly || data.foundedYear, '개업연도');
 
+        // OCR 자동입력 후 업종 추론 + placeholder 업데이트
+        inferIndustryFromType();
+
         statusEl.className = 'biz-lookup-status biz-status-ok';
         statusEl.textContent = `✓ ${filled.join(', ')} 자동입력 완료 — 아래에서 확인하고 수정하세요. 이상 없으면 [AI 업종 분석 시작]을 눌러주세요.`;
 
