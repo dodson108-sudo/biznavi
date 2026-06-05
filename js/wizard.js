@@ -2692,10 +2692,19 @@ const Wizard = (() => {
     const elProducts = document.getElementById('products');
     const elStrength = document.getElementById('coreStrength');
     const elProblem  = document.getElementById('customerProblem');
-    if (elProducts && !elProducts.value) elProducts.placeholder = ph.products;
-    if (elStrength && !elStrength.value) elStrength.placeholder = ph.coreStrength;
-    if (elProblem  && !elProblem.value)  elProblem.placeholder  = ph.customerProblem;
+    // 값이 있어도 placeholder는 항상 갱신 (입력값은 placeholder 위에 표시되므로 UX 영향 없음)
+    if (elProducts) elProducts.placeholder = ph.products;
+    if (elStrength) elStrength.placeholder = ph.coreStrength;
+    if (elProblem)  elProblem.placeholder  = ph.customerProblem;
   }
+
+  // HTML oninput 속성에만 의존하지 않도록 JS에서 직접 이벤트 리스너 등록
+  document.addEventListener('DOMContentLoaded', function() {
+    var btEl = document.getElementById('bizType');
+    var biEl = document.getElementById('bizItem');
+    if (btEl) btEl.addEventListener('input', inferIndustryFromType);
+    if (biEl) biEl.addEventListener('input', inferIndustryFromType);
+  });
 
   return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };
 })();
