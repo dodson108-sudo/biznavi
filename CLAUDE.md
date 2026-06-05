@@ -1,10 +1,36 @@
 # BizNavi AI 프로젝트
 
-## 배포 상태 (2026-05-27 최신)
+## 배포 상태 (2026-06-05 최신)
 
-- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: feat: diagnosis-micro ACTION_PLAN_7DAY_BY_GROUP D3·D4·D7 업종 그룹별 분기 추가 (c85f4a3)
+- **GitHub**: `https://github.com/dodson108-sudo/biznavi.git` — 최신 커밋: fix: 직접입력 시 placeholder 미갱신 2가지 수정 (c317c03)
 - **Vercel**: GitHub 연동 자동 배포 중 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1) 적용, **Pro 플랜** 운영 중
 - **브랜치**: `main` (단일 브랜치 운영)
+
+---
+
+## 최근 수정 이력 (2026-06-04~05) — 업종별 placeholder 동적 업데이트 + inferIndustryFromType 버그 수정
+
+### ① 업종별 주요제품·핵심강점·고객문제 placeholder 동적 업데이트 (배포 완료) — 커밋 6c42f25
+- `_BIZ_PLACEHOLDERS`: 16개 업종 × 3개 필드(products·coreStrength·customerProblem) 예시 맵 추가
+- `updateBizPlaceholders(industryKey)`: 업종 추론 완료 시 해당 업종 맞춤 예시로 placeholder 즉시 교체
+- `onIndustryChange()`: `updateBizPlaceholders` + `updateRiskPlaceholder` 함께 호출
+
+### ② inferIndustryFromType 연쇄 버그 수정 4건 (배포 완료) — 커밋 ba37c3e~c317c03
+- **1차** (ba37c3e): `id="industry"` SELECT 미존재로 early return — `industrySelect` 의존 제거, `aiIndustryKey` 직접 세팅
+- **2차** (6827fb5): `id="bizInferResult"` 미존재로 early return — `resultEl` optional 처리
+- **3차** (20c897a): OCR 자동입력 후 `inferIndustryFromType()` 미호출 — `handleOcrUpload()` fill 완료 후 명시적 호출 추가
+- **4차** (c4248a0): `BIZ_TYPE_MAP.industry`가 한국어 레이블(`'외식 및 휴게음식업'`)인데 `_BIZ_PLACEHOLDERS` 키는 영문(`restaurant`) — `INDUSTRY_MAP[topIndustry]`로 변환 후 호출
+- **5차** (c317c03): HTML `oninput` 캐시 문제 + `!elProducts.value` 가드 차단 — `DOMContentLoaded`에서 직접 이벤트 리스너 등록, 가드 제거하여 항상 갱신
+
+### 핵심 동작 흐름 (완성)
+```
+업태/종목 입력(직접·OCR) → inferIndustryFromType()
+  → BIZ_TYPE_MAP 키워드 스코어링
+  → topIndustry(한국어) → INDUSTRY_MAP → topKey(영문)
+  → aiIndustryKey 저장
+  → updateBizPlaceholders(topKey) → 3개 필드 placeholder 교체
+  → updateRiskPlaceholder(topKey) → 외부리스크 예시 교체
+```
 
 ---
 
