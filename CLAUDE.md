@@ -1192,7 +1192,7 @@ vercel dev
 
 ### 4순위: vercel dev 로컬 실행 방법
 ```powershell
-$env:DART_API_KEY="fe33283e3bacd8d0bc0e060b9e224ddce18ac10d"
+$env:DART_API_KEY="<DART_API_KEY 값 — .env.local 또는 Vercel 환경변수 참조>"
 vercel dev
 # → http://localhost:3000
 ```

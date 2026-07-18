@@ -29,6 +29,11 @@ const Wizard = (() => {
     '기타':             'etc'
   };
 
+  // 추가: 사회적기업 / 소셜벤처 매핑
+  INDUSTRY_MAP['사회적기업'] = 'social_enterprise';
+  INDUSTRY_MAP['소셜벤처'] = 'social_venture';
+  INDUSTRY_MAP['소셜벤쳐'] = 'social_venture';
+
   // 업종 → 현실적으로 가능한 사업모델 후보 (우선순위 순)
   const INDUSTRY_BM_MAP = {
     'mfg_parts':     ['mfg_dist', 'b2b_solution', 'service'],
@@ -49,6 +54,10 @@ const Wizard = (() => {
     'agri_food':     ['mfg_dist', 'b2c_commerce', 'b2c_sub'],
     'etc':           ['service', 'b2b_solution', 'mfg_dist']
   };
+
+  // 사업모델 후보 추가: 사회적기업 / 소셜벤처
+  INDUSTRY_BM_MAP['social_enterprise'] = ['platform', 'service', 'b2c_commerce'];
+  INDUSTRY_BM_MAP['social_venture']   = ['b2b_saas', 'platform', 'service'];
 
   // BM 키 → 표시 레이블
   const BM_LABELS = {
@@ -534,6 +543,18 @@ const Wizard = (() => {
       industry: '서비스업'
     }
   ];
+
+  // BIZ_TYPE_MAP에 사회적기업 / 소셜벤처 키워드 추가
+  BIZ_TYPE_MAP.push({
+    keywords: ['사회적기업', '사회적 기업', '사회적기업형', '사회적'],
+    itemKeywords: ['사회적기업', '사회적기업 인증', '사회적경제'],
+    industry: '사회적기업'
+  });
+  BIZ_TYPE_MAP.push({
+    keywords: ['소셜벤처', '소셜벤쳐', '사회적벤처', '소셜'],
+    itemKeywords: ['소셜벤처', '임팩트 스타트업', '사회적벤처'],
+    industry: '소셜벤처'
+  });
 
   // 사업자등록번호 포맷 (###-##-#####)
   function formatBizNo(el) {
@@ -1198,6 +1219,8 @@ const Wizard = (() => {
       'logistics':     typeof INDUSTRY_LOGISTICS    !== 'undefined' ? INDUSTRY_LOGISTICS    : null,
       'energy':        typeof INDUSTRY_ENERGY       !== 'undefined' ? INDUSTRY_ENERGY       : null,
       'agri_food':     typeof INDUSTRY_AGRI_FOOD    !== 'undefined' ? INDUSTRY_AGRI_FOOD    : null,
+      'social_enterprise': typeof INDUSTRY_SOCIAL_ENTERPRISE !== 'undefined' ? INDUSTRY_SOCIAL_ENTERPRISE : null,
+      'social_venture': typeof INDUSTRY_SOCIAL_VENTURE !== 'undefined' ? INDUSTRY_SOCIAL_VENTURE : null,
     };
     const industryData = industryVarMap[industryKey];
     if (industryData) renderDiagModule('diag-industry-container', industryData);

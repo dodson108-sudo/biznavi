@@ -491,6 +491,7 @@
         <button class="mode-card-btn btn-gold-solid">경영전략 수립하기 →</button>
       </div>
     </div>
+    </main>
   </div>
 </section>
 
@@ -765,11 +766,23 @@
     </div>
   </nav>
 
-  <div style="padding:32px 20px 60px;display:flex;flex-direction:column;align-items:center">
-    <div class="wiz-head">
-      <h2 class="serif">기업 정보 입력</h2>
-      <p>정확한 정보일수록 더 정밀한 분석 결과를 받을 수 있습니다</p>
-    </div>
+  <div class="two-col-wrap">
+    <aside class="chat-pane" id="chatPane">
+      <div class="chat-header">💬 채팅</div>
+      <div class="chat-body" id="chatBody">
+        <div class="chat-message bot">안녕하세요, 무엇을 도와드릴까요?</div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="메시지 입력 (예: 업종 진단 추가 방법)" />
+        <button class="btn btn-gold btn-sm" onclick="sendChat()">전송</button>
+      </div>
+    </aside>
+
+    <main class="wizard-content" style="padding:32px 20px 60px;display:flex;flex-direction:column;align-items:center">
+      <div class="wiz-head">
+        <h2 class="serif">기업 정보 입력</h2>
+        <p>정확한 정보일수록 더 정밀한 분석 결과를 받을 수 있습니다</p>
+      </div>
 
     <!-- Progress Percentage Bar -->
     <div class="wiz-progress-bar">
@@ -1551,6 +1564,24 @@
 <!-- ══════════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════════ -->
+<script>
+  function sendChat(){
+    const inp = document.getElementById('chatInput');
+    const body = document.getElementById('chatBody');
+    if(!inp || !body) return;
+    const v = inp.value.trim();
+    if(!v) return;
+    const el = document.createElement('div'); el.className='chat-message user'; el.textContent = v;
+    body.appendChild(el);
+    inp.value = '';
+    body.scrollTop = body.scrollHeight;
+    // placeholder bot response (can be replaced by real AI hook)
+    setTimeout(()=>{
+      const r = document.createElement('div'); r.className='chat-message bot'; r.textContent = '메시지 확인했습니다: ' + v;
+      body.appendChild(r); body.scrollTop = body.scrollHeight;
+    },600);
+  }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="js/gov-support.js"></script>
 <script src="js/industry-trends.js"></script>
@@ -1579,6 +1610,8 @@
 <script src="js/diagnosis/industry/logistics.js?v=20260429e"></script>
 <script src="js/diagnosis/industry/energy.js?v=20260429e"></script>
 <script src="js/diagnosis/industry/agri_food.js?v=20260429e"></script>
+<script src="js/diagnosis/industry/social_enterprise.js?v=20260718a"></script>
+<script src="js/diagnosis/industry/social_venture.js?v=20260718a"></script>
 <script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260512a"></script>
 <script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260512a"></script>
 <script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260512a"></script>
