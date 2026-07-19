@@ -399,6 +399,26 @@
     domains.bm.scores.push(s); // bizmodel 탭 제거 보완
   ```
 
+---
+
+## 오늘 작업 (2026-07-18)
+
+- 작업 요약:
+  - `js/diagnosis/industry/social_enterprise.js` 추가 — 사회적기업 진단 모듈
+  - `js/diagnosis/industry/social_venture.js` 추가 — 소셜벤처 진단 모듈
+  - `js/wizard.js`에 `INDUSTRY_MAP`, `INDUSTRY_BM_MAP`, `BIZ_TYPE_MAP` 항목 및 `industryVarMap` 등록 추가
+  - `index.html`에 두-컬럼 레이아웃(`aside#chatPane` / `main.wizard-content`) 및 스크립트 태그 추가
+  - `css/style.css`에 채팅 패널 스타일 추가
+- 배포:
+  - GitHub에 커밋 및 `main` 브랜치로 푸시됨
+  - Vercel로 자동 배포 트리거됨 — https://biznavi.vercel.app 에서 파일 서빙 확인됨
+- 확인 방법:
+  - 브라우저 DevTools Console에서 아래 한 줄 실행:
+    console.log(!!window.INDUSTRY_SOCIAL_ENTERPRISE, !!window.INDUSTRY_SOCIAL_VENTURE, document.getElementById('aiIndustryKey')?.value);
+- 비고:
+  - 채팅은 현재 플레이스홀더이며, 백엔드 AI 연동은 별도 작업 필요
+
+
 ### ③ DART 최신 보고서 자동 탐색 구현 (배포 완료)
 - `api/dart-lookup.js` — `REPRT_CODE_MAP` 추가, 명시적 6단계 탐색 순서로 교체
 - `finData`에 `reprtCode`, `reprtName` 저장 → result 객체에 포함
