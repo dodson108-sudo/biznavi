@@ -73,6 +73,7 @@
       <p class="lp-hero-sub">DART 10만개 기업 자동조회 · 6대 재무비율 · SWOT/STP/4P · 90일 실행 플랜</p>
       <div class="lp-hero-cta">
         <button class="lp-btn-secondary" onclick="App.startFinanceAnalysis()">📊 재무분석 시작하기</button>
+        <button class="lp-btn-secondary" onclick="App.startFundingDiagnosis()">💰 정책자금 진단 시작하기</button>
         <button class="lp-btn-primary" onclick="App.startWizard()">🎯 경영전략 수립하기 →</button>
       </div>
       <div class="lp-hero-stats">
@@ -1230,6 +1231,17 @@
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.goStep(2)">← 이전</button>
         <button class="btn btn-gold" onclick="App.runAnalysis()">AI 분석 시작 →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: 정책자금 진단 (purpose='funding' 전용 — step2·3·4를 건너뛰고 진입) -->
+    <div id="step5" class="wiz-card hidden">
+      <h3 class="serif">💰 정책자금 진단 <span class="step-badge">STEP 2 / 2</span></h3>
+      <p class="hint">2단계에서 문항 추가 예정</p>
+      <!-- 2단계에서 결격요건·재무 문항 추가 -->
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" onclick="App.backToStep1()">← 이전</button>
+        <button class="btn btn-gold" onclick="alert('정책자금 진단 문항은 2단계에서 구현 예정입니다.')">분석 시작 → (준비중)</button>
       </div>
     </div>
   </div>

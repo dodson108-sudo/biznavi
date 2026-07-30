@@ -50,6 +50,13 @@ const App = (() => {
     Wizard.reset();
     show('wizard');
   }
+  /* 정책자금 진단 진입점 — reset() 이후 purpose를 지정해야 함 (reset이 'general'로 초기화) */
+  function startFundingDiagnosis() {
+    Wizard.reset();
+    Wizard.setPurpose('funding');
+    Wizard.goStep(1);   // 인디케이터를 funding 2단계 표시로 다시 그림 (reset은 general 기준으로 그림)
+    show('wizard');
+  }
   function showModeSelect() { show('mode-select'); }
   function startFinanceAnalysis() { show('finance-wizard'); FinWizard.goStep(1); }
   function showFinanceWizard() { show('finance-wizard'); }
@@ -115,6 +122,12 @@ const App = (() => {
     // biz-context 숨기기
     const bizCtx = document.getElementById('biz-context');
     if (bizCtx) bizCtx.classList.add('hidden');
+
+    // 정책자금 진단 경로 — 경영진단 UI를 렌더링하지 않고 step5로 직행
+    if (Wizard.getPurpose && Wizard.getPurpose() === 'funding') {
+      Wizard.goStep(5);
+      return;
+    }
 
     // 진단 UI 렌더링 후 직접 step2 전환 (goStep(2) 경유 시 step1 hidden 상태에서 animation 오류 발생)
     Wizard.loadDiagnosisUI(industryKey);
@@ -262,7 +275,7 @@ const App = (() => {
     setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
   }
 
-  return { startWizard, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
+  return { startWizard, startFundingDiagnosis, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */

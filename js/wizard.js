@@ -9,6 +9,12 @@ const Wizard = (() => {
   const diagScores = {};
   const diagMemos = {};
 
+  /* 진단 목적 — 'general'(경영전략 진단, 기본) | 'funding'(정책자금 진단)
+     진입점(App.startWizard / App.startFundingDiagnosis)에서 setPurpose()로 지정 */
+  let _purpose = 'general';
+  function setPurpose(p) { _purpose = p || 'general'; }
+  function getPurpose()  { return _purpose; }
+
   const INDUSTRY_MAP = {
     '제조업':           'mfg_parts',
     '식품/음료':        'food_mfg',
@@ -1073,6 +1079,9 @@ const Wizard = (() => {
     const bmCard = document.getElementById('bm-confirm');
     if (bmCard) bmCard.classList.add('hidden');
 
+    // 정책자금 진단 경로 — step2·3·4를 건너뛰고 step5로 리다이렉트 (loadDiagnosisUI 미호출)
+    if (_purpose === 'funding' && n === 2) n = 5;
+
     // STEP 2에서 다음 버튼 클릭 시 탭 순서대로 진행 (n===3 또는 n===4 모두 처리)
     if (curStep === 2 && n > 2) {
       if (!validateCurrentTab()) return;
@@ -1107,7 +1116,51 @@ const Wizard = (() => {
     window.scrollTo(0, 60);
   }
 
+  /* STEP 인디케이터를 general 기준(3단계)으로 원복 — funding 잔상 제거용
+     DOM에는 c1~c3 / l1~l3 / ln1~ln2만 존재 (c4·ln3 없음) */
+  function _restoreStepIndicator() {
+    const l2 = document.getElementById('l2');
+    if (l2) l2.textContent = '맞춤 진단';
+    const c3 = document.getElementById('c3');
+    const ind3 = c3 ? c3.closest('.step-ind') : null;
+    if (ind3) ind3.style.display = '';
+    const ln2 = document.getElementById('ln2');
+    if (ln2) ln2.style.display = '';
+  }
+
   function updateStepUI(n) {
+    // ① 목적과 무관하게 먼저 general 기준으로 무조건 원복
+    _restoreStepIndicator();
+
+    // ② 정책자금 진단 — 2단계(사업자 정보 → 정책자금 진단)로 축약 표시
+    if (_purpose === 'funding') {
+      const l2f = document.getElementById('l2');
+      if (l2f) l2f.textContent = '정책자금 진단';
+      const c3f = document.getElementById('c3');
+      const ind3f = c3f ? c3f.closest('.step-ind') : null;
+      if (ind3f) ind3f.style.display = 'none';
+      const ln2f = document.getElementById('ln2');
+      if (ln2f) ln2f.style.display = 'none';
+
+      const stage = n === 1 ? 1 : 2;   // step5 → 2번째 인디케이터
+      for (let i = 1; i <= 2; i++) {
+        const c = document.getElementById('c' + i);
+        const lb = document.getElementById('l' + i);
+        if (!c || !lb) continue;
+        c.classList.remove('active', 'done');
+        lb.classList.remove('active');
+        if (i < stage)        { c.classList.add('done'); c.textContent = '✓'; }
+        else if (i === stage) { c.classList.add('active'); c.textContent = i; lb.classList.add('active'); }
+        else                  { c.textContent = i; }
+      }
+      const ln1f = document.getElementById('ln1');
+      if (ln1f) ln1f.classList.toggle('done', stage > 1);
+      const fillF = document.getElementById('wizProgressFill');
+      if (fillF) fillF.style.width = (n === 1 ? 50 : 100) + '%';
+      return;
+    }
+
+    // ③ general — 기존 동작 그대로 유지
     for (let i = 1; i <= 4; i++) {
       const c = document.getElementById('c' + i);
       const lb = document.getElementById('l' + i);
@@ -2275,6 +2328,7 @@ const Wizard = (() => {
       return el ? el.value.trim() : '';
     };
     return {
+      purpose:         _purpose || 'general',   // 'general' | 'funding'
       companyName:     g('companyName'),
       bizType:         g('bizType'),         // 업태 (사업자등록증 — 예: 서비스)
       bizItem:         g('bizItem'),         // 종목 (사업자등록증 — 예: 미용업)
@@ -2459,11 +2513,12 @@ const Wizard = (() => {
     curStep = 1;
     curDiagTab = 'common';
     _inferredBmKey = '';
+    _purpose = 'general';
     Object.keys(diagScores).forEach(k => delete diagScores[k]);
     updateStepUI(1);
     const step1 = document.getElementById('step1');
     if (step1) step1.classList.remove('hidden');
-    ['bm-confirm', 'step2', 'step3', 'step4'].forEach(id => {
+    ['bm-confirm', 'step2', 'step3', 'step4', 'step5'].forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.classList.add('hidden'); el.classList.remove('slide-exit', 'slide-enter'); }
     });
@@ -2729,5 +2784,5 @@ const Wizard = (() => {
     if (biEl) biEl.addEventListener('input', inferIndustryFromType);
   });
 
-  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };
+  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };
 })();

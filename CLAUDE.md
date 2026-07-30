@@ -8,6 +8,41 @@
 
 ---
 
+## 최근 수정 이력 (2026-07-30) — 정책자금 진단 1단계: 진입점·purpose 플래그·step5 스켈레톤 추가
+
+세 번째 진입 경로(재무분석 / 경영전략 진단 / **정책자금 진단**) 중 정책자금 진단의 **뼈대만** 구축.
+문항·판정 로직·대시보드 섹션·AI 프롬프트는 이번 단계에서 **의도적으로 미구현**.
+
+### ① js/wizard.js — purpose 플래그 + step5 라우팅
+- 모듈 스코프 `let _purpose = 'general';` 추가 (`'general'` | `'funding'`)
+- `setPurpose(p)` / `getPurpose()` 추가 → `return { ... }` export 목록에 등록
+- `reset()`: `_purpose = 'general'` 초기화 + 숨김 배열에 `'step5'` 추가
+- `collect()`: 반환 객체 최상단에 `purpose: _purpose || 'general'` 필드 추가
+- `goStep(n)`: 진입부에 `if (_purpose === 'funding' && n === 2) n = 5;` — step2·3·4를 건너뛰고 step5로 리다이렉트 (`loadDiagnosisUI()` 미호출)
+- `updateStepUI(n)`: `_restoreStepIndicator()` 헬퍼 신설 → **목적과 무관하게 먼저 general 기준(3단계)으로 무조건 원복**한 뒤, `_purpose === 'funding'`일 때만 2단계 표시로 덮어씀
+  - funding: `l2` → '정책자금 진단', `c3`의 부모 `.step-ind`·`ln2` → `display:none`, `n===5`를 2번째 인디케이터 active로 매핑, 진행률 `n===1?50:100`
+  - general: 기존 루프(`i<=4`) + `33/66/100` **완전 무수정** (시각 동작 100% 동일)
+
+### ② js/app.js — 진입점
+- `startFundingDiagnosis()` 신설: `Wizard.reset()` → `Wizard.setPurpose('funding')` → `Wizard.goStep(1)`(인디케이터 재도색) → `show('wizard')`
+  - `reset()`이 `_purpose='general'`로 초기화하므로 **setPurpose는 반드시 reset 이후** 호출해야 함
+- `startDiagnosis()`: biz-context 숨긴 직후 `Wizard.getPurpose() === 'funding'`이면 `Wizard.goStep(5)` 후 early return — `loadDiagnosisUI`·`updateRiskPlaceholder`·`goToStep2FromBm` 미실행. general 경로는 기존 코드 그대로
+- `return { ... }` export 목록에 `startFundingDiagnosis` 추가
+
+### ③ index.html
+- `step4` 다음에 `<div id="step5" class="wiz-card hidden">` 신설 — 제목 + "2단계에서 문항 추가 예정" + `← 이전`(`App.backToStep1()`) + `분석 시작 → (준비중)`(alert placeholder)
+  - **`App.runAnalysis()`에 연결하지 않음** — `validate(4)`(problems·goals)를 통과시키면 빈 diagScores로 실제 Claude API가 호출되어 토큰만 소모됨
+- 히어로 CTA(74~78줄)에 `💰 정책자금 진단 시작하기` 버튼 1개 추가 (155·354줄 랜딩 영역은 미접촉)
+
+### 핵심 제약 (id 명명 규칙)
+`goStep(n)`은 `document.getElementById('step' + n)`으로 화면을 찾으므로 **새 단계 id는 숫자 형식 필수** → `step-funding`이 아니라 `step5`
+
+### 1단계 알려진 한계 (2단계에서 처리)
+- step5의 `← 이전`은 `App.backToStep1()` → `Wizard.reset()`을 호출하므로 **`_purpose`가 `'general'`로 리셋**됨. 정책자금 진단으로 되돌아오려면 랜딩 버튼을 다시 눌러야 함
+- `updateStepUI()` general 분기의 `i<=4` 루프·`ln3` 참조는 DOM에 `c4`·`ln3`이 없어 죽은 코드지만, 기존 동작 보존 최우선으로 **의도적으로 미정리**
+
+---
+
 ## 최근 수정 이력 (2026-06-04~05) — 업종별 placeholder 동적 업데이트 + inferIndustryFromType 버그 수정
 
 ### ① 업종별 주요제품·핵심강점·고객문제 placeholder 동적 업데이트 (배포 완료) — 커밋 6c42f25
