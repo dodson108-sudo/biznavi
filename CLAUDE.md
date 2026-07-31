@@ -8,6 +8,58 @@
 
 ---
 
+## 최근 수정 이력 (2026-07-31) — 정책자금 진단 2단계: step5 진단 문항 13개 구성
+
+1단계에서 만든 `step5` 스켈레톤에 문항을 채웠다. **판정 로직·트랙 라우팅·대시보드·AI 프롬프트는 4~5단계로 미구현.**
+
+### ① index.html — step5 문항 3섹션
+- 카드 상단 안내문(결격 사유 반려 경고 + 미저장 고지 + "모르면 '모름' 선택") 추가
+- **섹션1 결격 요건 7문항 (필수)** — 전부 3지선다 라디오 `해당 없음 / 해당됨 / 모름`
+  `fundTaxArrears` `fundCapitalImpair` `fundCreditIssue` `fundClosureHist` `fundRestrictedBiz` `fundPriorSupport` `fundOverdue`
+  - **id는 감싸는 `.form-group`에, `name`은 라디오 그룹에** 부여 (라디오 3개에 같은 id를 줄 수 없으므로) → validate 실패 시 id로 스크롤·하이라이트
+  - value를 `none`/`yes`/`unknown` 영문으로 직접 지정해 collect() 정규화를 불필요하게 함
+- **섹션2 보유 자산 2문항 (선택)** — 체크박스 복수선택 `fundCerts`(12개) / `fundIP`(6개), 기존 `.gov-check-group`·`.gov-check-item`·`.gov-check-label` 재사용
+- **섹션3 재무 정보 4문항 (선택)** — `fundAssetTotal` `fundDebtTotal` `fundEquityTotal` `fundOpProfit` (`type="number"`, 단위 백만원, required 없음)
+  - `#fundDebtRatio` 표시 전용 div 신설 — 부채·자본 모두 입력 시 부채비율 실시간 표시
+- 버튼 → `App.checkFundingInput()` (runAnalysis 미연결)
+- **연매출은 step1 `#revenue`를 재사용**하고 step5에 중복 생성하지 않음
+
+### ② js/wizard.js — fundingData / validate(5) / 인터랙션
+- `collect()` 리터럴 안에 **`fundingData` 하위 객체** 추가. **미입력을 기본값으로 채우지 않는 것이 핵심 원칙**:
+  | 구분 | 미응답 | 명시적 응답 |
+  |---|---|---|
+  | 라디오 7개 | `'unknown'` (절대 `'none'` 아님) | `'none'` / `'yes'` / `'unknown'` |
+  | 체크박스 2개 | `[]` (응답하지 않음) | `['해당 없음']` (명시적 미보유) |
+  | 숫자 4개 | `null` | `0`도 유효값 (0 ≠ null) |
+  - `debtRatio`: 부채·자본 모두 있고 자본 > 0일 때만 숫자, 그 외 `null`
+  - `revenue`: step1 원문 문자열 그대로, 빈 값이면 `null`. **파싱·정규화하지 않음**
+- `_fundNum(id)` / `_fundDebtRatio(debt, equity)` / `_onFundCheckToggle()` / `updateFundDebtRatio()` 헬퍼 + `FUND_ELIG_ITEMS` 상수 추가
+- **`validate(5)` 신설** — 결격요건 7문항 선택 여부만 검사('모름'도 정상 입력). 미선택 시 `.fund-invalid` 하이라이트 + 첫 항목으로 `scrollIntoView` + 누락 항목명 나열 alert
+- **'해당 없음' 배타 처리** — '해당 없음' 체크 시 같은 그룹 전부 해제, 다른 항목 체크 시 '해당 없음' 해제. `fundCerts`·`fundIP` 양쪽 적용
+  - 모순 입력(`['벤처기업','해당 없음']`)을 입력 단계에서 차단해 4단계 판정 로직의 예외 처리 부담을 없앰
+- 이벤트는 **HTML `oninput` 속성이 아니라 `DOMContentLoaded` 리스너로 등록** (2026-06-05 c317c03 캐시 문제 재발 방지)
+
+### ③ js/app.js — `checkFundingInput()` 신설 (export 포함)
+`validate(5)` → `console.table(collect().fundingData)` → alert. **의도적으로 `runAnalysis()` 미연결** (빈 진단점수로 Claude API 호출 시 토큰만 소모)
+
+### ④ css/style.css — 신규 클래스 5개, 파일 끝에 추가만
+`.fund-radio-row` `.fund-radio-opt` `.fund-ratio-box` `.form-group.fund-invalid` + 모바일 1열 미디어쿼리. **기존 선택자 미변경**
+
+### ⑤ 검증 (Node DOM 스텁)
+| 시나리오 | 결과 |
+|---|---|
+| 미입력 상태 | 라디오 7개 전부 `unknown`, `certs`/`ip` `[]`, 숫자 4개 `null`, `validate(5)` false |
+| 결격 7선택 + 부채700·자본500 | `debtRatio: 140`, `opProfit: -80`, `revenue: '3억'`(원문), `validate(5)` true |
+| 자본 -100 / 0 | `debtRatio: null`, 표시 "자본잠식 상태로 부채비율 산출 불가" |
+| 영업이익 0 입력 | `opProfit: 0` 유지 (미입력 `null`과 구분됨) |
+| 결격 2개 누락 | `validate(5)` false + 누락 항목명 나열 alert |
+| '해당 없음' 배타 | 일반 2개 → '해당 없음' 체크 시 2개 해제 / 일반 재체크 시 '해당 없음' 해제 ✓ |
+
+### ⑥ 캐시버스팅
+`index.html` 로컬 `?v=` **46곳 전부 `20260731c`** (외부 CDN 제외)
+
+---
+
 ## 최근 수정 이력 (2026-07-31) — collect() 조기 return으로 진단 데이터가 AI에 미전달되던 버그 수정 ⚠ 중대
 
 정책자금 진단 2단계 작업 중 발견. **CROSS_RULES 33개 + micro/sme 규모별 진단 결과가 AI 분석에 전혀 반영되지 않고 있었음.**
@@ -2101,6 +2153,8 @@ biznavi/
 ### ⚠ 반드시 지킬 것 (반복 사고 방지)
 - **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
 - **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
+- **`#revenue`(연매출)는 `type="text"` 자유 텍스트 필드다** (`"3억"`, `"비공개"` 등). 숫자 연산 전 반드시 파싱해야 하며, `Number()`를 그대로 적용하면 `NaN`이 된다
+- **정책자금 진단(`fundingData`)의 미응답 표현을 임의로 바꾸지 말 것** — 라디오 미선택 `'unknown'`(≠`'none'`), 체크박스 미응답 `[]`(≠`['해당 없음']`), 숫자 미입력 `null`(≠`0`). 4단계 판정 로직이 이 구분에 의존한다
 
 - 랜딩페이지 수정 → `landing.css` 또는 `index.html` 랜딩 섹션
 - 위저드/네비/모달 스타일 수정 → `style.css`

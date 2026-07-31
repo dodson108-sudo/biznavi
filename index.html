@@ -19,10 +19,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20260731b" />
-  <link rel="stylesheet" href="css/landing.css?v=20260731b" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20260731b" />
-  <link rel="stylesheet" href="css/print.css?v=20260731b" />
+  <link rel="stylesheet" href="css/style.css?v=20260731c" />
+  <link rel="stylesheet" href="css/landing.css?v=20260731c" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20260731c" />
+  <link rel="stylesheet" href="css/print.css?v=20260731c" />
 </head>
 <body>
 
@@ -1237,11 +1237,150 @@
     <!-- Step 5: 정책자금 진단 (purpose='funding' 전용 — step2·3·4를 건너뛰고 진입) -->
     <div id="step5" class="wiz-card hidden">
       <h3 class="serif">💰 정책자금 진단 <span class="step-badge">STEP 2 / 2</span></h3>
-      <p class="hint">2단계에서 문항 추가 예정</p>
-      <!-- 2단계에서 결격요건·재무 문항 추가 -->
+      <p class="hint">정책자금은 심사 시 결격 사유가 하나라도 있으면 신청이 반려됩니다.<br />
+        아래 항목은 사전 자가진단용이며, 입력하신 정보는 저장되지 않고 진단에만 사용됩니다.<br />
+        정확히 모르시는 항목은 '모름'을 선택해 주세요. 추측해서 고르면 진단 결과가 왜곡됩니다.</p>
+
+      <div class="form-grid">
+
+        <!-- ① 결격 요건 (7문항 · 전부 필수) -->
+        <div class="wiz-section-title">🚫 결격 요건 (필수)</div>
+
+        <div class="form-group full" id="fundTaxArrears">
+          <label>1. 국세·지방세 체납이 있습니까? *</label>
+          <p class="hint">분납 약정 이행 중이면 '해당 없음'으로 볼 수 있으나 기관 확인이 필요합니다</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundTaxArrears" value="none" /><span>해당 없음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundTaxArrears" value="yes" /><span>해당됨</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundTaxArrears" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <div class="form-group full" id="fundCapitalImpair">
+          <label>2. 자본잠식 상태입니까? *</label>
+          <p class="hint">자본총계가 자본금보다 적으면 부분잠식, 자본총계가 음수면 완전잠식입니다</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundCapitalImpair" value="none" /><span>해당 없음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundCapitalImpair" value="yes" /><span>해당됨</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundCapitalImpair" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <div class="form-group full" id="fundCreditIssue">
+          <label>3. 금융질서문란 등록 또는 신용회복 절차 진행 중입니까? *</label>
+          <p class="hint">대표자 개인 기준입니다</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundCreditIssue" value="none" /><span>해당 없음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundCreditIssue" value="yes" /><span>해당됨</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundCreditIssue" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <div class="form-group full" id="fundClosureHist">
+          <label>4. 최근 5년 내 휴업·폐업 이력이 있습니까? *</label>
+          <p class="hint">대표자가 운영했던 다른 사업체 포함</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundClosureHist" value="none" /><span>해당 없음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundClosureHist" value="yes" /><span>해당됨</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundClosureHist" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <div class="form-group full" id="fundRestrictedBiz">
+          <label>5. 제한업종에 해당합니까? *</label>
+          <p class="hint">유흥·사행성·도박·부동산 임대업 등. 기관별로 범위가 다릅니다</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundRestrictedBiz" value="none" /><span>해당 없음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundRestrictedBiz" value="yes" /><span>해당됨</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundRestrictedBiz" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <div class="form-group full" id="fundPriorSupport">
+          <label>6. 기존 정책자금을 수혜 중이거나 한도가 남아있지 않습니까? *</label>
+          <p class="hint">중진공·소진공·신보·기보 등</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundPriorSupport" value="none" /><span>해당 없음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundPriorSupport" value="yes" /><span>해당됨</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundPriorSupport" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <div class="form-group full" id="fundOverdue">
+          <label>7. 대표자 또는 법인의 금융기관 연체 이력이 있습니까? *</label>
+          <p class="hint">최근 3년 기준</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundOverdue" value="none" /><span>해당 없음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundOverdue" value="yes" /><span>해당됨</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundOverdue" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <!-- ② 보유 자산 (선택) -->
+        <div class="wiz-section-title">🏅 보유 자산 (선택)</div>
+
+        <div class="form-group full" id="fundCerts">
+          <label>8. 보유 인증 (복수 선택 가능)</label>
+          <div class="gov-check-group">
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="벤처기업" /><div><div class="gov-check-label">벤처기업</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="이노비즈" /><div><div class="gov-check-label">이노비즈</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="메인비즈" /><div><div class="gov-check-label">메인비즈</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="기업부설연구소·연구개발전담부서" /><div><div class="gov-check-label">기업부설연구소·연구개발전담부서</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="사회적기업(인증)" /><div><div class="gov-check-label">사회적기업(인증)</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="예비사회적기업" /><div><div class="gov-check-label">예비사회적기업</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="소셜벤처 판별기업" /><div><div class="gov-check-label">소셜벤처 판별기업</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="협동조합·마을기업" /><div><div class="gov-check-label">협동조합·마을기업</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="여성기업" /><div><div class="gov-check-label">여성기업</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="장애인기업" /><div><div class="gov-check-label">장애인기업</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="사회적경제기업(기타)" /><div><div class="gov-check-label">사회적경제기업(기타)</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundCerts" value="해당 없음" /><div><div class="gov-check-label">해당 없음</div></div></label>
+          </div>
+          <p class="hint">'해당 없음'을 선택하면 나머지 항목이 자동 해제됩니다</p>
+        </div>
+
+        <div class="form-group full" id="fundIP">
+          <label>9. 지식재산권 보유 (복수 선택 가능)</label>
+          <div class="gov-check-group">
+            <label class="gov-check-item"><input type="checkbox" name="fundIP" value="특허(등록)" /><div><div class="gov-check-label">특허(등록)</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundIP" value="특허(출원중)" /><div><div class="gov-check-label">특허(출원중)</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundIP" value="실용신안" /><div><div class="gov-check-label">실용신안</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundIP" value="디자인권" /><div><div class="gov-check-label">디자인권</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundIP" value="상표권" /><div><div class="gov-check-label">상표권</div></div></label>
+            <label class="gov-check-item"><input type="checkbox" name="fundIP" value="해당 없음" /><div><div class="gov-check-label">해당 없음</div></div></label>
+          </div>
+          <p class="hint">'해당 없음'을 선택하면 나머지 항목이 자동 해제됩니다</p>
+        </div>
+
+        <!-- ③ 재무 정보 (선택 · 모르면 비워두세요) -->
+        <div class="wiz-section-title">📊 재무 정보 (선택)</div>
+
+        <div class="form-group">
+          <label>10. 자산총계 (백만원)</label>
+          <input type="number" id="fundAssetTotal" placeholder="예: 1200" />
+        </div>
+        <div class="form-group">
+          <label>11. 부채총계 (백만원)</label>
+          <input type="number" id="fundDebtTotal" placeholder="예: 700" />
+        </div>
+        <div class="form-group">
+          <label>12. 자본총계 (백만원)</label>
+          <input type="number" id="fundEquityTotal" placeholder="예: 500" />
+        </div>
+        <div class="form-group">
+          <label>13. 최근 회계연도 영업이익 (백만원)</label>
+          <input type="number" id="fundOpProfit" placeholder="예: 80 (적자면 -80)" />
+          <p class="hint">적자면 마이너스(-)로 입력하세요</p>
+        </div>
+        <div class="form-group full">
+          <div id="fundDebtRatio" class="fund-ratio-box hidden"></div>
+          <p class="hint">모르는 항목은 비워두셔도 됩니다. 연매출은 STEP 1에 입력하신 값을 사용합니다.</p>
+        </div>
+
+      </div>
+
       <div class="wiz-nav">
         <button class="btn btn-ghost" onclick="App.backToStep1()">← 이전</button>
-        <button class="btn btn-gold" onclick="alert('정책자금 진단 문항은 2단계에서 구현 예정입니다.')">분석 시작 → (준비중)</button>
+        <button class="btn btn-gold" onclick="App.checkFundingInput()">분석 시작 → (준비중)</button>
       </div>
     </div>
   </div>
@@ -1597,52 +1736,52 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="js/gov-support.js"></script>
 <script src="js/industry-trends.js"></script>
-<script src="js/reference-db.js?v=20260731b"></script>
-<script src="js/ai-engine.js?v=20260731b"></script>
-<script src="js/dashboard.js?v=20260731b"></script>
-<script src="js/wizard.js?v=20260731b"></script>
+<script src="js/reference-db.js?v=20260731c"></script>
+<script src="js/ai-engine.js?v=20260731c"></script>
+<script src="js/dashboard.js?v=20260731c"></script>
+<script src="js/wizard.js?v=20260731c"></script>
 <script src="js/diagnosis/cross-context.js"></script>
-<script src="js/diagnosis/common.js?v=20260731b"></script>
+<script src="js/diagnosis/common.js?v=20260731c"></script>
 <script src="js/diagnosis/diagnosis-micro.js"></script>
 <script src="js/diagnosis/diagnosis-sme.js"></script>
 <script src="js/diagnosis/startup.js"></script>
-<script src="js/diagnosis/industry/mfg_parts.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/food_mfg.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/local_service.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/wholesale.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/restaurant.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/knowledge_it.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/construction.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/medical.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/finance.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/education.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/fashion.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/media.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/export_sme.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/logistics.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/energy.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/agri_food.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/social_enterprise.js?v=20260731b"></script>
-<script src="js/diagnosis/industry/social_venture.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/platform.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/franchise.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/service.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/etc.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/usage_based.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/advertising.js?v=20260731b"></script>
-<script src="js/diagnosis/bizmodel/deeptech.js?v=20260731b"></script>
-<script src="js/app.js?v=20260731b"></script>
-<script src="js/history-tracker.js?v=20260731b"></script>
-<script src="js/pattern-db.js?v=20260731b"></script>
-<script src="js/bep-simulator.js?v=20260731b"></script>
-<script src="js/finance-wizard.js?v=20260731b"></script>
+<script src="js/diagnosis/industry/mfg_parts.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/food_mfg.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/local_service.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/wholesale.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/restaurant.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/knowledge_it.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/construction.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/medical.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/finance.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/education.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/fashion.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/media.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/export_sme.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/logistics.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/energy.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/agri_food.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/social_enterprise.js?v=20260731c"></script>
+<script src="js/diagnosis/industry/social_venture.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/platform.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/franchise.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/service.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/etc.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/usage_based.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/advertising.js?v=20260731c"></script>
+<script src="js/diagnosis/bizmodel/deeptech.js?v=20260731c"></script>
+<script src="js/app.js?v=20260731c"></script>
+<script src="js/history-tracker.js?v=20260731c"></script>
+<script src="js/pattern-db.js?v=20260731c"></script>
+<script src="js/bep-simulator.js?v=20260731c"></script>
+<script src="js/finance-wizard.js?v=20260731c"></script>
 <script src="js/ticker.js"></script>
-<script src="js/hero-canvas.js?v=20260731b"></script>
-<script src="js/hero-bg.js?v=20260731b"></script>
+<script src="js/hero-canvas.js?v=20260731c"></script>
+<script src="js/hero-bg.js?v=20260731c"></script>
 </body>
 </html>

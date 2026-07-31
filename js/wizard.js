@@ -1208,6 +1208,19 @@ const Wizard = (() => {
       if (!get('problems')) { alert('현재 직면한 문제를 입력해주세요.'); return false; }
       if (!get('goals'))    { alert('달성 목표를 입력해주세요.');         return false; }
     }
+    // 정책자금 진단 — 결격요건 7문항만 필수 ('모름'도 정상 입력). 체크박스·재무는 선택
+    if (step === 5) {
+      document.querySelectorAll('.fund-invalid').forEach(el => el.classList.remove('fund-invalid'));
+      const missing = FUND_ELIG_ITEMS.filter(([name]) => !document.querySelector(`input[name="${name}"]:checked`));
+      if (missing.length) {
+        missing.forEach(([name]) => document.getElementById(name)?.classList.add('fund-invalid'));
+        document.getElementById(missing[0][0])?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        alert('결격 요건 ' + missing.length + '개 항목이 선택되지 않았습니다.\n\n'
+              + missing.map(([, label]) => '· ' + label).join('\n')
+              + "\n\n정확히 모르시는 항목은 '모름'을 선택해 주세요.");
+        return false;
+      }
+    }
     return true;
   }
 
@@ -2336,6 +2349,65 @@ const Wizard = (() => {
     return all;
   }
 
+  /* ── 정책자금 진단 (step5) 헬퍼 ────────────────────────────────
+     세 진단은 서로 독립이므로 step5 DOM이 아예 없을 수 있다 → 전부 fallback 처리 */
+
+  const _FUND_NONE = '해당 없음';
+
+  // 결격요건 7문항 (id = 감싸는 .form-group id = 라디오 그룹 name)
+  const FUND_ELIG_ITEMS = [
+    ['fundTaxArrears',    '국세·지방세 체납'],
+    ['fundCapitalImpair', '자본잠식 상태'],
+    ['fundCreditIssue',   '금융질서문란·신용회복 절차'],
+    ['fundClosureHist',   '최근 5년 내 휴업·폐업 이력'],
+    ['fundRestrictedBiz', '제한업종 해당 여부'],
+    ['fundPriorSupport',  '기존 정책자금 수혜·한도'],
+    ['fundOverdue',       '금융기관 연체 이력'],
+  ];
+
+  /* 숫자 입력 파싱 — 미입력이면 null (0과 명확히 구분). 0으로 채우지 않는다 */
+  function _fundNum(id) {
+    const raw = (document.getElementById(id)?.value ?? '').trim();
+    if (raw === '') return null;
+    const v = Number(raw.replace(/,/g, ''));
+    return Number.isFinite(v) ? v : null;
+  }
+
+  /* 부채비율 = 부채총계 / 자본총계 × 100 (소수점 1자리). 자본총계 ≤ 0이면 null */
+  function _fundDebtRatio(debt, equity) {
+    if (debt === null || equity === null || equity <= 0) return null;
+    return Math.round((debt / equity) * 1000) / 10;
+  }
+
+  /* '해당 없음' 배타 처리 — 모순 입력(['벤처기업','해당 없음'])을 입력 단계에서 차단 */
+  function _onFundCheckToggle(groupName, changed) {
+    if (!changed) return;
+    const boxes = Array.from(document.querySelectorAll(`input[name="${groupName}"]`));
+    if (!boxes.length) return;
+    if (changed.value === _FUND_NONE) {
+      if (changed.checked) boxes.forEach(b => { if (b !== changed) b.checked = false; });
+    } else if (changed.checked) {
+      boxes.forEach(b => { if (b.value === _FUND_NONE) b.checked = false; });
+    }
+  }
+
+  /* 부채비율 실시간 표시 — 표시 전용, 판정하지 않는다 */
+  function updateFundDebtRatio() {
+    const box = document.getElementById('fundDebtRatio');
+    if (!box) return;
+    const debt = _fundNum('fundDebtTotal');
+    const equity = _fundNum('fundEquityTotal');
+    if (debt === null || equity === null) {
+      box.classList.add('hidden');
+      box.textContent = '';
+      return;
+    }
+    box.classList.remove('hidden');
+    box.textContent = equity <= 0
+      ? '자본잠식 상태로 부채비율 산출 불가'
+      : '부채비율 ' + _fundDebtRatio(debt, equity).toFixed(1) + '%';
+  }
+
   function collect() {
     const g = id => {
       const el = document.getElementById(id);
@@ -2410,6 +2482,35 @@ const Wizard = (() => {
       isStartup:           g('aiIsStartup') === 'true',
       yearsInBusiness:     g('aiYearsInBusiness'),
       diagScores:          diagScores,
+      // ── 정책자금 진단 (purpose='funding' / step5) ──
+      // 미선택·미입력을 'none'·0·''으로 채우지 않는다:
+      //   라디오 미선택 = 'unknown'(모름과 동일 취급), 체크박스 미응답 = [] (['해당 없음']과 다름),
+      //   숫자 미입력 = null (0과 다름) — 판정 로직(4단계)이 이 구분에 의존한다
+      fundingData: (() => {
+        const radio  = n => document.querySelector(`input[name="${n}"]:checked`)?.value ?? 'unknown';
+        const checks = n => Array.from(document.querySelectorAll(`input[name="${n}"]:checked`))
+                              .map(el => el?.value || '').filter(Boolean);
+        const debtTotal   = _fundNum('fundDebtTotal');
+        const equityTotal = _fundNum('fundEquityTotal');
+        return {
+          taxArrears:    radio('fundTaxArrears'),
+          capitalImpair: radio('fundCapitalImpair'),
+          creditIssue:   radio('fundCreditIssue'),
+          closureHist:   radio('fundClosureHist'),
+          restrictedBiz: radio('fundRestrictedBiz'),
+          priorSupport:  radio('fundPriorSupport'),
+          overdue:       radio('fundOverdue'),
+          certs:         checks('fundCerts'),
+          ip:            checks('fundIP'),
+          assetTotal:    _fundNum('fundAssetTotal'),
+          debtTotal:     debtTotal,
+          equityTotal:   equityTotal,
+          opProfit:      _fundNum('fundOpProfit'),
+          debtRatio:     _fundDebtRatio(debtTotal, equityTotal),
+          // STEP 1 연매출 — 자유 텍스트 원문 그대로. 파싱·정규화하지 않는다 (숫자 연산 전 파싱 필수)
+          revenue:       g('revenue') || null,
+        };
+      })(),
       // DX 탐지 시그널 (1~2: 아날로그, 4~5: 디지털 선도)
       dxSignal: (() => {
         const s = diagScores['diag-common-container_dx_detect']?.score || 0;
@@ -2796,6 +2897,18 @@ const Wizard = (() => {
     var biEl = document.getElementById('bizItem');
     if (btEl) btEl.addEventListener('input', inferIndustryFromType);
     if (biEl) biEl.addEventListener('input', inferIndustryFromType);
+
+    // 정책자금 진단(step5) — '해당 없음' 배타 처리 + 부채비율 실시간 표시
+    // (HTML oninput 속성은 캐시 문제가 있었으므로 리스너로 등록 — 2026-06-05 c317c03 참조)
+    ['fundCerts', 'fundIP'].forEach(function(nm) {
+      document.querySelectorAll('input[name="' + nm + '"]').forEach(function(box) {
+        box.addEventListener('change', function() { _onFundCheckToggle(nm, box); });
+      });
+    });
+    ['fundDebtTotal', 'fundEquityTotal'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateFundDebtRatio);
+    });
   });
 
   return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };

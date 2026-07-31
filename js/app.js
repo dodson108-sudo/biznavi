@@ -167,6 +167,16 @@ const App = (() => {
     Wizard.goStep(n);
   }
 
+  /* 정책자금 진단 입력 확인용 — 판정 로직은 4단계에서 구현.
+     의도적으로 runAnalysis()에 연결하지 않는다 (진단점수가 빈 상태로 Claude API를 호출하면
+     토큰만 소모되고 결과는 무의미하므로) */
+  function checkFundingInput() {
+    if (!Wizard.validate(5)) return;
+    const fd = Wizard.collect()?.fundingData || {};
+    console.table(fd);
+    alert('입력 확인 완료. 판정 로직은 4단계에서 구현 예정입니다.');
+  }
+
   /* ── ANALYSIS ── */
   async function runAnalysis() {
     if (!Wizard.validate(4)) return;
@@ -275,7 +285,7 @@ const App = (() => {
     setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
   }
 
-  return { startWizard, startFundingDiagnosis, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
+  return { startWizard, startFundingDiagnosis, checkFundingInput, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */
