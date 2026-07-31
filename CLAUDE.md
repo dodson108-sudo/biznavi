@@ -8,6 +8,73 @@
 
 ---
 
+## 최근 수정 이력 (2026-07-31) — collect() 조기 return으로 진단 데이터가 AI에 미전달되던 버그 수정 ⚠ 중대
+
+정책자금 진단 2단계 작업 중 발견. **CROSS_RULES 33개 + micro/sme 규모별 진단 결과가 AI 분석에 전혀 반영되지 않고 있었음.**
+
+### ① 근본 원인 — `collect()` 조기 return
+- `js/wizard.js collect()`가 `return { … };` 로 **객체 리터럴을 즉시 반환**하고 종료
+- 그 뒤 53줄(`scaleScores` 계산 / `microWarnings`·`microPrompt` / `smeWarnings`·`smePrompt` / `CrossContext` 블록 / `return data;`)은 **도달 불가(unreachable)** 였고, `data` 변수는 선언조차 없어 도달해도 ReferenceError
+- 결과: `ai-engine.js:1286~1292`가 참조하는 `d.microPrompt` / `d.smePrompt` / `d.crossPrompt` 가 **항상 undefined** → 프롬프트에 아무것도 주입되지 않음
+- **수정**: `return {` → `const data = {` 로 변경, 맨 끝 `return data;` 가 최종 반환이 되도록 복구
+
+### ② `collectAllScores()` 신설 — DOM 수집 금지
+- 죽은 코드가 호출하던 `collectAllScores`는 **저장소 어디에도 존재하지 않는 미선언 식별자**였음
+  (`collectAllScores ? … : {}` 는 undefined 체크가 아니라 **ReferenceError를 던짐** — 살리는 순간 collect() 전체가 예외로 중단됐을 것)
+- ⚠ **진단 점수는 DOM이 아니라 `diagScores` 객체에만 존재한다.** `setScore()`가 `diagScores[key] = {score, memo}` 로만 저장하고, `type="hidden"` 입력은 하나도 만들지 않는다
+- 따라서 기존 CrossContext 블록의 `document.querySelectorAll('[id^="diag-"]')` 수집은 **항상 빈 객체 `{}`** 를 반환했음 (`diag-item-*`·컨테이너는 div라 `.value`가 없음) → 이 방식도 함께 폐기
+- 신설 `collectAllScores()`: `diagScores` → `{ 'diag-micro-container_1_3': 3, … }` **평면 숫자 맵** 반환 (0점·미입력 제외)
+  - `DiagMicro.calcScores` / `DiagSme.calcScores` / `CrossContext.buildScoreMap`(`Number(val)`) 모두 평면 숫자를 기대하므로 `{score,memo}` 객체를 넘기면 NaN으로 전부 탈락함
+- micro / sme / CrossContext **세 곳이 이 함수를 공유**. CrossContext는 BM 프록시 주입으로 맵을 변형하므로 `Object.assign({}, allScores)` 사본(`crossScores`)을 사용
+
+### ③ 빈 스코어의 실제 증상 — 허위 발동이 아니라 '전면 무력화' (기록 정확성 중요)
+`cross-context.js:600`의 룰 평가부가
+```js
+return score !== null && score <= trigger.threshold;
+```
+이므로 **키가 없으면 `null` → 조건 자체가 false → 규칙이 아예 발동하지 않는다.**
+빈 스코어가 CRITICAL 경고를 무더기로 **허위 발동시키는 것이 아니라**, CROSS_RULES 전체가 조용히 무력화되는 것이 정확한 증상이다. (초기 진단 중 "허위 발동" 추정이 있었으나 사실이 아님 — 잘못된 원인을 기록하면 나중에 오판을 부르므로 명시해 둠)
+
+### ④ `bizScale` 후반부 덮어쓰기 삭제 — 2026-05-15 버그 재발 방지
+- 죽은 코드에 `const bizScale = g('bizScale') || g('bizScaleSelect') || 'micro';` 재계산 + `data.bizScale = bizScale;` 덮어쓰기가 있었음
+- 리터럴 내부 계산은 explicit 없을 때 `employees`로 추론(`'1~5명'`·공백 → micro, **그 외 sme**)하는데, 후반부는 **무조건 `'micro'`** → 직원 6명 이상 기업이 micro로 오분류
+- 이는 CLAUDE.md 2026-05-15 ①에서 고친 *"bizScale 미추론 → micro 모드 출력 → keyStrategies 누락"* 버그의 **정확한 재발**
+- **수정**: 후반부 재계산·덮어쓰기 2줄 모두 삭제, `const bizScale = data.bizScale || 'micro'` 로 리터럴 계산값을 그대로 사용
+
+### ⑤ DiagSme는 현재 비활성 — 별도 작업 필요
+- `diagnosis-sme.js`는 `scores['diag-sme-container_*']` 키를 기대하지만, **`diag-sme-container`는 diagnosis-sme.js 안에만 존재**하고 index.html·`loadDiagnosisUI()` 어디에서도 렌더링되지 않음
+- 그대로 살리면 `smePrompt`가 **전 항목 0점("0점 (위험)")** 인 허위 요약이 되므로 가드 적용:
+  ```js
+  else if (bizScale === 'sme' && window.DiagSme &&
+           Object.keys(allScores).some(k => k.startsWith('diag-sme-container_')))
+  ```
+- **미해결 과제**: `diag-sme-container` 렌더링 연결 (별도 작업으로 분리)
+
+### ⑥ 검증 (Node DOM 스텁 스모크 테스트)
+micro 35문항을 동일 점수로 채워 `Wizard.collect()` 실행:
+
+| 입력 | scaleScores.total | microPrompt | crossPrompt | microWarnings | crossWarnings |
+|---|---|---|---|---|---|
+| 전 항목 3점 | 60 | 353자 | 생성됨 | 0 | 0 |
+| 전 항목 1점 | 20 | 1794자 | 생성됨 | 6 | 12 |
+
+점수에 따라 경고 수가 실제로 변동 → 파이프라인 정상 연결 확인 (수정 전에는 전부 undefined)
+
+### ⑦ 캐시버스팅 일괄 갱신
+- `index.html`의 로컬 `?v=` **46곳 전부 `20260731b`로 통일** (외부 CDN 제외)
+- 참고: `js/gov-support.js`·`js/industry-trends.js`·`js/diagnosis/cross-context.js`·`js/diagnosis/diagnosis-micro.js`·`js/diagnosis/diagnosis-sme.js`·`js/diagnosis/startup.js`·`js/ticker.js` 7개는 **`?v=` 자체가 없음** — 이 파일들을 수정할 때는 `?v=`를 새로 붙여야 캐시가 갱신됨
+
+### 검증 방법 (배포 후 브라우저 콘솔 — 소상공인 모드로 진단 완료 상태)
+```js
+const d = Wizard.collect();
+console.log({ bizScale: d.bizScale, hasScaleScores: !!d.scaleScores,
+              hasMicroPrompt: !!d.microPrompt, hasCrossPrompt: !!d.crossPrompt,
+              warnCount: (d.crossWarnings||[]).length });
+console.log(d.crossPrompt);
+```
+
+---
+
 ## 최근 수정 이력 (2026-07-30) — 정책자금 진단 1단계: 진입점·purpose 플래그·step5 스켈레톤 추가
 
 세 번째 진입 경로(재무분석 / 경영전략 진단 / **정책자금 진단**) 중 정책자금 진단의 **뼈대만** 구축.
@@ -2030,6 +2097,11 @@ biznavi/
 ---
 
 ## 작업 규칙
+
+### ⚠ 반드시 지킬 것 (반복 사고 방지)
+- **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
+- **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
+
 - 랜딩페이지 수정 → `landing.css` 또는 `index.html` 랜딩 섹션
 - 위저드/네비/모달 스타일 수정 → `style.css`
 - 모바일 반응형 수정 → `landing.css` (`@media(max-width:768px)` 블록)

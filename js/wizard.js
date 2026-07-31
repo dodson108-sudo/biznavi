@@ -2322,12 +2322,26 @@ const Wizard = (() => {
     });
   }
 
+  /* 전체 진단 점수를 { 'diag-xxx-container_1_2': 3, ... } 평면 숫자 맵으로 수집.
+     ⚠ 점수는 DOM이 아니라 diagScores 객체에만 존재한다.
+        querySelectorAll('[id^="diag-"]') 방식은 값을 가진 요소가 없어 항상 빈 객체를 반환하므로 금지.
+     DiagMicro.calcScores / DiagSme.calcScores / CrossContext.buildScoreMap 모두
+     Number(val) 평면값을 기대하므로 {score, memo} 객체가 아닌 숫자만 담는다. */
+  function collectAllScores() {
+    const all = {};
+    Object.keys(diagScores || {}).forEach(k => {
+      const s = Number(diagScores[k]?.score || 0);
+      if (s > 0) all[k] = s;
+    });
+    return all;
+  }
+
   function collect() {
     const g = id => {
       const el = document.getElementById(id);
       return el ? el.value.trim() : '';
     };
-    return {
+    const data = {
       purpose:         _purpose || 'general',   // 'general' | 'funding'
       companyName:     g('companyName'),
       bizType:         g('bizType'),         // 업태 (사업자등록증 — 예: 서비스)
@@ -2409,39 +2423,39 @@ const Wizard = (() => {
       })(),
     };
 
-    const bizScale = (typeof g === 'function' ? g('bizScale') : '') ||
-      (typeof g === 'function' ? g('bizScaleSelect') : '') || 'micro';
+    // bizScale은 리터럴에서 employees 추론까지 마친 data.bizScale을 그대로 사용한다.
+    // (과거 여기서 `g('bizScale') || … || 'micro'` 로 재계산 후 덮어써서
+    //  직원 6명 이상인데 micro로 오분류되던 2026-05-15 버그가 재발했음 — 재계산 금지)
+    const bizScale = data.bizScale || 'micro';
 
     let scaleScores = {};
+    const allScores = collectAllScores();
     if (bizScale === 'micro' && window.DiagMicro) {
-      const allScores = collectAllScores ? collectAllScores() : {};
       const microGroup = DiagMicro.getGroup(data.industryKey || '');
       scaleScores = DiagMicro.calcScores(allScores);
       data.microWarnings = DiagMicro.detectCrossWarnings(allScores);
       data.microPrompt = DiagMicro.buildPromptSummary(allScores, microGroup);
-    } else if (bizScale === 'sme' && window.DiagSme) {
-      const allScores = collectAllScores ? collectAllScores() : {};
+    } else if (bizScale === 'sme' && window.DiagSme &&
+               Object.keys(allScores).some(k => k.startsWith('diag-sme-container_'))) {
+      // ⚠ DiagSme는 'diag-sme-container_*' 키를 기대하지만 해당 컨테이너가 렌더링되지 않아
+      //    현재는 이 가드에 걸려 항상 비활성. 전 항목 0점 허위 요약 방지용 (별도 작업 필요)
       scaleScores = DiagSme.calcScores(allScores);
       data.smeWarnings = DiagSme.detectCrossWarnings(allScores);
       data.smePrompt = DiagSme.buildPromptSummary(allScores);
     }
     data.scaleScores = scaleScores;
-    data.bizScale = bizScale;
 
     if (window.CrossContext) {
       const industryId = data.industryKey || data.industry || data.industryName || '';
       const bmId = data.bizModel || data.bm || data.bizModelName || '';
-      const allScores = {};
-      document.querySelectorAll('[id^="diag-"]').forEach(el => {
-        if (el.value) allScores[el.id] = Number(el.value);
-      });
+      const crossScores = Object.assign({}, allScores);
 
       // BM 탭이 제거된 경우(TAB_ORDER=['common','industry']), common 점수로 BM 프록시 주입
-      const hasBmScores = Object.keys(allScores).some(k => k.startsWith('diag-bm-container_'));
+      const hasBmScores = Object.keys(crossScores).some(k => k.startsWith('diag-bm-container_'));
       if (!hasBmScores) {
         const domainAvg = {};
         [1, 2, 3, 4, 5].forEach(d => {
-          const vals = Object.entries(allScores)
+          const vals = Object.entries(crossScores)
             .filter(([k]) => k.includes(`diag-common-container_${d}_`))
             .map(([, v]) => v);
           domainAvg[d] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 3;
@@ -2452,14 +2466,14 @@ const Wizard = (() => {
           [1, 2, 3, 4].forEach(area => {
             [1, 2, 3, 4].forEach(item => {
               const key = `diag-bm-container_${prefix}_${area}_${item}`;
-              allScores[key] = domainAvg[BM_AREA_TO_DOMAIN[area] || 3];
+              crossScores[key] = domainAvg[BM_AREA_TO_DOMAIN[area] || 3];
             });
           });
         });
       }
 
-      data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, allScores, bizScale);
-      data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, allScores, bizScale);
+      data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, crossScores, bizScale);
+      data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, crossScores, bizScale);
     }
 
     return data;
