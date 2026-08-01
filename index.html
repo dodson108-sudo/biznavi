@@ -19,10 +19,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20260801b" />
-  <link rel="stylesheet" href="css/landing.css?v=20260801b" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20260801b" />
-  <link rel="stylesheet" href="css/print.css?v=20260801b" />
+  <link rel="stylesheet" href="css/style.css?v=20260801c" />
+  <link rel="stylesheet" href="css/landing.css?v=20260801c" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20260801c" />
+  <link rel="stylesheet" href="css/print.css?v=20260801c" />
 </head>
 <body>
 
@@ -1243,6 +1243,67 @@
 
       <div class="form-grid">
 
+        <!-- ⓪ 기본 정보 확인 — 지원 가능 기관을 결정하는 핵심 기준 (전부 선택 입력) -->
+        <div class="wiz-section-title">🧭 기본 정보 확인</div>
+        <div class="form-group full">
+          <p class="hint">아래 3개 항목은 지원 가능 기관을 결정하는 핵심 기준입니다. 정확히 입력하실수록 진단 결과가 명확해집니다.</p>
+        </div>
+
+        <div class="form-group full" id="fundIndustryBox">
+          <label>업종 확인</label>
+          <p class="hint" id="fundIndustryDetected">업종을 확인하는 중입니다.</p>
+          <select id="fundIndustryOverride">
+            <option value="">위 판별 결과 그대로 사용</option>
+            <option value="mfg_parts">제조업</option>
+            <option value="food_mfg">식품/음료</option>
+            <option value="local_service">서비스업</option>
+            <option value="wholesale">유통/물류</option>
+            <option value="restaurant">외식 및 휴게음식업</option>
+            <option value="knowledge_it">IT/소프트웨어</option>
+            <option value="construction">건설/부동산</option>
+            <option value="medical">의료/헬스케어</option>
+            <option value="finance">금융/핀테크</option>
+            <option value="education">교육</option>
+            <option value="fashion">패션/뷰티</option>
+            <option value="media">미디어/엔터테인먼트</option>
+            <option value="export_sme">수출중소기업</option>
+            <option value="logistics">물류운송</option>
+            <option value="energy">환경에너지</option>
+            <option value="agri_food">농림식품원료</option>
+            <option value="social_enterprise">사회적기업</option>
+            <option value="social_venture">소셜벤처</option>
+            <option value="etc">기타</option>
+          </select>
+          <p class="hint">사업자등록증의 업태·종목으로 자동 판별한 결과입니다. 실제 사업 내용과 다르면 직접 선택해 주세요.</p>
+          <p class="hint">사회적기업·협동조합·소셜벤처는 소상공인이라도 중진공 정책자금 신청이 가능한 예외 대상입니다.</p>
+        </div>
+
+        <div class="form-group full" id="fundEmployeeCountBox">
+          <label>상시근로자 수 (대표자 제외)</label>
+          <p class="hint">직전 사업연도 평균 인원 기준입니다. 소상공인 여부를 판정하는 핵심 기준이며, 업종에 따라 5인 미만 또는 10인 미만이 기준입니다.</p>
+          <input type="number" id="fundEmployeeCount" min="0" placeholder="예: 3 (단위: 명)" />
+        </div>
+
+        <div class="form-group full" id="fundIsManufacturing">
+          <label>제조·가공 공정을 직접 영위하십니까?</label>
+          <p class="hint">원재료를 가공해 직접 제품을 만드는 경우 '직접 영위함'입니다. 완제품을 매입해 판매만 하는 경우는 해당하지 않습니다. 소상공인이라도 제조업을 영위하면 중진공 정책자금 신청이 가능합니다.</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundIsManufacturing" value="yes" /><span>직접 영위함</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundIsManufacturing" value="no" /><span>영위하지 않음</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundIsManufacturing" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
+        <div class="form-group full" id="fundCurrentStatus">
+          <label>현재 사업장이 정상 영업 중입니까?</label>
+          <p class="hint">신청일 현재 휴업·폐업 상태이면 신청할 수 없습니다. 과거 휴·폐업 이력은 별도 항목에서 확인합니다.</p>
+          <div class="fund-radio-row">
+            <label class="fund-radio-opt"><input type="radio" name="fundCurrentStatus" value="active" /><span>정상 영업 중</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundCurrentStatus" value="closed" /><span>휴업 또는 폐업 중</span></label>
+            <label class="fund-radio-opt"><input type="radio" name="fundCurrentStatus" value="unknown" /><span>모름</span></label>
+          </div>
+        </div>
+
         <!-- ① 결격 요건 (7문항 · 전부 필수) -->
         <div class="wiz-section-title">🚫 결격 요건 (필수)</div>
 
@@ -1277,8 +1338,8 @@
         </div>
 
         <div class="form-group full" id="fundClosureHist">
-          <label>4. 최근 5년 내 휴업·폐업 이력이 있습니까? *</label>
-          <p class="hint">대표자가 운영했던 다른 사업체 포함</p>
+          <label>4. 최근 5년 내 휴업·폐업 이력이 있습니까? (참고용) *</label>
+          <p class="hint">대표자가 운영했던 다른 사업체 포함. 현재 상태는 위 '기본 정보 확인'에서 응답한 내용이 판정에 사용됩니다.</p>
           <div class="fund-radio-row">
             <label class="fund-radio-opt"><input type="radio" name="fundClosureHist" value="none" /><span>해당 없음</span></label>
             <label class="fund-radio-opt"><input type="radio" name="fundClosureHist" value="yes" /><span>해당됨</span></label>
@@ -1737,53 +1798,53 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="js/gov-support.js"></script>
 <script src="js/industry-trends.js"></script>
-<script src="js/reference-db.js?v=20260801b"></script>
-<script src="js/ai-engine.js?v=20260801b"></script>
-<script src="js/dashboard.js?v=20260801b"></script>
-<script src="js/wizard.js?v=20260801b"></script>
+<script src="js/reference-db.js?v=20260801c"></script>
+<script src="js/ai-engine.js?v=20260801c"></script>
+<script src="js/dashboard.js?v=20260801c"></script>
+<script src="js/wizard.js?v=20260801c"></script>
 <script src="js/diagnosis/cross-context.js"></script>
-<script src="js/diagnosis/funding-rules.js?v=20260801b"></script>
-<script src="js/diagnosis/common.js?v=20260801b"></script>
+<script src="js/diagnosis/funding-rules.js?v=20260801c"></script>
+<script src="js/diagnosis/common.js?v=20260801c"></script>
 <script src="js/diagnosis/diagnosis-micro.js"></script>
 <script src="js/diagnosis/diagnosis-sme.js"></script>
 <script src="js/diagnosis/startup.js"></script>
-<script src="js/diagnosis/industry/mfg_parts.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/food_mfg.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/local_service.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/wholesale.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/restaurant.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/knowledge_it.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/construction.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/medical.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/finance.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/education.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/fashion.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/media.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/export_sme.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/logistics.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/energy.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/agri_food.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/social_enterprise.js?v=20260801b"></script>
-<script src="js/diagnosis/industry/social_venture.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/platform.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/franchise.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/service.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/etc.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/usage_based.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/advertising.js?v=20260801b"></script>
-<script src="js/diagnosis/bizmodel/deeptech.js?v=20260801b"></script>
-<script src="js/app.js?v=20260801b"></script>
-<script src="js/history-tracker.js?v=20260801b"></script>
-<script src="js/pattern-db.js?v=20260801b"></script>
-<script src="js/bep-simulator.js?v=20260801b"></script>
-<script src="js/finance-wizard.js?v=20260801b"></script>
+<script src="js/diagnosis/industry/mfg_parts.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/food_mfg.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/local_service.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/wholesale.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/restaurant.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/knowledge_it.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/construction.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/medical.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/finance.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/education.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/fashion.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/media.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/export_sme.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/logistics.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/energy.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/agri_food.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/social_enterprise.js?v=20260801c"></script>
+<script src="js/diagnosis/industry/social_venture.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/platform.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/franchise.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/service.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/etc.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/usage_based.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/advertising.js?v=20260801c"></script>
+<script src="js/diagnosis/bizmodel/deeptech.js?v=20260801c"></script>
+<script src="js/app.js?v=20260801c"></script>
+<script src="js/history-tracker.js?v=20260801c"></script>
+<script src="js/pattern-db.js?v=20260801c"></script>
+<script src="js/bep-simulator.js?v=20260801c"></script>
+<script src="js/finance-wizard.js?v=20260801c"></script>
 <script src="js/ticker.js"></script>
-<script src="js/hero-canvas.js?v=20260801b"></script>
-<script src="js/hero-bg.js?v=20260801b"></script>
+<script src="js/hero-canvas.js?v=20260801c"></script>
+<script src="js/hero-bg.js?v=20260801c"></script>
 </body>
 </html>

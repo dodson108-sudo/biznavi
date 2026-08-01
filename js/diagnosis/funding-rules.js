@@ -131,6 +131,11 @@ const FundingRules = (() => {
     return EMP_BRACKETS[String(employees).trim()] || null;
   }
 
+  /* 소상공인 상시근로자 기준 — 제조·건설·운수·광업 10인 미만, 그 외 5인 미만 */
+  function _semasLimit(ctx) {
+    return SEMAS_10_PERSON_INDUSTRIES.indexOf(ctx?.industryKey) >= 0 ? 10 : 5;
+  }
+
   /* 업력(년) — foundedYear가 있을 때만 계산. 없으면 null */
   function _businessAge(ctx) {
     const y = parseInt(String(ctx?.foundedYear || '').slice(0, 4), 10);
@@ -160,7 +165,13 @@ const FundingRules = (() => {
     /* ═══ 소진공 (semas) ═══ */
     {
       id: 'semas_scale', agency: 'semas', label: '소상공인 규모 요건', ...SRC_SEMAS,
+      /* ① employeeCount(정확한 숫자)가 있으면 확정 판정 — conditional로 넘기지 않는다
+         ② 없으면 employees 구간 문자열로 fallback (경계값 확정 불가 → conditional) */
       test: (f, ctx) => {
+        const n = f?.employeeCount;
+        if (typeof n === 'number' && n >= 0) {
+          return n < _semasLimit(ctx) ? 'clear' : 'blocked';
+        }
         const b = _bracket(ctx?.employees);
         if (!b) return 'unknown';
         if (b.max <= 5) return 'conditional';          // 1~5명 — 경계값 5인만 문제
@@ -169,6 +180,14 @@ const FundingRules = (() => {
         return SEMAS_10_PERSON_INDUSTRIES.indexOf(ctx?.industryKey) >= 0 ? 'conditional' : 'blocked';
       },
       detail: (f, ctx, status) => {
+        const n = f?.employeeCount;
+        if (typeof n === 'number' && n >= 0) {
+          const limit = _semasLimit(ctx);
+          const note = ' 직전 사업연도 평균 인원 기준이며, 신청 시점 4대보험 가입자 수도 함께 검토됩니다.';
+          return (status === 'clear')
+            ? '상시근로자 ' + n + '명으로 소상공인 요건(' + limit + '인 미만)을 충족합니다.' + note
+            : '상시근로자 ' + n + '명으로 소상공인 기준(' + limit + '인 미만)을 초과합니다. 소진공 대상이 아니며 중진공 트랙 검토가 필요합니다.' + note;
+        }
         const b = _bracket(ctx?.employees);
         if (!b) return null;
         if (b.max <= 5) {
@@ -182,13 +201,18 @@ const FundingRules = (() => {
         return '상시근로자 규모가 소상공인 기준(5인 미만, 제조·건설·운수·광업 10인 미만)을 초과합니다. 중진공 트랙 검토가 필요합니다.';
       },
       severity: (f, ctx, status) => {
+        if (status === 'blocked') return 'high';
+        if (status === 'clear') return 'low';
         const b = _bracket(ctx?.employees);
         if (status === 'conditional' && b && b.max <= 5) return 'low';
-        return status === 'blocked' ? 'high' : 'medium';
+        return 'medium';
       },
       message: {
         blocked: '상시근로자 규모가 소상공인 기준을 초과합니다. 중진공 트랙 검토가 필요합니다.',
         conditional: '상시근로자 수 경계값 확인이 필요합니다.',
+        /* clear는 현재 findings에서 제외되지만(_INCLUDE_CLEAR_FINDINGS=false),
+           5단계에서 '요건 충족' 표시 정책으로 바꾸면 바로 쓸 수 있도록 문자열을 남겨둔다 */
+        clear: '상시근로자 수가 소상공인 요건을 충족합니다.',
         unknown: '상시근로자 수가 입력되지 않아 소상공인 요건 충족 여부를 확인할 수 없습니다.',
       },
       remedy: '직전 사업연도 월평균 상시근로자 수를 4대보험 가입자 기준으로 확인',
@@ -204,14 +228,36 @@ const FundingRules = (() => {
       remedy: '체납액 완납 또는 징수유예·분납 승인 절차 진행',
     },
     {
-      id: 'semas_closure', agency: 'semas', label: '휴업·폐업 상태', ...SRC_SEMAS,
-      test: (f) => _unknown(f?.closureHist) ? 'unknown' : (_yes(f.closureHist) ? 'conditional' : 'clear'),
+      id: 'semas_closure', agency: 'semas', label: '현재 휴업·폐업 상태', ...SRC_SEMAS,
+      /* 과거 이력(closureHist)이 아니라 현재 상태(currentStatus)로 판정한다 */
+      test: (f) => {
+        if (f?.currentStatus === 'closed') return 'blocked';
+        if (f?.currentStatus === 'active') return 'clear';
+        return 'unknown';
+      },
+      severity: (f, ctx, status) => (status === 'blocked' ? 'high' : 'medium'),
       message: {
-        blocked: '',
-        conditional: '신청일 현재 휴업·폐업 상태이면 신청할 수 없습니다. 과거 이력만 있고 현재 정상 영업 중이면 해당하지 않습니다. 현재 사업자 상태 확인이 필요합니다.',
-        unknown: '휴업·폐업 이력 여부가 확인되지 않았습니다. 소진공은 신청일 현재 휴업·폐업 기업을 제외합니다.',
+        blocked: '신청일 현재 휴업·폐업 상태이면 소진공 정책자금을 신청할 수 없습니다. 사업 재개 후 신청이 가능합니다.',
+        conditional: '',
+        clear: '현재 정상 영업 중으로 확인되었습니다.',
+        unknown: '현재 사업장 운영 상태가 확인되지 않았습니다. 소진공은 신청일 현재 휴업·폐업 기업을 제외합니다.',
       },
       remedy: '사업자등록 상태(계속사업자) 확인 — 국세청 홈택스 사업자상태 조회',
+    },
+    {
+      id: 'semas_closure_history', agency: 'semas', label: '과거 휴·폐업 이력 (참고)', ...SRC_SEMAS,
+      /* 결격 판정에 사용하지 않는 참고 항목.
+         현재 상태는 semas_closure(currentStatus)가 판정하며, 이 항목은 심사 참고용이다.
+         결격요건 7문항은 validate(5) 필수라 실제 제출 시 'unknown'은 나오지 않는다. */
+      test: (f) => (_yes(f?.closureHist) ? 'conditional' : 'clear'),
+      severity: () => 'low',
+      message: {
+        blocked: '',
+        conditional: '과거 휴·폐업 이력은 그 자체로 결격 사유가 아닙니다. 다만 재도전·재창업 관련 자금(소진공 재도전특별자금, 중진공 재창업자금 등)을 신청하실 경우 심사에서 참고될 수 있습니다.',
+        clear: '',
+        unknown: '',
+      },
+      remedy: '',
     },
     {
       id: 'semas_credit', agency: 'semas', label: '신용 문제 (연체·금융질서문란)', ...SRC_SEMAS,
@@ -286,12 +332,19 @@ const FundingRules = (() => {
       remedy: '연체 해소 후 등록 정보 말소 확인 또는 신용회복 절차 완료',
     },
     {
-      id: 'kosmes_closure', agency: 'kosmes', label: '휴·폐업 상태 (융자제한 2호)', ...SRC_KOSMES,
-      test: (f) => _unknown(f?.closureHist) ? 'unknown' : (_yes(f.closureHist) ? 'conditional' : 'clear'),
+      id: 'kosmes_closure', agency: 'kosmes', label: '현재 휴·폐업 상태 (융자제한 2호)', ...SRC_KOSMES,
+      /* 과거 이력이 아니라 현재 상태(currentStatus)로 판정한다 */
+      test: (f) => {
+        if (f?.currentStatus === 'closed') return 'blocked';
+        if (f?.currentStatus === 'active') return 'clear';
+        return 'unknown';
+      },
+      severity: (f, ctx, status) => (status === 'blocked' ? 'high' : 'medium'),
       message: {
-        blocked: '',
-        conditional: '중진공 융자제한 2호는 "휴·폐업중인 기업"을 제외합니다. 과거 이력만 있고 현재 정상 영업 중이면 해당하지 않으므로 현재 사업자 상태 확인이 필요합니다.',
-        unknown: '휴·폐업 이력 여부가 확인되지 않았습니다. 중진공 융자제한 2호 대상입니다.',
+        blocked: '중진공 융자제한 2호 "휴·폐업중인 기업"에 해당합니다. 신청일 현재 휴업·폐업 상태이면 신청할 수 없으며, 사업 재개 후 신청이 가능합니다.',
+        conditional: '',
+        clear: '현재 정상 영업 중으로 확인되었습니다.',
+        unknown: '현재 사업장 운영 상태가 확인되지 않았습니다. 중진공 융자제한 2호 대상입니다.',
       },
       remedy: '사업자등록 상태(계속사업자) 확인 — 국세청 홈택스 사업자상태 조회',
     },
@@ -404,17 +457,35 @@ const FundingRules = (() => {
   function _kosmesEligibility(f, ctx) {
     if ((ctx?.bizScale || '') !== 'micro') return { eligible: true, eligibilityUncertain: false };
 
+    const industryKey = ctx?.industryKey || '';
+    const mfg = f?.isManufacturing;
+
+    // ① 사용자 응답 우선 — industryKey와 무관하게 '직접 영위함'이면 제조업 예외 적용
+    if (mfg === 'yes') {
+      return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위' };
+    }
+
+    // ② 사회적경제기업 인증 예외 (isManufacturing 응답과 무관하게 평가)
     const certs = Array.isArray(f?.certs) ? f.certs : [];
-    const hasSocialCert = certs.some(c => KOSMES_SOCIAL_CERTS.indexOf(c) >= 0);
-    if (hasSocialCert) {
+    if (certs.some(c => KOSMES_SOCIAL_CERTS.indexOf(c) >= 0)) {
       return { eligible: true, eligibilityUncertain: false, exceptionBy: '(예비)사회적기업·협동조합·마을기업·소셜벤처 예외' };
     }
 
-    const industryKey = ctx?.industryKey || '';
-    if (KOSMES_MFG_INDUSTRIES.indexOf(industryKey) >= 0) {
-      return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위 예외' };
+    // ③ '영위하지 않음' — 제조업 예외 미적용. 업종 판별과 충돌하면 재확인을 안내
+    if (mfg === 'no') {
+      const conflict = (KOSMES_MFG_INDUSTRIES.indexOf(industryKey) >= 0)
+        ? ' 업종은 제조업으로 판별되었으나 제조 공정을 직접 영위하지 않는다고 응답하셨습니다. 응답이 정확한지 확인해 주세요.'
+        : '';
+      return {
+        eligible: false, eligibilityUncertain: false,
+        notEligibleReason: '소상공인은 중진공 융자제한 9호로 원칙 제외입니다.' + conflict + KOSMES_UNVERIFIABLE_TAIL,
+      };
     }
 
+    // ④ '모름'·미응답 — 업종 기반 기존 로직
+    if (KOSMES_MFG_INDUSTRIES.indexOf(industryKey) >= 0) {
+      return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위 예외 (업종 기준)' };
+    }
     const uncertain = KOSMES_MAYBE_MFG_INDUSTRIES.indexOf(industryKey) >= 0;
     const reason = uncertain
       ? '소상공인은 중진공 융자제한 9호로 원칙 제외이나, 제조 공정을 직접 영위하면 예외 대상일 수 있습니다. 중진공 확인이 필요합니다.'
@@ -426,11 +497,16 @@ const FundingRules = (() => {
 
   const DEFAULT_SEVERITY = { blocked: 'high', conditional: 'medium', unknown: 'medium', clear: 'low' };
 
+  /* clear 항목을 findings에 포함할지 — 현재는 제외.
+     5단계 화면에서 '요건 충족' 표시가 필요하면 이 상수만 true로 바꾸면 된다
+     (각 규칙의 message.clear / detail(clear) 문자열은 이미 준비되어 있음) */
+  const _INCLUDE_CLEAR_FINDINGS = false;
+
   function _runRule(rule, f, ctx) {
     let status;
     try { status = rule.test(f, ctx); } catch (e) { status = 'unknown'; }
     if (['blocked', 'conditional', 'clear', 'unknown'].indexOf(status) < 0) status = 'unknown';
-    if (status === 'clear') return null;   // clear는 findings에 담지 않는다
+    if (status === 'clear' && !_INCLUDE_CLEAR_FINDINGS) return null;
 
     let message = (rule.message && rule.message[status]) || '';
     if (typeof rule.detail === 'function') {

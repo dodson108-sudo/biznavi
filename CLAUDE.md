@@ -8,6 +8,61 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-01) — 정책자금 진단 2단계-보완: step5 정밀 입력 필드 추가
+
+**데이터로 확정 가능한 항목을 '확인 필요(conditional)'로 넘기지 않는다.**
+4단계 FundingRules 구현 결과 데이터 부족으로 확정 판정이 불가능했던 3건을, 사용자에게 직접 물어 확정 판정으로 전환.
+`employees` 구간 문자열의 5인/10인 경계 문제와 `fashion`·`agri_food`의 제조업 판별 모호성을 사용자 직접 응답으로 해소.
+
+### ① index.html — step5 최상단에 '🧭 기본 정보 확인' 섹션 신설 (전부 선택 입력)
+- **업종 확인·수정**: `#fundIndustryDetected`(AI 판별 결과 한국어 표시) + `#fundIndustryOverride` select
+  - **19개 라벨** 전부 제공 (`INDUSTRY_MAP` 기본 17개 + 사회적기업·소셜벤처). `'소셜벤쳐'` 오타 alias만 제외
+  - 사회적기업·협동조합·소셜벤처는 **중진공 융자제한 9호 예외와 직결**되므로 선택지에서 빠지면 예외 적용 기회를 놓친다 → hint로 명시
+- **`fundEmployeeCount`**: 상시근로자 수 숫자 직접 입력. **`0`은 유효값(대표자 1인 사업장), 미입력은 `null`** — 반드시 구분
+- **`fundIsManufacturing`**: 제조·가공 공정 직접 영위 여부 (`yes`/`no`/`unknown`)
+- **`fundCurrentStatus`**: 현재 정상 영업 여부 (`active`/`closed`/`unknown`)
+- 기존 `fundClosureHist`는 **삭제하지 않고** 라벨을 "(참고용)"으로 변경 + "현재 상태는 '기본 정보 확인' 응답이 판정에 사용됩니다" 안내 추가
+- ⚠ step1의 `employees`(구간 문자열)는 **미변경** — 경영진단 경로가 계속 사용
+
+### ② wizard.js
+- `INDUSTRY_LABEL_BY_KEY` — `INDUSTRY_MAP` 역매핑 (먼저 등록된 라벨 우선 → alias 자동 제외)
+- `updateFundIndustryDisplay()` — `goStep(5)` 진입 시 호출. `aiIndustryKey`가 비면 "업종이 판별되지 않았습니다. 직접 선택해 주세요."
+- `collect().fundingData` += `employeeCount`(number|null) · `isManufacturing` · `currentStatus`
+- **`industryKey` override**: `_purpose === 'funding'` 일 때만 `fundIndustryOverride` 우선 적용. **경영진단 경로 업종 판별에는 영향 없음**
+- 신규 3필드는 전부 선택 입력 — `validate(5)` 필수 검사(결격요건 7문항)는 그대로
+
+### ③ funding-rules.js — 3개 규칙을 확정 판정으로 전환
+- **`semas_scale`**: `employeeCount`가 숫자면 **확정 판정**(`clear`/`blocked`), 없으면 기존 구간 문자열 로직으로 fallback
+  - 기준: 제조·건설·운수·광업 10인 미만 / 그 외 5인 미만 (`_semasLimit()`)
+  - 메시지에 "직전 사업연도 평균 인원 기준이며, 신청 시점 4대보험 가입자 수도 함께 검토됩니다" 참고 문구 병기
+- **`_kosmesEligibility`**: 판정 우선순위 재정렬
+  1. `isManufacturing === 'yes'` → **industryKey와 무관하게** `eligible: true` (`exceptionBy: '제조업 영위'`)
+  2. 사회적경제 인증 → `eligible: true`
+  3. `isManufacturing === 'no'` → 제조업 예외 미적용. `industryKey`가 제조업이면 "업종은 제조업으로 판별되었으나 직접 영위하지 않는다고 응답 — 응답이 정확한지 확인" 덧붙임
+  4. `'unknown'` → 기존 업종 기반 로직 (`mfg_parts`·`food_mfg` eligible / `fashion`·`agri_food` uncertain)
+- **`semas_closure`·`kosmes_closure`**: 판정 기준을 `closureHist`(과거 이력) → **`currentStatus`(현재 상태)** 로 변경
+  - `closed` → `blocked`/`high` / `active` → `clear` / `unknown` → `unknown`
+- **`semas_closure_history` 신설** (소진공에만 1건): 과거 이력을 `conditional`/**`severity: 'low'`** 참고 항목으로 분리
+  - 중진공은 소상공인이면 대부분 not_eligible로 걸러져 findings가 비므로, 참고 항목만 덩그러니 붙으면 혼란 → 소진공에만 배치
+- **`_INCLUDE_CLEAR_FINDINGS = false`** 상수 도입: `clear` 항목은 현재 findings에서 제외하되, **각 규칙의 `message.clear`/`detail(clear)` 문자열은 미리 작성해 둠** → 5단계에서 상수만 `true`로 바꾸면 "요건 충족" 표시가 바로 동작
+
+### ④ 검증 (Node 스모크 — 5개 지정 케이스 + 회귀 4건 전부 통과)
+| 케이스 | 결과 |
+|---|---|
+| restaurant / 4명 / active | `semas_scale` **clear**, `semas_closure` **clear** ✓ |
+| restaurant / **5명** | `semas_scale` **blocked/high** ("5명으로 5인 미만 초과") ✓ |
+| mfg_parts / 8명 | `semas_scale` **clear** (제조업 10인 미만 기준) ✓ |
+| fashion / `isManufacturing:'yes'` | 중진공 **`eligible: true`**, `exceptionBy: '제조업 영위'` ✓ |
+| restaurant / `employeeCount: null` | 구간 fallback → **conditional/low** ✓ |
+| `employeeCount: 0` | clear (0과 null 구분 확인) ✓ |
+| `closed` + `closureHist:'yes'` | `semas_closure` blocked/high + `semas_closure_history` conditional/low 공존 ✓ |
+| mfg_parts / `isManufacturing:'no'` | not_eligible + 업종-응답 충돌 안내 문구 출력 ✓ |
+
+### ⑤ 캐시버스팅
+`index.html` 로컬 `?v=` 47곳 전부 `20260801c`
+
+---
+
 ## 최근 수정 이력 (2026-08-01) — 정책자금 진단 4단계: FundingRules 모듈 신설 (기관 선별 + 결격 판정)
 
 `js/diagnosis/funding-rules.js` 신설. **기관 선별(소진공·중진공) 후 기관별 결격 판정.**
@@ -2305,6 +2360,7 @@ biznavi/
 ### ⚠ 반드시 지킬 것 (반복 사고 방지)
 - **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
 - **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
+- **확인 필요(`conditional`)는 앱이 원리적으로 알 수 없는 항목에만 쓴다.** 사용자에게 물어보면 확정할 수 있는 항목을 `conditional`로 처리하면 진단의 실용성이 떨어진다
 - **정책자금 판정은 절대 단정하지 않는다.** 앱은 쟁점과 근거 조항을 제시하고 최종 판단은 기관·컨설턴트에게 남긴다. "신청 가능합니다"/"승인됩니다" 같은 표현을 쓰지 않는다
 - **예상 승인 금액을 계산하지 않는다.** 실제 승인액은 기관이 신용도 등을 반영해 개별 산정하므로 앱이 예측할 수 없다. 금액은 제도상 한도(공개 정보)만 표시한다
 - **BizNavi의 `industryKey`는 표준산업분류 코드가 아니므로 제외업종 자동 판정에 사용할 수 없다.** 안내·확인 유도용으로만 쓴다

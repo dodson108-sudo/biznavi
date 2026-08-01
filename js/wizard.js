@@ -40,6 +40,16 @@ const Wizard = (() => {
   INDUSTRY_MAP['소셜벤처'] = 'social_venture';
   INDUSTRY_MAP['소셜벤쳐'] = 'social_venture';
 
+  /* 영문 키 → 한국어 라벨 역매핑 (먼저 등록된 라벨 우선 — '소셜벤쳐' 오타 alias는 자동 제외) */
+  const INDUSTRY_LABEL_BY_KEY = (() => {
+    const m = {};
+    Object.keys(INDUSTRY_MAP).forEach(label => {
+      const key = INDUSTRY_MAP[label];
+      if (!m[key]) m[key] = label;
+    });
+    return m;
+  })();
+
   // 업종 → 현실적으로 가능한 사업모델 후보 (우선순위 순)
   const INDUSTRY_BM_MAP = {
     'mfg_parts':     ['mfg_dist', 'b2b_solution', 'service'],
@@ -1100,6 +1110,7 @@ const Wizard = (() => {
     const prevStep = curStep;
     curStep = n;
     updateStepUI(n);
+    if (n === 5) updateFundIndustryDisplay();
 
     const prev = document.getElementById('step' + prevStep);
     const next = document.getElementById('step' + n);
@@ -2419,6 +2430,17 @@ const Wizard = (() => {
     }
   }
 
+  /* step5 상단 — AI가 판별한 업종을 한국어 라벨로 표시 (수정용 select는 별도) */
+  function updateFundIndustryDisplay() {
+    const el = document.getElementById('fundIndustryDetected');
+    if (!el) return;
+    const key = document.getElementById('aiIndustryKey')?.value || '';
+    const label = INDUSTRY_LABEL_BY_KEY[key] || '';
+    el.textContent = label
+      ? 'AI가 판별한 업종: ' + label
+      : '업종이 판별되지 않았습니다. 직접 선택해 주세요.';
+  }
+
   /* 부채비율 실시간 표시 — 표시 전용, 판정하지 않는다 */
   function updateFundDebtRatio() {
     const box = document.getElementById('fundDebtRatio');
@@ -2446,7 +2468,16 @@ const Wizard = (() => {
       companyName:     g('companyName'),
       bizType:         g('bizType'),         // 업태 (사업자등록증 — 예: 서비스)
       bizItem:         g('bizItem'),         // 종목 (사업자등록증 — 예: 미용업)
-      industryKey:     g('aiIndustryKey'),   // AI 분석 업종 키
+      // AI 분석 업종 키 — 정책자금 경로에서만 사용자 직접 선택(override)을 우선 적용.
+      // ⚠ 경영진단 경로의 업종 판별에는 영향을 주지 않는다.
+      industryKey: (() => {
+        const ai = g('aiIndustryKey');
+        if (_purpose === 'funding') {
+          const override = g('fundIndustryOverride');
+          if (override) return override;
+        }
+        return ai;
+      })(),
       aiBusinessDesc:  g('aiBusinessDesc'),  // AI 분석 사업 설명
       industry:        g('industry'),
       bizScale:        (function() {
@@ -2521,6 +2552,12 @@ const Wizard = (() => {
         const debtTotal   = _fundNum('fundDebtTotal');
         const equityTotal = _fundNum('fundEquityTotal');
         return {
+          // ── 기본 정보 확인 (정밀 판정용) ──
+          // employeeCount: 0은 유효값(대표자 1인 사업장), 미입력은 null — 반드시 구분한다
+          employeeCount:   _fundNum('fundEmployeeCount'),
+          isManufacturing: radio('fundIsManufacturing'),   // 'yes'|'no'|'unknown'
+          currentStatus:   radio('fundCurrentStatus'),     // 'active'|'closed'|'unknown'
+          // ── 결격 요건 ──
           taxArrears:    radio('fundTaxArrears'),
           capitalImpair: radio('fundCapitalImpair'),
           creditIssue:   radio('fundCreditIssue'),
