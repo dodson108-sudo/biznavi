@@ -457,8 +457,15 @@ const GovSupport = (() => {
       }
 
       // 업종 일치: 2점
-      // 업종 미상(industry === '')이면 전 항목 동점 부여 → 특정 사업이 탈락하지 않게 한다
-      if (!industry || p.industry.includes('all') || p.industry.includes(industry)) score += 2;
+      /* 업종 점수 차등 배분:
+           정확 매칭 +3 / 범용('all') +1 / 불일치 0
+         ⚠ 정확 매칭과 범용을 같은 점수로 주면 동점이 되고, slice(0,6)에서 배열 앞쪽의
+            범용 사업만 남아 업종 특화 사업이 영영 노출되지 않는다.
+         업종 미상(industry === '')이면 전 항목 동점(+1) → 특정 사업이 탈락하지 않게 한다 */
+      const industryExact = !!industry && p.industry.includes(industry);
+      if (!industry)                        score += 1;
+      else if (industryExact)               score += 3;
+      else if (p.industry.includes('all'))  score += 1;
 
       // 사업모델 일치: 1점
       if (p.bizModel.includes('all') || p.bizModel.includes(bizModel)) score += 1;
@@ -466,13 +473,18 @@ const GovSupport = (() => {
       // 규모 일치: 1점
       if (p.size.includes('all') || p.size.includes(sizeTag)) score += 1;
 
-      return { ...p, score };
+      return { ...p, score, _industryExact: industryExact };
     });
 
-    // 점수 2점 이상, 점수 내림차순, 상위 6개
+    /* 점수 2점 이상, 상위 6개.
+       동점 시 ① 업종 정확 매칭 우선 ② 이름 순 — PROGRAMS 배열 선언 순서에 결과가 좌우되지 않게 한다 */
     return scored
       .filter(p => p.score >= 2)
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) =>
+        (b.score - a.score) ||
+        ((b._industryExact ? 1 : 0) - (a._industryExact ? 1 : 0)) ||
+        String(a.name).localeCompare(String(b.name), 'ko')
+      )
       .slice(0, 6);
   }
 
