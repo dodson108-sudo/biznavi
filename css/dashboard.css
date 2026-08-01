@@ -748,3 +748,11 @@
   #sec-diag,#sec-swot,#sec-stp,#sec-strategy{page-break-before:always;padding-top:12px!important}
   .diag-radar-wrap{display:none!important}
 }
+
+/* 상시 지원사업 고지 — 섹션 상단 1회만 표시 (카드마다 반복 금지) */
+.gov-disclaimer {
+  font-size: 0.78rem; color: var(--txt3); line-height: 1.55;
+  margin: -4px 0 14px; padding: 8px 12px;
+  background: rgba(245,192,48,.06); border-left: 2px solid rgba(245,192,48,.35);
+  border-radius: 4px;
+}

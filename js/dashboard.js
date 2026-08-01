@@ -329,6 +329,9 @@ const Dashboard = (() => {
     if (matched.length === 0) { section.style.display = 'none'; return; }
 
     section.style.display = '';
+    // 고지 문구 — 섹션 상단 1회만 (카드마다 반복하지 않는다). 상시 지원사업 전용
+    const disc = document.getElementById('govDisclaimer');
+    if (disc) disc.textContent = GovSupport.DISCLAIMER || '';
     grid.innerHTML = matched.map(p => `
       <div class="gov-card">
         <div class="gov-card-header">
@@ -336,7 +339,7 @@ const Dashboard = (() => {
           <span class="gov-score-badge">매칭 ${p.score}점</span>
         </div>
         <div class="gov-name">${p.name}</div>
-        <div class="gov-support">💰 ${p.support}</div>
+        <div class="gov-support">🎁 ${p.supportType || '지원 형태 확인 필요'}</div>
         <div class="gov-summary">${p.summary}</div>
         <a class="gov-link" href="${p.url}" target="_blank" rel="noopener">신청 정보 보기 →</a>
       </div>`).join('');

@@ -205,21 +205,34 @@ const App = (() => {
           })
         : Promise.resolve(),
 
-      // ② 기업마당 정부지원사업
-      fetch('/api/bizinfo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          industryKey:    data.industryKey || data.industry || '',
-          bizScale:       data.bizScale    || 'micro',
-          consultingType: data.consultingType || '',
-        }),
-      }).then(r => r.json()).then(bi => {
-        if (bi && bi.programs && bi.programs.length > 0) {
-          window._bizinfoPrograms = bi.programs;
-          data.bizinfoPrograms = bi.programs;
+      // ② 정부지원사업 — gov-support.js(상시 마스터)가 기반, 기업마당 실시간은 성공 시에만 덧붙임
+      (async () => {
+        // 기반 매칭: 항상 동작해야 한다 (GovSupport 미로드 시에도 빈 배열로 안전하게)
+        try {
+          data.govPrograms = (typeof GovSupport !== 'undefined') ? (GovSupport.match(data) || []) : [];
+        } catch (e) {
+          data.govPrograms = [];
         }
-      }),
+        window._govPrograms = data.govPrograms;
+
+        // 실시간 공고: ok:false 이거나 예외면 조용히 생략 — 사용자에게 에러를 노출하지 않는다
+        try {
+          const r = await fetch('/api/bizinfo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              industryKey:    data.industryKey || data.industry || '',
+              bizScale:       data.bizScale    || 'micro',
+              consultingType: data.consultingType || '',
+            }),
+          });
+          const bi = await r.json();
+          if (bi && bi.ok === true && Array.isArray(bi.programs) && bi.programs.length > 0) {
+            window._bizinfoPrograms = bi.programs;
+            data.bizinfoPrograms = bi.programs;
+          }
+        } catch (e) { /* 실시간 조회 실패 — 상시 매칭 결과만 사용 */ }
+      })(),
     ]);
 
     try {

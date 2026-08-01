@@ -2222,18 +2222,46 @@ const Wizard = (() => {
     const content = document.getElementById('drBizinfoContent');
     if (!box || !content) return;
 
-    const programs = diagData.bizinfoPrograms ||
+    // ① 실시간 공고(기업마당) 우선 → ② 없으면 상시 지원사업(GovSupport) 폴백
+    //    박스가 비어 사라지는 경로를 만들지 않는다
+    let programs = diagData.bizinfoPrograms ||
       (typeof window !== 'undefined' && window._bizinfoPrograms) || [];
+    const isLive = programs.length > 0;
+
+    if (!isLive) {
+      let gov = diagData.govPrograms ||
+        (typeof window !== 'undefined' && window._govPrograms) || [];
+      if (!gov.length && typeof GovSupport !== 'undefined') {
+        try { gov = GovSupport.match(diagData) || []; } catch (e) { gov = []; }
+      }
+      // 기존 카드 마크업 재사용을 위한 필드 정규화 (amount 슬롯에 지원 '형태'가 들어감 — 금액 아님)
+      programs = gov.map(function(p) {
+        return {
+          name:    p.name,
+          org:     p.org  || '',
+          type:    '상시',
+          amount:  p.supportType || '',
+          period:  p.period || '공고 확인 필요',
+          dDay:    null,
+          summary: p.summary || '',
+          url:     p.url || '#',
+        };
+      });
+    }
 
     if (!programs.length) { box.style.display = 'none'; return; }
 
     box.style.display = '';
-    const sourceTag = programs[0]._source === 'api'
+    const sourceTag = isLive
       ? '<span class="bizinfo-live-badge">실시간</span>'
-      : '<span class="bizinfo-fb-badge">주요 상시사업</span>';
+      : '<span class="bizinfo-fb-badge">상시 지원사업 · 공고 확인 필요</span>';
+    // 고지 문구는 상시 지원사업에만 적용 — 실시간 공고에는 붙이지 않는다
+    const disclaimer = (!isLive && typeof GovSupport !== 'undefined' && GovSupport.DISCLAIMER)
+      ? '<p class="bizinfo-disclaimer">' + GovSupport.DISCLAIMER + '</p>'
+      : '';
 
     content.innerHTML =
-      '<p class="bizinfo-note">귀사 업종·규모 기준 관련도 순 정렬 ' + sourceTag + '</p>' +
+      '<p class="bizinfo-note">귀사 업종·규모 기준 관련도 순 정렬 ' + sourceTag + '</p>' + disclaimer +
       '<div class="bizinfo-list">' +
       programs.map(function(p) {
         const dDayHtml = (function() {

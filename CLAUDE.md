@@ -8,6 +8,77 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-01) — 정책자금 진단 3단계: 정부지원사업 데이터 소스 3중 중복 정리
+
+### ① 정부지원사업 데이터 소스를 `js/gov-support.js` 단일 마스터로 통합
+- 기존: `api/bizinfo.js` FALLBACK_PROGRAMS 10개 + `js/gov-support.js` PROGRAMS 26개가 **7개 중복**, 금액 필드명도 불일치(`amount` vs `support`)
+- 중복 7건: 창업도약패키지·중소기업 정책자금·수출 바우처·R&D 과제·스마트 제조혁신·온라인 판로·고용창출 장려금
+- **고유 3건만 gov-support.js에 병합** (`soho_smart` 소상공인 스마트화 / `soho_consulting` 소상공인 경영컨설팅 / `untact_voucher` 비대면 서비스 바우처) → PROGRAMS 26 → **29개**
+
+### ② 구체 금액·마감일 표기 전면 제거 — `support` → `supportType`
+- **매년 바뀌는 수치를 하드코딩하면 그 자체가 오정보다.** 앱은 '어떤 사업이 맞는지'만 판별하고 구체 수치는 주관기관 공고로 넘긴다
+- 29개 전 항목 `support` → `supportType`으로 필드명 변경 + 금액·비율 삭제
+  - `'최대 1억원 (정부 50% 매칭)'` → `'설비 도입비 매칭 지원'`
+  - `'최대 3,000만원 바우처'` → `'바우처 형태 지원'`
+  - `'무료 (전문가 5~10회 파견)'` → `'전문가 파견 컨설팅'`
+- `period`는 병합 3건에만 `'수시'`/`'정기 공고'` 수준으로 부여 (기존 26개는 period 필드 자체가 없었음)
+- `GovSupport.DISCLAIMER` 상수 export — **섹션 상단 1회 + AI 프롬프트 1회만** 표시 (카드마다 반복은 노이즈)
+  - 문구가 **상시 지원사업 전용**임이 드러나게 작성. 실시간 공고 영역에는 붙이지 않는다
+- `buildPromptBlock()`에 "구체적인 금액·비율·마감일을 지어내지 말 것" 지침 추가
+- 소비처 수정: `dashboard.js:339` `💰 ${p.support}` → `🎁 ${p.supportType}`
+
+### ③ ⚠ `#industry` select 제거 이후 GovSupport 업종 매칭이 항상 실패하던 문제 수정
+- `#industry` select 제거(2026-04-17) 이후 **`collect()`의 `d.industry`는 항상 빈 문자열**
+- `GovSupport.match()`가 `d.industry`만 읽어 업종 점수(+2)가 `'all'` 태그 사업에만 부여됨
+  → **HACCP·외식업 스마트화·스마트 건설 등 업종 특화 사업이 아무에게도 매칭되지 않고 있었다** (기능이 죽어 있던 상태)
+- **수정**: `INDUSTRY_LABEL` 역매핑(영문 키 → 한국어 라벨) 추가 후 `d.industry || INDUSTRY_LABEL[d.industryKey] || ''` 로 읽음
+  - 역매핑 19개 키는 `wizard.js INDUSTRY_MAP`을 그대로 반전한 값. 대조 결과 **불일치·누락 0건** (gov-support가 쓰는 라벨 12개 + `all` 전부 INDUSTRY_MAP에 존재)
+  - PROGRAMS의 `industry` 태그(한국어)는 미변경 — 최소 변경 원칙
+- `industryKey`도 비어 있으면 **업종 필터를 적용하지 않고 전 항목에 동점 부여** (빈 결과 방지)
+
+### ④ step4 govSupport 체크박스 → 매칭 필터 연결 (`getInterestTags` 재작성)
+- 기존은 **if/else 조기 return 체인**이라 복수 선택 시 첫 카테고리만 반영됐고, 체크박스 6개 중 **'창업·성장 지원'·'정책 자금 융자' 2개는 매핑이 아예 없어 `[]` 반환**. 코드의 `'전반'` 분기는 어떤 체크박스에도 없는 사문화 값
+- **수정**: `Set` 누적 방식으로 재작성, 배열·문자열 입력 모두 허용
+  - `'창업'|'성장'` → `fund`,`marketing` / `'정책 자금'|'정책자금'|'융자'` → `fund` 추가, `'전반'` 분기 제거
+- 미선택 시 `[]` 반환 → 관심분야 필터 미적용(전체 반환)은 현행 유지
+
+### ⑤ `api/bizinfo.js` — 실시간 조회 전용으로 축소
+- `FALLBACK_PROGRAMS`(10개) + `scoreProgram()` 삭제
+- 키 없음 → `{ ok: false, reason: 'no_api_key', programs: [] }` / 조회 실패·0건 → `{ ok: false, reason: 'api_error', programs: [] }`
+- 성공 시 `{ ok: true, status: 'api', programs, total }`
+- **실시간 API가 안 되는데 오래된 하드코딩 데이터를 실시간인 것처럼 보여주지 않는다** (fakeAnalysis와 동일한 문제)
+- 실시간 공고의 `amount`(`item.sprtLmt`)는 **조회 시점 기관 공고값이므로 유지** — 하드코딩 수치와 성격이 다름
+
+### ⑥ `js/app.js` — 소스 전환
+- `GovSupport.match(data)`를 **먼저 확보**(항상 동작하는 기반) → `data.govPrograms` / `window._govPrograms`
+- `/api/bizinfo` 병행 호출, `ok === true` 일 때만 `data.bizinfoPrograms` 주입. `ok:false`·예외는 **조용히 생략**(사용자에게 에러 미노출)
+- `typeof GovSupport === 'undefined'` 및 `try/catch` 이중 방어
+
+### ⑦ `#drBizinfoBox` 재사용 — 새 섹션 신설 없이 박스가 사라지지 않게
+- 실시간 있으면 `실시간` 배지, 없으면 `GovSupport.match()` 결과를 `상시 지원사업 · 공고 확인 필요` 배지로 표시 + DISCLAIMER
+- 기존 카드 마크업 재사용을 위해 `supportType` → `amount` 슬롯에 정규화 (금액이 아니라 **지원 형태**가 들어감 — 주석 명기)
+- fallback 삭제로 박스가 통째로 사라지던 회귀를 방지
+
+### ⑧ 검증 (Node 스모크 테스트)
+| 항목 | 결과 |
+|---|---|
+| 업종 역매핑 (restaurant + 디지털 관심) | '외식업 스마트화 지원사업'이 매칭 결과에 등장 ✓ (수정 전에는 불가능) |
+| 업종 정보 전무 | 결과 6건 — 빈 배열 안 됨 ✓ |
+| 복수 선택 (디지털+수출) | 스마트공장 7점 / 수출 바우처·KOTRA 6점 — 양쪽 태그 모두 반영 ✓ |
+| '창업·성장 지원' | 창업도약패키지·정책자금·컨설팅 등 6건이 관심분야 가점(3점) 획득 ✓ |
+| '정책 자금 융자' | 정책자금 융자·소상공인 정책자금 등 4건 가점 ✓ |
+| 금액 표기 잔존 | `supportType` 내 억원·만원·% 표기 **0건** / 남은 `support:` 필드 **0건** ✓ |
+| 병합 3건 | 3개 모두 존재, 실매칭 결과에도 등장 ✓ |
+
+### ⑨ 캐시버스팅
+`index.html` 로컬 `?v=` 46곳 전부 `20260731d`
+
+### 남은 과제
+- `#drBizinfoBox`의 `.bizinfo-amount` 슬롯이 상시 사업에서는 '지원 형태'를 담는 의미 불일치 — 클래스 분리는 4~5단계 대시보드 작업 시 정리
+- `ai-engine.js` 섹션11은 실시간 공고만 참조. 실시간이 없으면 `(지원사업 데이터 없음 — 웹 검색으로 보완)`이 출력되지만, `GovSupport.buildPromptBlock()`이 별도 섹션으로 이미 주입하므로 프롬프트 정보 손실은 없음
+
+---
+
 ## 최근 수정 이력 (2026-07-31) — 정책자금 진단 2단계: step5 진단 문항 13개 구성
 
 1단계에서 만든 `step5` 스켈레톤에 문항을 채웠다. **판정 로직·트랙 라우팅·대시보드·AI 프롬프트는 4~5단계로 미구현.**
@@ -2153,6 +2224,8 @@ biznavi/
 ### ⚠ 반드시 지킬 것 (반복 사고 방지)
 - **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
 - **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
+- **`collect()`의 `industry` 필드는 `#industry` select 제거(2026-04-17) 이후 항상 빈 문자열이다.** 업종 판별은 `industryKey`(영문)를 사용할 것. 한국어 라벨이 필요하면 `gov-support.js`의 `INDUSTRY_LABEL` 역매핑을 쓴다
+- **정부지원사업 데이터는 `js/gov-support.js` PROGRAMS가 단일 마스터다.** 구체 금액·비율·마감일을 하드코딩하지 말 것 — 매년 바뀌므로 그 자체가 오정보가 된다. 지원 형태(`supportType`)만 유지하고 수치는 주관기관 공고로 넘긴다
 - **`#revenue`(연매출)는 `type="text"` 자유 텍스트 필드다** (`"3억"`, `"비공개"` 등). 숫자 연산 전 반드시 파싱해야 하며, `Number()`를 그대로 적용하면 `NaN`이 된다
 - **정책자금 진단(`fundingData`)의 미응답 표현을 임의로 바꾸지 말 것** — 라디오 미선택 `'unknown'`(≠`'none'`), 체크박스 미응답 `[]`(≠`['해당 없음']`), 숫자 미입력 `null`(≠`0`). 4단계 판정 로직이 이 구분에 의존한다
 
