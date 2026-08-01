@@ -172,9 +172,10 @@ const App = (() => {
      토큰만 소모되고 결과는 무의미하므로) */
   function checkFundingInput() {
     if (!Wizard.validate(5)) return;
-    const fd = Wizard.collect()?.fundingData || {};
-    console.table(fd);
-    alert('입력 확인 완료. 판정 로직은 4단계에서 구현 예정입니다.');
+    const collected = Wizard.collect() || {};
+    console.log('[정책자금] fundingData:', collected.fundingData || {});
+    console.log('[정책자금] fundingVerdict:', collected.fundingVerdict || null);
+    alert('판정 완료. 결과 화면은 5단계에서 구현 예정입니다.');
   }
 
   /* ── ANALYSIS ── */

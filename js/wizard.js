@@ -2605,6 +2605,22 @@ const Wizard = (() => {
       data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, crossScores, bizScale);
     }
 
+    // 정책자금 진단 경로에서만 기관 선별·결격 판정 수행 (경영진단·재무분석에는 영향 없음)
+    if (_purpose === 'funding' && typeof FundingRules !== 'undefined') {
+      try {
+        data.fundingVerdict = FundingRules.evaluate(data.fundingData || {}, {
+          industryKey: data.industryKey || '',
+          bizScale:    data.bizScale    || '',
+          employees:   data.employees   || '',
+          foundedYear: data.foundedYear || '',
+          yearsInBusiness: data.yearsInBusiness || '',
+        });
+      } catch (e) {
+        console.error('FundingRules.evaluate 오류:', e);
+        data.fundingVerdict = null;
+      }
+    }
+
     return data;
   }
 

@@ -8,6 +8,70 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-01) — 정책자금 진단 4단계: FundingRules 모듈 신설 (기관 선별 + 결격 판정)
+
+`js/diagnosis/funding-rules.js` 신설. **기관 선별(소진공·중진공) 후 기관별 결격 판정.**
+판정은 `blocked` / `conditional` / `clear` / `unknown` **4상태**이며 **`unknown`을 `clear`로 처리하지 않는다.**
+근거: 소진공 `ols.semas.or.kr` 지원 제외업종 표, 중진공 2026 융자제한기업 15개 항목.
+**대시보드 출력·AI 프롬프트는 5단계이므로 미구현.** 신보·기보는 범위 밖.
+
+### ① 모듈 구조 (cross-context.js와 동일한 IIFE + 듀얼 익스포트)
+- `AGENCIES` — semas(소진공) / kosmes(중진공) 2곳
+- `EXCLUDED_INDUSTRIES_SEMAS` — 소진공 제외업종 38항목 `{ code, name, exceptions[] }`
+- `INDUSTRY_WATCH` — industryKey → 해당 업종에서 확인이 필요한 제외업종 코드
+- `RULES` — 소진공 6개 + 중진공 8개 규칙
+- `evaluate(fundingData, context)` → `{ agencies[], unknownItems[], recommendedOrder[] }`
+- `window.FundingRules` + `module.exports` 듀얼 익스포트 (Node 스모크 테스트 가능)
+
+### ② ⚠ industryKey로 제외업종을 자동 판정하지 않는다
+BizNavi의 `industryKey`(16종)는 **표준산업분류 코드가 아니다.** 제외업종 표는 자동 결격 판정에 쓰지 않고
+`semas_industry`·`kosmes_industry` 규칙에서 **항상 `conditional`** 을 반환하며 "확인 필요" 안내 + 예외 조항 제시용으로만 사용한다.
+`_watchText()`가 업종별 주의 항목과 예외를 함께 출력한다 (예: 안마시술소 → 시각장애인 운영 안마원은 예외).
+
+### ③ 소진공 규모 요건 — 구간 문자열의 경계값 문제
+`employees`는 숫자가 아니라 **구간 문자열**(`'1~5명'`, `'6~10명'` …)이라 5인/10인 경계를 확정할 수 없다.
+- `'1~5명'` → `conditional` + **severity `low`** ("정확히 5인이면 제외되므로 확인 필요" — 확인 요청 수준의 문구, 경고성 표현 없음)
+- `'6~10명'` → 제조·건설·운수·광업(`mfg_parts`·`food_mfg`·`construction`·`logistics`)이면 `conditional`, 그 외 `blocked`
+- `'11~50명'` 이상 → `blocked` (severity `high`) / 값 없음 → `unknown`
+- `findings`에 **`severity: 'high'|'medium'|'low'`** 필드 추가 — 5단계 화면에서 표시 강도 구분용
+
+### ④ 중진공 기관 자격 게이트 (융자제한 9호) — `eligible` + `eligibilityUncertain` 2단 구분
+소상공인은 원칙 제외. 예외 인정 범위를 **보수적으로** 잡았다.
+- `certs`에 (예비)사회적기업·협동조합·마을기업·소셜벤처 판별기업 중 하나 → `eligible: true`
+- `mfg_parts`·`food_mfg`만 '제조업 영위' 예외 인정 → `eligible: true`
+- `fashion`·`agri_food`는 제조 영위 여부가 모호 → `eligible: false, eligibilityUncertain: **true**` + "제조 공정을 직접 영위하면 예외 대상일 수 있음"
+- 그 외 소상공인 → `eligible: false, eligibilityUncertain: false`
+- 모든 not_eligible 사유 끝에 공통 문구: "혁신성장·초격차·신산업 분야 영위 기업, 소상공인 유예기업도 예외 대상이므로 해당 여부를 중진공에 확인할 것"
+- **`eligibilityUncertain: true`여도 중진공 개별 규칙은 평가하지 않는다** — 자격 미확정 상태에서 부채비율 경고를 띄우는 것은 오진
+
+### ⑤ 단정 금지 원칙이 규칙에 박혀 있는 지점
+- `kosmes_marginal`(11호): 수집 데이터로 **'2년 연속 적자'·'3년 연속 이자보상배율'을 알 수 없으므로 절대 `blocked`로 단정하지 않고 `conditional`**. 자본잠식 단독·영업적자 단독도 각각 `conditional`
+- `kosmes_debt_ratio`(10호): **별표5의 업종별 수치가 앱에 없으므로 임의 기준을 만들지 않는다.** 산출된 부채비율만 표시하고 대조는 중진공 공고로 넘김. `foundedYear`가 있으면 업력을 계산해 "업력 7년 미만 적용 예외" 안내에 반영(자동 적용은 하지 않음)
+- `semas_tax_arrears`: 체납이어도 `blocked`가 아니라 `conditional` (국세징수법 압류·매각 유예 등 예외 조항 존재). 반면 `kosmes_tax_arrears`는 예외 조항이 없어 `blocked`
+- `semas_closure`·`kosmes_closure`: 현행 문항이 '최근 5년 내 이력'을 묻고 있어 **현재 상태와 다르므로** `blocked` 처리하지 않음
+- `verdict`: blocked 1개 이상 → `blocked` / conditional·unknown 있으면 → `review` / 전부 clear → `clear`
+
+### ⑥ 연결
+- `index.html` — `js/diagnosis/funding-rules.js?v=20260801b` 추가 (cross-context.js 다음)
+- `wizard.js collect()` — `_purpose === 'funding'` 일 때만 `data.fundingVerdict = FundingRules.evaluate(...)`. `typeof FundingRules === 'undefined'` + try/catch 이중 방어
+- `App.checkFundingInput()` — `console.log(fundingData / fundingVerdict)` + `alert('판정 완료. 결과 화면은 5단계에서 구현 예정입니다.')`
+
+### ⑦ 검증 (Node 스모크 테스트 4케이스 — 전부 기대와 일치)
+| 케이스 | 결과 |
+|---|---|
+| restaurant/micro/1~5명/체납 yes | 소진공 `review`(체납 `conditional` + 예외 안내) / 중진공 `eligible:false, uncertain:false` ✓ |
+| restaurant/micro/`certs:['협동조합·마을기업']` | 중진공 **`eligible: true`** (`exceptionBy` 표시) ✓ |
+| fashion/micro/인증 없음 | 중진공 `eligible:false` + **`uncertain: true`** ✓ |
+| mfg_parts/sme/11~50명/전부 unknown/자본 250억 | 소진공 `blocked`(규모, severity high) / 중진공 `kosmes_prime` **`blocked`**(200억 초과) / `unknownItems` 10건 수집 ✓ |
+| `evaluate(undefined, undefined)` | 예외 없이 agencies 2건 반환, unknownItems 12건 ✓ |
+
+### 개선 대기 항목
+- **`employees`가 구간 문자열이라 소상공인 5인/10인 경계를 확정할 수 없다. 정책자금 경로에서는 정확한 상시근로자 수를 숫자로 입력받는 필드 추가 검토.**
+- `recommendedOrder`는 `eligible` 기관만 담되 `verdict: 'blocked'` 기관도 포함된다(순위만 뒤로). 5단계 화면에서 blocked 기관을 어떻게 표시할지 판단 필요
+- `unknownItems`는 label 기준 dedup이라 소진공·중진공의 동일 쟁점이 각각 별도 항목으로 잡힌다(라벨이 다르기 때문)
+
+---
+
 ## 최근 수정 이력 (2026-08-01) — 정책자금 진단 3단계: 정부지원사업 데이터 소스 3중 중복 정리
 
 ### ① 정부지원사업 데이터 소스를 `js/gov-support.js` 단일 마스터로 통합
@@ -2241,6 +2305,9 @@ biznavi/
 ### ⚠ 반드시 지킬 것 (반복 사고 방지)
 - **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
 - **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
+- **정책자금 판정은 절대 단정하지 않는다.** 앱은 쟁점과 근거 조항을 제시하고 최종 판단은 기관·컨설턴트에게 남긴다. "신청 가능합니다"/"승인됩니다" 같은 표현을 쓰지 않는다
+- **예상 승인 금액을 계산하지 않는다.** 실제 승인액은 기관이 신용도 등을 반영해 개별 산정하므로 앱이 예측할 수 없다. 금액은 제도상 한도(공개 정보)만 표시한다
+- **BizNavi의 `industryKey`는 표준산업분류 코드가 아니므로 제외업종 자동 판정에 사용할 수 없다.** 안내·확인 유도용으로만 쓴다
 - **`collect()`의 `industry` 필드는 `#industry` select 제거(2026-04-17) 이후 항상 빈 문자열이다.** 업종 판별은 `industryKey`(영문)를 사용할 것. 한국어 라벨이 필요하면 `gov-support.js`의 `INDUSTRY_LABEL` 역매핑을 쓴다
 - **정부지원사업 데이터는 `js/gov-support.js` PROGRAMS가 단일 마스터다.** 구체 금액·비율·마감일을 하드코딩하지 말 것 — 매년 바뀌므로 그 자체가 오정보가 된다. 지원 형태(`supportType`)만 유지하고 수치는 주관기관 공고로 넘긴다
 - **`#revenue`(연매출)는 `type="text"` 자유 텍스트 필드다** (`"3억"`, `"비공개"` 등). 숫자 연산 전 반드시 파싱해야 하며, `Number()`를 그대로 적용하면 `NaN`이 된다
