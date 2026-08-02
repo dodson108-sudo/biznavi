@@ -209,12 +209,251 @@ const Dashboard = (() => {
     el.innerHTML = html;
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     정책자금 진단 전용 렌더링 (purpose='funding')
+     ⚠ render()는 AI 분석 결과를 첫 인자로 기대하므로 재사용하지 않고
+        별도 진입점 renderFunding(fd)을 둔다. 경영진단 경로에 영향 없음.
+     ══════════════════════════════════════════════════════════════ */
+
+  const FUNDING_ONLY_SECTIONS = ['sec-funding-summary', 'sec-funding-agency', 'sec-funding-docs'];
+
+  function _esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* 통과/결격 집계는 kind==='verdict' 항목만 대상 (reference는 참고 항목이므로 제외) */
+  function _fundCounts(agency) {
+    const v = (agency.findings || []).filter(x => x.kind !== 'reference');
+    const c = s => v.filter(x => x.status === s).length;
+    return { total: v.length, clear: c('clear'), conditional: c('conditional'), unknown: c('unknown'), blocked: c('blocked') };
+  }
+
+  const _FUND_VERDICT_BADGE = {
+    blocked: { cls: 'fv-blocked', txt: '결격 사유 있음' },
+    review:  { cls: 'fv-review',  txt: '확인 필요' },
+    clear:   { cls: 'fv-clear',   txt: '결격 사유 없음' },
+  };
+  const _FUND_STATUS_LABEL = { blocked: '결격', conditional: '확인 필요', unknown: '모름', clear: '통과' };
+
+  const _FUND_LIMIT_NOTE = {
+    semas:  '소상공인 정책자금은 자금 종류별로 한도가 다르며, 실제 승인액은 신용도 등을 반영해 개별 산정됩니다. 최신 한도는 소진공 공고를 확인하세요.',
+    kosmes: '중소기업 정책자금은 자금 종류별로 한도가 다르며, 실제 승인액은 기업평가 결과에 따라 개별 산정됩니다. 최신 한도는 중진공 공고를 확인하세요.',
+  };
+
+  // ── ① 판정 요약 ──────────────────────────────────────────────
+  function renderFundingSummary(fd) {
+    const section = document.getElementById('sec-funding-summary');
+    const el = document.getElementById('fundingSummaryContent');
+    if (!section || !el) return;
+
+    const v = fd && fd.fundingVerdict;
+    const agencies = (v && v.agencies) || [];
+    if (!agencies.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    // 한 줄 요약 — 사용자가 가장 먼저 읽는 문장
+    const eligible = agencies.filter(a => a.eligible);
+    let head;
+    if (!eligible.length) {
+      head = { cls: 'fh-none', txt: '해당하는 기관이 없습니다. 다른 지원 제도를 검토하세요.' };
+    } else if (eligible.every(a => a.verdict === 'blocked')) {
+      head = { cls: 'fh-blocked', txt: '현재 상태로는 신청이 어렵습니다. 아래 해소 과제를 먼저 확인하세요.' };
+    } else {
+      head = { cls: 'fh-ok', txt: '신청 가능한 기관이 있습니다. 아래 확인 사항을 점검하세요.' };
+    }
+
+    // 기관별 점검 결과 — 분모(점검 N개)를 명시해 '왜 항상 확인 필요지?' 오해를 줄인다
+    const rows = agencies.map(a => {
+      if (!a.eligible) {
+        const uncertain = a.eligibilityUncertain ? ' <span class="fs-uncertain">확인 시 대상 가능</span>' : '';
+        return `<div class="fs-row fs-row-none">
+            <span class="fs-agency">${_esc(a.short || a.name)}</span>
+            <span class="fs-detail">대상 아님${uncertain}</span>
+          </div>`;
+      }
+      const c = _fundCounts(a);
+      const parts = [`점검 ${c.total}개`];
+      if (c.clear)       parts.push(`통과 ${c.clear}`);
+      if (c.conditional) parts.push(`확인 필요 ${c.conditional}`);
+      if (c.unknown)     parts.push(`모름 ${c.unknown}`);
+      if (c.blocked)     parts.push(`결격 ${c.blocked}`);
+      return `<div class="fs-row">
+          <span class="fs-agency">${_esc(a.short || a.name)}</span>
+          <span class="fs-detail">${parts.join(' · ')}</span>
+        </div>`;
+    }).join('');
+
+    const unknowns = (v.unknownItems || []);
+    const unknownBox = unknowns.length
+      ? `<div class="fs-unknown-box">
+           <div class="fs-unknown-title">확인하면 더 정확해집니다</div>
+           <p>다음 항목을 '모름'으로 응답하셨습니다. 확인하시면 더 정확한 진단이 가능합니다: ${unknowns.map(_esc).join(' · ')}</p>
+         </div>`
+      : '';
+
+    el.innerHTML =
+      `<div class="fund-headline ${head.cls}">${head.txt}</div>` +
+      `<div class="fs-rows">${rows}</div>` +
+      unknownBox;
+  }
+
+  // ── ② 기관별 상세 ────────────────────────────────────────────
+  function _fundFindingHtml(x) {
+    const sev = x.severity || 'medium';
+    const statusTxt = _FUND_STATUS_LABEL[x.status] || x.status;
+    const remedy = x.remedy
+      ? `<div class="ff-remedy"><strong>해소 방법:</strong> ${_esc(x.remedy)}</div>` : '';
+    const src = x.source
+      ? `<div class="ff-source">근거: ${x.sourceUrl
+          ? `<a href="${_esc(x.sourceUrl)}" target="_blank" rel="noopener">${_esc(x.source)}</a>`
+          : _esc(x.source)}</div>`
+      : '';
+    return `<div class="fund-finding ff-sev-${sev}">
+        <div class="ff-head">
+          <span class="ff-label">${_esc(x.label)}</span>
+          <span class="ff-status ff-st-${x.status}">${statusTxt}</span>
+        </div>
+        <p class="ff-msg">${_esc(x.message)}</p>
+        ${remedy}${src}
+      </div>`;
+  }
+
+  function renderFundingAgency(fd) {
+    const section = document.getElementById('sec-funding-agency');
+    const el = document.getElementById('fundingAgencyContent');
+    if (!section || !el) return;
+
+    const v = fd && fd.fundingVerdict;
+    const agencies = (v && v.agencies) || [];
+    if (!agencies.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    el.innerHTML = agencies.map(a => {
+      // 자격 배지
+      let badge;
+      if (!a.eligible) {
+        const extra = a.eligibilityUncertain ? '<span class="fv-badge fv-uncertain">확인 시 대상 가능</span>' : '';
+        badge = `<span class="fv-badge fv-none">대상 아님</span>${extra}`;
+      } else {
+        const b = _FUND_VERDICT_BADGE[a.verdict] || _FUND_VERDICT_BADGE.review;
+        badge = `<span class="fv-badge ${b.cls}">${b.txt}</span>`;
+      }
+
+      let body;
+      if (!a.eligible) {
+        // 자격이 없으면 findings를 렌더링하지 않는다 (자격 미확정 상태의 경고는 오진)
+        body = `<p class="fa-not-eligible">${_esc(a.notEligibleReason || '')}</p>`;
+      } else {
+        const all = a.findings || [];
+        const open = all.filter(x => x.kind !== 'reference' && x.status !== 'clear');
+        const passed = all.filter(x => x.kind !== 'reference' && x.status === 'clear');
+        const refs = all.filter(x => x.kind === 'reference');
+
+        body =
+          (open.length ? open.map(_fundFindingHtml).join('') : '<p class="fa-none">확인이 필요한 항목이 없습니다.</p>') +
+          (passed.length
+            ? `<details class="fund-clear-wrap"><summary>통과한 항목 ${passed.length}개 보기</summary>
+                 ${passed.map(_fundFindingHtml).join('')}</details>`
+            : '') +
+          (refs.length
+            ? `<div class="fund-ref-wrap"><div class="fund-ref-title">참고 사항</div>
+                 ${refs.map(_fundFindingHtml).join('')}</div>`
+            : '');
+      }
+
+      const note = _FUND_LIMIT_NOTE[a.key] || '';
+      const link = a.url
+        ? ` <a href="${_esc(a.url)}" target="_blank" rel="noopener">${_esc(a.name)} 바로가기 →</a>` : '';
+
+      return `<div class="fund-agency-card">
+          <div class="fa-head">
+            <span class="fa-name">${_esc(a.name)}</span>
+            ${badge}
+          </div>
+          ${a.exceptionBy ? `<div class="fa-exception">예외 적용: ${_esc(a.exceptionBy)}</div>` : ''}
+          <div class="fa-body">${body}</div>
+          ${note ? `<div class="fa-limit-note">${note}${link}</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  // ── ③ 준비 서류 ──────────────────────────────────────────────
+  function renderFundingDocs(fd) {
+    const section = document.getElementById('sec-funding-docs');
+    const el = document.getElementById('fundingDocsContent');
+    if (!section || !el) return;
+    section.style.display = '';
+
+    const f = (fd && fd.fundingData) || {};
+
+    // 기관 공통 서류만 안내한다. 자금 종류별 서류는 매년 바뀌므로 하드코딩하지 않는다
+    const common = [
+      '사업자등록증명원',
+      '국세·지방세 완납증명서',
+      '최근 3개년 재무제표 (또는 소득금액증명원)',
+      '4대보험 가입자명부',
+      '부동산 등기부등본 (담보 제공 시)',
+      '보유 인증서 사본 (벤처·이노비즈·사회적기업 등 해당 시)',
+    ];
+
+    const extra = [];
+    if (f.taxArrears === 'yes') extra.push('체납 관련: 징수유예·분납 승인 서류');
+    if (Array.isArray(f.certs) && f.certs.filter(c => c && c !== '해당 없음').length) {
+      extra.push('보유 인증서 원본·사본: ' + f.certs.filter(c => c && c !== '해당 없음').map(_esc).join(' · '));
+    }
+    if (f.isManufacturing === 'yes') extra.push('제조 시설 관련: 공장등록증 또는 임대차계약서');
+
+    el.innerHTML =
+      `<ul class="fund-doc-list">${common.map(d => `<li>${_esc(d)}</li>`).join('')}</ul>` +
+      (extra.length
+        ? `<div class="fund-doc-extra"><div class="fund-doc-extra-title">귀사 응답 기준 추가 준비 서류</div>
+             <ul class="fund-doc-list">${extra.map(d => `<li>${d}</li>`).join('')}</ul></div>`
+        : '') +
+      `<p class="fund-doc-note">실제 제출 서류는 자금 종류와 신청 시기에 따라 다릅니다. 신청 전 반드시 해당 기관 공고를 확인하세요.</p>`;
+  }
+
+  // ── 정책자금 전용 진입점 ──────────────────────────────────────
+  function renderFunding(fd) {
+    _lastFd = fd || {};
+    buildNav(false, true);
+
+    // 정책자금 4섹션만 표시하고 나머지 리포트 섹션은 전부 숨김
+    const keep = FUNDING_ONLY_SECTIONS.concat(['sec-gov']);
+    document.querySelectorAll('#dashboard .report-content .section-card').forEach(el => {
+      el.style.display = keep.indexOf(el.id) >= 0 ? '' : 'none';
+    });
+
+    const title = document.getElementById('dTitle');
+    if (title) title.textContent = ((fd && fd.companyName) || '기업') + ' 정책자금 진단 리포트';
+    const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+    const sub = document.getElementById('dSub');
+    if (sub) {
+      sub.innerHTML = '진단일: ' + dateStr +
+        ' &nbsp;<span class="mode-badge-inline">💰 정책자금 진단</span>' +
+        '&nbsp;<span class="real-badge-inline">📋 기관 기준 자가진단</span>';
+    }
+    const demoBadge = document.getElementById('demoBadge');
+    if (demoBadge) demoBadge.classList.add('hidden');
+
+    try { renderFundingSummary(fd); } catch (e) { console.error('renderFundingSummary:', e); }
+    try { renderFundingAgency(fd);  } catch (e) { console.error('renderFundingAgency:', e); }
+    try { renderFundingDocs(fd);    } catch (e) { console.error('renderFundingDocs:', e); }
+    try { renderGovSection(fd);     } catch (e) { console.error('renderGovSection:', e); }
+  }
+
   // ── 동적 목차 네비게이션 생성 ─────────────────────────────────
-  function buildNav(isMicro) {
+  function buildNav(isMicro, isFunding) {
     const nav = document.getElementById('reportNav');
     if (!nav) return;
 
-    const links = isMicro ? [
+    // 정책자금 진단 — 전용 4섹션만 (기존 micro/sme 분기는 그대로 유지)
+    const links = isFunding ? [
+      { href: 'sec-funding-summary', label: '판정 요약' },
+      { href: 'sec-funding-agency',  label: '기관별 상세' },
+      { href: 'sec-funding-docs',    label: '준비 서류' },
+      { href: 'sec-gov',             label: '지원사업 매칭' },
+    ] : isMicro ? [
       { href: 'sec-summary',       label: 'Executive Summary' },
       { href: 'sec-lifecycle',     label: '생애주기 진단' },
       { href: 'sec-market-micro',  label: '상권 STP · 시장규모' },
@@ -558,6 +797,12 @@ const Dashboard = (() => {
       if (el) el.style.display = isMicro ? '' : 'none';
     });
 
+    // 정책자금 전용 섹션 — 경영진단 모드에서는 항상 숨김
+    FUNDING_ONLY_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
     // sec-six-systems 제목 micro vs SME
     const sixSysTitle = document.querySelector('#sec-six-systems .sec-title h3');
     if (sixSysTitle) sixSysTitle.textContent = isMicro ? '7대 영역 처방 (D1~D7)' : '도널드 밀러 6가지 비즈니스 시스템';
@@ -729,7 +974,7 @@ const Dashboard = (() => {
     // ③ 목차 클릭은 buildNav()에서 이미 처리됨
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록 (표시된 섹션만)
-    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov'];
+    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov','sec-funding-summary','sec-funding-agency','sec-funding-docs'];
     const secIds = allSecIds.filter(id => {
       const el = document.getElementById(id);
       return el && el.style.display !== 'none';
@@ -859,5 +1104,5 @@ const Dashboard = (() => {
     el.classList.remove('print-target');
   }
 
-  return { render, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
+  return { render, renderFunding, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
 })();

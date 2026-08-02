@@ -172,10 +172,15 @@ const App = (() => {
      토큰만 소모되고 결과는 무의미하므로) */
   function checkFundingInput() {
     if (!Wizard.validate(5)) return;
-    const collected = Wizard.collect() || {};
-    console.log('[정책자금] fundingData:', collected.fundingData || {});
-    console.log('[정책자금] fundingVerdict:', collected.fundingVerdict || null);
-    alert('판정 완료. 결과 화면은 5단계에서 구현 예정입니다.');
+    const data = Wizard.collect() || {};
+    if (!data.fundingVerdict) {
+      alert('판정 결과를 생성하지 못했습니다.\n페이지를 새로고침한 뒤 다시 시도해 주세요.');
+      return;
+    }
+    _pendingData = data;
+    // 정책자금은 진단 점수·레이더차트가 없으므로 diag-reveal을 거치지 않고 바로 리포트로 이동
+    Dashboard.renderFunding(data);
+    show('dashboard');
   }
 
   /* ── ANALYSIS ── */

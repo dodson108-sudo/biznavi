@@ -8,6 +8,65 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-02) — 정책자금 진단 5단계 1차: 전용 결과 화면
+
+**판정 결과를 화면에 출력.** AI 프롬프트(B)는 화면 검증 후 2차로 분리 진행.
+`clear` 항목을 접힘 상태로 함께 표시해 남은 과제 수를 명확히 한다.
+
+### ① `_INCLUDE_CLEAR_FINDINGS = true` 전환 + clear 문구 8건
+- **전환 이유**: 빨간 경고만 잔뜩 보이면 사용자가 "나는 안 되나 보다" 하고 포기한다. 통과 항목을 함께 보여주면 남은 과제가 몇 개인지 명확해져 행동으로 이어진다
+- **판정 로직 영향 없음(사전 확인 완료)**: `_verdictOf()`는 `some(blocked)`/`some(conditional||unknown)` 기반, `blockedCount` 등은 status 필터, `unknownItems`는 unknown만 수집 → 전부 무영향. 유일한 변화는 `findings` 배열에 clear 항목이 추가되는 것
+- `message.clear`가 없던 8개 규칙에 문구 추가. **작성 원칙: 사용자 응답을 그대로 확인해주는 형태**
+  - 좋은 예 `'국세·지방세 체납이 없다고 응답하셨습니다.'` / 나쁜 예 `'체납 사실이 확인되지 않았습니다.'`(앱이 조회한 것처럼 읽힘)
+  - clear여도 `source`·`sourceUrl`은 동일하게 표시
+- 휴폐업 규칙 2건의 `severity`에 `clear → 'low'` 분기 추가 (통과 항목이 노란 막대로 보이던 문제)
+
+### ② `kind: 'verdict' | 'reference'` 필드 도입
+- `semas_closure_history`만 `'reference'`. **통과/결격 집계에서 제외** — 결격 판정 항목이 아닌 참고 항목이 섞이면 "점검 N개"의 의미가 흐려진다
+- 화면에서는 기관 카드 하단 **"참고 사항"** 영역으로 분리 표시
+- 결과: 소진공 findings 7건 = **점검 6건(verdict) + 참고 1건(reference)**
+
+### ③ `[앱에서 자동 판정 불가]` 표기 + severity `low` 고정
+- 대상 3개: `semas_industry` · `kosmes_industry` · `kosmes_debt_ratio` (구조상 절대 `clear`를 반환하지 않는 규칙)
+- 사용자가 "왜 항상 확인 필요지?"라고 느끼는 원인은 **앱이 판정을 못 하는 항목과 실제로 문제가 있는 항목이 구분되지 않아서**다 → 메시지 문두에 명시
+- 실제 결격 가능성이 아니라 확인 안내이므로 `severity: 'low'` **고정** (`restrictedBiz === 'yes'`여도 low 유지 — 이전에는 high로 올렸음)
+
+### ④ 화면 — 전용 3섹션 + sec-gov 재사용
+- `index.html`: `#sec-funding-summary` · `#sec-funding-agency` · `#sec-funding-docs` 추가 (기본 `display:none`)
+- `buildNav(isMicro, isFunding)`: **세 번째 분기만 추가**, 기존 micro/sme 삼항 미변경. funding은 4링크(판정 요약·기관별 상세·준비 서류·지원사업 매칭)
+- **`Dashboard.renderFunding(fd)` 별도 진입점 신설** — `render(data, fd, isDemo)`는 첫 인자로 AI 결과를 기대하므로 재사용하지 않는다. 억지 재사용으로 경영진단 경로를 깨뜨리지 않기 위함
+- `render()`에 정책자금 3섹션을 항상 숨기는 코드 추가 (funding → general 재진입 시 잔상 방지)
+- `initScrollReveal()`의 `allSecIds`에 3섹션 추가 (display 필터가 있어 general 모드 무영향)
+- **판정 요약**: 한 줄 헤드라인(신청 가능/어려움/해당 없음) + 기관별 `점검 6개 · 통과 5 · 확인 필요 1` **분모 명시** + `unknownItems` 강조 박스
+- **기관별 상세**: verdict 배지(결격/확인 필요/결격 없음/대상 아님 + "확인 시 대상 가능"), severity별 좌측 색 막대(high 빨강·medium 노랑·low 회색), **항목마다 근거 `source`+`sourceUrl` 표시(필수)**, `remedy` 별도 줄, clear는 `<details>` 접힘("통과한 항목 N개 보기"), reference는 "참고 사항" 영역
+  - `eligible: false`면 `notEligibleReason`만 표시하고 findings 미렌더
+  - 카드 하단 제도상 한도 안내 — **구체 금액 수치 없음**, 기관 URL 링크
+- **준비 서류**: 기관 공통 6종 + 응답 기반 추가(체납 yes → 징수유예 서류 / certs 보유 → 인증서 강조 / isManufacturing yes → 공장등록증) + 하단 고지
+
+### ⑤ 버튼 연결
+`App.checkFundingInput()` → `validate(5)` → `collect()` → **`Dashboard.renderFunding(data)` + `show('dashboard')`**.
+정책자금은 진단 점수·레이더차트가 없으므로 **diag-reveal을 거치지 않는다.** `fundingVerdict`가 없으면 alert 후 중단(가짜 데이터 미사용).
+
+### ⑥ 검증 (Node)
+| 항목 | 결과 |
+|---|---|
+| 소진공 집계 | findings 7건 = verdict 6 + reference 1 → "점검 6개 · 통과 5 · 확인 필요 1" ✓ |
+| 빈 메시지 전수 검사 | micro/sme × none/yes/unknown 전 조합 → **빈 메시지 0건** ✓ |
+| 자동 판정 불가 3규칙 | 전부 `severity: low` + 메시지 문두에 표기 ✓ |
+| `restrictedBiz: 'yes'` | `semas_industry`·`kosmes_industry` 여전히 `low` 고정 ✓ |
+| verdict·카운트 회귀 | clear 포함 전후 `verdict`/`blockedCount`/`unknownItems`/`recommendedOrder` 전부 동일 ✓ |
+
+### ⑦ 캐시버스팅
+`index.html` 로컬 `?v=` 47곳 전부 `20260801d`
+
+### 2차 예정 (B — AI 실행 로드맵)
+- `ai-engine.js`에 `d.purpose === 'funding'` 전용 프롬프트 분기 (단일 호출, 3분할 API 미사용)
+- 출력: `situation` / `priority[]` / `prepare90[]` / `cautions[]`
+- 시스템 프롬프트 제약: 단정 표현 금지, 예상 승인액·금리 제시 금지, 판정에 없는 결격 사유 생성 금지, unknownItems는 "확인 필요"로만 언급, 지원 한도 금액 언급 금지
+- **AI 실패 시 판정 결과는 정상 표시하고 AI 섹션만 생략** + "AI 실행 로드맵 생성에 실패했습니다. 판정 결과는 아래에서 확인하실 수 있습니다. [다시 시도]"
+
+---
+
 ## 최근 수정 이력 (2026-08-01) — 정책자금 진단 2단계-보완: step5 정밀 입력 필드 추가
 
 **데이터로 확정 가능한 항목을 '확인 필요(conditional)'로 넘기지 않는다.**

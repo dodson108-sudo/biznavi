@@ -756,3 +756,108 @@
   background: rgba(245,192,48,.06); border-left: 2px solid rgba(245,192,48,.35);
   border-radius: 4px;
 }
+
+/* ═══════════════════════════════════════════
+   정책자금 진단 결과 (sec-funding-*) — 신규 추가만
+═══════════════════════════════════════════ */
+.fund-headline {
+  font-size: 1.05rem; font-weight: 700; line-height: 1.55;
+  padding: 16px 18px; border-radius: 10px; margin-bottom: 18px;
+}
+.fund-headline.fh-ok      { background: rgba(74,222,128,.10); border: 1px solid rgba(74,222,128,.35); color: #4ADE80; }
+.fund-headline.fh-blocked { background: rgba(248,113,113,.10); border: 1px solid rgba(248,113,113,.35); color: #F87171; }
+.fund-headline.fh-none    { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.15); color: var(--txt2); }
+
+.fs-rows { display: flex; flex-direction: column; gap: 8px; }
+.fs-row {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 11px 14px; border-radius: 8px;
+  background: rgba(15,22,41,.7); border: 1px solid rgba(42,63,117,.5);
+}
+.fs-row-none { opacity: .75; }
+.fs-agency { font-weight: 700; color: var(--gold); min-width: 64px; }
+.fs-detail { color: var(--txt2); font-size: 0.88rem; }
+.fs-uncertain {
+  display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 10px;
+  font-size: 0.72rem; background: rgba(245,192,48,.12); color: #F5C030;
+  border: 1px solid rgba(245,192,48,.3);
+}
+.fs-unknown-box {
+  margin-top: 16px; padding: 13px 16px; border-radius: 8px;
+  background: rgba(245,192,48,.07); border-left: 3px solid rgba(245,192,48,.5);
+}
+.fs-unknown-title { font-weight: 700; color: var(--gold); margin-bottom: 5px; font-size: 0.9rem; }
+.fs-unknown-box p { font-size: 0.85rem; color: var(--txt2); line-height: 1.6; margin: 0; }
+
+.fund-agency-card {
+  border: 1px solid rgba(42,63,117,.6); border-radius: 12px;
+  padding: 18px; margin-bottom: 18px; background: rgba(15,22,41,.6);
+}
+.fa-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.fa-name { font-size: 1.02rem; font-weight: 700; color: var(--txt); }
+.fv-badge { padding: 3px 11px; border-radius: 11px; font-size: 0.75rem; font-weight: 700; }
+.fv-badge.fv-blocked   { background: rgba(248,113,113,.15); color: #F87171; border: 1px solid rgba(248,113,113,.4); }
+.fv-badge.fv-review    { background: rgba(245,192,48,.15); color: #F5C030; border: 1px solid rgba(245,192,48,.4); }
+.fv-badge.fv-clear     { background: rgba(74,222,128,.15); color: #4ADE80; border: 1px solid rgba(74,222,128,.4); }
+.fv-badge.fv-none      { background: rgba(255,255,255,.07); color: var(--txt3); border: 1px solid rgba(255,255,255,.18); }
+.fv-badge.fv-uncertain { background: rgba(245,192,48,.10); color: #F5C030; border: 1px solid rgba(245,192,48,.28); }
+.fa-exception { font-size: 0.83rem; color: #4ADE80; margin-bottom: 10px; }
+.fa-not-eligible { font-size: 0.88rem; color: var(--txt2); line-height: 1.65; margin: 0; }
+.fa-none { font-size: 0.88rem; color: var(--txt3); margin: 0; }
+
+.fund-finding {
+  border-left: 3px solid rgba(255,255,255,.2); border-radius: 6px;
+  padding: 11px 14px; margin-bottom: 10px; background: rgba(10,14,26,.5);
+}
+.fund-finding.ff-sev-high   { border-left-color: #F87171; }
+.fund-finding.ff-sev-medium { border-left-color: #F5C030; }
+.fund-finding.ff-sev-low    { border-left-color: rgba(255,255,255,.25); }
+.ff-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ff-label { font-weight: 700; color: var(--txt); font-size: 0.92rem; }
+.ff-status { padding: 1px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; }
+.ff-status.ff-st-blocked     { background: rgba(248,113,113,.15); color: #F87171; }
+.ff-status.ff-st-conditional { background: rgba(245,192,48,.15); color: #F5C030; }
+.ff-status.ff-st-unknown     { background: rgba(155,170,200,.15); color: #9BAAC8; }
+.ff-status.ff-st-clear       { background: rgba(74,222,128,.15); color: #4ADE80; }
+.ff-msg { font-size: 0.85rem; color: var(--txt2); line-height: 1.65; margin: 0 0 6px; }
+.ff-remedy { font-size: 0.82rem; color: var(--txt2); line-height: 1.55; margin-bottom: 5px; }
+.ff-remedy strong { color: var(--gold); }
+.ff-source { font-size: 0.73rem; color: var(--txt3); }
+.ff-source a { color: var(--txt3); text-decoration: underline; }
+.ff-source a:hover { color: var(--gold); }
+
+.fund-clear-wrap { margin: 12px 0 6px; }
+.fund-clear-wrap summary {
+  cursor: pointer; font-size: 0.83rem; color: #4ADE80;
+  padding: 7px 11px; border-radius: 6px; background: rgba(74,222,128,.07);
+  border: 1px solid rgba(74,222,128,.22); list-style: none;
+}
+.fund-clear-wrap summary::-webkit-details-marker { display: none; }
+.fund-clear-wrap summary::before { content: '▸ '; }
+.fund-clear-wrap[open] summary::before { content: '▾ '; }
+.fund-clear-wrap[open] summary { margin-bottom: 10px; }
+
+.fund-ref-wrap { margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(42,63,117,.7); }
+.fund-ref-title { font-size: 0.8rem; font-weight: 700; color: var(--txt3); margin-bottom: 8px; }
+
+.fa-limit-note {
+  margin-top: 14px; padding: 11px 13px; border-radius: 7px;
+  font-size: 0.78rem; color: var(--txt3); line-height: 1.6;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
+}
+.fa-limit-note a { color: var(--gold); }
+
+.fund-doc-list { margin: 0 0 14px; padding-left: 20px; }
+.fund-doc-list li { font-size: 0.88rem; color: var(--txt2); line-height: 1.9; }
+.fund-doc-extra {
+  padding: 13px 16px; border-radius: 8px; margin-bottom: 14px;
+  background: rgba(245,192,48,.06); border-left: 3px solid rgba(245,192,48,.4);
+}
+.fund-doc-extra-title { font-weight: 700; color: var(--gold); font-size: 0.88rem; margin-bottom: 7px; }
+.fund-doc-extra .fund-doc-list { margin-bottom: 0; }
+.fund-doc-note { font-size: 0.8rem; color: var(--txt3); line-height: 1.6; margin: 0; }
+
+@media (max-width: 768px) {
+  .fund-headline { font-size: 0.95rem; padding: 13px 14px; }
+  .fs-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+}

@@ -123,6 +123,11 @@ const FundingRules = (() => {
 
   /* ── 내부 헬퍼 ─────────────────────────────────────────────── */
 
+  /* 앱이 원리적으로 판정할 수 없는 항목 표기 —
+     '실제로 문제가 있는 항목'과 '앱이 못 보는 항목'을 사용자가 구분할 수 있게 한다.
+     이 표기가 붙는 3개 규칙(semas_industry·kosmes_industry·kosmes_debt_ratio)은 severity를 low로 고정. */
+  const _NO_AUTO = '[앱에서 자동 판정 불가]';
+
   function _yes(v) { return v === 'yes'; }
   function _unknown(v) { return v === 'unknown' || v === undefined || v === null || v === ''; }
 
@@ -223,6 +228,7 @@ const FundingRules = (() => {
       message: {
         blocked: '',
         conditional: '체납은 원칙적으로 신청 불가입니다. 다만 「국세징수법」 압류·매각 유예, 「조세특례제한법」 징수특례, 「지방세법」 체납처분 유예를 받은 경우 직접대출 지원이 가능할 수 있습니다. 관할 세무서·소진공 확인이 필요합니다.',
+        clear: '국세·지방세 체납이 없다고 응답하셨습니다.',
         unknown: '체납 여부가 확인되지 않았습니다. 소진공은 체납 기업을 원칙적으로 제외하므로 국세·지방세 완납증명서로 확인이 필요합니다.',
       },
       remedy: '체납액 완납 또는 징수유예·분납 승인 절차 진행',
@@ -235,7 +241,7 @@ const FundingRules = (() => {
         if (f?.currentStatus === 'active') return 'clear';
         return 'unknown';
       },
-      severity: (f, ctx, status) => (status === 'blocked' ? 'high' : 'medium'),
+      severity: (f, ctx, status) => (status === 'blocked' ? 'high' : status === 'clear' ? 'low' : 'medium'),
       message: {
         blocked: '신청일 현재 휴업·폐업 상태이면 소진공 정책자금을 신청할 수 없습니다. 사업 재개 후 신청이 가능합니다.',
         conditional: '',
@@ -245,7 +251,7 @@ const FundingRules = (() => {
       remedy: '사업자등록 상태(계속사업자) 확인 — 국세청 홈택스 사업자상태 조회',
     },
     {
-      id: 'semas_closure_history', agency: 'semas', label: '과거 휴·폐업 이력 (참고)', ...SRC_SEMAS,
+      id: 'semas_closure_history', agency: 'semas', label: '과거 휴·폐업 이력 (참고)', kind: 'reference', ...SRC_SEMAS,
       /* 결격 판정에 사용하지 않는 참고 항목.
          현재 상태는 semas_closure(currentStatus)가 판정하며, 이 항목은 심사 참고용이다.
          결격요건 7문항은 validate(5) 필수라 실제 제출 시 'unknown'은 나오지 않는다. */
@@ -254,7 +260,7 @@ const FundingRules = (() => {
       message: {
         blocked: '',
         conditional: '과거 휴·폐업 이력은 그 자체로 결격 사유가 아닙니다. 다만 재도전·재창업 관련 자금(소진공 재도전특별자금, 중진공 재창업자금 등)을 신청하실 경우 심사에서 참고될 수 있습니다.',
-        clear: '',
+        clear: '최근 5년 내 휴업·폐업 이력이 없다고 응답하셨습니다.',
         unknown: '',
       },
       remedy: '',
@@ -269,6 +275,7 @@ const FundingRules = (() => {
       message: {
         blocked: '연체·금융질서문란 등록은 소진공 정책자금 신청 불가 사유입니다. 신용회복 절차 완료 후 재신청이 필요합니다.',
         conditional: '',
+        clear: '금융질서문란 등록·신용회복 절차와 금융기관 연체 이력이 모두 없다고 응답하셨습니다.',
         unknown: '신용 상태가 확인되지 않았습니다. 한국신용정보원 등록 정보로 확인이 필요합니다.',
       },
       remedy: '신용회복위원회 절차 이행 또는 연체 해소 후 등록 정보 말소 확인',
@@ -278,7 +285,7 @@ const FundingRules = (() => {
       /* ⚠ industryKey는 표준산업분류가 아니므로 자동 판정 불가 → 항상 conditional */
       test: () => 'conditional',
       detail: (f, ctx) => {
-        const base = '소진공은 도박·사행성·향락·금융·부동산·전문서비스 등을 지원 제외업종으로 정하고 있습니다. BizNavi의 업종 분류는 표준산업분류 코드가 아니므로 자동 판정할 수 없습니다.';
+        const base = _NO_AUTO + ' 소진공은 도박·사행성·향락·금융·부동산·전문서비스 등을 지원 제외업종으로 정하고 있습니다. BizNavi의 업종 분류는 표준산업분류 코드가 아니므로 자동 판정할 수 없습니다.';
         const watch = _watchText(ctx?.industryKey);
         const declared = _yes(f?.restrictedBiz)
           ? ' 제한업종에 해당한다고 응답하셨습니다. 사업자등록증의 표준산업분류 코드로 제외업종 표를 대조하고, 예외 조항 적용 여부를 소진공에 확인하십시오.'
@@ -287,10 +294,11 @@ const FundingRules = (() => {
               : ' 제한업종에 해당하지 않는다고 응답하셨으나, 표준산업분류 코드 기준으로 재확인을 권장합니다.');
         return base + watch + declared;
       },
-      severity: (f) => (_yes(f?.restrictedBiz) ? 'high' : 'medium'),
+      /* 실제 결격 가능성이 아니라 '앱이 판정할 수 없어 확인이 필요한' 항목이므로 low 고정 */
+      severity: () => 'low',
       message: {
         blocked: '',
-        conditional: '지원 제외업종 해당 여부는 표준산업분류 코드로 확인이 필요합니다.',
+        conditional: _NO_AUTO + ' 지원 제외업종 해당 여부는 표준산업분류 코드로 확인이 필요합니다.',
         unknown: '',
       },
       remedy: '사업자등록증상 업태·종목의 표준산업분류 코드를 소진공 제외업종 표와 대조',
@@ -301,6 +309,7 @@ const FundingRules = (() => {
       message: {
         blocked: '',
         conditional: '최근 정책자금을 3회 이상 지원받은 경우 제한될 수 있습니다. 다만 1회에 한해 추가 지원이 가능한 경우가 있고 자금 종류에 따라 다르므로 소진공 확인이 필요합니다.',
+        clear: '기존 정책자금 수혜 중이 아니며 한도가 남아 있다고 응답하셨습니다.',
         unknown: '기존 정책자금 수혜 이력이 확인되지 않았습니다. 지원 횟수·잔여 한도를 소진공에 확인해 주십시오.',
       },
       remedy: '소진공 정책자금 지원 이력 및 잔여 한도 조회',
@@ -313,6 +322,7 @@ const FundingRules = (() => {
       message: {
         blocked: '중진공 융자제한 3호 "세금을 체납중인 기업"에 해당합니다. 소진공과 달리 징수유예 등 예외 조항이 없습니다.',
         conditional: '',
+        clear: '국세·지방세 체납이 없다고 응답하셨습니다.',
         unknown: '체납 여부가 확인되지 않았습니다. 중진공 융자제한 3호 대상이므로 완납증명서로 확인이 필요합니다.',
       },
       remedy: '체납액 완납 후 국세·지방세 완납증명서 발급',
@@ -327,6 +337,7 @@ const FundingRules = (() => {
       message: {
         blocked: '중진공 융자제한 4호에 해당합니다. 한국신용정보원 「일반신용정보관리규약」에 따라 연체, 대위변제·대지급, 부도, 관련인, 금융질서문란, 회생·파산 등의 정보가 등록되어 있는 기업은 융자 대상에서 제외됩니다.',
         conditional: '',
+        clear: '금융질서문란 등록·신용회복 절차와 금융기관 연체 이력이 모두 없다고 응답하셨습니다.',
         unknown: '신용정보 등록 여부가 확인되지 않았습니다. 중진공 융자제한 4호 대상이므로 한국신용정보원 조회가 필요합니다.',
       },
       remedy: '연체 해소 후 등록 정보 말소 확인 또는 신용회복 절차 완료',
@@ -339,7 +350,7 @@ const FundingRules = (() => {
         if (f?.currentStatus === 'active') return 'clear';
         return 'unknown';
       },
-      severity: (f, ctx, status) => (status === 'blocked' ? 'high' : 'medium'),
+      severity: (f, ctx, status) => (status === 'blocked' ? 'high' : status === 'clear' ? 'low' : 'medium'),
       message: {
         blocked: '중진공 융자제한 2호 "휴·폐업중인 기업"에 해당합니다. 신청일 현재 휴업·폐업 상태이면 신청할 수 없으며, 사업 재개 후 신청이 가능합니다.',
         conditional: '',
@@ -352,15 +363,15 @@ const FundingRules = (() => {
       id: 'kosmes_industry', agency: 'kosmes', label: '융자제외 업종 (융자제한 5호)', ...SRC_KOSMES,
       test: () => 'conditional',
       detail: (f) => {
-        const base = '중진공 융자제한 5호는 사행산업 등 국민 정서상 부적절한 업종(도박·사치·향락, 건강유해, 부동산 투기 등), 공공부문 운영 업종, 고소득·자금조달 용이 업종(법무·세무·보건 등 전문서비스, 금융 및 보험업 등)을 융자 대상에서 제외합니다. BizNavi의 업종 분류는 표준산업분류 코드가 아니므로 자동 판정할 수 없습니다.';
+        const base = _NO_AUTO + ' 중진공 융자제한 5호는 사행산업 등 국민 정서상 부적절한 업종(도박·사치·향락, 건강유해, 부동산 투기 등), 공공부문 운영 업종, 고소득·자금조달 용이 업종(법무·세무·보건 등 전문서비스, 금융 및 보험업 등)을 융자 대상에서 제외합니다. BizNavi의 업종 분류는 표준산업분류 코드가 아니므로 자동 판정할 수 없습니다.';
         return base + (_yes(f?.restrictedBiz)
           ? ' 제한업종에 해당한다고 응답하셨으므로 표준산업분류 코드로 중진공 융자제외 업종 여부를 확인하십시오.'
           : ' 사업자등록증의 표준산업분류 코드로 확인이 필요합니다.');
       },
-      severity: (f) => (_yes(f?.restrictedBiz) ? 'high' : 'medium'),
+      severity: () => 'low',
       message: {
         blocked: '',
-        conditional: '융자제외 업종 해당 여부는 표준산업분류 코드로 확인이 필요합니다.',
+        conditional: _NO_AUTO + ' 융자제외 업종 해당 여부는 표준산업분류 코드로 확인이 필요합니다.',
         unknown: '',
       },
       remedy: '사업자등록증상 표준산업분류 코드를 중진공 융자제외 업종 기준과 대조',
@@ -383,6 +394,7 @@ const FundingRules = (() => {
       message: {
         blocked: '중진공 융자제한 1호 우량기업에 해당합니다. 민간 금융기관 이용이 가능한 기업으로 정책자금 대상이 아닙니다.',
         conditional: '',
+        clear: '입력하신 자기자본·자산총계 기준으로 융자제한 1호(우량기업)에 해당하지 않습니다.',
         unknown: '자기자본·자산총계가 입력되지 않아 융자제한 1호(우량기업) 해당 여부를 확인할 수 없습니다.',
       },
       remedy: '직전 사업연도 재무제표의 자기자본·자산총계 확인',
@@ -416,6 +428,7 @@ const FundingRules = (() => {
       message: {
         blocked: '',
         conditional: '한계기업 해당 여부는 연속 연도 정보가 필요해 확인이 필요합니다.',
+        clear: '자본잠식이 없고 영업적자도 없다고 응답하셨습니다.',
         unknown: '자본잠식 여부와 영업이익이 입력되지 않아 융자제한 11호(한계기업) 해당 여부를 확인할 수 없습니다.',
       },
       remedy: '최근 3개 사업연도 재무제표로 연속 적자 여부·자기자본 잠식 정도·이자보상배율 확인',
@@ -425,16 +438,17 @@ const FundingRules = (() => {
       /* ⚠ 별표5의 업종별 구체 수치는 앱에 없다. 임의 기준을 만들지 않는다. */
       test: (f) => (typeof f?.debtRatio === 'number' ? 'conditional' : 'unknown'),
       detail: (f, ctx) => {
+        if (typeof f?.debtRatio !== 'number') return null;
         const age = _businessAge(ctx);
         const ageText = (age !== null)
           ? ' 업력 약 ' + age + '년으로 추정되며, 업력 7년 미만 기업은 부채비율 적용 예외 대상입니다. 정확한 기준일은 중진공 확인이 필요합니다.'
           : ' 업력 7년 미만 기업, 간편장부대상 사업자, 협동조합은 적용 예외입니다.';
-        return '산출된 부채비율은 ' + f.debtRatio.toFixed(1) + '%입니다. 중진공 융자제한 10호는 업종별 융자제한 부채비율(별표5) 초과 기업을 제외하며, 별표5의 업종별 기준 수치는 중진공 공고에서 확인해야 합니다.' + ageText;
+        return _NO_AUTO + ' 산출된 부채비율은 ' + f.debtRatio.toFixed(1) + '%입니다. 중진공 융자제한 10호는 업종별 융자제한 부채비율(별표5) 초과 기업을 제외하며, 별표5의 업종별 기준 수치는 중진공 공고에서 확인해야 합니다.' + ageText;
       },
-      severity: () => 'medium',
+      severity: () => 'low',
       message: {
         blocked: '',
-        conditional: '업종별 융자제한 부채비율(별표5) 대비 확인이 필요합니다.',
+        conditional: _NO_AUTO + ' 업종별 융자제한 부채비율(별표5) 대비 확인이 필요합니다.',
         unknown: '부채총계·자본총계가 입력되지 않아 부채비율을 산출할 수 없습니다. 자본총계가 0 이하이면 부채비율 산출이 불가합니다.',
       },
       remedy: '중진공 공고 별표5의 업종별 융자제한 부채비율과 대조',
@@ -445,6 +459,7 @@ const FundingRules = (() => {
       message: {
         blocked: '',
         conditional: '중진공 융자제한 13·15호는 "최근 5년간 정책자금·보증 지원 합계 200억원 초과" 또는 "최근 5년 이내 3회 이상 지원"을 제한합니다. 자금 종류에 따라 한도 산정에서 제외되는 예외 자금이 있으므로 중진공 확인이 필요합니다.',
+        clear: '기존 정책자금 수혜 중이 아니며 한도가 남아 있다고 응답하셨습니다.',
         unknown: '기존 정책자금·보증 지원 이력이 확인되지 않았습니다. 최근 5년간 지원 횟수·누계 금액을 중진공에 확인해 주십시오.',
       },
       remedy: '최근 5년간 정책자금·보증 지원 내역 및 누계 금액 조회',
@@ -497,10 +512,10 @@ const FundingRules = (() => {
 
   const DEFAULT_SEVERITY = { blocked: 'high', conditional: 'medium', unknown: 'medium', clear: 'low' };
 
-  /* clear 항목을 findings에 포함할지 — 현재는 제외.
-     5단계 화면에서 '요건 충족' 표시가 필요하면 이 상수만 true로 바꾸면 된다
-     (각 규칙의 message.clear / detail(clear) 문자열은 이미 준비되어 있음) */
-  const _INCLUDE_CLEAR_FINDINGS = false;
+  /* clear 항목도 findings에 포함한다 (2026-08-02, 5단계 화면).
+     빨간 경고만 보이면 사용자가 포기하므로, 통과 항목을 함께 보여 남은 과제 수를 명확히 한다.
+     화면에서는 접힘(details) 처리되며, verdict·blockedCount 등 판정 로직에는 영향이 없다. */
+  const _INCLUDE_CLEAR_FINDINGS = true;
 
   function _runRule(rule, f, ctx) {
     let status;
@@ -524,6 +539,8 @@ const FundingRules = (() => {
     return {
       id: rule.id,
       label: rule.label,
+      // 'verdict' — 통과/결격 집계 대상 / 'reference' — 참고 항목(집계 제외)
+      kind: rule.kind || 'verdict',
       status: status,
       severity: severity,
       message: message,
