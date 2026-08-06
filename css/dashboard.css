@@ -861,3 +861,74 @@
   .fund-headline { font-size: 0.95rem; padding: 13px 14px; }
   .fs-row { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
+
+/* ── 정책자금 예외 배지 (정보성 — verdict 배지와 구분되는 파랑 계열) ── */
+.fv-badge.fv-exception {
+  background: rgba(96,165,250,.14); color: #93C5FD;
+  border: 1px solid rgba(96,165,250,.35); cursor: help;
+}
+
+/* ── 정책자금 AI 실행 로드맵 ── */
+.fr-loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px; border-radius: 8px; font-size: 0.88rem; color: var(--txt2);
+  background: rgba(245,192,48,.05); border: 1px solid rgba(245,192,48,.18);
+}
+.fr-spinner {
+  width: 15px; height: 15px; flex-shrink: 0; border-radius: 50%;
+  border: 2px solid rgba(245,192,48,.25); border-top-color: var(--gold);
+  animation: fr-spin .8s linear infinite;
+}
+@keyframes fr-spin { to { transform: rotate(360deg); } }
+
+.fr-error {
+  padding: 18px; border-radius: 8px;
+  background: rgba(248,113,113,.07); border: 1px solid rgba(248,113,113,.28);
+}
+.fr-error p { font-size: 0.88rem; color: var(--txt2); line-height: 1.6; margin: 0 0 12px; }
+
+.fr-situation {
+  font-size: 0.92rem; color: var(--txt2); line-height: 1.75;
+  padding: 14px 16px; margin: 0 0 20px; border-radius: 8px;
+  background: rgba(15,22,41,.7); border-left: 3px solid var(--gold);
+}
+.fr-block { margin-bottom: 22px; }
+.fr-h4 { font-size: 0.95rem; color: var(--gold); margin: 0 0 12px; font-weight: 700; }
+
+.fr-pri-card {
+  border: 1px solid rgba(42,63,117,.6); border-radius: 9px;
+  padding: 14px 16px; margin-bottom: 10px; background: rgba(15,22,41,.55);
+}
+.fr-pri-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.fr-pri-num {
+  flex-shrink: 0; width: 22px; height: 22px; line-height: 22px; text-align: center;
+  border-radius: 50%; background: var(--gold); color: #0A0E1A;
+  font-size: 0.76rem; font-weight: 700;
+}
+.fr-pri-action { font-weight: 700; color: var(--txt); font-size: 0.94rem; line-height: 1.5; }
+.fr-pri-row { font-size: 0.85rem; color: var(--txt2); line-height: 1.65; margin-top: 4px; padding-left: 32px; }
+.fr-pri-row strong { color: var(--gold); margin-right: 6px; font-weight: 600; }
+
+.fr-90-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.fr-90-card {
+  border: 1px solid rgba(42,63,117,.55); border-radius: 9px;
+  padding: 14px; background: rgba(15,22,41,.55);
+}
+.fr-90-month { font-size: 0.78rem; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+.fr-90-focus { font-size: 0.88rem; color: var(--txt); font-weight: 600; line-height: 1.5; margin-bottom: 9px; }
+.fr-90-tasks { margin: 0; padding-left: 17px; }
+.fr-90-tasks li { font-size: 0.83rem; color: var(--txt2); line-height: 1.75; }
+
+.fr-cautions {
+  padding: 14px 16px; border-radius: 8px;
+  background: rgba(248,113,113,.06); border-left: 3px solid rgba(248,113,113,.4);
+}
+.fr-cautions-title { font-size: 0.88rem; font-weight: 700; color: #F87171; margin-bottom: 7px; }
+.fr-cautions ul { margin: 0; padding-left: 17px; }
+.fr-cautions li { font-size: 0.85rem; color: var(--txt2); line-height: 1.75; }
+
+@media (max-width: 768px) {
+  .fr-90-grid { grid-template-columns: 1fr; }
+  .fr-pri-row { padding-left: 0; }
+}
+

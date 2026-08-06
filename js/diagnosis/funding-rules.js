@@ -477,13 +477,13 @@ const FundingRules = (() => {
 
     // ① 사용자 응답 우선 — industryKey와 무관하게 '직접 영위함'이면 제조업 예외 적용
     if (mfg === 'yes') {
-      return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위' };
+      return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위', exceptionLabel: '제조업 예외' };
     }
 
     // ② 사회적경제기업 인증 예외 (isManufacturing 응답과 무관하게 평가)
     const certs = Array.isArray(f?.certs) ? f.certs : [];
     if (certs.some(c => KOSMES_SOCIAL_CERTS.indexOf(c) >= 0)) {
-      return { eligible: true, eligibilityUncertain: false, exceptionBy: '(예비)사회적기업·협동조합·마을기업·소셜벤처 예외' };
+      return { eligible: true, eligibilityUncertain: false, exceptionBy: '(예비)사회적기업·협동조합·마을기업·소셜벤처 예외', exceptionLabel: '사회적경제 예외' };
     }
 
     // ③ '영위하지 않음' — 제조업 예외 미적용. 업종 판별과 충돌하면 재확인을 안내
@@ -499,7 +499,7 @@ const FundingRules = (() => {
 
     // ④ '모름'·미응답 — 업종 기반 기존 로직
     if (KOSMES_MFG_INDUSTRIES.indexOf(industryKey) >= 0) {
-      return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위 예외 (업종 기준)' };
+      return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위 예외 (업종 기준)', exceptionLabel: '제조업 예외' };
     }
     const uncertain = KOSMES_MAYBE_MFG_INDUSTRIES.indexOf(industryKey) >= 0;
     const reason = uncertain
@@ -610,7 +610,8 @@ const FundingRules = (() => {
       eligible: !!kEli.eligible,
       eligibilityUncertain: !!kEli.eligibilityUncertain,
       notEligibleReason: kEli.eligible ? undefined : kEli.notEligibleReason,
-      exceptionBy: kEli.exceptionBy,
+      exceptionBy: kEli.exceptionBy,          // 전문 — 프롬프트·로그·카드 본문용
+      exceptionLabel: kEli.exceptionLabel,    // 짧은 라벨 — 배지용 (한눈에 읽혀야 함)
       verdict: kEli.eligible ? _verdictOf(kosmesFindings) : 'review',
       blockedCount:     kosmesFindings.filter(x => x.status === 'blocked').length,
       conditionalCount: kosmesFindings.filter(x => x.status === 'conditional').length,

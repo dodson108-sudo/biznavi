@@ -215,7 +215,7 @@ const Dashboard = (() => {
         별도 진입점 renderFunding(fd)을 둔다. 경영진단 경로에 영향 없음.
      ══════════════════════════════════════════════════════════════ */
 
-  const FUNDING_ONLY_SECTIONS = ['sec-funding-summary', 'sec-funding-agency', 'sec-funding-docs'];
+  const FUNDING_ONLY_SECTIONS = ['sec-funding-summary', 'sec-funding-agency', 'sec-funding-roadmap', 'sec-funding-docs'];
 
   function _esc(s) {
     return String(s == null ? '' : s)
@@ -338,6 +338,12 @@ const Dashboard = (() => {
       } else {
         const b = _FUND_VERDICT_BADGE[a.verdict] || _FUND_VERDICT_BADGE.review;
         badge = `<span class="fv-badge ${b.cls}">${b.txt}</span>`;
+        // 예외 적용으로 대상에 포함된 경우 — 사유를 배지로 명시 (정보성이므로 파랑 계열)
+        if (a.exceptionLabel || a.exceptionBy) {
+          const short = _esc(a.exceptionLabel || a.exceptionBy);
+          const full  = _esc(a.exceptionBy || '');
+          badge += `<span class="fv-badge fv-exception" title="${full}">${short}로 대상 포함</span>`;
+        }
       }
 
       let body;
@@ -371,7 +377,6 @@ const Dashboard = (() => {
             <span class="fa-name">${_esc(a.name)}</span>
             ${badge}
           </div>
-          ${a.exceptionBy ? `<div class="fa-exception">예외 적용: ${_esc(a.exceptionBy)}</div>` : ''}
           <div class="fa-body">${body}</div>
           ${note ? `<div class="fa-limit-note">${note}${link}</div>` : ''}
         </div>`;
@@ -413,6 +418,64 @@ const Dashboard = (() => {
       `<p class="fund-doc-note">실제 제출 서류는 자금 종류와 신청 시기에 따라 다릅니다. 신청 전 반드시 해당 기관 공고를 확인하세요.</p>`;
   }
 
+  /* ── ④ AI 실행 로드맵 ────────────────────────────────────────
+     state: 'loading' | 'error' | 'done'
+     ⚠ AI가 실패해도 판정 섹션은 그대로 둔다. 이 섹션에만 실패 안내를 표시한다. */
+  function renderFundingRoadmap(state, roadmap) {
+    const section = document.getElementById('sec-funding-roadmap');
+    const el = document.getElementById('fundingRoadmapContent');
+    if (!section || !el) return;
+    section.style.display = '';
+
+    if (state === 'loading') {
+      el.innerHTML = '<div class="fr-loading"><span class="fr-spinner"></span>' +
+        'AI가 판정 결과를 바탕으로 실행 로드맵을 작성하고 있습니다…</div>';
+      return;
+    }
+
+    if (state === 'error') {
+      el.innerHTML =
+        '<div class="fr-error">' +
+          '<p>AI 실행 로드맵 생성에 실패했습니다. 위 판정 결과는 정상적으로 확인하실 수 있습니다.</p>' +
+          '<button class="btn btn-gold btn-sm" onclick="App.retryFundingRoadmap()">다시 시도</button>' +
+        '</div>';
+      return;
+    }
+
+    const r = roadmap || {};
+    const situation = r.situation
+      ? `<p class="fr-situation">${_esc(r.situation)}</p>` : '';
+
+    const priority = Array.isArray(r.priority) && r.priority.length
+      ? `<div class="fr-block"><h4 class="fr-h4">우선순위 과제</h4>` +
+        r.priority.map((p, i) => `
+          <div class="fr-pri-card">
+            <div class="fr-pri-head"><span class="fr-pri-num">${_esc(p.order || (i + 1))}</span>
+              <span class="fr-pri-action">${_esc(p.action || '')}</span></div>
+            ${p.why ? `<div class="fr-pri-row"><strong>이유</strong> ${_esc(p.why)}</div>` : ''}
+            ${p.how ? `<div class="fr-pri-row"><strong>방법</strong> ${_esc(p.how)}</div>` : ''}
+          </div>`).join('') + '</div>'
+      : '';
+
+    const prepare = Array.isArray(r.prepare90) && r.prepare90.length
+      ? `<div class="fr-block"><h4 class="fr-h4">90일 준비 계획</h4><div class="fr-90-grid">` +
+        r.prepare90.map(m => `
+          <div class="fr-90-card">
+            <div class="fr-90-month">${_esc(m.month || '')}개월차</div>
+            ${m.focus ? `<div class="fr-90-focus">${_esc(m.focus)}</div>` : ''}
+            <ul class="fr-90-tasks">${(Array.isArray(m.tasks) ? m.tasks : []).map(t => `<li>${_esc(t)}</li>`).join('')}</ul>
+          </div>`).join('') + '</div></div>'
+      : '';
+
+    const cautions = Array.isArray(r.cautions) && r.cautions.length
+      ? `<div class="fr-cautions"><div class="fr-cautions-title">주의사항</div>
+           <ul>${r.cautions.map(c => `<li>${_esc(c)}</li>`).join('')}</ul></div>`
+      : '';
+
+    const html = situation + priority + prepare + cautions;
+    el.innerHTML = html || '<p class="fa-none">생성된 실행 로드맵이 없습니다.</p>';
+  }
+
   // ── 정책자금 전용 진입점 ──────────────────────────────────────
   function renderFunding(fd) {
     _lastFd = fd || {};
@@ -438,6 +501,7 @@ const Dashboard = (() => {
 
     try { renderFundingSummary(fd); } catch (e) { console.error('renderFundingSummary:', e); }
     try { renderFundingAgency(fd);  } catch (e) { console.error('renderFundingAgency:', e); }
+    try { renderFundingRoadmap('loading'); } catch (e) { console.error('renderFundingRoadmap:', e); }
     try { renderFundingDocs(fd);    } catch (e) { console.error('renderFundingDocs:', e); }
     try { renderGovSection(fd);     } catch (e) { console.error('renderGovSection:', e); }
   }
@@ -451,6 +515,7 @@ const Dashboard = (() => {
     const links = isFunding ? [
       { href: 'sec-funding-summary', label: '판정 요약' },
       { href: 'sec-funding-agency',  label: '기관별 상세' },
+      { href: 'sec-funding-roadmap', label: '실행 로드맵' },
       { href: 'sec-funding-docs',    label: '준비 서류' },
       { href: 'sec-gov',             label: '지원사업 매칭' },
     ] : isMicro ? [
@@ -974,7 +1039,7 @@ const Dashboard = (() => {
     // ③ 목차 클릭은 buildNav()에서 이미 처리됨
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록 (표시된 섹션만)
-    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov','sec-funding-summary','sec-funding-agency','sec-funding-docs'];
+    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov','sec-funding-summary','sec-funding-agency','sec-funding-roadmap','sec-funding-docs'];
     const secIds = allSecIds.filter(id => {
       const el = document.getElementById(id);
       return el && el.style.display !== 'none';
@@ -1104,5 +1169,5 @@ const Dashboard = (() => {
     el.classList.remove('print-target');
   }
 
-  return { render, renderFunding, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
+  return { render, renderFunding, renderFundingRoadmap, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
 })();

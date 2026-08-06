@@ -3032,5 +3032,153 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     return Object.assign(base, _fakeByConsultingType(d, co, ind, bm, comp, tl, cs));
   }
 
-  return { callClaude, fakeAnalysis, calcDiagScores };
+  /* ══════════════════════════════════════════════════════════════
+     정책자금 진단 전용 — AI 실행 로드맵 (purpose === 'funding')
+     ⚠ 경영진단 프롬프트 구성 로직(SYSTEM·buildPrompt1/2·callClaude)은 건드리지 않는다.
+        호출부·실패 처리·출력 구조가 완전히 다르므로 별도 함수로 분리한다.
+     ══════════════════════════════════════════════════════════════ */
+
+  const _SYSTEM_FUNDING = `너는 정책자금 신청을 20년간 지원해온 경영지도사다.
+기업의 정책자금 자가진단 결과를 받아, "그래서 무엇을 어떤 순서로 해야 하는가"를 정리한다.
+
+[역할의 한계 — 반드시 지킬 것]
+- 결격 판정은 이미 끝났다. 너는 판정을 다시 하거나 재해석하지 않는다.
+  제공된 판정 결과(findings)의 message는 이미 근거 조항이 포함된 완성 문장이다. 그대로 전제하라.
+- 판정 결과에 없는 결격 사유를 새로 만들어내지 마라.
+- "신청 가능합니다", "승인됩니다", "받을 수 있습니다" 같은 단정 표현을 절대 쓰지 마라.
+  "신청 요건을 검토할 수 있습니다", "확인이 필요합니다" 같은 표현을 쓴다.
+- 예상 승인 금액·금리·한도 수치를 제시하지 마라. 기관이 개별 산정하며 매년 변경된다.
+- 지원사업의 구체적인 지원 한도 금액을 언급하지 마라.
+- '모름'으로 응답된 항목(unknownItems)은 "확인이 필요하다"고만 쓰고, 상태를 추측하지 마라.
+- 신용보증기금·기술보증기금은 이번 진단 범위가 아니다. 언급하지 마라.
+- 사용자가 응답하지 않은 정보를 있는 것처럼 서술하지 마라.
+
+[출력 형식]
+JSON만 출력한다. 마크다운 코드펜스(\`\`\`)로 감싸지 마라. 설명 문장을 앞뒤에 붙이지 마라.
+
+{
+  "situation": "현재 자금 조달 상황 진단 3~4문장",
+  "priority": [
+    { "order": 1, "action": "가장 먼저 할 일", "why": "이유", "how": "구체적 방법" }
+  ],
+  "prepare90": [
+    { "month": 1, "focus": "이 달의 목표", "tasks": ["실행 항목"] },
+    { "month": 2, "focus": "...", "tasks": ["..."] },
+    { "month": 3, "focus": "...", "tasks": ["..."] }
+  ],
+  "cautions": ["주의사항"]
+}
+
+[작성 지침]
+- priority는 3~5개. 해소 우선순위는 판정 결과의 blocked → conditional → unknown 순으로 정한다.
+  blocked 항목이 있으면 그 해소가 최우선이다. remedy가 제공된 항목은 그 방법을 구체화한다.
+- prepare90의 tasks는 각 2~4개, 실제로 실행 가능한 행동으로 쓴다.
+- cautions는 2~4개. 신청 과정에서 흔히 놓치는 실무적 함정을 담는다.`;
+
+  /* callClaude 내부의 extractJSON과 동일 로직 — 기존 중첩 함수는 그대로 두고 복제해 사용 */
+  function _extractJSONFunding(text) {
+    const s = text.indexOf('{');
+    const e = text.lastIndexOf('}');
+    if (s === -1 || e <= s) return null;
+    const raw = text.substring(s, e + 1);
+    const repair = str => str.replace(/,\s*([}\]])/g, '$1');
+    try { return JSON.parse(raw); } catch (_) {}
+    try { return JSON.parse(repair(raw)); } catch (_) {}
+    const cb = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (cb) {
+      const inner = cb[1].substring(cb[1].indexOf('{'), cb[1].lastIndexOf('}') + 1);
+      try { return JSON.parse(inner); } catch (_) {}
+      try { return JSON.parse(repair(inner)); } catch (_) {}
+    }
+    return null;
+  }
+
+  /* 판정 결과를 프롬프트 텍스트로 직렬화 — AI가 재판정하지 않도록 결과만 전달 */
+  function _buildVerdictBlock(v) {
+    if (!v || !Array.isArray(v.agencies) || !v.agencies.length) return '(판정 결과 없음)';
+    const lines = v.agencies.map(a => {
+      const head = `● ${a.name || a.key}`;
+      if (!a.eligible) {
+        return head + `\n   기관 자격: 대상 아님${a.eligibilityUncertain ? ' (확인 시 대상 가능)' : ''}` +
+               `\n   사유: ${a.notEligibleReason || ''}`;
+      }
+      const findings = (a.findings || []).map(x =>
+        `   - [${x.status}${x.kind === 'reference' ? '/참고' : ''}] ${x.label}: ${x.message}` +
+        (x.remedy ? `\n       해소 방법: ${x.remedy}` : '')
+      ).join('\n');
+      return head +
+        `\n   기관 자격: 대상${a.exceptionBy ? ` (예외 적용: ${a.exceptionBy})` : ''}` +
+        `\n   종합: ${a.verdict} (결격 ${a.blockedCount || 0} · 확인 필요 ${a.conditionalCount || 0} · 모름 ${a.unknownCount || 0})` +
+        (findings ? `\n${findings}` : '');
+    });
+    const unknowns = (v.unknownItems || []);
+    return lines.join('\n\n') +
+      (unknowns.length ? `\n\n[사용자가 '모름'으로 응답한 항목 — 추측 금지, "확인 필요"로만 언급]\n   ${unknowns.join(' · ')}` : '');
+  }
+
+  function _buildFundingPrompt(d) {
+    const f = d.fundingData || {};
+    const govBlock = (typeof GovSupport !== 'undefined' && GovSupport.buildPromptBlock)
+      ? (GovSupport.buildPromptBlock(d) || '') : '';
+    // 업종은 한국어 라벨로 전달 (영문 키를 그대로 넣으면 AI가 업종을 인식하지 못함)
+    const industryLabel =
+      ((typeof GovSupport !== 'undefined' && GovSupport.INDUSTRY_LABEL) ? GovSupport.INDUSTRY_LABEL[d.industryKey] : '')
+      || d.industry || d.industryKey || '미입력';
+
+    return `다음 기업의 정책자금 자가진단 결과를 바탕으로 실행 로드맵을 작성해주세요.
+
+## 1. 기업 기본 정보
+- 회사명: ${d.companyName || '미입력'}
+- 업종: ${industryLabel}
+- 업태 / 종목: ${d.bizType || '미입력'} / ${d.bizItem || '미입력'}
+- 사업 규모: ${d.bizScale === 'micro' ? '소상공인' : d.bizScale === 'sme' ? '소기업·중소기업' : '미입력'}
+- 상시근로자 수: ${(f.employeeCount === null || f.employeeCount === undefined) ? (d.employees || '미입력') : f.employeeCount + '명'}
+- 개업연도: ${d.foundedYear || '미입력'}
+- 연매출(사용자 입력 원문): ${f.revenue || d.revenue || '미입력'}
+- 제조 공정 직접 영위: ${f.isManufacturing === 'yes' ? '예' : f.isManufacturing === 'no' ? '아니오' : '모름'}
+- 현재 영업 상태: ${f.currentStatus === 'active' ? '정상 영업 중' : f.currentStatus === 'closed' ? '휴업·폐업 중' : '모름'}
+- 보유 인증: ${(Array.isArray(f.certs) && f.certs.length) ? f.certs.join(', ') : '없음/미응답'}
+- 지식재산권: ${(Array.isArray(f.ip) && f.ip.length) ? f.ip.join(', ') : '없음/미응답'}
+- 부채비율: ${typeof f.debtRatio === 'number' ? f.debtRatio.toFixed(1) + '%' : '산출 불가(미입력 또는 자본잠식)'}
+
+## 2. 기관별 결격 판정 결과 (이미 확정된 결과 — 재판정 금지)
+${_buildVerdictBlock(d.fundingVerdict)}
+
+## 3. 매칭된 지원사업 참고
+${govBlock || '(매칭된 지원사업 없음)'}
+
+## 4. 작성 요청
+위 판정 결과를 전제로, 이 기업이 지금부터 무엇을 어떤 순서로 해야 하는지 정리해주세요.
+판정을 다시 하지 말고, 해소 과제와 준비 순서에만 집중하세요.
+지정된 JSON 형식으로만 출력하세요.`;
+  }
+
+  /**
+   * 정책자금 실행 로드맵 생성 — 단일 호출
+   * @returns {Promise<Object>} { situation, priority[], prepare90[], cautions[] }
+   * @throws  API 실패 또는 JSON 파싱 실패 시 (호출부에서 판정 결과는 유지한 채 이 섹션만 실패 처리)
+   */
+  async function callFundingRoadmap(d) {
+    const data = d || {};
+    const res = await fetch('/api/claude-analyze-funding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemPrompt: _SYSTEM_FUNDING,
+        userPrompt: _buildFundingPrompt(data),
+      }),
+    });
+    if (!res.ok) {
+      let msg = '정책자금 로드맵 API 호출 실패 (' + res.status + ')';
+      try { const e = await res.json(); msg = e.error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const body = await res.json();
+    if (body.error) throw new Error(body.error);
+    const parsed = _extractJSONFunding(body.text || '');
+    if (!parsed) throw new Error('로드맵 JSON 파싱 실패: ' + String(body.text || '').substring(0, 200));
+    return parsed;
+  }
+
+  return { callClaude, fakeAnalysis, calcDiagScores, callFundingRoadmap };
 })();

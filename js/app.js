@@ -178,9 +178,31 @@ const App = (() => {
       return;
     }
     _pendingData = data;
-    // 정책자금은 진단 점수·레이더차트가 없으므로 diag-reveal을 거치지 않고 바로 리포트로 이동
+    // ① 판정 결과를 먼저 렌더링한다 — AI 응답을 기다리지 않는다
+    //    정책자금은 진단 점수·레이더차트가 없으므로 diag-reveal을 거치지 않는다
     Dashboard.renderFunding(data);
     show('dashboard');
+    // ② 그 다음 AI 로드맵을 호출한다 (로드맵 섹션은 이미 로딩 상태)
+    _loadFundingRoadmap(data);
+  }
+
+  /* 정책자금 AI 로드맵 — 실패해도 판정 결과는 그대로 둔다.
+     가짜 데이터(fakeAnalysis 계열)를 절대 사용하지 않는다. */
+  async function _loadFundingRoadmap(data) {
+    try {
+      const roadmap = await AIEngine.callFundingRoadmap(data);
+      Dashboard.renderFundingRoadmap('done', roadmap);
+    } catch (e) {
+      console.error('[정책자금] 실행 로드맵 생성 실패:', e);
+      Dashboard.renderFundingRoadmap('error');
+    }
+  }
+
+  /* [다시 시도] — AI만 재호출한다. 판정 결과는 재계산하지 않는다 */
+  function retryFundingRoadmap() {
+    if (!_pendingData) return;
+    Dashboard.renderFundingRoadmap('loading');
+    _loadFundingRoadmap(_pendingData);
   }
 
   /* ── ANALYSIS ── */
@@ -304,7 +326,7 @@ const App = (() => {
     setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
   }
 
-  return { startWizard, startFundingDiagnosis, checkFundingInput, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
+  return { startWizard, startFundingDiagnosis, checkFundingInput, retryFundingRoadmap, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */

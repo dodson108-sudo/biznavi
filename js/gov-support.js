@@ -506,6 +506,6 @@ const GovSupport = (() => {
     return text;
   }
 
-  return { match, buildPromptBlock, DISCLAIMER };
+  return { match, buildPromptBlock, DISCLAIMER, INDUSTRY_LABEL };
 
 })();

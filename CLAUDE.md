@@ -8,6 +8,74 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-06) — 정책자금 진단 5단계 2차: AI 실행 로드맵 연결
+
+**판정 결과를 먼저 렌더링한 뒤 AI를 호출하므로 AI 실패 시에도 판정은 온전히 표시된다.**
+`exceptionBy` 배지 추가로 중진공 예외 적용 사유를 화면에 노출.
+
+### ① `api/claude-analyze-funding.js` 신설 (단일 호출)
+- 정책자금은 출력량이 적어 `claude-analyze-1/2/3` 3분할이 불필요 → **단일 호출**
+- `stream: true`, `max_tokens: 6000`, `res.writeHead(200)` 즉시 전송(CDN TTFB 타임아웃 방지, b681af2 패턴 동일)
+- `vercel.json`: `{ "regions": ["icn1"], "maxDuration": 120 }`
+- **기존 `claude-analyze-1/2/3.js`는 미변경**
+
+### ② `api/claude-analyze.js` 삭제 — 죽은 파일 정리
+- 저장소 전수 검사 결과 **런타임 참조 0건** (자기 파일 헤더 · `vercel.json` · CLAUDE.md/스킬 문서 기록뿐, JS·HTML 참조 없음)
+- 파일 삭제 + `vercel.json`의 `maxDuration: 300` 항목 제거
+- ⚠ 이 파일을 재활용하지 않고 신규 생성한 이유: `max_tokens: 8000`, 경영진단용 프롬프트 구조라 용도 불일치
+
+### ③ ai-engine.js — 별도 함수 `callFundingRoadmap()` 신설 (기존 로직 미변경)
+**내부 분기가 아니라 별도 함수로 간 이유 3가지**:
+1. `callClaude()`는 1차→2차(→3차) 순차 호출 + `FIRST_PASS_KEYS` 보호 병합이 한 몸이라, 내부 분기 시 early-return이 흐름 앞에 끼어 함수가 두 관심사를 갖게 됨
+2. `apiCall()`의 엔드포인트가 `_callLabel` 삼항이라 라벨 추가 시 **기존 삼항을 수정**해야 함
+3. 호출부(`runAnalysis` vs `checkFundingInput`)와 실패 처리 요구가 이미 완전히 분리돼 있음
+- `_SYSTEM_FUNDING` — 제약 6종 명시: 단정 표현 금지 / 예상 승인액·금리·한도 제시 금지 / 판정에 없는 결격 사유 생성 금지 / `unknownItems`는 "확인 필요"로만 / 신보·기보 언급 금지 / 미응답 정보를 있는 것처럼 서술 금지
+- `_buildVerdictBlock()` — 판정 결과를 텍스트로 직렬화. **`findings`의 `message`는 이미 근거 조항이 포함된 완성 문장이므로 AI가 재해석·재판정하지 않도록 "재판정 금지"를 프롬프트에 명시**
+- `_buildFundingPrompt()` — 기업 기본 정보 + 판정 결과 + `GovSupport.buildPromptBlock()`
+  - **업종은 한국어 라벨로 전달** (영문 키를 그대로 넣으면 AI가 업종을 인식하지 못함) → `gov-support.js`의 `INDUSTRY_LABEL`을 export해 사용
+- `_extractJSONFunding()` — `callClaude` 내부 `extractJSON`과 동일 로직을 복제(기존 중첩 함수는 그대로 둠)
+- 출력: `{ situation, priority[3~5], prepare90[3], cautions[] }`
+
+### ④ 화면 — `sec-funding-roadmap` 신설 + 섹션 순서 정정
+- ⚠ **1차의 실수 수정**: 정책자금 섹션을 `sec-gov` **뒤**에 넣어 화면 순서가 `지원사업 매칭 → 판정 요약 → …` 로 목차와 어긋나 있었음
+- `sec-gov` **앞**으로 이동 + 로드맵 섹션 추가 → 최종 순서 **판정 요약 → 기관별 상세 → 실행 로드맵 → 준비 서류 → 지원사업 매칭**
+- `sec-gov` 자체는 이동하지 않아 **경영진단 경로 섹션 순서 불변**(정책자금 4섹션은 general 모드에서 `display:none`)
+- `renderFundingRoadmap(state, roadmap)` — `'loading'` / `'error'` / `'done'` 3상태
+- `buildNav` funding 분기에 로드맵 링크 추가, `FUNDING_ONLY_SECTIONS`·`allSecIds` 확장
+
+### ⑤ `exceptionBy` 배지화 (1차 보완)
+- ⚠ **정정**: `exceptionBy`는 이미 `.fa-exception` 초록 한 줄로 **렌더링되고 있었다.** "계산은 되지만 표시되지 않는다"는 전제는 사실이 아니었음 → 실제 작업은 위치·형태 변경
+- `_kosmesEligibility`에 **`exceptionLabel`** 추가 (배지용 짧은 라벨). `exceptionBy` 전문은 유지 — 프롬프트·로그에서 정확한 표현이 필요
+  | `exceptionBy` | `exceptionLabel` |
+  |---|---|
+  | `제조업 영위` / `제조업 영위 예외 (업종 기준)` | `제조업 예외` |
+  | `(예비)사회적기업·협동조합·마을기업·소셜벤처 예외` | `사회적경제 예외` |
+- 기관명 옆 배지로 `"제조업 예외로 대상 포함"` 표시. **정보성이므로 파랑 계열**(`.fv-exception`)로 verdict 배지와 시각적 위계 구분, `title` 속성에 전문 노출
+- 기존 `.fa-exception` 줄 제거
+
+### ⑥ 실패 처리 — 이번 작업의 핵심
+1. `validate(5)` → `collect()` → **판정 화면 먼저 렌더링**(AI 응답을 기다리지 않음) → `show('dashboard')`
+2. 그 다음 `_loadFundingRoadmap(data)` 호출, 로드맵 섹션은 로딩 스피너
+3. 성공 → `renderFundingRoadmap('done', roadmap)`
+4. **실패 → 로드맵 섹션에만** "AI 실행 로드맵 생성에 실패했습니다. 위 판정 결과는 정상적으로 확인하실 수 있습니다." + **[다시 시도]** 버튼(`App.retryFundingRoadmap()` — AI만 재호출, 판정 재계산 없음)
+- **가짜 데이터(fakeAnalysis 계열)를 사용하지 않는다.** 전체 화면이 에러로 대체되지 않는다
+
+### ⑦ 검증 (Node, fetch 스텁)
+| 항목 | 결과 |
+|---|---|
+| 섹션 DOM 순서 | 정책자금 4섹션이 `sec-gov` 앞 ✓ / 전부 기본 숨김 ✓ / **경영진단 경로 15섹션 순서 불변** ✓ |
+| `exceptionLabel` 3종 | 제조업 응답·사회적경제 인증·업종 기준 전부 정확 매핑 ✓ |
+| 엔드포인트 | `/api/claude-analyze-funding` ✓ |
+| JSON 파싱 | 코드펜스 + trailing comma 응답도 파싱 ✓ |
+| userPrompt | 판정 findings·재판정 금지·GovSupport 블록·부채비율·규모 전부 포함 ✓ / **업종 = "외식 및 휴게음식업"(한국어)** ✓ |
+| systemPrompt | 제약 5종 문구 전부 포함 ✓ |
+| API 실패 | `throw` 전파 확인 → 호출부에서 로드맵 섹션만 error 처리 ✓ |
+
+### ⑧ 캐시버스팅
+`index.html` 로컬 `?v=` 47곳 전부 `20260802a`
+
+---
+
 ## 최근 수정 이력 (2026-08-02) — 정책자금 진단 5단계 1차: 전용 결과 화면
 
 **판정 결과를 화면에 출력.** AI 프롬프트(B)는 화면 검증 후 2차로 분리 진행.
