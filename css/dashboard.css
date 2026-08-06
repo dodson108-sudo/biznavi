@@ -932,3 +932,17 @@
   .fr-pri-row { padding-left: 0; }
 }
 
+
+/* ── 제조업 응답 재확인 경고 (자격은 유지하되 오해 가능성이 높은 경우) ── */
+.fv-badge.fv-exception-warn {
+  background: rgba(251,146,60,.15); color: #FB923C;
+  border: 1px solid rgba(251,146,60,.4); cursor: help;
+}
+.fa-warning {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 13px 15px; border-radius: 8px; margin-bottom: 14px;
+  background: rgba(251,146,60,.08); border: 1px solid rgba(251,146,60,.32);
+}
+.fa-warning-icon { flex-shrink: 0; color: #FB923C; font-size: 1rem; line-height: 1.5; }
+.fa-warning p { margin: 0; font-size: 0.85rem; color: var(--txt2); line-height: 1.7; }
+

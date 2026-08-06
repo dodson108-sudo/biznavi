@@ -338,11 +338,13 @@ const Dashboard = (() => {
       } else {
         const b = _FUND_VERDICT_BADGE[a.verdict] || _FUND_VERDICT_BADGE.review;
         badge = `<span class="fv-badge ${b.cls}">${b.txt}</span>`;
-        // 예외 적용으로 대상에 포함된 경우 — 사유를 배지로 명시 (정보성이므로 파랑 계열)
+        // 예외 적용으로 대상에 포함된 경우 — 사유를 배지로 명시
+        // 재확인이 필요한 경우(warning)는 주황 계열로 구분한다
         if (a.exceptionLabel || a.exceptionBy) {
           const short = _esc(a.exceptionLabel || a.exceptionBy);
           const full  = _esc(a.exceptionBy || '');
-          badge += `<span class="fv-badge fv-exception" title="${full}">${short}로 대상 포함</span>`;
+          const cls   = a.warning ? 'fv-exception-warn' : 'fv-exception';
+          badge += `<span class="fv-badge ${cls}" title="${full}">${short}로 대상 포함</span>`;
         }
       }
 
@@ -372,11 +374,16 @@ const Dashboard = (() => {
       const link = a.url
         ? ` <a href="${_esc(a.url)}" target="_blank" rel="noopener">${_esc(a.name)} 바로가기 →</a>` : '';
 
+      // 자격은 유지하되 응답 재확인이 필요한 경우 — 카드 상단에 경고 박스
+      const warnBox = a.warning
+        ? `<div class="fa-warning"><span class="fa-warning-icon">⚠</span><p>${_esc(a.warning)}</p></div>` : '';
+
       return `<div class="fund-agency-card">
           <div class="fa-head">
             <span class="fa-name">${_esc(a.name)}</span>
             ${badge}
           </div>
+          ${warnBox}
           <div class="fa-body">${body}</div>
           ${note ? `<div class="fa-limit-note">${note}${link}</div>` : ''}
         </div>`;

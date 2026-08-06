@@ -106,6 +106,22 @@ const FundingRules = (() => {
   const KOSMES_MFG_INDUSTRIES = ['mfg_parts', 'food_mfg'];
   /* 제조 공정 영위 여부가 모호한 업종 — 자격 불확실로 분류 */
   const KOSMES_MAYBE_MFG_INDUSTRIES = ['fashion', 'agri_food'];
+  /* 명백한 비제조 업종 — 여기서 '제조업 기재됨' 응답이 나오면 오해일 가능성이 높다.
+     ⚠ 음식점의 조리·가공을 제조업으로 오인하는 사례가 실제로 발생했다(2026-08-06).
+        정책자금의 제조업은 사업자등록증 업태 기준(표준산업분류 C, 10~34)이다. */
+  /* 경고 문구에 쓸 한국어 라벨 — 이 코드 경로가 닿는 업종만 담는다.
+     (gov-support.js의 INDUSTRY_LABEL에 의존하지 않도록 모듈 자립 유지) */
+  const KOSMES_NON_MFG_INDUSTRIES = {
+    restaurant:    '외식 및 휴게음식업',
+    local_service: '서비스업',
+    wholesale:     '유통/물류',
+    medical:       '의료/헬스케어',
+    finance:       '금융/핀테크',
+    education:     '교육',
+    media:         '미디어/엔터테인먼트',
+    logistics:     '물류운송',
+    construction:  '건설/부동산',
+  };
 
   /* 수집 데이터로 판정 불가한 예외 — 모든 not_eligible 안내에 공통으로 덧붙인다 */
   const KOSMES_UNVERIFIABLE_TAIL =
@@ -477,6 +493,20 @@ const FundingRules = (() => {
 
     // ① 사용자 응답 우선 — industryKey와 무관하게 '직접 영위함'이면 제조업 예외 적용
     if (mfg === 'yes') {
+      // 명백한 비제조 업종인데 '제조업 기재됨'으로 응답 → 단정하지 말고 재확인을 강하게 유도한다.
+      // (실제로 음식점을 하면서 별도로 제조업을 등록한 경우가 있을 수 있으므로 eligible은 유지)
+      if (Object.prototype.hasOwnProperty.call(KOSMES_NON_MFG_INDUSTRIES, industryKey)) {
+        const label = KOSMES_NON_MFG_INDUSTRIES[industryKey] || industryKey;
+        return {
+          eligible: true,
+          eligibilityUncertain: true,
+          exceptionBy: '제조업 영위 (재확인 필요)',
+          exceptionLabel: '제조업 예외 (확인 필요)',
+          warning: '업종이 ' + label + '(으)로 판별되었는데 제조업 영위로 응답하셨습니다. '
+            + '정책자금의 제조업은 사업자등록증 업태 기준(표준산업분류 C, 10~34)이며, 음식점의 조리·가공은 제조업에 해당하지 않습니다. '
+            + '사업자등록증 업태를 다시 확인해 주세요. 제조업이 아니라면 소상공인은 중진공 융자제한 9호로 원칙 제외되며, 소진공 트랙만 검토 대상입니다.',
+        };
+      }
       return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위', exceptionLabel: '제조업 예외' };
     }
 
@@ -612,6 +642,7 @@ const FundingRules = (() => {
       notEligibleReason: kEli.eligible ? undefined : kEli.notEligibleReason,
       exceptionBy: kEli.exceptionBy,          // 전문 — 프롬프트·로그·카드 본문용
       exceptionLabel: kEli.exceptionLabel,    // 짧은 라벨 — 배지용 (한눈에 읽혀야 함)
+      warning: kEli.warning,                  // 자격은 유지하되 재확인이 필요한 경우의 경고
       verdict: kEli.eligible ? _verdictOf(kosmesFindings) : 'review',
       blockedCount:     kosmesFindings.filter(x => x.status === 'blocked').length,
       conditionalCount: kosmesFindings.filter(x => x.status === 'conditional').length,
