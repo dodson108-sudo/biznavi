@@ -491,7 +491,17 @@ const FundingRules = (() => {
     const industryKey = ctx?.industryKey || '';
     const mfg = f?.isManufacturing;
 
-    // ① 사용자 응답 우선 — industryKey와 무관하게 '직접 영위함'이면 제조업 예외 적용
+    /* ① 사회적경제기업 인증 예외 — 가장 먼저 확정한다.
+       인증만으로 자격이 확정되므로 isManufacturing 응답과 무관하며,
+       비제조 업종 재확인 경고(②)를 붙일 이유가 없다.
+       (경고의 목적은 '자격이 없는데 있다고 오해해 헛수고하는 것'을 막는 것인데,
+        인증 보유 기업에는 그 위험 자체가 존재하지 않는다 — 2026-08-06 정정) */
+    const certs = Array.isArray(f?.certs) ? f.certs : [];
+    if (certs.some(c => KOSMES_SOCIAL_CERTS.indexOf(c) >= 0)) {
+      return { eligible: true, eligibilityUncertain: false, exceptionBy: '(예비)사회적기업·협동조합·마을기업·소셜벤처 예외', exceptionLabel: '사회적경제 예외' };
+    }
+
+    // ② 사용자 응답 — industryKey와 무관하게 '업태에 제조업 기재됨'이면 제조업 예외 적용
     if (mfg === 'yes') {
       // 명백한 비제조 업종인데 '제조업 기재됨'으로 응답 → 단정하지 말고 재확인을 강하게 유도한다.
       // (실제로 음식점을 하면서 별도로 제조업을 등록한 경우가 있을 수 있으므로 eligible은 유지)
@@ -510,13 +520,7 @@ const FundingRules = (() => {
       return { eligible: true, eligibilityUncertain: false, exceptionBy: '제조업 영위', exceptionLabel: '제조업 예외' };
     }
 
-    // ② 사회적경제기업 인증 예외 (isManufacturing 응답과 무관하게 평가)
-    const certs = Array.isArray(f?.certs) ? f.certs : [];
-    if (certs.some(c => KOSMES_SOCIAL_CERTS.indexOf(c) >= 0)) {
-      return { eligible: true, eligibilityUncertain: false, exceptionBy: '(예비)사회적기업·협동조합·마을기업·소셜벤처 예외', exceptionLabel: '사회적경제 예외' };
-    }
-
-    // ③ '영위하지 않음' — 제조업 예외 미적용. 업종 판별과 충돌하면 재확인을 안내
+    // ③ '기재되어 있지 않음' — 제조업 예외 미적용. 업종 판별과 충돌하면 재확인을 안내
     if (mfg === 'no') {
       const conflict = (KOSMES_MFG_INDUSTRIES.indexOf(industryKey) >= 0)
         ? ' 업종은 제조업으로 판별되었으나 제조 공정을 직접 영위하지 않는다고 응답하셨습니다. 응답이 정확한지 확인해 주세요.'
