@@ -97,6 +97,20 @@ const Wizard = (() => {
   // 탭 순서 정의
   const TAB_ORDER = ['common', 'industry'];
 
+  /* 조직 유형 — 'general' | 'social_enterprise'
+     ⚠ bizScale('micro'|'sme')에 'social'을 추가하지 않는다.
+        FundingRules가 bizScale === 'micro' 기준으로 중진공 소상공인 제외를 판정하므로
+        값을 바꾸면 그 로직이 깨진다. 별도 플래그로 분리한다. */
+  let _orgType = 'general';
+  function _detectOrgType(industryKey) {
+    return industryKey === 'social_enterprise' ? 'social_enterprise' : 'general';
+  }
+  /* 사회적기업은 S1~S8(공통 탭) 40문항만 사용하고 업종 특화 탭을 쓰지 않는다.
+     일반 업종 경로는 TAB_ORDER 그대로 2탭을 유지한다. */
+  function _tabOrder() {
+    return _orgType === 'social_enterprise' ? ['common'] : TAB_ORDER;
+  }
+
   /* ================================================================
      Dynamic Common Core — 업종별 공통 질문 문구 오버라이드 + 참고값
      공통 8문항 중 업종에 따라 의미가 달라지는 항목의 텍스트·앵커 교체
@@ -1095,9 +1109,10 @@ const Wizard = (() => {
     // STEP 2에서 다음 버튼 클릭 시 탭 순서대로 진행 (n===3 또는 n===4 모두 처리)
     if (curStep === 2 && n > 2) {
       if (!validateCurrentTab()) return;
-      const currentTabIndex = TAB_ORDER.indexOf(curDiagTab);
-      if (currentTabIndex < TAB_ORDER.length - 1) {
-        const nextTab = TAB_ORDER[currentTabIndex + 1];
+      const _order = _tabOrder();
+      const currentTabIndex = _order.indexOf(curDiagTab);
+      if (currentTabIndex < _order.length - 1) {
+        const nextTab = _order[currentTabIndex + 1];
         switchDiagTab(nextTab);
         window.scrollTo(0, 60);
         return;
@@ -1250,16 +1265,28 @@ const Wizard = (() => {
 
     const microContainer  = document.getElementById('diag-micro-container');
     const commonContainer = document.getElementById('diag-common-container');
+    const socialContainer = document.getElementById('diag-social-container');
 
-    // 공통 모듈 렌더링 — micro: DiagMicro 7대 분야 / startup: STARTUP_DIAGNOSIS / 그 외: DiagCommon
+    // 조직 유형 판별 — 사회적기업이면 공통 진단 대신 S1~S8 40문항을 렌더링한다
+    _orgType = _detectOrgType(industryKey);
+    const isSocial = _orgType === 'social_enterprise' && typeof DiagSocial !== 'undefined';
+
+    // 공통 모듈 렌더링 — social: DiagSocial S1~S8 / micro: DiagMicro 7대 분야 / startup: STARTUP / 그 외: DiagCommon
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
-    if (isMicro) {
+    if (isSocial) {
+      renderDiagModule('diag-social-container', _diagSocialToAreas(DiagSocial));
+      if (socialContainer) socialContainer.classList.remove('hidden');
+      if (microContainer)  microContainer.classList.add('hidden');
+      if (commonContainer) commonContainer.classList.add('hidden');
+    } else if (isMicro) {
       const microGroup = DiagMicro.getGroup(industryKey);
       renderDiagModule('diag-micro-container', _diagMicroToAreas(DiagMicro, microGroup));
       if (microContainer)  microContainer.classList.remove('hidden');
       if (commonContainer) commonContainer.classList.add('hidden');
+      if (socialContainer) socialContainer.classList.add('hidden');
     } else {
       if (microContainer)  microContainer.classList.add('hidden');
+      if (socialContainer) socialContainer.classList.add('hidden');
       if (commonContainer) commonContainer.classList.remove('hidden');
       let commonDiag;
       if (isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined') {
@@ -1299,8 +1326,11 @@ const Wizard = (() => {
       'social_enterprise': typeof INDUSTRY_SOCIAL_ENTERPRISE !== 'undefined' ? INDUSTRY_SOCIAL_ENTERPRISE : null,
       'social_venture': typeof INDUSTRY_SOCIAL_VENTURE !== 'undefined' ? INDUSTRY_SOCIAL_VENTURE : null,
     };
-    const industryData = industryVarMap[industryKey];
+    // 사회적기업은 S1~S8이 업종 특화 문항까지 포함하므로 업종 탭을 사용하지 않는다 (탭 자체를 숨김)
+    const industryData = isSocial ? null : industryVarMap[industryKey];
     if (industryData) renderDiagModule('diag-industry-container', industryData);
+    const tabIndustryBtn = document.getElementById('diagTabBtn-industry');
+    if (tabIndustryBtn) tabIndustryBtn.style.display = isSocial ? 'none' : '';
 
     // 탭 버튼 레이블 동적 업데이트 (업종 반영)
     const aiLabel = document.getElementById('aiIndustryKey') ? (() => {
@@ -1315,7 +1345,9 @@ const Wizard = (() => {
     // 탭 레이블 — micro / 창업 초기 / 기본 경영 분기
     const tabCommon = document.getElementById('diagTabBtn-common');
     if (tabCommon) {
-      tabCommon.textContent = isMicro
+      tabCommon.textContent = isSocial
+        ? '🤝 사회적기업 8대 영역 (40문항)'
+        : isMicro
         ? '🏪 소상공인 7대 분야 (35문항)'
         : isStartupMode
           ? '🚀 창업 초기 진단 (8문항)'
@@ -1478,6 +1510,18 @@ const Wizard = (() => {
         .filter(([key]) => key.startsWith(`${domain.id}_`))
         .map(([key, item]) => Object.assign({}, item, { id: key }));
       return { id: `micro_${domain.id}`, label: domain.label, icon: domain.icon, description: domain.desc, items };
+    });
+    return { id: schema.id, label: schema.label, areas };
+  }
+
+  /* DiagSocial 스키마 → renderDiagModule 호환 포맷 (키: diag-social-container_s1_1) */
+  function _diagSocialToAreas(diagSocial) {
+    const schema = diagSocial.getSchema();
+    const areas = schema.domains.map(domain => {
+      const items = Object.entries(schema.items)
+        .filter(([key]) => key.indexOf(domain.id + '_') === 0)
+        .map(([key, item]) => Object.assign({}, item, { id: key }));
+      return { id: `social_${domain.id}`, label: domain.label, icon: domain.icon, description: domain.desc, items };
     });
     return { id: schema.id, label: schema.label, areas };
   }
@@ -1696,7 +1740,7 @@ const Wizard = (() => {
   }
 
   function prevDiagTab() {
-    const currentIndex = TAB_ORDER.indexOf(curDiagTab);
+    const currentIndex = _tabOrder().indexOf(curDiagTab);
     if (currentIndex === 0) {
       // 첫 탭에서 이전 → biz-context 확인 화면으로 복귀 (Step1 폼이 아님)
       const step2El = document.getElementById('step2');
@@ -1707,7 +1751,7 @@ const Wizard = (() => {
       if (mini) mini.classList.add('hidden');
       window.scrollTo(0, 0);
     } else {
-      const prevTab = TAB_ORDER[currentIndex - 1];
+      const prevTab = _tabOrder()[currentIndex - 1];
       switchDiagTab(prevTab);
       window.scrollTo(0, 60);
     }
@@ -1749,8 +1793,9 @@ const Wizard = (() => {
     // 다음 버튼 텍스트 변경
     const nextBtn = document.querySelector('#step2 .btn-gold');
     if (nextBtn) {
-      const currentIndex = TAB_ORDER.indexOf(tab);
-      nextBtn.textContent = currentIndex < TAB_ORDER.length - 1 ? '다음 진단 →' : '다음 단계 →';
+      const _order = _tabOrder();
+      const currentIndex = _order.indexOf(tab);
+      nextBtn.textContent = currentIndex < _order.length - 1 ? '다음 진단 →' : '다음 단계 →';
     }
   }
 
@@ -2541,6 +2586,8 @@ const Wizard = (() => {
       isStartup:           g('aiIsStartup') === 'true',
       yearsInBusiness:     g('aiYearsInBusiness'),
       diagScores:          diagScores,
+      // 조직 유형 — bizScale과 별개 플래그 (FundingRules의 bizScale 판정에 영향 주지 않음)
+      orgType:             'general',   // 후반부에서 최종 industryKey 기준으로 확정
       // ── 정책자금 진단 (purpose='funding' / step5) ──
       // 미선택·미입력을 'none'·0·''으로 채우지 않는다:
       //   라디오 미선택 = 'unknown'(모름과 동일 취급), 체크박스 미응답 = [] (['해당 없음']과 다름),
@@ -2594,9 +2641,17 @@ const Wizard = (() => {
     //  직원 6명 이상인데 micro로 오분류되던 2026-05-15 버그가 재발했음 — 재계산 금지)
     const bizScale = data.bizScale || 'micro';
 
+    // orgType은 최종 industryKey(정책자금 override 반영) 기준으로 확정한다
+    data.orgType = _detectOrgType(data.industryKey || '');
+
     let scaleScores = {};
     const allScores = collectAllScores();
-    if (bizScale === 'micro' && window.DiagMicro) {
+    if (data.orgType === 'social_enterprise' && window.DiagSocial) {
+      // 사회적기업 — S1~S8. bizScale(micro/sme)은 그대로 두고 진단 모듈만 교체한다
+      scaleScores = DiagSocial.calcScores(allScores);
+      data.socialWarnings = DiagSocial.detectCrossWarnings(allScores);
+      data.socialPrompt = DiagSocial.buildPromptSummary(allScores);
+    } else if (bizScale === 'micro' && window.DiagMicro) {
       const microGroup = DiagMicro.getGroup(data.industryKey || '');
       scaleScores = DiagMicro.calcScores(allScores);
       data.microWarnings = DiagMicro.detectCrossWarnings(allScores);

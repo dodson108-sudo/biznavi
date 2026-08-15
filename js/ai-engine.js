@@ -1283,7 +1283,10 @@ kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2�
       const commonSummary = DiagCommon.buildPromptSummary(d.diagScores);
       prompt += '\n\n' + commonSummary;
     }
-    if (d.bizScale === 'micro' && d.microPrompt) {
+    if (d.orgType === 'social_enterprise' && d.socialPrompt) {
+      // 사회적기업은 규모(micro/sme)와 무관하게 S1~S8 진단 결과를 사용한다
+      prompt += '\n\n' + d.socialPrompt;
+    } else if (d.bizScale === 'micro' && d.microPrompt) {
       prompt += '\n\n' + d.microPrompt;
     } else if (d.bizScale === 'sme' && d.smePrompt) {
       prompt += '\n\n' + d.smePrompt;

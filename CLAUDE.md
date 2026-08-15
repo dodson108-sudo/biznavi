@@ -8,6 +8,61 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-07) — 사회적기업 전용 진단지 신설 (S1~S8 40문항)
+
+**기존 `social_enterprise.js`는 3영역 9문항뿐이고, 공통 진단(D1~D7 35문항)이 그대로 붙어
+사회적기업에 "테이블 회전율"·"재방문율" 같은 무관한 문항이 나오고 있었다.** (실사용 리포트에서 확인)
+
+### ① `js/diagnosis/diagnosis-social.js` 신설 — `DiagSocial`
+- **S1 미션·사회적 성과 / S2 사업의 사회가치 지향성 / S3 공공조달·판로 / S4 재정·원가구조 / S5 조직·거버넌스 / S6 마케팅·브랜딩·품질 / S7 인증·제도·ESG / S8 디지털·AX** — 8영역 × 5문항 = **40문항**
+- 근거: 한국사회적기업진흥원 **SVI(사회적가치지표) 14개 지표** 프레임 (사회적/경제적/혁신 성과)
+- ⚠ **SVI 실제 배점(사회적 60 / 경제적 30 / 혁신 10)을 따르지 않는다.** BizNavi는 SVI 점수를 예측하는 도구가 아니라 **준비도를 진단하는 도구**다. SVI를 흉내내면 진흥원 실제 결과와 달라 신뢰 문제가 생긴다 → **8영역 균등 배점 `weight: 0.125`**
+- ⚠ **S3(공공조달·판로)는 SVI에 없는 축**이다. 지역기반 사회적기업 매출의 실체이며, **SVI는 가치 창출은 보되 수익 구조는 보지 않기 때문에** 별도로 둔다
+- `buildPromptSummary()`에 해석 지침 명시: "SVI 예상 점수·등급을 추정하지 마라 / 8영역은 균등 배점이므로 SVI 배점에 맞춰 재가중하지 마라"
+
+### ② 스키마는 `diagnosis-micro.js`와 완전 동일
+- `DOMAINS: { id, key, label, icon, desc, weight }` / `ITEMS: { label, question, scale[5], ai_trigger:{threshold, warning} }`
+- ⚠ **`scale`은 1~5 다섯 단계 전부 작성**했다. `_scaleToAnchors()`가 `anchors[s.score] = s.desc`로 그대로 매핑하므로 **1/3/5만 주면 2점·4점 앵커가 비어 렌더링이 성글어진다**
+- 서술은 추상어 대신 구체적 행동으로 작성 (예: `'연 1회 결산 때만 사업별로 나눠보고 개별 수주 판단에는 쓰지 않음'`)
+- 점수 키 접두어 **`diag-social-container_`** — micro와 키 충돌 방지. `collectAllScores()`는 `diagScores`의 모든 키를 접두어 무관하게 수집하므로 **수정 불필요**(확인 완료)
+- `window` + `module.exports` **듀얼 익스포트**(CrossContext 패턴) — Node 스모크 테스트 가능
+- `detectCrossWarnings()` 교차 규칙 **11개** (CRITICAL 2 / HIGH 5 / MEDIUM 4)
+  - `public_lock_in`(공공의존+민간판로 없음) · `winning_but_losing`(공헌이익 미산출+공공수주 높음) · `subsidy_cliff`(지원금 의존+BEP 모름) · `mission_drift_risk` · `formal_shell` 등
+
+### ③ `orgType` 플래그 신설 — **`bizScale`은 건드리지 않았다**
+- ⚠ `bizScale`에 `'social'`을 추가하지 않았다. **`FundingRules`가 `bizScale === 'micro'` 기준으로 중진공 소상공인 제외(융자제한 9호)를 판정**하므로 값을 바꾸면 그 로직이 깨진다
+- `wizard.js` 모듈 스코프에 `let _orgType`, `_detectOrgType(industryKey)` 추가
+- `collect()`: **후반부에서 최종 `data.industryKey`(정책자금 override 반영) 기준으로 `data.orgType` 확정**
+- 사회적기업이어도 `bizScale`은 `micro`/`sme` 그대로 유지됨 (검증 완료)
+
+### ④ 진단 UI 분기 — C안 **a-1** 채택
+- `social_enterprise.js`(9문항)는 **로드하지 않는다.** S1~S8과 내용이 크게 중복(`se_1_1`↔`s1_1`, `se_1_2`↔`s1_3`, `se_1_3`↔`s1_4` 등)
+- ⚠ 두 모듈은 **물리적으로 다른 탭**(`diag-industry-container` vs 공통 탭)이라 "중복 문항 제거"(b안)는 두 파일 교차 편집이 필요하고 남는 문항이 3개뿐
+- **업종 탭 자체를 숨긴다** — `industryData = null` 처리 + `diagTabBtn-industry`를 `display:none`. 그냥 로드만 끊으면 **탭 버튼은 있는데 내용이 없는 빈 탭**이 된다
+- `TAB_ORDER`(const)는 그대로 두고 **`_tabOrder()` 런타임 분기**로 처리 — 사회적기업이면 `['common']`, 그 외는 기존 `['common','industry']`. 사용처 4곳(`goStep`·`prevDiagTab`·`updateDiagTabUI`) 교체
+- 탭 레이블: `🤝 사회적기업 8대 영역 (40문항)`
+
+### ⑤ 점수·AI 전달
+- `collect()` 후반부: `orgType === 'social_enterprise'`면 `DiagSocial.calcScores()` → **`data.scaleScores`**(micro/sme와 동일한 자리) + `data.socialWarnings` + `data.socialPrompt`
+- `ai-engine.js buildPrompt1()`: `d.orgType === 'social_enterprise' && d.socialPrompt`를 **micro/sme 분기보다 앞에** 배치 (규모와 무관하게 S1~S8 사용)
+- 대시보드는 신규 렌더링을 만들지 않았다. `scaleScores` 구조가 micro와 동일해 기존 표시 로직이 그대로 동작한다
+
+### ⑥ 검증 (Node, 28/28 통과)
+| 항목 | 결과 |
+|---|---|
+| 모듈 구조 | 8영역 · 40문항 · 영역당 5문항 · weight 0.125 균등(합계 1.0) ✓ |
+| scale 전수 검사 | **40문항 전부 1~5 다섯 단계 + 서술 10자 이상** ✓ |
+| `calcScores` | 전 문항 1점→20 / 3점→60 / 5점→100. 영역 원점수 5·15·25점(25점 만점) ✓ |
+| 교차경고 | 3점 → **0건** / 1점 → **11건**(CRITICAL 2 포함) ✓ |
+| 지시 예시 3건 | `public_lock_in`·`winning_but_losing`·`svi_gap` 전부 정확 발동 ✓ |
+| `orgType` 판별 | 사회적기업 → `social_enterprise`, **`bizScale`은 `micro` 유지** ✓ |
+| **일반 업종 회귀** | `restaurant` → `orgType: 'general'`, `microPrompt` 생성, `scaleScores` **7영역**, `socialPrompt` 미생성 ✓ |
+
+### ⑦ 캐시버스팅
+`index.html` 로컬 `?v=` **48곳**(신규 스크립트 포함) 전부 `20260807b`
+
+---
+
 ## 최근 수정 이력 (2026-08-07) — 경영진단 1차 max_tokens 절단 수정 + fakeAnalysis 호출 차단
 
 ### ⚠ 진단 정정 — 관찰된 에러는 `max_tokens` 감지 경로에서 나온 것이 아니다
@@ -77,6 +132,7 @@
 | JSON 아님 | `empty` ✓ |
 
 ### ⑦ 남은 이슈
+- **협동조합·소셜벤처 전용 진단지도 동일 수준(40문항)으로 신설 예정.** `social_venture.js`는 현재 **41줄 부실 모듈** 상태이며, 협동조합은 전용 모듈 자체가 없다. 사회적기업과 마찬가지로 `orgType` 분기를 확장하는 방식이 될 것
 - **`fakeAnalysis` / `_fakeByConsultingType` / `_fakeSpecialized` 약 1,530줄이 호출 경로 차단 후 죽은 코드가 됨.** `isDemo`는 `render(data, fd, isDemo)` 시그니처에 남아 있어 함께 정리 필요. **별도 커밋으로 진행 예정** (지금 섞으면 문제 발생 시 continuation 버그인지 삭제 부작용인지 구분이 안 됨)
 - 실제 Anthropic API로 절단을 재현하는 테스트는 하지 않았다(토큰 소모). 재현하려면 `MAX_TOKENS_DEFAULT`를 임시로 500 등으로 낮추고 `vercel dev`로 1회 실행하면 된다
 
