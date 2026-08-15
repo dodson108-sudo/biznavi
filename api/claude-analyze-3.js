@@ -10,6 +10,9 @@
  * → 브라우저/Cloudflare가 TTFB(첫 바이트) 기준으로 연결 유지
  */
 
+// ⚠ 정적 require — @vercel/nft 의존성 추적에 포함되어야 한다 (동적 import 금지)
+const CS = require('../lib/claude-stream');
+
 const ANTHROPIC_BASE = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL   = 'claude-sonnet-4-6';
 const MAX_TOKENS     = 16000;
@@ -30,76 +33,26 @@ module.exports = async (req, res) => {
 
   console.log(`[3차-micro] 스트리밍 시작 (max_tokens=${MAX_TOKENS}, maxDuration=300)`);
 
-  let claudeRes;
-  try {
-    claudeRes = await fetch(ANTHROPIC_BASE, {
-      method: 'POST',
-      headers: claudeHeaders,
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: MAX_TOKENS,
-        system: systemPrompt || '',
-        stream: true,
-        messages: [{ role: 'user', content: userPrompt }],
-      }),
-    });
-  } catch (netErr) {
-    return res.status(502).json({ error: 'Claude API 연결 실패: ' + netErr.message });
-  }
-
-  if (!claudeRes.ok) {
-    let msg = `Claude API 오류 (${claudeRes.status})`;
-    try { const e = await claudeRes.json(); msg = e.error?.message || msg; } catch (_) {}
-    return res.status(claudeRes.status).json({ error: msg });
-  }
-
-  // Claude 응답 수신 확인 즉시 200 OK 헤더 전송
-  // → CDN(Cloudflare) TTFB 타임아웃 방지 (SSE 누적 60~120초 동안 연결 유지)
   res.writeHead(200, { 'Content-Type': 'application/json' });
 
-  const reader = claudeRes.body.getReader();
-  const decoder = new TextDecoder();
-  let sseBuffer = '';
-  let fullText  = '';
-  let stopReason = null;
-  let outputTokens = 0;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      sseBuffer += decoder.decode(value, { stream: true });
-      const lines = sseBuffer.split('\n');
-      sseBuffer = lines.pop();
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const raw = line.slice(6).trim();
-        if (!raw || raw === '[DONE]') continue;
-        try {
-          const evt = JSON.parse(raw);
-          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-            fullText += evt.delta.text;
-          } else if (evt.type === 'message_delta') {
-            stopReason   = evt.delta?.stop_reason;
-            outputTokens = evt.usage?.output_tokens;
-          }
-        } catch (_) {}
-      }
+    let out;
+    try {
+      out = await CS.runWithContinuation({
+        apiKey,
+        model: CLAUDE_MODEL,
+        system: systemPrompt,
+        maxTokens: MAX_TOKENS,
+        messages: [{ role: 'user', content: userPrompt }],
+        label: '3차-micro',
+      });
+    } catch (err) {
+      console.log(`[ERROR] 3차-micro 호출 실패: ${err.message}`);
+      return res.end(JSON.stringify({ error: err.message }));
     }
-  } finally {
-    reader.releaseLock();
-  }
 
-  console.log(`[3차-micro] 스트리밍 완료: stop_reason=${stopReason}, output_tokens=${outputTokens}, text_len=${fullText.length}`);
+    console.log(`[3차-micro] 완료: turns=${out.turns}, 누적 output_tokens=${out.totalTokens}, text_len=${out.text.length}`);
 
-  if (stopReason === 'max_tokens') {
-    console.log(`[ERROR] 3차-micro max_tokens 초과 — output_tokens: ${outputTokens}`);
-    return res.end(JSON.stringify({ error: 'max_tokens 초과 — 3차 응답 절단됨 (JSON 불완전)' }));
-  }
-  if (!fullText) {
-    return res.end(JSON.stringify({ error: 'Claude 3차 응답에서 텍스트를 추출할 수 없습니다.' }));
-  }
-  return res.end(JSON.stringify({ text: fullText }));
+    if (!out.ok)   return res.end(JSON.stringify({ error: out.error }));
+    if (!out.text) return res.end(JSON.stringify({ error: 'Claude 응답에서 텍스트를 추출할 수 없습니다.' }));
+    return res.end(JSON.stringify({ text: out.text }));
 };

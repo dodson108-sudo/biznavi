@@ -10,7 +10,7 @@ const App = (() => {
   let _pendingIsDemo = false;
 
   /* ── SCREEN ── */
-  const screens = ['landing', 'mode-select', 'wizard', 'finance-wizard', 'finance-dashboard', 'finance-report', 'loading', 'diag-reveal', 'dashboard'];
+  const screens = ['landing', 'mode-select', 'wizard', 'finance-wizard', 'finance-dashboard', 'finance-report', 'loading', 'diag-reveal', 'dashboard', 'analysis-error'];
   let _confirmedBmKey = ''; // BM 확인 화면에서 최종 확정된 BM 키
 
   function show(id) {
@@ -279,15 +279,42 @@ const App = (() => {
       _pendingData = data;
       show('diag-reveal');
     } catch (e) {
-      alert('AI 분석 중 오류가 발생했습니다: ' + e.message + '\n\n샘플 데이터로 결과를 표시합니다.');
-      const result = await AIEngine.fakeAnalysis(data);
-      _pendingResult = result;
-      _pendingIsDemo = true;
-      const revealInfo = Wizard.showDiagReveal(data);
-      data.consultingType = revealInfo?.primary || '';
+      // ⚠ 가짜 데이터(fakeAnalysis)로 덮지 않는다.
+      //    실제 분석이 실패했는데 그럴듯한 보고서가 나오면 사용자가 자기 회사 분석으로 오인한다.
+      console.error('[AI 분석 실패]', e);   // 원본 메시지(JSON 조각 포함)는 콘솔에만
+      _pendingResult = null;
       _pendingData = data;
-      show('diag-reveal');
+      showAnalysisError(e);
     }
+  }
+
+  /* 실패 원인을 사용자가 이해할 수 있는 말로 변환 — 원본 메시지는 노출하지 않는다 */
+  function _friendlyAnalysisError(e) {
+    const raw = String((e && e.message) || '');
+    if (/max_tokens|절단|이어쓰기|불완전/i.test(raw)) {
+      return '분석 내용이 길어 생성이 중단되었습니다. 다시 시도하면 완성되는 경우가 많습니다.';
+    }
+    if (/timeout|타임아웃|network|fetch|502|504|연결|지연/i.test(raw)) {
+      return '서버 응답이 지연되었습니다. 잠시 후 다시 시도해 주세요.';
+    }
+    return '일시적인 오류가 발생했습니다. 다시 시도해 주세요.';
+  }
+
+  function showAnalysisError(e) {
+    const msgEl = document.getElementById('analysisErrorMsg');
+    if (msgEl) msgEl.textContent = _friendlyAnalysisError(e);
+    show('analysis-error');
+  }
+
+  /* [다시 시도] — 같은 입력으로 재분석 */
+  function retryAnalysis() {
+    runAnalysis();
+  }
+
+  /* [입력 수정] — 실패 화면에서 위저드 STEP 4로 복귀 (analysis-error는 wizard 밖 화면이므로 show 필요) */
+  function editInputsFromError() {
+    show('wizard');
+    Wizard.goStep(4, true);
   }
 
   /* 진단유형 확인 후 솔루션 보고서로 이동 */
@@ -326,7 +353,7 @@ const App = (() => {
     setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
   }
 
-  return { startWizard, startFundingDiagnosis, checkFundingInput, retryFundingRoadmap, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
+  return { startWizard, startFundingDiagnosis, checkFundingInput, retryFundingRoadmap, retryAnalysis, editInputsFromError, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */

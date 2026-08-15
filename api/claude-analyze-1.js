@@ -11,10 +11,14 @@
  *   max_tokens: 16000
  */
 
+// ⚠ 정적 require — @vercel/nft 의존성 추적에 포함되어야 한다 (동적 import 금지)
+const CS = require('../lib/claude-stream');
+
 const ANTHROPIC_BASE     = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL       = 'claude-sonnet-4-6';
 const MAX_TOKENS_DEFAULT = 16000;
 const MAX_TURNS          = 10;
+const MAX_TOTAL_TURNS    = 8;   // tool_use + continuation 합계 상한 (호출 폭증 방지)
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
@@ -36,80 +40,30 @@ module.exports = async (req, res) => {
   if (noSearch) {
     console.log(`[1차-micro] 스트리밍 시작 (max_tokens=${MAX_TOKENS_DEFAULT})`);
 
-    let claudeRes;
-    try {
-      claudeRes = await fetch(ANTHROPIC_BASE, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: CLAUDE_MODEL,
-          max_tokens: MAX_TOKENS_DEFAULT,
-          system: systemPrompt || '',
-          stream: true,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
-      });
-    } catch (netErr) {
-      return res.status(502).json({ error: 'Claude API 연결 실패: ' + netErr.message });
-    }
-
-    if (!claudeRes.ok) {
-      let msg = `Claude API 오류 (${claudeRes.status})`;
-      try { const e = await claudeRes.json(); msg = e.error?.message || msg; } catch (_) {}
-      return res.status(claudeRes.status).json({ error: msg });
-    }
-
-    // CDN TTFB 타임아웃 방지: Claude 응답 확인 즉시 200 OK 헤더 전송
+    // CDN TTFB 타임아웃 방지: 요청 직전 200 OK 헤더 전송
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    // SSE 스트림 읽기 → 텍스트 조립
-    const reader = claudeRes.body.getReader();
-    const decoder = new TextDecoder();
-    let sseBuffer = '';
-    let fullText  = '';
-    let stopReason = null;
-    let outputTokens = 0;
-
+    let out;
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        sseBuffer += decoder.decode(value, { stream: true });
-        const lines = sseBuffer.split('\n');
-        sseBuffer = lines.pop(); // 미완성 줄 보관
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const raw = line.slice(6).trim();
-          if (!raw || raw === '[DONE]') continue;
-          try {
-            const evt = JSON.parse(raw);
-            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-              fullText += evt.delta.text;
-            } else if (evt.type === 'message_delta') {
-              stopReason   = evt.delta?.stop_reason;
-              outputTokens = evt.usage?.output_tokens;
-            }
-          } catch (_) {}
-        }
-      }
-    } finally {
-      reader.releaseLock();
+      out = await CS.runWithContinuation({
+        apiKey,
+        model: CLAUDE_MODEL,
+        system: systemPrompt,
+        maxTokens: MAX_TOKENS_DEFAULT,
+        messages: [{ role: 'user', content: userPrompt }],
+        label: '1차-micro',
+      });
+    } catch (err) {
+      console.log(`[ERROR] 1차-micro 호출 실패: ${err.message}`);
+      return res.end(JSON.stringify({ error: err.message }));
     }
 
-    console.log(`[1차-micro] 스트리밍 완료: stop_reason=${stopReason}, output_tokens=${outputTokens}, text_len=${fullText.length}`);
-    console.log(`[1차-micro] 앞200자: ${fullText.substring(0, 200).replace(/\n/g, '↵')}`);
-    console.log(`[1차-micro] 뒤200자: ${fullText.slice(-200).replace(/\n/g, '↵')}`);
+    console.log(`[1차-micro] 완료: turns=${out.turns}, 누적 output_tokens=${out.totalTokens}, text_len=${out.text.length}`);
+    console.log(`[1차-micro] 뒤200자: ${out.text.slice(-200).replace(/\n/g, '↵')}`);
 
-    if (stopReason === 'max_tokens') {
-      console.log(`[ERROR] 1차-micro max_tokens 초과 — output_tokens: ${outputTokens}`);
-      return res.end(JSON.stringify({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' }));
-    }
-    if (!fullText) {
-      return res.end(JSON.stringify({ error: 'Claude 1차 응답에서 텍스트를 추출할 수 없습니다.' }));
-    }
-    return res.end(JSON.stringify({ text: fullText }));
+    if (!out.ok) return res.end(JSON.stringify({ error: out.error }));
+    if (!out.text) return res.end(JSON.stringify({ error: 'Claude 1차 응답에서 텍스트를 추출할 수 없습니다.' }));
+    return res.end(JSON.stringify({ text: out.text }));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -125,8 +79,10 @@ module.exports = async (req, res) => {
 
   const messages = [{ role: 'user', content: userPrompt }];
   let finalText = '';
+  let totalTokens = 0;
+  let contCount = 0;   // continuation 횟수 — tool_use turn과 별도로 최대 2회
 
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
+  for (let turn = 0; turn < Math.min(MAX_TURNS, MAX_TOTAL_TURNS); turn++) {
     let claudeRes;
     try {
       claudeRes = await fetch(ANTHROPIC_BASE, {
@@ -154,15 +110,28 @@ module.exports = async (req, res) => {
     const content = data.content || [];
 
     const turnText = content.filter(b => b.type === 'text').map(b => b.text).join('');
-    if (turnText) finalText += turnText;
+    // prefill 이어쓰기에서 모델이 꼬리를 되풀이하는 경우를 방어
+    if (turnText) finalText = CS.joinContinuation(finalText, turnText);
 
+    totalTokens += data.usage?.output_tokens || 0;
     console.log(`[1차-sme] turn=${turn} stop_reason=${data.stop_reason} output_tokens=${data.usage?.output_tokens}`);
 
     if (data.stop_reason === 'end_turn') break;
 
     if (data.stop_reason === 'max_tokens') {
-      console.log(`[ERROR] 1차-sme max_tokens 초과 — output_tokens: ${data.usage?.output_tokens}`);
-      return res.status(500).json({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' });
+      // 절단 확정 — 이어쓰기(assistant prefill)로 최대 2회 복구 시도
+      if (contCount >= CS.MAX_CONTINUATIONS || turn >= MAX_TOTAL_TURNS - 1) {
+        console.log(`[ERROR] 1차-sme continuation ${contCount}회 후에도 미완성 — 누적 tokens=${totalTokens}`);
+        return res.status(500).json({ error: 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)' });
+      }
+      contCount++;
+      console.log(`[1차-sme] continuation 발동 — turn=${contCount}, 누적 output_tokens=${totalTokens}`);
+      // assistant prefill — 연속 continuation 시 assistant 메시지가 겹치지 않도록 교체한다
+      const prefill = { role: 'assistant', content: finalText.replace(/\s+$/, '') };
+      const last = messages[messages.length - 1];
+      if (last && last.role === 'assistant' && typeof last.content === 'string') messages[messages.length - 1] = prefill;
+      else messages.push(prefill);
+      continue;
     }
 
     if (data.stop_reason === 'pause_turn') {
@@ -185,6 +154,17 @@ module.exports = async (req, res) => {
 
   if (!finalText) {
     return res.status(500).json({ error: 'Claude 1차 응답에서 텍스트를 추출할 수 없습니다.' });
+  }
+
+  // stop_reason에 의존하지 않는 최종 완성 검사 — 스트림/루프가 조용히 끊긴 경우를 잡는다
+  const diag = CS.diagnoseJson(finalText);
+  if (diag !== 'ok') {
+    console.log(`[ERROR] 1차-sme 미완성 응답 — diag=${diag}, continuation=${contCount}회, 누적 tokens=${totalTokens}`);
+    return res.status(500).json({
+      error: diag === 'truncated'
+        ? 'max_tokens 초과 — 1차 응답 절단됨 (JSON 불완전)'
+        : 'AI 응답 형식이 올바르지 않습니다 (절단 아님).',
+    });
   }
   return res.json({ text: finalText });
 };

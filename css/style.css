@@ -1989,3 +1989,25 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   background: rgba(245,192,48,.06); border-left: 2px solid rgba(245,192,48,.3);
   border-radius: 4px;
 }
+
+/* ── AI 분석 실패 화면 ── */
+#analysis-error {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 40px 20px;
+}
+.an-err-wrap {
+  max-width: 520px; width: 100%; text-align: center;
+  background: var(--card, #0F1629); border: 1px solid rgba(42,63,117,.6);
+  border-radius: 14px; padding: 40px 32px;
+}
+.an-err-icon {
+  width: 56px; height: 56px; line-height: 56px; margin: 0 auto 18px;
+  border-radius: 50%; font-size: 1.6rem;
+  background: rgba(248,113,113,.12); color: #F87171;
+  border: 1px solid rgba(248,113,113,.35);
+}
+.an-err-wrap h2 { font-size: 1.35rem; color: var(--txt); margin: 0 0 14px; }
+.an-err-msg { font-size: 0.95rem; color: var(--txt2); line-height: 1.7; margin: 0 0 10px; }
+.an-err-sub { font-size: 0.83rem; color: var(--txt3); line-height: 1.6; margin: 0 0 26px; }
+.an-err-nav { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+

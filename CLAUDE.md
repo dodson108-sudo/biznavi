@@ -8,6 +8,83 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-07) — 경영진단 1차 max_tokens 절단 수정 + fakeAnalysis 호출 차단
+
+### ⚠ 진단 정정 — 관찰된 에러는 `max_tokens` 감지 경로에서 나온 것이 아니다
+사용자가 본 문구는 **"1차 분석 JSON 파싱 실패: {"executiveSummary":"…"**, 즉 API가 **200 OK로 성공 반환**한 뒤 `extractJSON`이 실패한 경우다.
+세 API 파일 모두 `stop_reason === 'max_tokens'`를 이미 감지해 에러를 반환하고 있었으므로, **절단이 감지되지 않은 채 잘린 텍스트가 성공으로 반환**된 것이다. 원인 후보 3가지:
+1. **스트리밍 중 `stop_reason` 미수신** — `stopReason`은 SSE `message_delta`에서만 채워진다. 그 전에 스트림이 끊기면 `null` → 검사 통과 → 부분 텍스트가 성공 반환 (가장 유력)
+2. **SSE `error` 이벤트 무시** — 스트림 중간 오류를 처리하는 코드가 없었다
+3. **sme 루프의 마지막 `break`** — `stop_reason`이 4종(end_turn/max_tokens/pause_turn/tool_use) 중 어느 것도 아니면 부분 텍스트를 성공 반환
+
+→ **continuation만으로는 이 증상이 재발한다.** 완성 판정을 `stop_reason`이 아니라 **결과물(JSON 파싱 가능 여부)** 기준으로 바꾼 것이 실질적 수정이다.
+
+### ① `lib/claude-stream.js` 신설 (공용 모듈)
+- ⚠ **`api/` 하위에 두지 않는다** — Vercel이 `api/*.js`를 엔드포인트로 인식한다. `vercel.json`의 `functions`가 파일을 명시 열거하는 방식이라 `lib/`는 함수로 잡히지 않으며, 각 함수에서 **정적 `require('../lib/claude-stream')`** 로 참조해야 `@vercel/nft` 의존성 추적에 포함된다(동적 import·경로 조합 금지)
+- `diagnoseJson(text)` → `'ok'` / `'truncated'` / `'malformed'` / `'empty'` 4상태
+  - **파싱 실패에는 두 종류가 있다**: ① 잘려서 실패 ② 애초에 JSON이 아니라서 실패. ①은 이어쓰기가 답이지만 **②에 이어쓰기를 돌리면 엉뚱한 내용이 덧붙어 상황이 악화된다**
+  - 판별: 코드펜스·앞뒤 설명문 제거 후 파싱 → 실패 시 **문자열·이스케이프를 존중하며 괄호 균형**을 센다. 미닫힘/문자열 미종료 → `truncated`, 균형인데 실패 → `malformed`
+- `runWithContinuation()` — 스트리밍 호출 + **최대 2회** 이어쓰기. `stop_reason === 'max_tokens'`면 판별 없이 바로 continuation
+- SSE `error` 이벤트 처리 추가
+
+### ② 이어쓰기는 assistant prefill 방식
+- 누적 텍스트를 **마지막 assistant 메시지**로 넣으면 Claude가 그 메시지를 이어서 쓰므로 **앞부분 반복이 구조적으로 발생하지 않는다**
+- (지시받은 "assistant + user 메시지" 방식은 새 assistant 턴을 시작시켜 앞부분을 반복할 수 있어 채택하지 않음. 중복 방지 요구를 더 확실히 만족하는 쪽을 택함)
+- 연속 continuation 시 assistant 메시지가 두 번 연달아 들어가지 않도록 **교체**한다
+- Anthropic은 prefill 끝 공백을 허용하지 않으므로 `trimEnd`
+
+### ③ ⚠ 검증에서 잡힌 실제 버그 — `stripOverlap` 무조건 적용 금지
+- 초기 구현은 겹침을 무조건 제거했는데, **반복되는 정상 텍스트**(같은 문자·문구의 연속)를 겹침으로 오인해 **정상 내용을 최대 200자 잘라내 JSON을 깨뜨렸다** (스모크 케이스 2·3에서 발견)
+- **수정**: `joinContinuation()` — 기본은 그냥 잇고(prefill이므로 중복이 원칙적으로 없음), **그 결과가 파싱되지 않을 때만** 겹침 제거본을 후보로 시도
+- 불변식은 "바이트 동일"이 아니라 **"유효한 JSON"** 이다. 파싱되는 한 직접 연결을 채택한다(과잉 제거로 인한 조용한 내용 손실이 더 나쁘다)
+
+### ④ 적용 범위
+| 경로 | 처리 |
+|---|---|
+| 1차 micro / 2차 micro / 3차 | `runWithContinuation()` 사용 |
+| **1차 sme (web_search tool_use 루프)** | 루프 내 개별 적용. **continuation은 tool_use turn과 별도로 최대 2회**, 전체 turn 합계 상한 `MAX_TOTAL_TURNS = 8` |
+| 2차 sme (단일 요청) | 단일 요청 + 최대 2회 이어쓰기로 재작성 |
+| **정책자금(`claude-analyze-funding.js`)** | **미변경** — 이미 실패 처리가 되어 있음 |
+- 세 경로 모두 **반환 직전 `diagnoseJson()` 최종 검사** 추가 → `stop_reason`을 못 받아도 절단이면 에러로 잡힌다
+- `max_tokens` 값 자체는 올리지 않았다 (비용·응답시간 증가, 근본 해결 아님)
+
+### ⑤ fakeAnalysis 호출 경로 차단 (수정 2 — 더 중요)
+- **실제 분석이 실패했는데 그럴듯한 가짜 보고서가 나오면 사용자가 자기 회사 분석으로 오인한다.** 정책자금에서 이미 제거한 방식을 경영진단에도 적용
+- `app.js` catch: `alert` + `AIEngine.fakeAnalysis()` 제거 → **`analysis-error` 전용 화면**
+  - 원인별 문구 변환: `max_tokens` 계열 → "분석 내용이 길어 생성이 중단되었습니다" / 네트워크·타임아웃 → "서버 응답이 지연되었습니다" / 그 외 → "일시적인 오류가 발생했습니다"
+  - **원본 에러 메시지(JSON 조각 포함)는 `console.error`로만** — 화면에 노출하지 않는다
+  - `[다시 시도]`(같은 입력으로 재분석) + `[입력 수정]`(위저드 STEP 4 복귀)
+- ⚠ `fakeAnalysis` 함수 자체와 `isDemo` 배지 로직은 **삭제하지 않았다** (호출 경로만 차단)
+
+### ⑥ 검증 (Node, Anthropic SSE 모의 — 16/16 통과)
+`max_tokens`를 문자 수로 강제 제한하는 가짜 Claude로 절단을 재현했다.
+
+| continuation 7건 | 결과 |
+|---|---|
+| 절단 없음 | 1회로 완성 ✓ |
+| 1회 절단 | continuation 1회로 복구, **중복 0자** ✓ |
+| 2회 절단 | continuation 2회로 복구, **중복 0자** ✓ |
+| 3회 필요 | 상한(2회) 초과 → 실패 반환 + `[ERROR]` 로그 ✓ |
+| 꼬리 반복 모델 | 결과가 유효한 JSON ✓ |
+| 형식 오류(표 반환) | **continuation 생략**, 즉시 실패 ✓ |
+| JSON 없음 | **continuation 생략** ✓ |
+
+| `diagnoseJson` 9건 | 결과 |
+|---|---|
+| 완전한 JSON / 코드펜스 / 앞 설명문 / trailing comma | 전부 `ok` ✓ |
+| 중괄호 미닫힘 / 문자열 미종료 / 배열 미닫힘 | 전부 `truncated` ✓ |
+| 괄호 균형인데 파싱 실패 | `malformed` ✓ |
+| JSON 아님 | `empty` ✓ |
+
+### ⑦ 남은 이슈
+- **`fakeAnalysis` / `_fakeByConsultingType` / `_fakeSpecialized` 약 1,530줄이 호출 경로 차단 후 죽은 코드가 됨.** `isDemo`는 `render(data, fd, isDemo)` 시그니처에 남아 있어 함께 정리 필요. **별도 커밋으로 진행 예정** (지금 섞으면 문제 발생 시 continuation 버그인지 삭제 부작용인지 구분이 안 됨)
+- 실제 Anthropic API로 절단을 재현하는 테스트는 하지 않았다(토큰 소모). 재현하려면 `MAX_TOKENS_DEFAULT`를 임시로 500 등으로 낮추고 `vercel dev`로 1회 실행하면 된다
+
+### ⑧ 캐시버스팅
+`index.html` 로컬 `?v=` 47곳 전부 `20260807a`
+
+---
+
 ## 최근 수정 이력 (2026-08-06) — ⚠ 제조업 영위 문항 오진 수정 (실사용 오진 발생)
 
 **실제 산출물에서 음식점업 사업자가 '직접 영위함'을 선택해 중진공이 "제조업 예외로 대상 포함"으로 잘못 판정됐다.**
