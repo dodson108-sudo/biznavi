@@ -8,6 +8,70 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-16) — 사회적기업 진단이 발동하지 않던 문제 수정 (orgType 분리)
+
+**사회적기업 진단지를 만들어 놓고도 실제로는 한 번도 발동하지 않고 있었다.**
+실사용 테스트에서 사회적경제기업이 `knowledge_it`(지식서비스·IT)으로 판별돼 일반 진단(8+5문항)이 그대로 나왔다.
+
+### ① 원인 — `analyze-biz.js`가 `social_enterprise`를 반환할 수 없다
+- `_detectOrgType()`은 `industryKey === 'social_enterprise'`일 때만 발동하는데, **`api/analyze-biz.js`에 `social_enterprise`라는 값 자체가 존재하지 않는다**(전수 확인). AI 업종분석이 이 값을 반환할 방법이 없으므로 판별 로직이 **구조적으로 무효**였다
+- 근본 판단: **사회적기업은 업종이 아니라 조직 형태다.** 도로시앤컴퍼니는 업종상 컨설팅업이 맞고 사회적기업은 그 위에 얹힌 법적 지위다 → AI가 판별할 것이 아니라 사용자가 직접 선택해야 한다
+
+### ② `orgTypeSelect` 신설 — biz-context 화면
+- 위치: `#biz-context-content`(업종 판별 결과) **바로 아래**. `.biz-ctx-orgtype` 블록 + `#orgTypeSelect`
+- 선택지 4종: `general`(기본) / `social_enterprise` / `cooperative` / `social_venture`
+- ⚠ **step1이 아니라 biz-context에 둔 이유**: step1 필드는 사업자등록증 기재사항이고 OCR 자동입력 대상이다. 법적 지위를 여기 섞으면 OCR 흐름과 충돌한다. 업종 판별 결과를 본 뒤 "그 위에 사회적기업"을 얹는 순서가 자연스럽다
+- ⚠ **정책자금 경로에서는 숨긴다** — `showBizContext()` 말미에서 `_purpose === 'funding'`이면 `#orgTypeBlock`을 `display:none`. **biz-context는 정책자금 경로도 거치므로**(startFundingDiagnosis → step1 → analyzeBiz → biz-context → step5) 숨기지 않으면 step5 인증 체크박스와 중복 질문이 된다
+- `cooperative`·`social_venture`는 전용 모듈이 없어 **선택 시 confirm** — 확인하면 S1~S8을 적용하되 **orgType 값은 선택값 그대로 유지**(전용 모듈 신설 시 자동 전환), 취소하면 `general`로 원복
+- 이벤트는 HTML `onchange`가 아니라 **`DOMContentLoaded` 리스너**로 등록 (2026-06-05 c317c03 캐시 문제 재발 방지)
+
+### ③ `_detectOrgType()` — 사용자 선택 우선
+```js
+const sel = document.getElementById('orgTypeSelect')?.value || '';
+if (sel) return sel;
+return industryKey === 'social_enterprise' ? 'social_enterprise' : 'general';  // 레거시 fallback
+```
+- **`industryKey`는 건드리지 않았다.** 컨설팅업 사회적기업 = `industryKey:'knowledge_it'` + `orgType:'social_enterprise'`가 정확한 상태다. `INDUSTRY_MAP`·업종 판별 로직 미변경
+- `SOCIAL_ORG_TYPES = ['social_enterprise','cooperative','social_venture']` + `_isSocialOrg()` 헬퍼 신설
+
+### ④ ⚠ 지시에 없던 충돌 3건 — 함께 수정 (이게 없으면 화면에서만 동작한다)
+| 지점 | 문제 | 조치 |
+|---|---|---|
+| `ai-engine.js:1286` | `d.orgType === 'social_enterprise'` 단일 비교 → **협동조합 선택 시 socialPrompt가 AI에 전달되지 않고 micro 분기로 빠짐** | 3종 포함 조건으로 확장 |
+| `wizard.js collect()` | 동일 단일 비교 → `scaleScores`가 DiagSocial이 아닌 **DiagMicro로 계산됨** | `_isSocialOrg()`로 교체 |
+| `wizard.js reset()` | `_orgType` 미초기화 → "새 분석" 시 잔상 | `_orgType='general'` + select·배너 초기화 추가 |
+
+### ⑤ 업종 특화 탭 — **a-1(숨김) 폐기, b안(유지) 채택**
+- **기존 a-1의 근거가 이번 수정으로 소멸했다.** 과거엔 `industryKey === 'social_enterprise'`였으므로 업종 탭이 렌더링하던 것이 `INDUSTRY_SOCIAL_ENTERPRISE`(9문항, S1~S8과 내용 중복)였다. 이제 industryKey가 실제 업종이므로 업종 탭은 **컨설팅업 특화 5문항**을 렌더링하고 중복이 0이다
+- `industryData = isSocial ? null : ...` → 조건 제거, 탭 버튼 `display:none` → 항상 노출
+- `_tabOrder()`는 **함수를 남기되 항상 `TAB_ORDER` 반환**(사용처 4곳 미변경). 점수 키가 `diag-industry-container_*`로 분리되어 `DiagSocial.calcScores()`(`diag-social-container_` 접두어만 수집)에 섞이지 않음 — 확인 완료
+- 결과: 사회적기업 = **40 + 5 = 45문항**
+
+### ⑥ 진단 유형 배너 — `#diag-type-banner` (step2 상단)
+- `🤝 사회적기업 전용 진단 (8대 영역 40문항) + 업종 특화 5문항`
+- 협동조합·소셜벤처는 `전용 진단 준비 중 — 사회적기업 진단(공통 항목)으로 진행합니다` 부기
+- **일반 기업은 배너를 표시하지 않는다**(기존 화면 그대로)
+
+### ⑦ 검증 (Node DOM 스텁, 32/32 통과)
+| 케이스 | 결과 |
+|---|---|
+| 사회적기업 + `knowledge_it` | `orgType:'social_enterprise'` · **`industryKey:'knowledge_it'` 유지** · `bizScale:'micro'` 유지 · socialPrompt 생성 · scaleScores 8영역 ✓ |
+| 협동조합 | `orgType:'cooperative'` **선택값 유지** + socialPrompt 생성(S1~S8 차용) · microPrompt 미생성 ✓ |
+| 소셜벤처 | 동일 ✓ |
+| **일반 기업 회귀** (`restaurant`/micro) | `orgType:'general'` · socialPrompt 미생성 · **microPrompt 생성** · 배너 숨김 · 탭 레이블 기존 유지 ✓ |
+| `orgTypeSelect` DOM 부재 | industryKey fallback 정상 동작 ✓ |
+| `loadDiagnosisUI` 렌더 | 예외 없음 · **업종 탭 노출 유지** · 업종 5문항 + S1~S8 동시 렌더 ✓ |
+| ai-engine 분기 | cooperative → 주입 / general → 미주입 ✓ |
+
+### ⑧ 캐시버스팅
+`index.html` 로컬 `?v=` 48곳 전부 `20260807c`
+
+### ⑨ 남은 이슈
+- 협동조합·소셜벤처 **전용 진단지(40문항 수준) 신설**은 여전히 미완. 신설 시 `_isSocialOrg()` 분기에서 `orgType`별로 모듈만 갈아끼우면 된다 (선택값을 보존해 둔 이유)
+- `js/diagnosis/industry/social_enterprise.js`(9문항)·`social_venture.js`(41줄)는 `INDUSTRY_MAP['사회적기업']` 경로로만 도달 가능한 상태로 남아 있음
+
+---
+
 ## 최근 수정 이력 (2026-08-07) — 사회적기업 전용 진단지 신설 (S1~S8 40문항)
 
 **기존 `social_enterprise.js`는 3영역 9문항뿐이고, 공통 진단(D1~D7 35문항)이 그대로 붙어
@@ -2688,6 +2752,8 @@ biznavi/
 ### ⚠ 반드시 지킬 것 (반복 사고 방지)
 - **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
 - **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
+- **조직 형태(사회적기업·협동조합·소셜벤처)는 업종과 다른 축이다. `industryKey`에 밀어넣지 말고 `orgType`으로 분리해서 다룰 것.** 한 기업이 동시에 컨설팅업이면서 사회적기업일 수 있다(`knowledge_it` + `social_enterprise`). 또한 `api/analyze-biz.js`는 조직 형태를 반환하지 않으므로 **AI 업종분석으로 판별하려는 시도는 항상 실패한다** — 사용자 선택(`#orgTypeSelect`)이 유일한 소스다
+- **`orgType`을 `=== 'social_enterprise'` 단일 비교로 검사하지 말 것.** 협동조합·소셜벤처도 S1~S8을 사용하므로 `_isSocialOrg()`(wizard) 또는 3종 배열 포함 검사(ai-engine)를 쓴다. 단일 비교로 두면 협동조합 선택 시 화면만 사회적기업 진단이고 **점수 계산·AI 프롬프트는 micro로 빠진다**
 - **진단 문항은 사용자의 주관적 해석이 개입하지 않는 형태로 물어야 한다.** "~를 하십니까"보다 "서류에 ~라고 적혀 있습니까"가 정확하다. (2026-08-06 음식점 조리를 제조업으로 오인해 오진 발생)
 - **확인 필요(`conditional`)는 앱이 원리적으로 알 수 없는 항목에만 쓴다.** 사용자에게 물어보면 확정할 수 있는 항목을 `conditional`로 처리하면 진단의 실용성이 떨어진다
 - **정책자금 판정은 절대 단정하지 않는다.** 앱은 쟁점과 근거 조항을 제시하고 최종 판단은 기관·컨설턴트에게 남긴다. "신청 가능합니다"/"승인됩니다" 같은 표현을 쓰지 않는다

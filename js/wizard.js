@@ -97,18 +97,62 @@ const Wizard = (() => {
   // 탭 순서 정의
   const TAB_ORDER = ['common', 'industry'];
 
-  /* 조직 유형 — 'general' | 'social_enterprise'
+  /* 조직 유형 — 'general' | 'social_enterprise' | 'cooperative' | 'social_venture'
+     ⚠ 조직 형태는 업종(industryKey)과 다른 축이다. industryKey에 밀어넣지 않는다.
+        컨설팅업 사회적기업 = industryKey:'knowledge_it' + orgType:'social_enterprise' 가 정확한 상태다.
      ⚠ bizScale('micro'|'sme')에 'social'을 추가하지 않는다.
         FundingRules가 bizScale === 'micro' 기준으로 중진공 소상공인 제외를 판정하므로
         값을 바꾸면 그 로직이 깨진다. 별도 플래그로 분리한다. */
   let _orgType = 'general';
+
+  /* DiagSocial(S1~S8)을 적용하는 조직 형태.
+     cooperative·social_venture는 전용 모듈이 없어 사회적기업 진단을 빌려 쓰지만,
+     orgType 값 자체는 사용자가 선택한 값을 유지한다 (전용 모듈 신설 시 자동 전환용) */
+  const SOCIAL_ORG_TYPES = ['social_enterprise', 'cooperative', 'social_venture'];
+  function _isSocialOrg(orgType) { return SOCIAL_ORG_TYPES.indexOf(orgType) !== -1; }
+
+  const ORG_TYPE_LABEL = {
+    general:           '일반 기업',
+    social_enterprise: '사회적기업',
+    cooperative:       '협동조합·마을기업',
+    social_venture:    '소셜벤처',
+  };
+
+  /* 전용 진단 모듈이 아직 없는 조직 형태 — 선택 시 사회적기업 진단을 빌려 쓸지 확인받는다 */
+  const ORG_TYPE_PENDING = {
+    cooperative:    '협동조합',
+    social_venture: '소셜벤처',
+  };
+  function _onOrgTypeChange(e) {
+    const sel = e?.target || document.getElementById('orgTypeSelect');
+    if (!sel) return;
+    const pending = ORG_TYPE_PENDING[sel.value];
+    if (!pending) return;
+    const ok = confirm(
+      pending + ' 전용 진단은 준비 중입니다.\n' +
+      '사회적기업 진단으로 진행하시겠습니까? (공통 항목이 많습니다)'
+    );
+    // 취소 시 일반 기업으로 되돌린다. 확인 시 선택값(cooperative 등)을 그대로 유지해
+    // 전용 모듈이 생기면 자동으로 전환되게 한다
+    if (!ok) sel.value = 'general';
+  }
+
+  /* 조직 형태 판별 — 사용자 선택(#orgTypeSelect) 우선.
+     ⚠ AI 업종분석(api/analyze-biz.js)은 social_enterprise를 반환할 수 없으므로
+        industryKey 기반 판별만으로는 사회적기업 진단이 영영 발동하지 않는다.
+        아래 industryKey fallback은 레거시 호환용으로만 남긴다. */
   function _detectOrgType(industryKey) {
+    const sel = document.getElementById('orgTypeSelect')?.value || '';
+    if (sel) return sel;
     return industryKey === 'social_enterprise' ? 'social_enterprise' : 'general';
   }
-  /* 사회적기업은 S1~S8(공통 탭) 40문항만 사용하고 업종 특화 탭을 쓰지 않는다.
-     일반 업종 경로는 TAB_ORDER 그대로 2탭을 유지한다. */
+
+  /* 탭 순서 — 조직 형태와 무관하게 공통 + 업종 특화 2탭을 유지한다.
+     (사회적기업도 업종은 별개로 존재하므로 업종 특화 5문항이 유효하다.
+      과거 'industryKey === social_enterprise' 시절에는 업종 탭이 S1~S8과
+      내용이 중복되는 모듈을 렌더링해 숨겼으나, orgType 분리로 그 중복이 사라졌다) */
   function _tabOrder() {
-    return _orgType === 'social_enterprise' ? ['common'] : TAB_ORDER;
+    return TAB_ORDER;
   }
 
   /* ================================================================
@@ -1072,6 +1116,11 @@ const Wizard = (() => {
         ${noteHtml}
       </div>
     `;
+
+    // 정책자금 경로는 step5 인증 체크박스로 사회적경제 여부를 이미 받으므로
+    // 조직 형태 선택을 노출하지 않는다 (중복 질문 방지)
+    const orgBlock = document.getElementById('orgTypeBlock');
+    if (orgBlock) orgBlock.style.display = (_purpose === 'funding') ? 'none' : '';
   }
 
   /* 모든 wizard 카드 숨기기 */
@@ -1267,9 +1316,9 @@ const Wizard = (() => {
     const commonContainer = document.getElementById('diag-common-container');
     const socialContainer = document.getElementById('diag-social-container');
 
-    // 조직 유형 판별 — 사회적기업이면 공통 진단 대신 S1~S8 40문항을 렌더링한다
+    // 조직 유형 판별 — 사회적기업·협동조합·소셜벤처면 공통 진단 대신 S1~S8 40문항을 렌더링한다
     _orgType = _detectOrgType(industryKey);
-    const isSocial = _orgType === 'social_enterprise' && typeof DiagSocial !== 'undefined';
+    const isSocial = _isSocialOrg(_orgType) && typeof DiagSocial !== 'undefined';
 
     // 공통 모듈 렌더링 — social: DiagSocial S1~S8 / micro: DiagMicro 7대 분야 / startup: STARTUP / 그 외: DiagCommon
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
@@ -1326,11 +1375,12 @@ const Wizard = (() => {
       'social_enterprise': typeof INDUSTRY_SOCIAL_ENTERPRISE !== 'undefined' ? INDUSTRY_SOCIAL_ENTERPRISE : null,
       'social_venture': typeof INDUSTRY_SOCIAL_VENTURE !== 'undefined' ? INDUSTRY_SOCIAL_VENTURE : null,
     };
-    // 사회적기업은 S1~S8이 업종 특화 문항까지 포함하므로 업종 탭을 사용하지 않는다 (탭 자체를 숨김)
-    const industryData = isSocial ? null : industryVarMap[industryKey];
+    // 업종 탭은 조직 형태와 무관하게 유지한다 — 사회적기업도 업종(컨설팅업 등)은 별개로 존재하며
+    // S1~S8(조직 축)과 업종 특화 5문항(사업 축)은 내용이 겹치지 않는다
+    const industryData = industryVarMap[industryKey];
     if (industryData) renderDiagModule('diag-industry-container', industryData);
     const tabIndustryBtn = document.getElementById('diagTabBtn-industry');
-    if (tabIndustryBtn) tabIndustryBtn.style.display = isSocial ? 'none' : '';
+    if (tabIndustryBtn) tabIndustryBtn.style.display = '';
 
     // 탭 버튼 레이블 동적 업데이트 (업종 반영)
     const aiLabel = document.getElementById('aiIndustryKey') ? (() => {
@@ -1346,12 +1396,28 @@ const Wizard = (() => {
     const tabCommon = document.getElementById('diagTabBtn-common');
     if (tabCommon) {
       tabCommon.textContent = isSocial
-        ? '🤝 사회적기업 8대 영역 (40문항)'
+        ? '🤝 ' + ORG_TYPE_LABEL[_orgType] + ' 8대 영역 (40문항)'
         : isMicro
         ? '🏪 소상공인 7대 분야 (35문항)'
         : isStartupMode
           ? '🚀 창업 초기 진단 (8문항)'
           : '📋 기본 경영 진단 (8문항)';
+    }
+
+    // 진단 유형 배너 — 조직 형태 전용 진단이 적용됐음을 사용자에게 명시한다
+    // (일반 기업은 기존 화면 그대로 두고 배너를 표시하지 않는다)
+    const typeBanner = document.getElementById('diag-type-banner');
+    if (typeBanner) {
+      if (isSocial) {
+        const lbl = ORG_TYPE_LABEL[_orgType];
+        const borrowed = _orgType !== 'social_enterprise'
+          ? `<span class="dtb-note">전용 진단 준비 중 — 사회적기업 진단(공통 항목)으로 진행합니다</span>` : '';
+        typeBanner.innerHTML = `🤝 <strong>${lbl} 전용 진단</strong> (8대 영역 40문항) + 업종 특화 5문항${borrowed}`;
+        typeBanner.classList.remove('hidden');
+      } else {
+        typeBanner.innerHTML = '';
+        typeBanner.classList.add('hidden');
+      }
     }
 
     // 진행률 카운터 총 항목 수 동적 갱신 (signal-only 제외)
@@ -2641,13 +2707,14 @@ const Wizard = (() => {
     //  직원 6명 이상인데 micro로 오분류되던 2026-05-15 버그가 재발했음 — 재계산 금지)
     const bizScale = data.bizScale || 'micro';
 
-    // orgType은 최종 industryKey(정책자금 override 반영) 기준으로 확정한다
+    // orgType은 사용자 선택(#orgTypeSelect) 우선, 없으면 industryKey fallback
     data.orgType = _detectOrgType(data.industryKey || '');
 
     let scaleScores = {};
     const allScores = collectAllScores();
-    if (data.orgType === 'social_enterprise' && window.DiagSocial) {
-      // 사회적기업 — S1~S8. bizScale(micro/sme)은 그대로 두고 진단 모듈만 교체한다
+    if (_isSocialOrg(data.orgType) && window.DiagSocial) {
+      // 사회적기업·협동조합·소셜벤처 — S1~S8. bizScale(micro/sme)은 그대로 두고 진단 모듈만 교체한다
+      // (협동조합·소셜벤처는 전용 모듈이 없어 S1~S8을 빌려 쓰되 orgType 값은 선택값을 유지한다)
       scaleScores = DiagSocial.calcScores(allScores);
       data.socialWarnings = DiagSocial.detectCrossWarnings(allScores);
       data.socialPrompt = DiagSocial.buildPromptSummary(allScores);
@@ -2765,6 +2832,11 @@ const Wizard = (() => {
     curDiagTab = 'common';
     _inferredBmKey = '';
     _purpose = 'general';
+    _orgType = 'general';
+    const orgSel = document.getElementById('orgTypeSelect');
+    if (orgSel) orgSel.value = 'general';
+    const typeBanner = document.getElementById('diag-type-banner');
+    if (typeBanner) { typeBanner.innerHTML = ''; typeBanner.classList.add('hidden'); }
     Object.keys(diagScores).forEach(k => delete diagScores[k]);
     updateStepUI(1);
     const step1 = document.getElementById('step1');
@@ -3045,6 +3117,10 @@ const Wizard = (() => {
       var el = document.getElementById(id);
       if (el) el.addEventListener('input', updateFundDebtRatio);
     });
+
+    // 조직 형태 선택 — 전용 모듈이 없는 형태 선택 시 확인 (HTML onchange 속성 미사용)
+    var orgSel = document.getElementById('orgTypeSelect');
+    if (orgSel) orgSel.addEventListener('change', _onOrgTypeChange);
   });
 
   return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };

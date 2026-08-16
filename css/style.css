@@ -1924,6 +1924,33 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   font-size: 0.88rem; line-height: 1.65; color: var(--txt2);
 }
 
+/* 조직 형태 선택 (biz-context) — 업종과 다른 축이므로 시각적으로 분리 */
+.biz-ctx-orgtype {
+  margin-top: 18px; padding: 16px;
+  background: rgba(22,32,64,.4);
+  border: 1px solid rgba(122,162,247,.28);
+  border-left: 4px solid rgba(122,162,247,.6);
+  border-radius: 10px;
+}
+.biz-ctx-orgtype .form-group { margin-bottom: 0; }
+.biz-ctx-orgtype label { color: #9FC0FF; }
+.biz-ctx-orgtype .hint { margin: 6px 0 0; }
+
+/* 진단 유형 배너 (step2 상단) — 조직 형태 전용 진단 적용 시 표시 */
+.diag-type-banner {
+  background: rgba(122,162,247,.08);
+  border: 1px solid rgba(122,162,247,.32);
+  border-left: 4px solid rgba(122,162,247,.7);
+  border-radius: 8px; padding: 12px 16px;
+  margin-bottom: 14px;
+  font-size: 0.9rem; line-height: 1.65; color: var(--txt2);
+}
+.diag-type-banner strong { color: #9FC0FF; }
+.diag-type-banner .dtb-note {
+  display: block; margin-top: 4px;
+  font-size: 0.8rem; color: var(--txt3);
+}
+
 /* 추가 진단 요청 입력 영역 */
 .biz-ctx-extra-area {
   margin-top: 18px; padding: 16px;
