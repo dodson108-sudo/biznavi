@@ -377,7 +377,90 @@ const GovSupport = (() => {
       bizModel: ['all'],
       size: ['micro', 'small', 'medium'],
     },
+
+    // ── 사회적경제 (2026-08-16 신설) ──────────────────────────────
+    // orgType: 'social' — 사회적기업·협동조합·소셜벤처 전용/우대 사업.
+    // 일반 기업(orgType 'general')에는 자격이 없으므로 match()에서 제외한다.
+    // ⚠ 지원 규모·기간 수치는 매년 바뀌므로 넣지 않는다 (형태만 기재)
+    {
+      id: 'se_growth',
+      name: '사회적기업 육성사업',
+      org: '고용노동부 / 한국사회적기업진흥원',
+      supportType: '(예비)사회적기업 지정·성장단계별 지원',
+      period: '정기 공고',
+      summary: '예비사회적기업 지정부터 인증사회적기업 전환까지 단계별 성장 지원. 경영 컨설팅·판로·네트워킹 연계.',
+      url: 'https://www.socialenterprise.or.kr',
+      purpose: ['fund', 'marketing'],
+      industry: ['all'],
+      bizModel: ['all'],
+      size: ['micro', 'small', 'medium'],
+      orgType: 'social',
+    },
+    {
+      id: 'se_fiscal',
+      name: '사회적기업 재정지원사업 (일자리창출·사업개발비)',
+      org: '고용노동부 / 한국사회적기업진흥원',
+      supportType: '인건비 및 사업개발비 지원',
+      period: '정기 공고',
+      summary: '취약계층 일자리 창출 인건비와 제품·서비스 개발, 시장 진출에 필요한 사업개발비 지원. 인증·예비 지정 기업 대상.',
+      url: 'https://www.socialenterprise.or.kr',
+      purpose: ['hire', 'fund'],
+      industry: ['all'],
+      bizModel: ['all'],
+      size: ['micro', 'small', 'medium'],
+      orgType: 'social',
+    },
+    {
+      id: 'coop_support',
+      name: '협동조합 활성화 지원사업',
+      org: '기획재정부 / 한국사회적기업진흥원',
+      supportType: '설립·운영 컨설팅 및 교육 지원',
+      period: '수시',
+      summary: '협동조합 설립 절차, 정관·의사결정 체계 정비, 사업모델 고도화 컨설팅과 교육 제공.',
+      url: 'https://www.coop.go.kr',
+      purpose: ['fund', 'marketing'],
+      industry: ['all'],
+      bizModel: ['all'],
+      size: ['micro', 'small', 'medium'],
+      orgType: 'social',
+    },
+    {
+      id: 'svf_loan',
+      name: '사회가치연대기금 (사회적경제기업 대출)',
+      org: '재단법인 사회가치연대기금',
+      supportType: '사회적경제기업 대상 융자',
+      period: '수시',
+      summary: '담보·신용이 부족해 제도권 금융 접근이 어려운 사회적경제기업 대상 자금 공급. 사회적 성과를 심사에 반영.',
+      url: 'https://www.svsfund.org',
+      purpose: ['fund'],
+      industry: ['all'],
+      bizModel: ['all'],
+      size: ['micro', 'small', 'medium'],
+      orgType: 'social',
+    },
+    {
+      id: 'se_market',
+      name: '사회적경제기업 판로지원 (공공기관 우선구매)',
+      org: '한국사회적기업진흥원',
+      supportType: '공공조달 판로 연계 및 온라인몰 입점',
+      period: '수시',
+      summary: '사회적기업 제품·서비스의 공공기관 우선구매 연계와 e-store36.5 입점 지원. 공공조달 진입 절차 안내 포함.',
+      url: 'https://www.e-store365.kr',
+      purpose: ['marketing', 'fund'],
+      industry: ['all'],
+      bizModel: ['all'],
+      size: ['micro', 'small', 'medium'],
+      orgType: 'social',
+    },
   ];
+
+  /* 조직 형태 판정 — wizard.js의 SOCIAL_ORG_TYPES와 같은 목록.
+     전용 진단 모듈이 없는 협동조합·소셜벤처도 사회적경제 사업 대상이므로 함께 포함한다 */
+  const SOCIAL_ORG_TYPES = ['social_enterprise', 'cooperative', 'social_venture'];
+
+  /* 벤처투자·기술창업 계열 — 일반 사회적기업·협동조합에는 부적합.
+     ⚠ 소셜벤처(social_venture)는 실제 대상이 될 수 있으므로 제외 대상에서 빼야 한다 */
+  const VC_TRACK_IDS = ['tips', 'fintech_support'];
 
   /* 상시 지원사업(PROGRAMS) 전용 고지.
      ⚠ 구체 금액·비율·마감일은 매년 바뀌므로 하드코딩하지 않는다.
@@ -447,8 +530,27 @@ const GovSupport = (() => {
     const industry    = d.industry || INDUSTRY_LABEL[d.industryKey] || '';
     const bizModel    = d.bizModel || '';
 
+    /* 조직 형태 — 업종과 별개 축. wizard.js의 _isSocialOrg와 같은 기준을 쓴다
+       (모듈 간 의존을 만들지 않기 위해 판정 목록을 여기에 둔다) */
+    const orgType  = d.orgType || 'general';
+    const isSocial = SOCIAL_ORG_TYPES.indexOf(orgType) !== -1;
+
     const scored = PROGRAMS.map(p => {
       let score = 0;
+
+      /* 조직 형태 필터·가점
+         ① 사회적경제 전용 사업은 자격이 없는 일반 기업에 보여주지 않는다(제외).
+            감점이 아니라 제외인 이유: 신청 자격이 없는 사업을 노출하는 것은 오정보다
+         ② 사회적경제 기업에는 전용 사업을 최우선(+4)으로 올린다 */
+      if (p.orgType === 'social') {
+        if (!isSocial) return { ...p, score: -1, _industryExact: false };
+        score += 4;
+      }
+      /* ③ 벤처투자 계열은 일반 사회적기업·협동조합에 부적합하므로 제외한다.
+            소셜벤처는 실제 대상이 될 수 있으므로 제외하지 않는다 */
+      if (isSocial && orgType !== 'social_venture' && VC_TRACK_IDS.indexOf(p.id) !== -1) {
+        return { ...p, score: -1, _industryExact: false };
+      }
 
       // 관심 분야 일치: 3점 (가장 중요)
       if (interestTags.length > 0) {

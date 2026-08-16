@@ -2148,19 +2148,123 @@ const Wizard = (() => {
     return result;
   }
 
+  /* ── 사회적기업 8대 영역 해설 (S1~S8) ──
+     키는 _calcSocialDomainScores의 반환 키(s1~s8)와 반드시 일치해야 한다.
+     explainMap[key] 조회로 해설 카드를 채우므로 키가 어긋나면 카드가 조용히 빈다 */
+  const SOCIAL_DOMAIN_EXPLAIN = {
+    s1: {
+      icon: '🎯', what: '사회적 미션의 명문화·공유·측정·공개 체계를 진단한 결과입니다.',
+      high: '미션 체계가 정립돼 있습니다. 성과 측정 결과를 외부에 정기 공개해 신뢰 자산으로 축적하세요.',
+      low:  '미션이 문서에만 있고 판단 기준으로 작동하지 않습니다. 정관 문장을 사업계획서와 일치시키고 의사결정 근거로 인용하는 것부터 시작하세요.'
+    },
+    s2: {
+      icon: '🤝', what: '주력 사업과 사회적 목적의 연결도, 미션 드리프트 위험을 진단한 결과입니다.',
+      high: '사업과 미션이 잘 연결돼 있습니다. 신규 사업 검토 시에도 같은 기준을 적용해 일관성을 지키세요.',
+      low:  '매출이 나오는 사업과 사회적 목적이 따로 놉니다(미션 드리프트). 주력 사업이 누구의 어떤 문제를 푸는지부터 다시 정의하세요.'
+    },
+    s3: {
+      icon: '🏛️', what: '공공 수주 실적과 의존도, 민간 판로 확보 수준을 진단한 결과입니다.',
+      high: '공공·민간 판로가 균형 있습니다. 공공 의존도를 지금 수준으로 관리하며 민간 거래를 늘리세요.',
+      low:  '판로가 공공에 쏠려 있거나 수주 자체가 불안정합니다. e-store36.5 등록과 공공기관 우선구매 제도 확인, 민간 거래처 1곳 확보를 병행하세요.'
+    },
+    s4: {
+      icon: '💰', what: '보조금 없는 자립 가능성과 사업별 공헌이익 산출력을 진단한 결과입니다.',
+      high: '재정 구조 파악이 잘 되어 있습니다. 지원금 종료 시점을 가정한 시나리오를 미리 점검하세요.',
+      low:  '지원금이 끊기면 버티기 어려운 구조입니다(지원금 절벽). 사업별 공헌이익과 BEP부터 산출해 어떤 사업이 실제로 남는지 확인하세요.'
+    },
+    s5: {
+      icon: '🏢', what: '민주적 의사결정, 취약계층 고용 유지, 대표 의존도를 진단한 결과입니다.',
+      high: '조직 운영이 안정적입니다. 의사결정 기록을 남겨 인증 심사·외부 검증에 그대로 활용하세요.',
+      low:  '대표 1인에게 판단이 몰려 있거나 의사결정 기록이 없습니다. 회의록 작성과 업무 분장 문서화가 인증 유지에도 직접 필요합니다.'
+    },
+    s6: {
+      icon: '📣', what: '사회적 가치 스토리텔링과 서비스 품질 표준화 수준을 진단한 결과입니다.',
+      high: '가치 전달과 품질 관리가 양호합니다. 성과 데이터를 스토리에 결합해 구매 설득력을 높이세요.',
+      low:  '좋은 일을 하고 있으나 고객에게 전달되지 않습니다. 수혜자 사례 1건을 수치와 함께 정리해 제안서·홈페이지에 싣는 것부터 시작하세요.'
+    },
+    s7: {
+      icon: '📋', what: '인증 갱신 관리, SVI 측정 이력, 환경·지배구조 대응을 진단한 결과입니다.',
+      high: '인증·제도 대응이 체계적입니다. SVI 측정 이력을 누적해 재인증과 조달 가점에 활용하세요.',
+      low:  '인증 갱신 요건과 제출 서류를 놓칠 위험이 있습니다. 갱신 기한과 필수 요건을 달력에 등록하고 한국사회적기업진흥원 안내를 확인하세요.'
+    },
+    s8: {
+      icon: '🤖', what: '업무 데이터 축적, 협업도구·AI 활용, 온라인 채널 확장력을 진단한 결과입니다.',
+      high: '디지털 활용이 앞서 있습니다. 축적된 데이터를 성과 보고와 사업 판단에 연결하세요.',
+      low:  '업무 기록이 개인 파일·수기에 흩어져 있습니다. 무료 협업도구 1개로 기록을 한곳에 모으는 것부터 시작하세요.'
+    }
+  };
+
+  /* ── 사회적기업 8대 영역 점수 계산 (S1~S8) ──
+     ⚠ 점수 키 접두어가 diag-social-container_s{n}_ 이므로 micro용 정규식으로는
+        하나도 매칭되지 않는다. 반환 형식은 _calcMicroDomainScores와 동일하게 맞춘다 */
+  function _calcSocialDomainScores(scores) {
+    var SOCIAL_DOMAINS = [
+      { key: 's1', label: 'S1. 미션·사회적 성과',       color: '#4ADE80' },
+      { key: 's2', label: 'S2. 사업의 사회가치 지향성', color: '#60A5FA' },
+      { key: 's3', label: 'S3. 공공조달·판로',          color: '#C084FC' },
+      { key: 's4', label: 'S4. 재정·원가구조',          color: '#F5C030' },
+      { key: 's5', label: 'S5. 조직·거버넌스',          color: '#FB923C' },
+      { key: 's6', label: 'S6. 마케팅·브랜딩·품질',     color: '#34D399' },
+      { key: 's7', label: 'S7. 인증·제도·ESG',          color: '#F87171' },
+      { key: 's8', label: 'S8. 디지털·AX',              color: '#A78BFA' },
+    ];
+    var buckets = {};
+    SOCIAL_DOMAINS.forEach(function(d, i) {
+      buckets[i + 1] = { key: d.key, label: d.label, color: d.color, scores: [] }; // 1-indexed: s1~s8
+    });
+    Object.entries(scores || {}).forEach(function(entry) {
+      var key = entry[0], val = entry[1];
+      if (!val || !val.score) return;
+      var m = key.match(/^diag-social-container_s(\d)_/);
+      if (!m) return;
+      var idx = parseInt(m[1], 10);
+      if (buckets[idx]) buckets[idx].scores.push(val.score);
+    });
+    var result = {};
+    SOCIAL_DOMAINS.forEach(function(_, i) {
+      var b = buckets[i + 1];
+      var avg = b.scores.length > 0
+        ? b.scores.reduce(function(a, v) { return a + v; }, 0) / b.scores.length : 0;
+      result[b.key] = { label: b.label, avg: Math.round(avg * 10) / 10, color: b.color };
+    });
+    return result;
+  }
+
   /* ── 진단유형 확인 화면 렌더링 ── */
   function showDiagReveal(data, currentSnap) {
     const scores = data.diagScores || diagScores;
     const isStartup = !!(data.isStartup);
-    const isMicro   = (data.bizScale === 'micro');
-    const domainScores = isMicro
-      ? _calcMicroDomainScores(scores)
-      : calcDomainScores(scores, isStartup);
-    const explainMap = isMicro ? MICRO_DOMAIN_EXPLAIN
+    /* ⚠ orgType 판정을 bizScale보다 먼저 둔다.
+       사회적기업도 bizScale은 micro/sme 그대로이므로 순서가 반대면
+       영원히 micro 분기로 빠져 diag-social-container_ 키를 하나도 읽지 못한다 */
+    const isSocial  = _isSocialOrg(data.orgType);
+    const isMicro   = !isSocial && (data.bizScale === 'micro');
+    const domainScores = isSocial
+      ? _calcSocialDomainScores(scores)
+      : isMicro
+        ? _calcMicroDomainScores(scores)
+        : calcDomainScores(scores, isStartup);
+    const explainMap = isSocial ? SOCIAL_DOMAIN_EXPLAIN
+      : isMicro ? MICRO_DOMAIN_EXPLAIN
       : (isStartup ? STARTUP_DOMAIN_EXPLAIN : DOMAIN_EXPLAIN);
 
     let primary, secondary, pType, sType;
-    if (isMicro) {
+    if (isSocial) {
+      primary = 'social_diag'; secondary = '';
+      pType = {
+        icon: '🤝', label: '사회적기업 8대 영역 진단',
+        desc: '미션·사회가치·판로·재정·거버넌스·브랜딩·인증·디지털 8대 영역을 종합 진단했습니다. 취약 영역 처방을 우선 실행하세요.',
+        preview: [
+          'S1 미션 문장을 의사결정 기준으로 정착',
+          'S3 공공 의존도 관리 + 민간 판로 확보',
+          'S4 사업별 공헌이익·BEP 산출로 자립 기반 점검',
+          'S5 의사결정 기록·업무 분장 문서화',
+          'S6 수혜자 사례를 수치와 묶어 제안서에 반영',
+          'S7 인증 갱신 요건·SVI 측정 이력 관리'
+        ]
+      };
+      sType = { icon: '', label: '', desc: '' };
+    } else if (isMicro) {
       primary = 'micro_diag'; secondary = '';
       pType = {
         icon: '🏪', label: '소상공인 7대 영역 진단',
@@ -2186,7 +2290,7 @@ const Wizard = (() => {
     const elSecondary = document.getElementById('drTypeSecondary');
     const elDesc      = document.getElementById('drTypeDesc');
     if (elPrimary)   elPrimary.textContent   = pType.icon + ' ' + pType.label;
-    if (elSecondary) elSecondary.textContent = isMicro ? '' : ('보조 유형: ' + sType.icon + ' ' + sType.label);
+    if (elSecondary) elSecondary.textContent = (isSocial || isMicro) ? '' : ('보조 유형: ' + sType.icon + ' ' + sType.label);
     if (elDesc)      elDesc.textContent      = pType.desc;
 
     const elScoreList = document.getElementById('drScoreList');
@@ -2230,7 +2334,10 @@ const Wizard = (() => {
     // 역량 프로파일 섹션 타이틀 동적 변경 (micro: 7대 영역 / SME: 5대 역량)
     const elProfileTitle = document.getElementById('drProfileTitle');
     const elProfileDesc  = document.getElementById('drProfileDesc');
-    if (isMicro) {
+    if (isSocial) {
+      if (elProfileTitle) elProfileTitle.textContent = '📊 사회적기업 8대 영역 프로파일';
+      if (elProfileDesc)  elProfileDesc.textContent  = '사회적기업 8대 영역(S1~S8) 진단 결과입니다. 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다. 8개 영역은 균등 배점이며 SVI(사회적가치지표) 예상 점수가 아닙니다.';
+    } else if (isMicro) {
       if (elProfileTitle) elProfileTitle.textContent = '📊 7대 영역 진단 프로파일';
       if (elProfileDesc)  elProfileDesc.textContent  = '소상공인 7대 분야(D1~D7) 진단 결과입니다. 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다.';
     } else {
@@ -2260,13 +2367,19 @@ const Wizard = (() => {
     // data.industry    = 레거시 한국어 드롭다운 값 (현재 HTML에 select#industry 없음 → 항상 '')
     // → industryKey가 없으면 박스가 호출되지 않는 버그 수정
     const industryKey = data.industryKey || data.industry || '';
-    if (industryKey) _fetchSurvival(industryKey, data);
+    if (industryKey) _fetchSurvival(industryKey, data, isSocial);
 
     // 정부지원사업 렌더링 (기업마당 — app.js에서 선행 조회)
     _renderBizinfo(data);
 
     // 동종업계 경영 패턴 DB 렌더링
-    if (typeof PatternDB !== 'undefined') {
+    // ⚠ 사회적기업 경로에서는 숨긴다 — PatternDB는 domainScores의 finance/hr/bm/differentiation
+    //    4축을 읽는데 S1~S8은 s1~s8 키라 전부 undefined → 기본값 3점(중립) 고정이 된다.
+    //    4축과 S1~S8의 매핑 설계는 별도 작업(CLAUDE.md 남은 이슈 참조)
+    const patBox = document.getElementById('drPatternBox');
+    if (isSocial) {
+      if (patBox) patBox.style.display = 'none';
+    } else if (typeof PatternDB !== 'undefined') {
       PatternDB.renderDiagReveal(data);
     }
 
@@ -2279,7 +2392,7 @@ const Wizard = (() => {
   }
 
   /* ── KOSIS 업종 생존율 조회 + 렌더링 ── */
-  function _fetchSurvival(industryKey, diagData) {
+  function _fetchSurvival(industryKey, diagData, isSocial) {
     const box     = document.getElementById('drSurvivalBox');
     const content = document.getElementById('drSurvivalContent');
     if (!box || !content) return;
@@ -2315,7 +2428,15 @@ const Wizard = (() => {
       }
 
       const r = d.risk;
+      /* 사회적기업 안내 — 업종 생존율은 통계청 기업생멸통계 실측치이므로 유지하되,
+         사회적기업 특성(재정지원·공공조달 의존 등)이 반영되지 않았음을 명시한다.
+         숨기면 정보가 사라지고, 그대로 두면 오해를 낳으므로 명시로 해결한다 */
+      const socialNote = isSocial
+        ? '<div class="surv-orgtype-note">ℹ️ 일반 ' + (d.name || '해당 업종') +
+          ' 기준이며 사회적기업 특성은 반영되지 않았습니다. 참고 지표로만 보십시오.</div>'
+        : '';
       content.innerHTML =
+        socialNote +
         '<div class="surv-row">' +
           '<div class="surv-bar-wrap">' +
             _survBar('1년', d.y1, 100) +

@@ -810,6 +810,14 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
   .two-col-wrap{flex-direction:column;padding:12px}
   .wizard-content{max-width:100%}
 }
+/* 사회적기업 — 업종 생존율 적용 범위 안내 */
+.surv-orgtype-note {
+  background: rgba(122,162,247,.08);
+  border: 1px solid rgba(122,162,247,.28);
+  border-radius: 8px; padding: 9px 12px; margin-bottom: 12px;
+  font-size: 0.8rem; line-height: 1.6; color: var(--txt2);
+}
+
 .surv-bar-track { flex: 1; height: 10px; background: rgba(255,255,255,.1); border-radius: 5px; overflow: hidden; }
 .surv-bar-fill  { height: 100%; background: linear-gradient(90deg,#F5C030,#FFD966); border-radius: 5px; transition: width .6s ease; }
 .surv-bar-val   { font-size: 0.82rem; font-weight: 700; color: #F5C030; width: 38px; text-align: right; }
