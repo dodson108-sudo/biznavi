@@ -2830,6 +2830,9 @@ const Wizard = (() => {
 
     // orgType은 사용자 선택(#orgTypeSelect) 우선, 없으면 industryKey fallback
     data.orgType = _detectOrgType(data.industryKey || '');
+    /* 파생 플래그 — dashboard.js 등 다른 모듈이 SOCIAL_ORG_TYPES 배열을 복제하지 않도록
+       판정 결과 자체를 데이터에 실어 보낸다 (판정 기준은 이 파일 한 곳에만 둔다) */
+    data.isSocialOrg = _isSocialOrg(data.orgType);
 
     let scaleScores = {};
     const allScores = collectAllScores();
@@ -3244,5 +3247,5 @@ const Wizard = (() => {
     if (orgSel) orgSel.addEventListener('change', _onOrgTypeChange);
   });
 
-  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder };
+  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, SOCIAL_DOMAIN_EXPLAIN };
 })();

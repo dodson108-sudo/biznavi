@@ -513,25 +513,432 @@ const Dashboard = (() => {
     try { renderGovSection(fd);     } catch (e) { console.error('renderGovSection:', e); }
   }
 
+
+  /* ══════════════════════════════════════════════════════════════
+     사회적경제 조직 전용 리포트 (1차 — 진단 결과 직접 렌더링, AI 미연결)
+
+     설계 원칙: 진단에서 물은 8개 영역은 리포트에서 모두 다뤄져야 한다(수미쌍관).
+     S1→미션 / S2→미션 / S3→판로 / S4→수익구조 / S5→조직 / S6→판로 / S7→제도 / S8→조직
+     ⚠ SWOT·STP·4P·린캔버스 등 중소기업 프레임워크는 쓰지 않는다.
+        사회적경제 조직은 규모상 소기업 수준이라 그 틀이 맞지 않는다.
+  ══════════════════════════════════════════════════════════════ */
+
+  const SOCIAL_ONLY_SECTIONS = [
+    'sec-social-summary', 'sec-social-status', 'sec-social-mission', 'sec-social-revenue',
+    'sec-social-profit', 'sec-social-org', 'sec-social-system', 'sec-social-action',
+  ];
+
+  /* s1~s8(진단 문항 id) ↔ mission/value_biz…(calcScores 반환 키) 매핑.
+     ⚠ 하드코딩하지 않고 DiagSocial.DOMAINS에서 런타임 파생한다 —
+        영역이 바뀌거나 전용 모듈(DiagCoop 등)이 추가돼도 한쪽만 고쳐 조용히 깨지는 일이 없도록.
+        DiagSocial 미로드 시 빈 배열을 반환해 화면이 비더라도 예외는 나지 않는다. */
+  function _socialDomainList() {
+    const D = (typeof window !== 'undefined' && window.DiagSocial) ||
+              (typeof DiagSocial !== 'undefined' ? DiagSocial : null);
+    return (D && Array.isArray(D.DOMAINS)) ? D.DOMAINS : [];
+  }
+  function _socialItems() {
+    const D = (typeof window !== 'undefined' && window.DiagSocial) ||
+              (typeof DiagSocial !== 'undefined' ? DiagSocial : null);
+    return (D && D.ITEMS) ? D.ITEMS : {};
+  }
+  /* 영역 해설은 wizard.js의 SOCIAL_DOMAIN_EXPLAIN(키 s1~s8)을 그대로 쓴다 — 문구 복제 금지 */
+  function _socialExplain() {
+    const W = (typeof window !== 'undefined' && window.Wizard) ||
+              (typeof Wizard !== 'undefined' ? Wizard : null);
+    return (W && W.SOCIAL_DOMAIN_EXPLAIN) ? W.SOCIAL_DOMAIN_EXPLAIN : {};
+  }
+
+  /* 조직 형태 판정 — collect()가 실어 보낸 파생 플래그를 쓴다(SOCIAL_ORG_TYPES 배열 복제 금지).
+     ⚠ 레거시 호출·이력 스냅샷 등 플래그가 없는 데이터를 위해 fallback을 남긴다.
+        fallback도 배열을 복제하지 않고 "general이 아니면 사회적경제"로 판단한다 */
+  function _isSocialFd(fd) {
+    if (!fd) return false;
+    if (typeof fd.isSocialOrg === 'boolean') return fd.isSocialOrg;
+    const t = fd.orgType || 'general';
+    return t !== 'general' && t !== '';
+  }
+
+  /* 경고 code → 섹션 매핑.
+     여기에 없는 code도 ⑧'무엇부터 할 것인가'에는 전부 나오므로 새 규칙이 추가돼도 화면에서 사라지지 않는다 */
+  const SOCIAL_WARN_SECTION = {
+    mission_drift_risk: 'mission', impact_invisible: 'mission',
+    public_lock_in: 'revenue', procurement_unready: 'revenue', no_proposal_asset: 'revenue',
+    subsidy_cliff: 'profit', winning_but_losing: 'profit',
+    ceo_bottleneck: 'org', employment_unstable: 'org', digital_base_missing: 'org',
+    svi_gap: 'system', formal_shell: 'system',
+  };
+  const SOCIAL_LEVEL_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
+
+  function _esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* 진단 점수 맵 — diagScores({score,memo})를 평면 숫자로 (collectAllScores와 동일 형식) */
+  function _socialFlatScores(fd) {
+    const src = (fd && fd.diagScores) || {};
+    const out = {};
+    Object.keys(src).forEach(k => {
+      const s = Number((src[k] && src[k].score) || 0);
+      if (s > 0) out[k] = s;
+    });
+    return out;
+  }
+
+  function _socialWarnings(fd) {
+    if (fd && Array.isArray(fd.socialWarnings)) return fd.socialWarnings;
+    const D = (typeof window !== 'undefined' && window.DiagSocial) || null;
+    if (!D || !D.detectCrossWarnings) return [];
+    try { return D.detectCrossWarnings(_socialFlatScores(fd)) || []; } catch (e) { return []; }
+  }
+  function _sortWarn(list) {
+    return list.slice().sort(function (a, b) {
+      var la = SOCIAL_LEVEL_ORDER[a.level]; var lb = SOCIAL_LEVEL_ORDER[b.level];
+      return (la === undefined ? 9 : la) - (lb === undefined ? 9 : lb);
+    });
+  }
+  function _warnCard(w, extraCls) {
+    const cls = 'soc-warn soc-warn-' + String(w.level || 'MEDIUM').toLowerCase() + (extraCls ? ' ' + extraCls : '');
+    return '<div class="' + cls + '" data-code="' + _esc(w.code) + '">' +
+      '<span class="soc-warn-level">' + _esc(w.level) + '</span>' +
+      '<span class="soc-warn-msg">' + _esc(w.msg) + '</span>' +
+      '</div>';
+  }
+  function _warnsFor(fd, sectionKey) {
+    return _sortWarn(_socialWarnings(fd).filter(function (w) {
+      return SOCIAL_WARN_SECTION[w.code] === sectionKey;
+    }));
+  }
+
+  /* 영역 점수 — DiagSocial.calcScores() 결과(fd.scaleScores)가 정본.
+     없으면 diagScores에서 직접 산출한다 */
+  function _socialDomains(fd) {
+    let sc = (fd && fd.scaleScores) || null;
+    if (!sc || !sc.domains) {
+      const D = (typeof window !== 'undefined' && window.DiagSocial) || null;
+      if (D && D.calcScores) { try { sc = D.calcScores(_socialFlatScores(fd)); } catch (e) { sc = null; } }
+    }
+    const domains = (sc && sc.domains) || {};
+    return _socialDomainList().map(function (d) {
+      const v = domains[d.key] || {};
+      return {
+        id: d.id, key: d.key, label: d.label, icon: d.icon, desc: d.desc,
+        avg: Number(v.avg || 0), pct: Number(v.pct || 0),
+      };
+    });
+  }
+  function _socialTotal(fd) {
+    const sc = (fd && fd.scaleScores) || null;
+    if (sc && typeof sc.total === 'number') return sc.total;
+    const list = _socialDomains(fd).filter(function (d) { return d.avg > 0; });
+    if (!list.length) return 0;
+    return Math.round(list.reduce(function (a, d) { return a + d.pct; }, 0) / list.length);
+  }
+
+  function _socBar(d) {
+    const cls = d.avg >= 4 ? 'high' : d.avg >= 3 ? 'mid' : d.avg >= 2 ? 'low' : d.avg > 0 ? 'risk' : 'none';
+    const lbl = d.avg >= 4 ? '강점' : d.avg >= 3 ? '보통' : d.avg >= 2 ? '취약' : d.avg > 0 ? '위험' : '미입력';
+    return '<div class="soc-bar-row" data-domain="' + _esc(d.id) + '">' +
+      '<span class="soc-bar-label">' + _esc((d.icon || '') + ' ' + d.id.toUpperCase() + '. ' + d.label) + '</span>' +
+      '<div class="soc-bar-track"><div class="soc-bar-fill ' + cls + '" style="width:' + d.pct + '%"></div></div>' +
+      '<span class="soc-bar-val ' + cls + '">' + (d.avg > 0 ? d.avg.toFixed(1) : '—') + ' <small>' + lbl + '</small></span>' +
+      '</div>';
+  }
+
+  /* 문항별 점수표 — 지정한 영역(s1 등)의 5문항 + 2점 이하 지적 */
+  function _socItemTable(fd, domainIds) {
+    const flat = _socialFlatScores(fd);
+    const items = _socialItems();
+    const doms = _socialDomains(fd);
+    let html = '';
+    domainIds.forEach(function (did) {
+      const dom = doms.filter(function (d) { return d.id === did; })[0];
+      const keys = Object.keys(items).filter(function (k) { return k.indexOf(did + '_') === 0; });
+      const rows = keys.map(function (k) {
+        const sc = Number(flat['diag-social-container_' + k] || 0);
+        const cls = sc >= 4 ? 'high' : sc >= 3 ? 'mid' : sc >= 2 ? 'low' : sc > 0 ? 'risk' : 'none';
+        return '<div class="soc-item-row' + (sc > 0 && sc <= 2 ? ' is-weak' : '') + '">' +
+          '<span class="soc-item-label">' + _esc(items[k].label) + '</span>' +
+          '<span class="soc-item-score ' + cls + '">' + (sc > 0 ? sc + '점' : '미입력') + '</span>' +
+          '</div>';
+      }).join('');
+      const weak = keys.filter(function (k) {
+        const s = Number(flat['diag-social-container_' + k] || 0); return s > 0 && s <= 2;
+      }).map(function (k) { return items[k].label; });
+      html += '<div class="soc-item-group" data-domain="' + _esc(did) + '">' +
+        '<div class="soc-item-head">' +
+          _esc(dom ? (dom.icon + ' ' + did.toUpperCase() + '. ' + dom.label) : did.toUpperCase()) +
+          (dom && dom.avg > 0 ? ' <small>평균 ' + dom.avg.toFixed(1) + '점</small>' : '') +
+        '</div>' +
+        '<div class="soc-item-desc">' + _esc(dom ? dom.desc : '') + '</div>' +
+        rows +
+        (weak.length
+          ? '<div class="soc-item-weak">⚠️ 우선 손볼 항목: ' + weak.map(_esc).join(' · ') + '</div>'
+          : '<div class="soc-item-ok">✅ 이 영역에 2점 이하 항목이 없습니다.</div>') +
+        '</div>';
+    });
+    return html;
+  }
+
+  function _setSoc(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  /* ── ① 한눈에 보기 ── */
+  function renderSocialSummary(fd) {
+    const doms = _socialDomains(fd);
+    const total = _socialTotal(fd);
+    const scored = doms.filter(function (d) { return d.avg > 0; });
+    const weak3 = scored.slice().sort(function (a, b) { return a.avg - b.avg; }).slice(0, 3);
+    const grade = total >= 80 ? '양호' : total >= 60 ? '보통' : total >= 40 ? '주의' : '취약';
+    const gcls = total >= 80 ? 'high' : total >= 60 ? 'mid' : total >= 40 ? 'low' : 'risk';
+    const urgent = _sortWarn(_socialWarnings(fd).filter(function (w) {
+      return w.level === 'CRITICAL' || w.level === 'HIGH';
+    }));
+
+    _setSoc('socialSummaryContent',
+      '<div class="soc-total-row">' +
+        '<div class="soc-total-card ' + gcls + '">' +
+          '<div class="soc-total-val">' + total + '<small>/100</small></div>' +
+          '<div class="soc-total-lbl">8대 영역 종합 (균등 배점)</div>' +
+          '<div class="soc-total-grade ' + gcls + '">' + grade + '</div>' +
+        '</div>' +
+        '<div class="soc-weak-card">' +
+          '<div class="soc-weak-title">먼저 손봐야 할 영역</div>' +
+          (weak3.length
+            ? weak3.map(function (d, i) {
+                return '<div class="soc-weak-item"><span class="soc-weak-rank">' + (i + 1) + '</span>' +
+                  _esc((d.icon || '') + ' ' + d.id.toUpperCase() + '. ' + d.label) +
+                  '<span class="soc-weak-score">' + d.avg.toFixed(1) + '점</span></div>';
+              }).join('')
+            : '<div class="soc-empty">진단 점수가 입력되지 않았습니다.</div>') +
+        '</div>' +
+      '</div>' +
+      '<div class="soc-note">※ 8개 영역은 균등 배점이며 SVI(사회적가치지표) 예상 점수가 아닙니다. ' +
+        '한국사회적기업진흥원의 실제 SVI 배점과 다릅니다.</div>' +
+      (urgent.length
+        ? '<div class="soc-urgent"><div class="soc-urgent-title">🚨 지금 확인해야 할 사항 ' + urgent.length + '건</div>' +
+          urgent.map(function (w) { return _warnCard(w); }).join('') + '</div>'
+        : '<div class="soc-ok-box">✅ 즉시 조치가 필요한 CRITICAL·HIGH 경고는 없습니다.</div>'));
+  }
+
+  /* ── ② 우리 조직 현재 상태 (S1~S8 전 영역) ── */
+  function renderSocialStatus(fd) {
+    const doms = _socialDomains(fd);
+    const explain = _socialExplain();
+    _setSoc('socialStatusContent',
+      '<p class="soc-lead">진단한 8개 영역의 현재 점수입니다. 5점이 최고, 1점이 최저입니다.</p>' +
+      '<div class="soc-bars">' + doms.map(_socBar).join('') + '</div>' +
+      '<div class="soc-guide">' + doms.map(function (d) {
+        if (d.avg === 0) return '';
+        const info = explain[d.id] || {};
+        const isLow = d.avg < 3.0;
+        const cls = d.avg >= 4 ? 'guide-high' : d.avg >= 3 ? 'guide-ok' : 'guide-low';
+        const icon = d.avg >= 4 ? '✅' : d.avg >= 3 ? '📊' : '⚠️';
+        return '<div class="soc-guide-item ' + cls + '" data-domain="' + _esc(d.id) + '">' +
+          '<div class="soc-guide-label">' + _esc((info.icon || d.icon || '') + ' ' + d.id.toUpperCase() + '. ' + d.label) +
+          ' <small>' + d.avg.toFixed(1) + '점</small></div>' +
+          '<div class="soc-guide-what">' + _esc(info.what || d.desc || '') + '</div>' +
+          '<div class="soc-guide-msg">' + icon + ' ' + _esc(isLow ? (info.low || '') : (info.high || '')) + '</div>' +
+          '</div>';
+      }).join('') + '</div>');
+  }
+
+  /* ── ③ 미션과 사업이 맞물리나 (S1 + S2) ── */
+  function renderSocialMission(fd) {
+    const w = _warnsFor(fd, 'mission');
+    _setSoc('socialMissionContent',
+      '<p class="soc-lead">사회적 미션이 문서에만 있는지, 실제 사업 판단에 쓰이는지를 봅니다. ' +
+      '재인증 심사에서 사회적 목적 실현 여부가 쟁점이 되는 영역입니다.</p>' +
+      _socItemTable(fd, ['s1', 's2']) +
+      (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
+  }
+
+  /* ── ④ 어디서 돈이 들어오나 (S3 + S6) ── */
+  function renderSocialRevenue(fd) {
+    const w = _warnsFor(fd, 'revenue');
+    _setSoc('socialRevenueContent',
+      '<p class="soc-lead">매출이 어느 채널에서 나오는지, 한쪽에 쏠려 있지는 않은지를 봅니다. ' +
+      '공공 발주에만 의존하면 발주 기관의 예산이 삭감될 때 매출이 한 번에 끊깁니다.</p>' +
+      _socItemTable(fd, ['s3', 's6']) +
+      (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
+  }
+
+  /* ── ⑤ 수익 구조 점검 (S4) ──
+     ⚠ winning_but_losing("수주는 하는데 남는 게 없는" 구조)이 이 화면의 핵심이므로
+        문항표보다 앞에 별도 강조 박스로 배치한다 */
+  function renderSocialProfit(fd) {
+    const w = _warnsFor(fd, 'profit');
+    const key = w.filter(function (x) { return x.code === 'winning_but_losing'; });
+    const rest = w.filter(function (x) { return x.code !== 'winning_but_losing'; });
+    _setSoc('socialProfitContent',
+      '<p class="soc-lead">지원금 없이도 버틸 수 있는 구조인지, 사업마다 실제로 남는 게 있는지를 봅니다.</p>' +
+      (key.length
+        ? '<div class="soc-headline-warn">' +
+          '<div class="soc-headline-title">💸 수주는 하는데 남는 게 없는 구조일 수 있습니다</div>' +
+          key.map(function (x) { return _warnCard(x, 'soc-warn-headline'); }).join('') +
+          '</div>' : '') +
+      _socItemTable(fd, ['s4']) +
+      (rest.length ? '<div class="soc-warn-group">' + rest.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
+  }
+
+  /* ── ⑥ 조직이 버틸 수 있나 (S5 + S8) ── */
+  function renderSocialOrg(fd) {
+    const w = _warnsFor(fd, 'org');
+    _setSoc('socialOrgContent',
+      '<p class="soc-lead">대표가 자리를 비워도 사업이 굴러가는지, 일한 기록이 조직에 남는지를 봅니다.</p>' +
+      _socItemTable(fd, ['s5', 's8']) +
+      (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
+  }
+
+  /* ── ⑦ 제도를 제대로 쓰고 있나 (S7) ──
+     ⚠ 인증 만료 경고·갱신 절차 안내는 넣지 않는다.
+        실무 확인 결과 갱신을 놓쳐 자격을 잃는 사례가 거의 없어 값이 낮다.
+        대신 '가지고 있는데 못 쓰고 있는 제도'(활용도)에 집중한다 */
+  function renderSocialSystem(fd) {
+    const flat = _socialFlatScores(fd);
+    const g = function (k) { return Number(flat['diag-social-container_' + k] || 0); };
+    const w = _warnsFor(fd, 'system');
+
+    const svi = g('s7_2');
+    const sviBox = svi === 0
+      ? '<div class="soc-use-item none"><div class="soc-use-head">SVI 측정 — 미응답</div>' +
+        '<div class="soc-use-body">사회적가치지표(SVI) 측정 여부를 입력하지 않으셨습니다.</div></div>'
+      : svi <= 2
+      ? '<div class="soc-use-item warn"><div class="soc-use-head">📉 SVI 측정 이력이 없습니다</div>' +
+        '<div class="soc-use-body">사회적가치지표(SVI)는 다수 지원사업의 <strong>가점 항목이자 자격요건</strong>입니다. ' +
+        '측정 이력이 없으면 심사에서 불리하게 작용하며 성과를 증빙할 수단도 없습니다. ' +
+        '한국사회적기업진흥원의 자가진단 도구로 1회 측정해 두는 것부터 시작하십시오.</div></div>'
+      : '<div class="soc-use-item ok"><div class="soc-use-head">✅ SVI 측정 이력이 있습니다</div>' +
+        '<div class="soc-use-body">측정 결과를 지원사업 신청서와 재인증 자료에 그대로 활용하십시오. ' +
+        '연도별로 누적하면 성과 추이 자체가 증빙이 됩니다.</div></div>';
+
+    // 보유 자격 대비 활용하지 못하는 제도
+    const unused = [];
+    if (g('s3_4') > 0 && g('s3_4') <= 2) unused.push({ n: '공공기관 우선구매', d: '사회적기업 인증이 있으면 공공기관 우선구매 대상입니다. 자격이 있는데 활용하지 못하고 있습니다.' });
+    if (g('s3_3') > 0 && g('s3_3') <= 2) unused.push({ n: '조달 채널 등록 (나라장터 · e-store36.5)', d: '등록하지 않으면 우선구매 제도가 있어도 발주 기관이 찾을 수 없습니다.' });
+    if (g('s7_3') > 0 && g('s7_3') <= 2) unused.push({ n: '중간지원조직 · 지원사업 연결', d: '권역별 통합지원기관을 통해 컨설팅·판로·자금 정보를 받을 수 있습니다. 연결이 약합니다.' });
+    if (g('s7_5') > 0 && g('s7_5') <= 2) unused.push({ n: '지배구조 투명성 (세제·조달 심사 반영)', d: '의사결정·회계 기록이 남아 있어야 세제 감면과 조달 심사에서 소명이 가능합니다.' });
+
+    const cert = g('s7_1');
+    const nextStep = cert === 0
+      ? '인증 상태를 입력하지 않으셨습니다. 현재 지위(예비 / 인증 / 미지정)를 확인해 주십시오.'
+      : cert <= 2
+      ? '현재 인증 관리 수준이 낮습니다. 다음 단계를 검토하기 전에 지금 지위의 요건 충족 여부부터 정리하십시오.'
+      : '지금 지위가 안정적이라면 다음 단계를 검토할 시점입니다 — 예비사회적기업이면 <strong>인증사회적기업 전환</strong>, ' +
+        '협동조합이면 <strong>사회적협동조합 전환</strong>을 통해 적용받는 제도의 범위가 넓어집니다.';
+
+    _setSoc('socialSystemContent',
+      '<p class="soc-lead">인증을 가지고 있는지가 아니라, <strong>가지고 있는 제도를 실제로 쓰고 있는지</strong>를 봅니다.</p>' +
+      '<div class="soc-use-list">' + sviBox + '</div>' +
+      '<div class="soc-sub-title">활용하지 못하고 있는 제도</div>' +
+      (unused.length
+        ? '<div class="soc-use-list">' + unused.map(function (u) {
+            return '<div class="soc-use-item warn"><div class="soc-use-head">🔓 ' + _esc(u.n) + '</div>' +
+              '<div class="soc-use-body">' + _esc(u.d) + '</div></div>';
+          }).join('') + '</div>'
+        : '<div class="soc-ok-box">✅ 진단 응답 기준으로 뚜렷하게 놓치고 있는 제도는 확인되지 않았습니다.</div>') +
+      '<div class="soc-sub-title">다음 단계 검토</div>' +
+      '<div class="soc-next-step">' + nextStep + '</div>' +
+      _socItemTable(fd, ['s7']) +
+      (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
+  }
+
+  /* ── ⑧ 무엇부터 할 것인가 (1차: 경고 나열만 — AI 우선순위·90일 플랜은 2차) ── */
+  function renderSocialAction(fd) {
+    const all = _sortWarn(_socialWarnings(fd));
+    const LEVEL_LABEL = { CRITICAL: '지금 바로', HIGH: '이번 달 안에', MEDIUM: '분기 안에' };
+    let html = '<p class="soc-lead">진단 결과에서 발견된 사항을 시급한 순서로 정리했습니다.</p>';
+    if (!all.length) {
+      html += '<div class="soc-ok-box">✅ 교차 진단에서 발견된 경고가 없습니다. 점수가 낮은 영역의 처방을 순서대로 진행하십시오.</div>';
+    } else {
+      ['CRITICAL', 'HIGH', 'MEDIUM'].forEach(function (lv) {
+        const list = all.filter(function (w) { return w.level === lv; });
+        if (!list.length) return;
+        html += '<div class="soc-action-group soc-action-' + lv.toLowerCase() + '">' +
+          '<div class="soc-action-head">' + LEVEL_LABEL[lv] + ' <small>' + lv + ' · ' + list.length + '건</small></div>' +
+          list.map(function (w) { return _warnCard(w); }).join('') + '</div>';
+      });
+    }
+    html += '<div class="soc-placeholder">🤖 <strong>AI 실행 계획은 준비 중입니다.</strong><br>' +
+      '우선순위 과제와 90일 실행 캘린더는 다음 단계에서 연결됩니다. ' +
+      '지금은 위 항목을 시급한 순서대로 확인해 주십시오.</div>';
+    _setSoc('socialActionContent', html);
+  }
+
+  /* ── 사회적경제 전용 렌더 진입점 ──
+     ⚠ render(data, fd, isDemo)를 재사용하지 않는다 — 그쪽은 AI 결과(executiveSummary·swot 등)를
+        DOM에 직접 밀어넣으므로 AI 데이터가 없는 1차에서는 깨진다.
+        renderFunding()과 동일한 keep 화이트리스트 패턴을 쓴다 */
+  function renderSocial(fd) {
+    _lastFd = fd || {};
+    buildNav(false, false, true);
+
+    const keep = SOCIAL_ONLY_SECTIONS.concat(['sec-gov']);
+    document.querySelectorAll('#dashboard .report-content .section-card').forEach(function (el) {
+      el.style.display = keep.indexOf(el.id) >= 0 ? '' : 'none';
+    });
+
+    const ORG_LABEL = { social_enterprise: '사회적기업', cooperative: '협동조합·마을기업', social_venture: '소셜벤처' };
+    const orgLabel = ORG_LABEL[(fd && fd.orgType)] || '사회적경제 조직';
+
+    const title = document.getElementById('dTitle');
+    if (title) title.textContent = ((fd && fd.companyName) || '조직') + ' ' + orgLabel + ' 진단 리포트';
+    const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+    const sub = document.getElementById('dSub');
+    if (sub) {
+      sub.innerHTML = '진단일: ' + dateStr +
+        ' &nbsp;<span class="mode-badge-inline">🤝 ' + _esc(orgLabel) + ' 모드</span>' +
+        '&nbsp;<span class="real-badge-inline">📋 8대 영역 자가진단</span>';
+    }
+    const demoBadge = document.getElementById('demoBadge');
+    if (demoBadge) demoBadge.classList.add('hidden');
+
+    try { renderSocialSummary(fd); } catch (e) { console.error('renderSocialSummary:', e); }
+    try { renderSocialStatus(fd);  } catch (e) { console.error('renderSocialStatus:', e); }
+    try { renderSocialMission(fd); } catch (e) { console.error('renderSocialMission:', e); }
+    try { renderSocialRevenue(fd); } catch (e) { console.error('renderSocialRevenue:', e); }
+    try { renderSocialProfit(fd);  } catch (e) { console.error('renderSocialProfit:', e); }
+    try { renderSocialOrg(fd);     } catch (e) { console.error('renderSocialOrg:', e); }
+    try { renderSocialSystem(fd);  } catch (e) { console.error('renderSocialSystem:', e); }
+    try { renderSocialAction(fd);  } catch (e) { console.error('renderSocialAction:', e); }
+    try { renderGovSection(fd);    } catch (e) { console.error('renderGovSection:', e); }
+  }
+
   // ── 동적 목차 네비게이션 생성 ─────────────────────────────────
-  function buildNav(isMicro, isFunding) {
+  function buildNav(isMicro, isFunding, isSocial) {
     const nav = document.getElementById('reportNav');
     if (!nav) return;
 
-    // 정책자금 진단 — 전용 4섹션만 (기존 micro/sme 분기는 그대로 유지)
-    const links = isFunding ? [
+    /* 사회적경제 조직 — 전용 8섹션 + 기존 sec-gov 재사용.
+       목차 라벨은 프레임워크 이름 대신 사장님이 읽는 말로 쓴다.
+       ⚠ 기존 isFunding / isMicro / sme 분기는 건드리지 않는다 */
+    const links = isSocial ? [
+      { href: 'sec-social-summary', label: '한눈에 보기' },
+      { href: 'sec-social-status',  label: '우리 조직 현재 상태' },
+      { href: 'sec-social-mission', label: '미션과 사업이 맞물리나' },
+      { href: 'sec-social-revenue', label: '어디서 돈이 들어오나' },
+      { href: 'sec-social-profit',  label: '수익 구조 점검' },
+      { href: 'sec-social-org',     label: '조직이 버틸 수 있나' },
+      { href: 'sec-social-system',  label: '제도를 제대로 쓰고 있나' },
+      { href: 'sec-social-action',  label: '무엇부터 할 것인가' },
+      { href: 'sec-gov',            label: '정부지원사업' },
+    ] : isFunding ? [
       { href: 'sec-funding-summary', label: '판정 요약' },
       { href: 'sec-funding-agency',  label: '기관별 상세' },
       { href: 'sec-funding-roadmap', label: '실행 로드맵' },
       { href: 'sec-funding-docs',    label: '준비 서류' },
       { href: 'sec-gov',             label: '지원사업 매칭' },
     ] : isMicro ? [
-      { href: 'sec-summary',       label: 'Executive Summary' },
-      { href: 'sec-lifecycle',     label: '생애주기 진단' },
-      { href: 'sec-market-micro',  label: '상권 STP · 시장규모' },
+      /* 라벨만 쉬운 말로 교체 — href(섹션 id)·순서·내용은 미변경 */
+      { href: 'sec-summary',       label: '한눈에 보기' },
+      { href: 'sec-lifecycle',     label: '우리 가게 지금 단계' },
+      { href: 'sec-market-micro',  label: '우리 동네 손님과 시장' },
       { href: 'sec-diag',          label: '경영 진단' },
-      { href: 'sec-six-systems',   label: '7대 영역 처방' },
-      { href: 'sec-plan90',        label: '90일 실행 로드맵' },
+      { href: 'sec-six-systems',   label: '영역별 처방' },
+      { href: 'sec-plan90',        label: '90일 실행 계획' },
       { href: 'sec-gov',           label: '정부지원사업' },
     ] : [
       { href: 'sec-summary',      label: 'Executive Summary' },
@@ -851,6 +1258,12 @@ const Dashboard = (() => {
 
   function render(data, fd, isDemo) {
     _lastFd = fd || {};
+
+    /* 사회적경제 조직 — 전용 리포트로 분기하고 여기서 끝낸다.
+       ⚠ 아래 코드는 AI 결과(executiveSummary·swot 등)를 DOM에 직접 밀어넣으므로
+          1차(AI 미연결) 상태로 진입하면 깨진다. 기존 micro/sme 경로는 손대지 않는다 */
+    if (_isSocialFd(fd)) { renderSocial(fd); return; }
+
     const isMicro = fd.bizScale === 'micro';
 
     // 동적 목차 생성
@@ -867,6 +1280,12 @@ const Dashboard = (() => {
     ['sec-lifecycle', 'sec-market-micro'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = isMicro ? '' : 'none';
+    });
+
+    // 사회적경제 전용 섹션 — 일반 경영진단 모드에서는 항상 숨김 (재진입 시 잔상 방지)
+    SOCIAL_ONLY_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
     });
 
     // 정책자금 전용 섹션 — 경영진단 모드에서는 항상 숨김
@@ -1046,7 +1465,7 @@ const Dashboard = (() => {
     // ③ 목차 클릭은 buildNav()에서 이미 처리됨
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록 (표시된 섹션만)
-    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-gov','sec-funding-summary','sec-funding-agency','sec-funding-roadmap','sec-funding-docs'];
+    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-social-summary','sec-social-status','sec-social-mission','sec-social-revenue','sec-social-profit','sec-social-org','sec-social-system','sec-social-action','sec-gov','sec-funding-summary','sec-funding-agency','sec-funding-roadmap','sec-funding-docs'];
     const secIds = allSecIds.filter(id => {
       const el = document.getElementById(id);
       return el && el.style.display !== 'none';
@@ -1176,5 +1595,5 @@ const Dashboard = (() => {
     el.classList.remove('print-target');
   }
 
-  return { render, renderFunding, renderFundingRoadmap, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
+  return { render, renderSocial, renderFunding, renderFundingRoadmap, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
 })();

@@ -8,6 +8,95 @@
 
 ---
 
+## 최근 수정 이력 (2026-08-31) — 사회적경제 전용 리포트 화면 신설 (1차: 9섹션, AI 미연결)
+
+**진단은 S1~S8으로 바뀌었는데 결과 리포트는 중소기업용 13섹션(SWOT·STP·4P·린캔버스·6가지시스템)이 그대로 나왔다.**
+40문항을 묻고 **S5(조직·거버넌스)·S7(인증·제도)·S8(디지털) 15문항 결과는 리포트에서 아예 다뤄지지 않았다.**
+
+### ① 설계 원칙 — 수미쌍관
+**진단에서 물은 8개 영역은 리포트에서 모두 다뤄져야 한다.** 묻고 안 쓰는 문항은 응답자의 시간을 낭비시킨다.
+SWOT·STP·4P·린캔버스는 쓰지 않는다 — 사회적경제 조직은 규모상 소기업 수준이라 그 틀이 맞지 않는다.
+
+### ② 9섹션 — 목차 라벨은 프레임워크 이름 대신 사장님이 읽는 말로
+| 섹션 id | 목차 라벨 | 대응 진단 영역 |
+|---|---|---|
+| `sec-social-summary` | 한눈에 보기 | 총점 + 취약 Top3 + CRITICAL·HIGH 경고 |
+| `sec-social-status` | 우리 조직 현재 상태 | **S1~S8 전 영역** |
+| `sec-social-mission` | 미션과 사업이 맞물리나 | S1 + S2 |
+| `sec-social-revenue` | 어디서 돈이 들어오나 | S3 + S6 |
+| `sec-social-profit` | 수익 구조 점검 | S4 |
+| `sec-social-org` | 조직이 버틸 수 있나 | S5 + S8 |
+| `sec-social-system` | 제도를 제대로 쓰고 있나 | S7 |
+| `sec-social-action` | 무엇부터 할 것인가 | 경고 전체 (레벨순) |
+| `sec-gov` | 정부지원사업 | **기존 섹션 재사용 — 미변경** |
+
+### ③ 키 체계 — 앱에 8영역 키가 두 벌 있다
+- `wizard.js _calcSocialDomainScores()` → **`s1~s8`** (diag-reveal 레이더차트 전용)
+- `DiagSocial.calcScores()` → **`mission`·`value_biz`·…** (`domain.key`, `pct`·`total` 포함)
+
+**리포트는 `DiagSocial.calcScores()`(`fd.scaleScores`)를 정본으로 쓴다.** 양쪽 다 고치지 않았다.
+⚠ 매핑 테이블을 dashboard.js에 **하드코딩하지 않는다** — `DiagSocial.DOMAINS`가 `{id:'s1', key:'mission'}`을 둘 다 갖고 있으므로 `_socialDomainList()`가 **런타임에 파생**한다. 하드코딩하면 협동조합 전용 모듈(DiagCoop) 추가 시 또 복제해야 하고, 영역이 바뀌면 한쪽만 고쳐 조용히 깨진다. DiagSocial 미로드 시 빈 배열을 반환해 예외는 나지 않는다.
+
+### ④ `isSocialOrg` 파생 플래그 신설 — 배열 3중 복제 방지
+`_isSocialOrg()`는 wizard.js 클로저 내부라 dashboard.js에서 접근할 수 없다.
+`SOCIAL_ORG_TYPES` 배열을 세 번째로 복제하는 대신 **`collect()`가 `data.isSocialOrg`(boolean)를 실어 보낸다.**
+판정 기준은 wizard.js 한 곳에만 둔다.
+- dashboard.js `_isSocialFd(fd)`: 플래그가 boolean이면 그대로 사용, 없으면(레거시·이력 스냅샷) **배열 복제 없이 `orgType !== 'general'`** 로 판단
+- `SOCIAL_DOMAIN_EXPLAIN`도 복제하지 않고 **`Wizard.SOCIAL_DOMAIN_EXPLAIN`을 export해 읽는다**
+
+### ⑤ 렌더 진입점 — `renderSocial(fd)` 신설
+- ⚠ **`render(data, fd, isDemo)`를 재사용하지 않는다.** 그쪽은 `data.executiveSummary`·`swot`·`stp`를 DOM에 직접 밀어넣는 단일 거대 함수라 AI 데이터가 없는 1차에서는 깨진다
+- `renderFunding()`과 동일한 **keep 화이트리스트** 패턴 — `SOCIAL_ONLY_SECTIONS + ['sec-gov']`만 표시
+- `render()` 진입부에서 `_isSocialFd(fd)`면 `renderSocial(fd)` 호출 후 **early return**
+- `render()`에 `SOCIAL_ONLY_SECTIONS` 숨김 블록 추가 (social → general 재진입 시 잔상 방지)
+- `buildNav(isMicro, isFunding)` → **`(isMicro, isFunding, isSocial)`** 로 확장, `isSocial`을 맨 앞 분기로. 기존 호출 2곳은 무영향
+
+### ⑥ 섹션별 처리에서 판단이 갈린 지점
+- **⑤ 수익 구조** — `winning_but_losing`("수주는 하는데 남는 게 없는" 구조)이 이 화면의 핵심이므로 문항표보다 **앞에 별도 강조 박스**(`.soc-headline-warn`)로 배치
+- **⑦ 제도** — ⚠ **인증 만료 경고·갱신 절차 안내를 넣지 않았다.** 실무 확인 결과 갱신을 놓쳐 자격을 잃는 사례가 거의 없어 값이 낮다. 대신 **활용도**에 집중: SVI 측정 여부(`s7_2`) / 자격은 있는데 못 쓰는 제도(`s3_4` 우선구매·`s3_3` 조달등록·`s7_3` 중간지원조직·`s7_5` 지배구조) / 다음 단계 인증 검토(`s7_1` 기준)
+- **⑧ 실행** — 1차는 경고를 `CRITICAL → HIGH → MEDIUM` 순 나열만. `AI 실행 계획은 준비 중` 자리표시자를 두었다. AI 우선순위·90일 플랜은 2차
+- 경고 code→섹션 매핑(`SOCIAL_WARN_SECTION`)에 없는 code도 **⑧에는 전부 나온다** → 새 규칙이 추가돼도 화면에서 사라지지 않는다
+
+### ⑦ D. 소상공인 목차 라벨 정리 (함께 처리)
+`Executive Summary → 한눈에 보기` / `생애주기 진단 → 우리 가게 지금 단계` / `상권 STP · 시장규모 → 우리 동네 손님과 시장` / `7대 영역 처방 → 영역별 처방` / `90일 실행 로드맵 → 90일 실행 계획`.
+⚠ **`href`(섹션 id)·순서·내용은 미변경.** sme 목차 13개는 손대지 않았다.
+
+### ⑧ 검증 (Node DOM 스텁, 39/39 통과)
+**수미쌍관을 코드로 확인** — `DiagSocial.DOMAINS` 8개가 실제로 어느 섹션에 렌더링되는지 `data-domain` 속성으로 출력:
+
+| ID | 영역 | 렌더링 섹션 |
+|---|---|---|
+| S1 | 미션·사회적 성과 | status + mission |
+| S2 | 사업의 사회가치 지향성 | status + mission |
+| S3 | 공공조달·판로 | status + revenue |
+| S4 | 재정·원가구조 | status + profit |
+| S5 | 조직·거버넌스 | status + org |
+| S6 | 마케팅·브랜딩·품질 | status + revenue |
+| S7 | 인증·제도·ESG | status + system |
+| S8 | 디지털·AX | status + org |
+
+**누락 0. 진단 40문항 라벨이 전부 리포트 HTML에 등장하는 것도 확인했다.**
+
+| 케이스 | 결과 |
+|---|---|
+| `social_enterprise` | 목차 9개·섹션 9개 · 8섹션 본문 전부 채워짐 · SWOT/린캔버스 숨김 ✓ |
+| 전 문항 1점 | 경고 12건 발동 · CRITICAL 2건이 ①과 지정 섹션에 표시 · **msg 원문 그대로** · ①에 MEDIUM 미표시 · ⑧ 레벨순 정렬 ✓ |
+| S7 문구 검사 | **만료·갱신 절차 표현 0건** ✓ |
+| **회귀** micro | 목차 7개 href·순서 동일, 라벨만 변경 · 사회적경제 8섹션 숨김 · micro 전용 섹션 표시 유지 ✓ |
+| **회귀** sme | 목차 13개 **완전 동일** · 라벨 미변경 ✓ |
+| **회귀** 정책자금 | 목차 5개 동일 ✓ |
+| `isSocialOrg` 부재 | `orgType` fallback 진입 ✓ / **협동조합도 자동 적용** ✓ |
+| 중복 검사 | s1↔key 하드코딩 없음 · `SOCIAL_ORG_TYPES` 3중 복제 없음 · `SOCIAL_DOMAIN_EXPLAIN` 복제 없음 ✓ |
+
+### ⑨ 캐시버스팅
+`index.html` 로컬 `?v=` 49곳 전부 `20260808b`
+
+### ⑩ 2차 예정 (이번에 만들지 않음)
+- `sec-social-action`에 AI 우선순위 과제 + 90일 실행 캘린더 연결
+- 전용 프롬프트는 `ai-engine.js`에 별도 분기로 (이번에 `ai-engine.js`·`api/`는 건드리지 않았다)
+
+---
+
 ## 최근 수정 이력 (2026-08-16) — 사회적기업 결과 화면이 일반 기업 것으로 나오던 문제 수정
 
 **진단 문항은 S1~S8으로 정상 교체됐으나 결과 화면 3곳이 `orgType`을 전혀 모르고 있었다.**
@@ -2818,6 +2907,7 @@ biznavi/
 ### ⚠ 반드시 지킬 것 (반복 사고 방지)
 - **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
 - **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
+- **진단 문항을 만들 때는 그 결과가 리포트 어느 섹션에서 다뤄지는지 함께 설계할 것.** 묻고 안 쓰는 문항은 응답자의 시간을 낭비시킨다. (사회적기업 S5·S7·S8 15문항이 리포트에서 누락돼 있던 전례)
 - **진단 모듈을 추가할 때는 문항뿐 아니라 결과 화면까지 함께 확인할 것** — 레이더차트·도메인 해설·진단유형 카드·정부지원사업 매칭·동종업계 비교 5곳이다. **점수 키 접두어가 다르면 결과 화면이 조용히 비어버린다**(에러가 나지 않아 발견이 늦다). 도메인 점수 함수의 반환 키와 `*_DOMAIN_EXPLAIN`의 키는 반드시 일치해야 한다 — `explainMap[key]` 조회 방식이다
 - **조직 형태(사회적기업·협동조합·소셜벤처)는 업종과 다른 축이다. `industryKey`에 밀어넣지 말고 `orgType`으로 분리해서 다룰 것.** 한 기업이 동시에 컨설팅업이면서 사회적기업일 수 있다(`knowledge_it` + `social_enterprise`). 또한 `api/analyze-biz.js`는 조직 형태를 반환하지 않으므로 **AI 업종분석으로 판별하려는 시도는 항상 실패한다** — 사용자 선택(`#orgTypeSelect`)이 유일한 소스다
 - **`orgType`을 `=== 'social_enterprise'` 단일 비교로 검사하지 말 것.** 협동조합·소셜벤처도 S1~S8을 사용하므로 `_isSocialOrg()`(wizard) 또는 3종 배열 포함 검사(ai-engine)를 쓴다. 단일 비교로 두면 협동조합 선택 시 화면만 사회적기업 진단이고 **점수 계산·AI 프롬프트는 micro로 빠진다**

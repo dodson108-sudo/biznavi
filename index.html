@@ -19,10 +19,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20260808a" />
-  <link rel="stylesheet" href="css/landing.css?v=20260808a" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20260808a" />
-  <link rel="stylesheet" href="css/print.css?v=20260808a" />
+  <link rel="stylesheet" href="css/style.css?v=20260808b" />
+  <link rel="stylesheet" href="css/landing.css?v=20260808b" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20260808b" />
+  <link rel="stylesheet" href="css/print.css?v=20260808b" />
 </head>
 <body>
 
@@ -1810,6 +1810,48 @@
         </div>
 
         <!-- 정부지원사업 매칭 -->
+        <!-- ══ 사회적경제 조직 전용 리포트 8섹션 (1차: 진단 결과 직접 렌더링, AI 미연결) ══
+             전부 기본 display:none — renderSocial()의 keep 화이트리스트로만 표시된다 -->
+        <div class="section-card reveal" id="sec-social-summary" style="display:none">
+          <div class="sec-title"><h3 class="serif">한눈에 보기</h3><span class="badge">사회적경제 진단</span></div>
+          <div id="socialSummaryContent"></div>
+        </div>
+
+        <div class="section-card reveal" id="sec-social-status" style="display:none">
+          <div class="sec-title"><h3 class="serif">우리 조직 현재 상태</h3><span class="badge">8대 영역 점수</span></div>
+          <div id="socialStatusContent"></div>
+        </div>
+
+        <div class="section-card reveal" id="sec-social-mission" style="display:none">
+          <div class="sec-title"><h3 class="serif">미션과 사업이 맞물리나</h3><span class="badge">S1 · S2</span></div>
+          <div id="socialMissionContent"></div>
+        </div>
+
+        <div class="section-card reveal" id="sec-social-revenue" style="display:none">
+          <div class="sec-title"><h3 class="serif">어디서 돈이 들어오나</h3><span class="badge">S3 · S6</span></div>
+          <div id="socialRevenueContent"></div>
+        </div>
+
+        <div class="section-card reveal" id="sec-social-profit" style="display:none">
+          <div class="sec-title"><h3 class="serif">수익 구조 점검</h3><span class="badge">S4</span></div>
+          <div id="socialProfitContent"></div>
+        </div>
+
+        <div class="section-card reveal" id="sec-social-org" style="display:none">
+          <div class="sec-title"><h3 class="serif">조직이 버틸 수 있나</h3><span class="badge">S5 · S8</span></div>
+          <div id="socialOrgContent"></div>
+        </div>
+
+        <div class="section-card reveal" id="sec-social-system" style="display:none">
+          <div class="sec-title"><h3 class="serif">제도를 제대로 쓰고 있나</h3><span class="badge">S7</span></div>
+          <div id="socialSystemContent"></div>
+        </div>
+
+        <div class="section-card reveal" id="sec-social-action" style="display:none">
+          <div class="sec-title"><h3 class="serif">무엇부터 할 것인가</h3><span class="badge">실행 순서</span></div>
+          <div id="socialActionContent"></div>
+        </div>
+
         <div class="section-card reveal" id="sec-gov" style="display:none">
           <div class="sec-title"><h3 class="serif">정부지원사업 매칭</h3><span class="badge">자동 매칭</span></div>
           <p class="gov-intro">입력하신 업종·규모·관심 분야를 기반으로 신청 가능한 지원사업을 자동 매칭했습니다.</p>
@@ -1826,56 +1868,56 @@
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/gov-support.js?v=20260808a"></script>
+<script src="js/gov-support.js?v=20260808b"></script>
 <script src="js/industry-trends.js"></script>
-<script src="js/reference-db.js?v=20260808a"></script>
-<script src="js/ai-engine.js?v=20260808a"></script>
-<script src="js/dashboard.js?v=20260808a"></script>
-<script src="js/wizard.js?v=20260808a"></script>
+<script src="js/reference-db.js?v=20260808b"></script>
+<script src="js/ai-engine.js?v=20260808b"></script>
+<script src="js/dashboard.js?v=20260808b"></script>
+<script src="js/wizard.js?v=20260808b"></script>
 <script src="js/diagnosis/cross-context.js"></script>
-<script src="js/diagnosis/funding-rules.js?v=20260808a"></script>
-<script src="js/diagnosis/common.js?v=20260808a"></script>
+<script src="js/diagnosis/funding-rules.js?v=20260808b"></script>
+<script src="js/diagnosis/common.js?v=20260808b"></script>
 <script src="js/diagnosis/diagnosis-micro.js"></script>
 <script src="js/diagnosis/diagnosis-sme.js"></script>
-<script src="js/diagnosis/diagnosis-social.js?v=20260808a"></script>
+<script src="js/diagnosis/diagnosis-social.js?v=20260808b"></script>
 <script src="js/diagnosis/startup.js"></script>
-<script src="js/diagnosis/industry/mfg_parts.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/food_mfg.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/local_service.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/wholesale.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/restaurant.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/knowledge_it.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/construction.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/medical.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/finance.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/education.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/fashion.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/media.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/export_sme.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/logistics.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/energy.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/agri_food.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/social_enterprise.js?v=20260808a"></script>
-<script src="js/diagnosis/industry/social_venture.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/platform.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/franchise.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/service.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/etc.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/usage_based.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/advertising.js?v=20260808a"></script>
-<script src="js/diagnosis/bizmodel/deeptech.js?v=20260808a"></script>
-<script src="js/app.js?v=20260808a"></script>
-<script src="js/history-tracker.js?v=20260808a"></script>
-<script src="js/pattern-db.js?v=20260808a"></script>
-<script src="js/bep-simulator.js?v=20260808a"></script>
-<script src="js/finance-wizard.js?v=20260808a"></script>
+<script src="js/diagnosis/industry/mfg_parts.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/food_mfg.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/local_service.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/wholesale.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/restaurant.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/knowledge_it.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/construction.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/medical.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/finance.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/education.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/fashion.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/media.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/export_sme.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/logistics.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/energy.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/agri_food.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/social_enterprise.js?v=20260808b"></script>
+<script src="js/diagnosis/industry/social_venture.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/platform.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/franchise.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/service.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/etc.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/usage_based.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/advertising.js?v=20260808b"></script>
+<script src="js/diagnosis/bizmodel/deeptech.js?v=20260808b"></script>
+<script src="js/app.js?v=20260808b"></script>
+<script src="js/history-tracker.js?v=20260808b"></script>
+<script src="js/pattern-db.js?v=20260808b"></script>
+<script src="js/bep-simulator.js?v=20260808b"></script>
+<script src="js/finance-wizard.js?v=20260808b"></script>
 <script src="js/ticker.js"></script>
-<script src="js/hero-canvas.js?v=20260808a"></script>
-<script src="js/hero-bg.js?v=20260808a"></script>
+<script src="js/hero-canvas.js?v=20260808b"></script>
+<script src="js/hero-bg.js?v=20260808b"></script>
 </body>
 </html>
