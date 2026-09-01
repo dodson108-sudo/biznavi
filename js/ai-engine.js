@@ -1283,13 +1283,11 @@ kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2�
       const commonSummary = DiagCommon.buildPromptSummary(d.diagScores);
       prompt += '\n\n' + commonSummary;
     }
-    if (d.socialPrompt &&
-        ['social_enterprise', 'cooperative', 'social_venture'].indexOf(d.orgType) !== -1) {
-      // 사회적기업·협동조합·소셜벤처는 규모(micro/sme)와 무관하게 S1~S8 진단 결과를 사용한다
-      // ⚠ orgType 단일 비교(=== 'social_enterprise')로 두면 협동조합 선택 시
-      //    socialPrompt가 무시되고 micro 분기로 빠진다
-      prompt += '\n\n' + d.socialPrompt;
-    } else if (d.bizScale === 'micro' && d.microPrompt) {
+    /* ⚠ 사회적경제 조직(isSocialOrg)은 이 경로로 오지 않는다.
+       App.runAnalysis()가 callClaude() 대신 callSocialPlan()으로 분기하므로,
+       과거 여기 있던 socialPrompt 주입 분기는 도달 불가능해져 제거했다(2026-09-01).
+       d.socialPrompt는 _buildSocialPrompt()의 입력으로 계속 사용된다. */
+    if (d.bizScale === 'micro' && d.microPrompt) {
       prompt += '\n\n' + d.microPrompt;
     } else if (d.bizScale === 'sme' && d.smePrompt) {
       prompt += '\n\n' + d.smePrompt;
@@ -3168,6 +3166,183 @@ ${govBlock || '(매칭된 지원사업 없음)'}
    * @returns {Promise<Object>} { situation, priority[], prepare90[], cautions[] }
    * @throws  API 실패 또는 JSON 파싱 실패 시 (호출부에서 판정 결과는 유지한 채 이 섹션만 실패 처리)
    */
+
+  /* ══════════════════════════════════════════════════════════════
+     사회적경제 조직 전용 — AI 실행 계획 (단일 호출)
+
+     ⚠ callClaude(1/2/3차)를 타지 않는다. 사회적경제 리포트 9섹션은
+        SWOT·STP·4P·린캔버스를 쓰지 않으므로 그 내용을 생성할 이유가 없다.
+     ⚠ 진단·판정은 이미 끝났다(DiagSocial.calcScores + detectCrossWarnings).
+        AI의 역할은 "그래서 무엇을 어떤 순서로 해야 하는가"뿐이다.
+  ══════════════════════════════════════════════════════════════ */
+
+  const _SYSTEM_SOCIAL = `당신은 사회적경제 조직(사회적기업·협동조합·소셜벤처)을 20년간 지원해 온 경영지도사다.
+이미 완료된 8대 영역 진단 결과를 받아, 이 조직이 무엇을 어떤 순서로 실행해야 하는지만 제시한다.
+
+[역할 한계 — 반드시 지킬 것]
+1. 진단 결과에 없는 문제를 새로 만들어내지 마라. 주어진 점수와 경고만이 근거다.
+2. 경고 문장(msg)은 이미 완성된 판정이다. 재해석하거나 다시 판정하지 마라.
+   그 경고를 "어떻게 해소할 것인가"만 쓴다.
+3. 사용자가 응답하지 않은 정보(미입력 항목)를 있는 것처럼 서술하지 마라.
+4. 구체적인 지원 금액·한도·비율 수치를 제시하지 마라. 매년 변경되므로 그 자체가 오정보가 된다.
+   금액이 필요한 자리에는 "주관기관 공고 확인"으로 넘겨라.
+5. SWOT·STP·4P·린캔버스·비즈니스모델캔버스 등 프레임워크 이름을 쓰지 마라.
+   사회적경제 조직은 규모상 소기업 수준이며 그 틀이 맞지 않는다.
+6. 단정적 표현("반드시 승인된다", "확실히 개선된다")을 쓰지 마라.
+
+[사회적경제 조직의 고유 맥락 — 실행 계획에 반영할 것]
+- 미션과 수익의 균형: 사회적 목적을 지키면서도 자립 가능한 수익 구조를 만들어야 한다.
+  둘 중 하나만 강조하는 조언은 이 조직에 쓸모가 없다.
+- 공공 발주 의존 위험: 공공 수주는 안정적으로 보이지만 발주 기관의 예산 변동에 그대로 노출된다.
+- 보조금 종료 대비: 재정지원사업은 기한이 있다. 종료 시점을 가정한 준비가 필요하다.
+- 조직 지속성: 대표 1인에게 판단이 몰려 있으면 대표의 부재가 곧 사업 중단이 된다.
+- 제도 활용도: 인증을 보유하는 것과 그 제도를 실제로 쓰는 것은 다르다.
+  우선구매·조달 등록·중간지원조직 연결 등 이미 자격이 있는데 못 쓰고 있는 것을 먼저 본다.
+
+[출력 형식]
+JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙이지 마라.
+{
+  "priority": [
+    { "order": 1, "action": "가장 먼저 할 일 (한 문장, 동사로 끝냄)", "why": "왜 이것이 먼저인지 — 진단 결과의 어느 부분 때문인지 명시", "how": "구체적으로 무엇을 어떻게 하는지 2~3문장" }
+  ],
+  "plan90": [
+    { "month": 1, "focus": "이 달에 달성할 목표 한 문장", "tasks": ["실행 항목", "실행 항목", "실행 항목"] },
+    { "month": 2, "focus": "...", "tasks": ["..."] },
+    { "month": 3, "focus": "...", "tasks": ["..."] }
+  ],
+  "cautions": ["실행 과정에서 주의할 점"]
+}
+
+[작성 지침]
+- priority는 3~5개. CRITICAL → HIGH → MEDIUM 순으로 해소 우선순위를 정한다.
+  경고가 없거나 적으면 점수가 낮은 영역을 기준으로 채운다.
+- plan90은 정확히 3개(1·2·3개월차). 각 tasks는 3~5개.
+  1개월차는 자료 정리·현황 파악처럼 지금 당장 시작할 수 있는 것부터 둔다.
+- cautions는 2~4개. 실행하다 흔히 놓치는 지점을 쓴다.
+- 모든 문장은 대표에게 직접 말하듯 쉬운 한국어로 쓴다. 영어 약어는 풀어 쓰거나 병기한다.`;
+
+  /* 조직 형태 라벨 — wizard.js와 별개로 표시용만 보유 (판정에 쓰지 않는다) */
+  const _SOCIAL_ORG_LABEL = {
+    social_enterprise: '사회적기업(인증 또는 예비)',
+    cooperative:       '협동조합·마을기업',
+    social_venture:    '소셜벤처',
+  };
+
+  /* 8영역 점수 블록 — fallback 전용.
+     정상 경로에서는 DiagSocial.buildPromptSummary()가 만든 d.socialPrompt를 그대로 쓴다
+     (해석 지침까지 담고 있어 여기서 다시 쓰면 중복이 된다). */
+  function _buildSocialScoreBlock(d) {
+    const sc = (d && d.scaleScores) || {};
+    const domains = sc.domains || {};
+    const list = (typeof window !== 'undefined' && window.DiagSocial && Array.isArray(window.DiagSocial.DOMAINS))
+      ? window.DiagSocial.DOMAINS : [];
+    if (!list.length || !Object.keys(domains).length) return '(진단 점수 없음)';
+
+    let t = '';
+    list.forEach(dom => {
+      const v = domains[dom.key] || {};
+      const avg = Number(v.avg || 0);
+      const lvl = avg >= 4 ? '강점' : avg >= 3 ? '보통' : avg >= 2 ? '취약' : avg > 0 ? '위험' : '미입력';
+      t += `  ${dom.id.toUpperCase()} ${dom.label}: ${avg > 0 ? avg.toFixed(1) + '점 (' + lvl + ')' : '미입력'}\n`;
+    });
+    if (typeof sc.total === 'number') t += `  총점(100점 환산, 8영역 균등 배점): ${sc.total}점\n`;
+    return t;
+  }
+
+  /* 교차 경고 블록 — msg는 완성 문장이므로 그대로 전달하고 재판정을 금지한다 */
+  function _buildSocialWarnBlock(d) {
+    const w = (d && Array.isArray(d.socialWarnings)) ? d.socialWarnings : [];
+    if (!w.length) return '  (교차 진단에서 발동된 경고 없음)\n';
+    const ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
+    return w.slice()
+      .sort((a, b) => (ORDER[a.level] ?? 9) - (ORDER[b.level] ?? 9))
+      .map(x => `  [${x.level}] (${x.code}) ${x.msg}`)
+      .join('\n') + '\n';
+  }
+
+  function _buildSocialPrompt(d) {
+    const data = d || {};
+    const orgLabel = _SOCIAL_ORG_LABEL[data.orgType] || '사회적경제 조직';
+    const indLabel = (typeof GovSupport !== 'undefined' && GovSupport.INDUSTRY_LABEL)
+      ? (GovSupport.INDUSTRY_LABEL[data.industryKey] || data.industryKey || '미입력')
+      : (data.industryKey || '미입력');
+    const scaleLabel = data.bizScale === 'sme' ? '소기업·중소기업' : '소상공인 규모';
+    const years = data.yearsInBusiness || '';
+
+    let govBlock = '';
+    try {
+      if (typeof GovSupport !== 'undefined' && GovSupport.buildPromptBlock) {
+        govBlock = GovSupport.buildPromptBlock(data) || '';
+      }
+    } catch (e) { govBlock = ''; }
+
+    return `아래는 이미 완료된 사회적경제 조직 진단 결과입니다.
+이 결과만을 근거로 실행 계획을 작성해 주십시오. 새로운 진단이나 재판정을 하지 마십시오.
+
+[1. 조직 기본 정보]
+- 조직명: ${data.companyName || '미입력'}
+- 조직 형태: ${orgLabel}
+- 업종: ${indLabel}
+- 규모: ${scaleLabel}${data.employees ? ' (직원 ' + data.employees + ')' : ''}
+- 업력: ${years ? years + '년차' : (data.foundedYear ? data.foundedYear + '년 개업' : '미입력')}
+- 연매출(사용자 입력 원문): ${data.revenue || '미입력'}
+- 주요 제품·서비스: ${data.products || '미입력'}
+- 고객이 겪는 문제: ${data.customerProblem || '미입력'}
+${data.extraDiagArea ? '- 대표가 추가로 요청한 진단 영역: ' + data.extraDiagArea + '\n' : ''}
+[2. 8대 영역 진단 결과 — 5점 만점]
+${data.socialPrompt || _buildSocialScoreBlock(data)}
+[3. 교차 진단 경고 — 이미 확정된 판정입니다]
+⚠ 아래 문장은 완성된 판정 결과입니다. 다시 판정하거나 표현을 바꾸지 마십시오.
+   각 경고를 "어떤 순서로, 어떻게 해소할 것인가"만 작성하십시오.
+${_buildSocialWarnBlock(data)}${govBlock ? '\n[4. 매칭된 지원사업 — 실행 계획에 연결할 것]\n' + govBlock + '\n' : ''}
+[요청]
+위 진단 결과를 바탕으로 priority(3~5개) · plan90(1·2·3개월차) · cautions(2~4개)를
+JSON으로만 출력하십시오. 코드펜스와 설명 문장은 붙이지 마십시오.`;
+  }
+
+  /* JSON 추출 — callClaude 내부 extractJSON과 동일 로직 (중첩 함수라 재사용 불가) */
+  function _extractJSONSocial(text) {
+    const repair = str => str.replace(/,\s*([}\]])/g, '$1');
+    const s = text.indexOf('{');
+    const e = text.lastIndexOf('}');
+    if (s === -1 || e <= s) return null;
+    const raw = text.substring(s, e + 1);
+    try { return JSON.parse(raw); } catch (_) {}
+    try { return JSON.parse(repair(raw)); } catch (_) {}
+    const cb = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (cb) {
+      const inner = cb[1].substring(cb[1].indexOf('{'), cb[1].lastIndexOf('}') + 1);
+      try { return JSON.parse(inner); } catch (_) {}
+      try { return JSON.parse(repair(inner)); } catch (_) {}
+    }
+    return null;
+  }
+
+  /* 사회적경제 전용 AI 실행 계획 — 단일 호출.
+     ⚠ callClaude()를 재사용하지 않는다 (1/2/3차 순차 호출 + FIRST_PASS_KEYS 병합이 한 몸이라
+        내부 분기로 끼워 넣으면 함수가 두 관심사를 갖게 된다. callFundingRoadmap과 같은 판단) */
+  async function callSocialPlan(d) {
+    const data = d || {};
+    const res = await fetch('/api/claude-analyze-social', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemPrompt: _SYSTEM_SOCIAL,
+        userPrompt: _buildSocialPrompt(data),
+      }),
+    });
+    if (!res.ok) {
+      let msg = '사회적경제 실행 계획 API 호출 실패 (' + res.status + ')';
+      try { const e = await res.json(); msg = e.error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const body = await res.json();
+    if (body.error) throw new Error(body.error);
+    const parsed = _extractJSONSocial(body.text || '');
+    if (!parsed) throw new Error('실행 계획 JSON 파싱 실패: ' + String(body.text || '').substring(0, 200));
+    return parsed;
+  }
+
   async function callFundingRoadmap(d) {
     const data = d || {};
     const res = await fetch('/api/claude-analyze-funding', {
@@ -3190,5 +3365,5 @@ ${govBlock || '(매칭된 지원사업 없음)'}
     return parsed;
   }
 
-  return { callClaude, fakeAnalysis, calcDiagScores, callFundingRoadmap };
+  return { callClaude, fakeAnalysis, calcDiagScores, callFundingRoadmap, callSocialPlan };
 })();

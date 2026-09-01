@@ -154,6 +154,7 @@ const App = (() => {
 
   function restart() {
     if (!confirm('새로 분석하시겠습니까?\n입력하신 모든 정보를 처음부터 다시 입력해야 합니다.')) return;
+    _socialReqId++;   // 진행 중인 백그라운드 AI 결과가 새 화면에 꽂히지 않게 무효화
     Wizard.reset();
     show('wizard');
   }
@@ -203,6 +204,50 @@ const App = (() => {
     if (!_pendingData) return;
     Dashboard.renderFundingRoadmap('loading');
     _loadFundingRoadmap(_pendingData);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     사회적경제 조직 — AI 실행 계획 (백그라운드 호출)
+
+     진단 결과(레이더차트·8영역·경고)는 AI 없이 이미 계산되어 있으므로
+     diag-reveal을 먼저 띄우고, 사용자가 그 화면을 읽는 동안 AI를 돌린다.
+     → 체감 대기 시간이 사실상 사라진다.
+
+     ⚠ 경쟁 조건 방어: 요청마다 _socialReqId를 증가시키고, 응답이 도착했을 때
+        자신의 id가 최신인지 확인한다. 사용자가 뒤로 가거나 새 분석을 시작하면
+        id가 달라지므로 늦게 도착한 이전 요청 결과는 버려진다.
+     ⚠ 백그라운드 실패를 diag-reveal에 띄우지 않는다. 그 시점의 사용자는
+        레이더차트를 보고 있다. 에러는 대시보드의 sec-social-action에서만 표시한다.
+  ══════════════════════════════════════════════════════════════ */
+  let _socialReqId = 0;
+
+  /* 조직 형태 판정 — collect()가 실어 보낸 파생 플래그를 쓴다(배열 복제 금지).
+     플래그가 없는 레거시 데이터는 orgType으로 판단한다 */
+  function _isSocialData(d) {
+    if (!d) return false;
+    if (typeof d.isSocialOrg === 'boolean') return d.isSocialOrg;
+    const t = d.orgType || 'general';
+    return t !== 'general' && t !== '';
+  }
+
+  async function _loadSocialPlan(data, reqId) {
+    try {
+      const plan = await AIEngine.callSocialPlan(data);
+      if (reqId !== _socialReqId) return;            // 낡은 요청 — 결과 폐기
+      Dashboard.renderSocialPlan('done', plan);
+    } catch (e) {
+      if (reqId !== _socialReqId) return;
+      console.error('[사회적경제] AI 실행 계획 생성 실패:', e);
+      Dashboard.renderSocialPlan('error');
+    }
+  }
+
+  /* [다시 시도] — AI만 재호출한다. 진단 결과는 재계산하지 않는다 */
+  function retrySocialPlan() {
+    if (!_pendingData) return;
+    const myId = ++_socialReqId;
+    Dashboard.renderSocialPlan('loading');
+    _loadSocialPlan(_pendingData, myId);
   }
 
   /* ── ANALYSIS ── */
@@ -263,6 +308,32 @@ const App = (() => {
       })(),
     ]);
 
+    /* 사회적경제 조직 — 전용 단일 호출 경로.
+       ⚠ callClaude()는 1/2/3차 순차 호출로 SWOT·STP·4P·D1~D7을 생성하는데,
+          renderSocial()의 9섹션은 그중 무엇도 쓰지 않는다. 호출 자체를 하지 않는다. */
+    if (_isSocialData(data)) {
+      _pendingResult = null;
+      _pendingIsDemo = false;
+      _pendingData = data;
+
+      // 진단 이력 저장 — AI 결과가 없으므로 null (executiveSummary만 참조하므로 안전)
+      let _snap = null;
+      if (typeof HistoryTracker !== 'undefined') {
+        try { _snap = HistoryTracker.save(data, null); } catch (e) { console.error('[이력 저장]', e); }
+      }
+      window._currentSnap = _snap;
+
+      // ① 진단 결과를 먼저 보여준다 — AI를 기다리지 않는다
+      Wizard.showDiagReveal(data, _snap);
+      show('diag-reveal');
+
+      // ② 사용자가 레이더차트를 읽는 동안 백그라운드로 AI 호출
+      const myId = ++_socialReqId;
+      Dashboard.renderSocialPlan('loading');
+      _loadSocialPlan(data, myId);
+      return;
+    }
+
     try {
       const result = await AIEngine.callClaude(data);
       _pendingResult = result;
@@ -319,7 +390,15 @@ const App = (() => {
 
   /* 진단유형 확인 후 솔루션 보고서로 이동 */
   function proceedToSolution() {
-    if (!_pendingResult || !_pendingData) return;
+    if (!_pendingData) return;
+    /* 사회적경제 경로는 AI 결과 없이도 진단 결과만으로 9섹션을 렌더링한다.
+       AI 실행 계획은 sec-social-action에서 상태(loading/done/error)에 따라 표시된다 */
+    if (_isSocialData(_pendingData)) {
+      Dashboard.render(null, _pendingData, false);
+      show('dashboard');
+      return;
+    }
+    if (!_pendingResult) return;
     Dashboard.render(_pendingResult, _pendingData, _pendingIsDemo);
     show('dashboard');
   }
@@ -353,7 +432,7 @@ const App = (() => {
     setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
   }
 
-  return { startWizard, startFundingDiagnosis, checkFundingInput, retryFundingRoadmap, retryAnalysis, editInputsFromError, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
+  return { startWizard, startFundingDiagnosis, checkFundingInput, retryFundingRoadmap, retrySocialPlan, retryAnalysis, editInputsFromError, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */

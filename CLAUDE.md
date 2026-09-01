@@ -8,6 +8,99 @@
 
 ---
 
+## 최근 수정 이력 (2026-09-01) — 사회적경제 리포트 2차: 전용 AI 단일 호출 연결 + 속도 개선
+
+### ① ⚠ 원인 정정 — "sme 경로·web_search 사용"이 아니다
+초기 진단은 "사회적기업이 sme 경로를 타서 web_search까지 쓴다"였으나 **사실이 아니다.**
+`callClaude()`의 분기는 `_isMicro = formData.bizScale === 'micro'`인데
+**사회적기업은 `bizScale`이 `micro`**이므로 실제로는 **micro 경로**(`noSearch: true`)를 탔다.
+정확한 서술: **micro 경로 · noSearch · 3회 순차 호출(1/2/3차) · 각 `max_tokens` 16000.**
+→ web_search는 쓰지 않았지만 **3회 호출·최대 48000토큰**과
+**생성 결과(SWOT·STP·4P·D1~D7 처방)를 `renderSocial()`이 전부 버리는** 낭비 구조는 그대로였다.
+잘못된 원인이 기록에 남으면 나중에 오판을 부르므로 명시해 둔다.
+
+### ② `api/claude-analyze-social.js` 신설 — 단일 호출
+- `runWithContinuation` 적용(절단 시 assistant prefill 이어쓰기 최대 2회). **정적 `require('../lib/claude-stream')`** 여야 `@vercel/nft` 의존성 추적에 포함된다
+- `max_tokens: 6000`(경영진단 16000 대비 축소) · **web_search 미사용** · 3분할 없음
+- `vercel.json`: `{ "regions": ["icn1"], "maxDuration": 120 }`
+- ⚠ `api/claude-analyze-1/2/3.js`는 **미변경**(경영진단이 사용 중)
+
+**프롬프트 입력**: 조직 기본정보 + `d.socialPrompt`(`DiagSocial.buildPromptSummary()` 원문) + `detectCrossWarnings()` 전체 + `GovSupport.buildPromptBlock()`
+- ⚠ 점수 블록을 다시 작성하지 않고 **`socialPrompt`를 그대로 쓴다.** 그쪽이 해석 지침("SVI 예상 점수를 추정하지 마라" 등)까지 담고 있어 여기서 다시 쓰면 중복이 된다. `_buildSocialScoreBlock()`은 fallback 전용
+- ⚠ 경고 `msg`는 **완성된 판정 문장**이다. "재해석·재판정 금지"를 프롬프트에 명시하고, AI에게는 "어떤 순서로 어떻게 해소할 것인가"만 요구한다
+
+**출력**: `priority[3~5]` (order·action·why·how) / `plan90[3]` (month·focus·tasks) / `cautions[2~4]`
+
+**시스템 프롬프트 제약**: 진단에 없는 문제 생성 금지 · 미응답 정보 서술 금지 · 금액/한도/비율 수치 금지 · **SWOT·STP·4P·린캔버스 등 프레임워크 이름 금지**(사회적경제 조직은 규모상 소기업 수준이라 그 틀이 맞지 않는다) · 단정 표현 금지
++ 사회적기업 고유 맥락 5종: 미션과 수익의 균형 / 공공 발주 의존 위험 / 보조금 종료 대비 / 조직 지속성 / 제도 활용도
+
+### ③ 속도 개선 — diag-reveal 유지 + 백그라운드 호출 (지시 정정)
+⚠ **당초 지시는 "renderSocial로 즉시 전환"이었으나 그러면 `diag-reveal`을 건너뛰게 된다.**
+거기엔 8영역 레이더차트·도메인 해설·진단유형 카드·KOSIS 생존율이 있고 전부 AI 없이 즉시 계산된다.
+
+채택한 흐름:
+```
+진단 완료 → (AI 대기 없음) showDiagReveal → show('diag-reveal')
+          ↘ 동시에 백그라운드로 callSocialPlan() 시작
+[사용자가 레이더차트를 읽는 시간 = AI 생성 시간]
+[클릭] → renderSocial → sec-social-action은 이미 done 이거나 로딩 중
+```
+→ **사용자가 화면을 읽는 시간이 곧 대기 시간**이 되어 체감 대기가 사실상 사라진다.
+
+**경쟁 조건 방어** — `_socialReqId` 카운터:
+- 요청마다 `++_socialReqId`로 id를 발급하고, 응답 도착 시 `reqId !== _socialReqId`면 **결과를 버린다**
+- `restart()`(새 분석)에서도 `_socialReqId++` → 진행 중이던 응답이 새 화면에 꽂히지 않는다
+- **백그라운드 실패를 `diag-reveal`에 띄우지 않는다.** 그 시점의 사용자는 레이더차트를 보고 있다. 에러는 대시보드의 `sec-social-action`에서만 표시한다
+- 사용자가 즉시 클릭하든 오래 머물든 동작한다 — 상태(`loading`/`done`/`error`)를 `Dashboard` 모듈에 저장하고 `renderSocialAction()`이 읽는 구조라 진입 시점과 무관하다
+
+### ④ `sec-social-action` 렌더링 — 자리표시자 교체
+`Dashboard.renderSocialPlan(state, plan)` 신설. 진단 경고 나열(즉시)은 그대로 두고 하단만 3상태로 바뀐다.
+- `loading` → 스피너 + "위 진단 결과는 지금 바로 확인하실 수 있습니다"
+- `done` → **먼저 해야 할 일**(번호 카드 · action 굵게 / 왜 / 어떻게) + **90일 실행 계획**(1·2·3개월차 3열 그리드, 골드 강조) + 주의 박스
+- `error` → 에러 박스 + `[다시 시도]`(`App.retrySocialPlan()` — **AI만 재호출**, 진단 재계산 없음)
+- ⚠ **`fakeAnalysis` 계열 가짜 데이터를 쓰지 않는다.** 진단 결과는 이미 확보돼 있으므로 AI 섹션만 생략한다
+
+### ⑤ 기존 경로 차단
+- `App.runAnalysis()`에서 `_isSocialData(data)`면 **`callClaude()`를 호출하지 않고** 전용 경로로 분기 후 `return`
+- 판정은 `fd.isSocialOrg` 파생 플래그 사용(문자열 배열 재정의 금지). 플래그가 없는 레거시 데이터는 `orgType !== 'general'` fallback
+- `proceedToSolution()`의 `if (!_pendingResult) return` 가드를 사회적경제 경로에서 우회 — AI 결과 없이도 9섹션이 렌더링되어야 한다
+- **`ai-engine.js` `buildPrompt1()`의 socialPrompt 주입 분기 제거** — `buildPrompt1`의 유일한 호출자가 `callClaude()`이고 그 경로를 차단했으므로 도달 불가능한 죽은 코드가 됐다. **`d.socialPrompt` 자체는 `_buildSocialPrompt()`의 입력으로 계속 쓴다**
+
+### ⑥ 예상 응답 시간
+| 항목 | 이전 (micro 3회) | 이번 (단일) |
+|---|---|---|
+| API 호출 | 3회 순차 | **1회** |
+| max_tokens 상한 | 16000 × 3 = 48000 | **6000** |
+| 사용자가 기다리는 구간 | AI 전체 완료까지 | **없음**(진단 화면 먼저) |
+- 출력 토큰이 대략 1/8 수준이고 순차 호출이 사라지므로 **AI 자체 소요는 이전의 1/5~1/8 수준**으로 추정된다
+- 다만 체감상 더 중요한 것은 ③이다 — **사용자는 AI를 기다리지 않는다.** 레이더차트를 읽고 넘어올 즈음이면 대개 완료돼 있다
+- ⚠ 실제 API로 측정하지는 않았다(토큰 소모). 위는 호출 횟수·토큰 상한 기반 추정치다
+
+### ⑦ 검증 (Node DOM + fetch 스텁, 42/42 통과)
+| 항목 | 결과 |
+|---|---|
+| 엔드포인트 | `/api/claude-analyze-social` 호출 · **`claude-analyze-1/2/3` 미호출** ✓ |
+| 프롬프트 | 제약 4종·맥락 5종 포함 · 경고 원문 포함 · `socialPrompt` 포함 · 지원사업 블록 포함 · **금액 수치 0건** ✓ |
+| 선행 렌더 | `runAnalysis`가 AI를 기다리지 않고 반환 · diag-reveal 활성 · dashboard 숨김 · 레이더차트 렌더됨 ✓ |
+| 로딩 중 진입 | 스피너 표시 · **나머지 8섹션은 정상 렌더** ✓ |
+| 완료 후 | 자동 갱신 · priority 카드 · 90일 3개월 · cautions · 자리표시자 문구 소멸 ✓ |
+| AI 실패 | `sec-social-action`만 에러 + 다시 시도 · **가짜 데이터 없음** · 나머지 7섹션 정상 · **`analysis-error` 전체 화면으로 안 넘어감** ✓ |
+| 경쟁 조건 | 낡은 응답이 새 화면에 꽂히지 않음(로딩 상태 유지) ✓ |
+| **회귀** | sme·micro 모두 `claude-analyze-1/2` 호출 유지 · `claude-analyze-social` 미호출 ✓ |
+| 설정 | `vercel.json` icn1·120초 · **1/2/3차 maxDuration 300 불변** · `claude-analyze-1.js` 미변경 ✓ |
+
+### ⑧ 캐시버스팅
+`index.html` 로컬 `?v=` 49곳 전부 `20260817b`
+
+### ⑨ 남은 이슈
+1. **사회적경제 AI 결과가 이력에 저장되지 않는다.** `HistoryTracker.save(data, null)`로 호출하므로 `priority`·`plan90`이 스냅샷에 남지 않는다.
+   현재 `HistoryTracker`는 **도메인 점수 비교·이슈 태그만 렌더링**하고 전체 리포트를 복원하는 기능이 없으므로 **지금 당장 깨지는 것은 없다.**
+   다만 향후 "지난번 진단 결과 다시 보기"를 만들면 사회적경제만 AI 부분이 비게 된다. 그때 스냅샷 스키마에 필드를 추가해야 한다(이번엔 구조 미변경).
+2. **`api/claude-analyze-funding.js`도 절단 시 그냥 실패한다.** `runWithContinuation`을 쓰지 않고 `stop_reason === 'max_tokens'`면 에러를 반환할 뿐이다.
+   `max_tokens: 6000`이라 정책자금 출력량 기준으로 절단 가능성은 낮지만, 신설 social API와 동일하게 `runWithContinuation`으로 교체하는 것이 일관적이다. **이번에는 수정하지 않았다**(정책자금 경로 무영향 제약).
+
+---
+
 ## 최근 수정 이력 (2026-09-01) — 진단 진행률·탭 라벨 문항 수 오류 수정
 
 **`.diag-item`을 DOM 전역에서 세어 미사용 컨테이너(다른 경로용)의 문항까지 합산되던 문제.**

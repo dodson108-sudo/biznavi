@@ -1131,3 +1131,91 @@
   .soc-bar-label { flex: 1 1 100%; }
   .soc-guide { grid-template-columns: 1fr; }
 }
+
+/* ── 사회적경제 AI 실행 계획 (sec-social-action) ────────────── */
+.soc-plan-loading {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 22px; padding: 18px 20px; border-radius: 10px;
+  background: rgba(22,32,64,.5); border: 1px dashed rgba(245,192,48,.3);
+  font-size: 0.88rem; color: var(--txt2); line-height: 1.7;
+}
+.soc-plan-loading strong { color: var(--gold); }
+.soc-plan-loading small { color: var(--txt3); }
+.soc-spinner {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid rgba(245,192,48,.18); border-top-color: var(--gold);
+  animation: socSpin .9s linear infinite;
+}
+@keyframes socSpin { to { transform: rotate(360deg); } }
+
+.soc-plan-error {
+  margin-top: 22px; padding: 18px 20px; border-radius: 10px;
+  background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.32);
+}
+.soc-plan-error-title { font-size: 0.95rem; font-weight: 700; color: #F87171; margin-bottom: 6px; }
+.soc-plan-error-body { font-size: 0.86rem; color: var(--txt2); line-height: 1.7; margin-bottom: 12px; }
+
+/* 우선순위 카드 */
+.soc-prio-list { display: flex; flex-direction: column; gap: 12px; }
+.soc-prio-card {
+  display: flex; gap: 14px; padding: 15px 17px; border-radius: 10px;
+  background: rgba(15,22,41,.85); border: 1px solid rgba(255,255,255,.07);
+  border-left: 3px solid var(--gold);
+}
+.soc-prio-num {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(245,192,48,.15); color: var(--gold);
+  font-weight: 800; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.soc-prio-body { flex: 1; min-width: 0; }
+.soc-prio-action { font-size: 0.95rem; font-weight: 700; color: var(--txt); line-height: 1.6; margin-bottom: 8px; }
+.soc-prio-why, .soc-prio-how {
+  font-size: 0.84rem; color: var(--txt2); line-height: 1.7; margin-top: 5px;
+  padding-left: 46px; position: relative;
+}
+.soc-prio-why span, .soc-prio-how span {
+  position: absolute; left: 0; top: 0;
+  font-size: 0.7rem; font-weight: 700; color: var(--txt3);
+  background: rgba(255,255,255,.05); border-radius: 4px; padding: 2px 7px;
+}
+.soc-prio-how span { color: var(--gold); background: rgba(245,192,48,.1); }
+
+/* 90일 실행 계획 — 사용자가 특히 기다리는 내용이므로 강조 */
+.soc-plan90-title { color: var(--gold); font-size: 1.02rem; }
+.soc-plan90 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.soc-month {
+  padding: 16px 18px; border-radius: 12px;
+  background: rgba(15,22,41,.9); border: 1px solid rgba(245,192,48,.22);
+}
+.soc-month-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; font-weight: 700; color: var(--txt3); margin-bottom: 9px;
+}
+.soc-month-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg,var(--gold),var(--gold-lt)); color: #08101A;
+  font-weight: 800; font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.soc-month-focus {
+  font-size: 0.9rem; font-weight: 700; color: var(--txt); line-height: 1.6;
+  padding-bottom: 10px; margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.soc-month-tasks { margin: 0; padding-left: 18px; }
+.soc-month-tasks li { font-size: 0.84rem; color: var(--txt2); line-height: 1.75; margin-bottom: 5px; }
+
+.soc-caution-box {
+  margin-top: 22px; padding: 15px 18px; border-radius: 10px;
+  background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.28);
+}
+.soc-caution-title { font-size: 0.9rem; font-weight: 700; color: #FBBF24; margin-bottom: 8px; }
+.soc-caution-box ul { margin: 0; padding-left: 18px; }
+.soc-caution-box li { font-size: 0.85rem; color: var(--txt2); line-height: 1.75; margin-bottom: 5px; }
+
+@media (max-width: 768px) {
+  .soc-plan90 { grid-template-columns: 1fr; }
+  .soc-prio-why, .soc-prio-how { padding-left: 0; padding-top: 22px; }
+  .soc-prio-why span, .soc-prio-how span { top: 0; }
+}

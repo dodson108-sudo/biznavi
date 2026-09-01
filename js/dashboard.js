@@ -846,7 +846,91 @@ const Dashboard = (() => {
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
 
-  /* ── ⑧ 무엇부터 할 것인가 (1차: 경고 나열만 — AI 우선순위·90일 플랜은 2차) ── */
+  /* ── AI 실행 계획 상태 ──
+     'loading' | 'done' | 'error'. renderSocialPlan()이 갱신하고 renderSocialAction()이 읽는다.
+     ⚠ 사용자가 diag-reveal에 머무는 동안 백그라운드로 AI가 돌기 때문에,
+        대시보드 진입 시점의 상태가 셋 중 무엇이든 정상 렌더링되어야 한다 */
+  let _socialPlanState = 'loading';
+  let _socialPlan = null;
+
+  /* AI 실행 계획 상태 갱신 — 섹션이 아직 화면에 없어도 상태만 저장하고 조용히 지나간다 */
+  function renderSocialPlan(state, plan) {
+    _socialPlanState = state || 'loading';
+    _socialPlan = (state === 'done') ? (plan || null) : null;
+    if (document.getElementById('socialActionContent')) {
+      try { renderSocialAction(_lastFd); } catch (e) { console.error('renderSocialAction:', e); }
+    }
+  }
+
+  /* AI 실행 계획 블록 — priority / plan90 / cautions */
+  function _socialPlanHtml() {
+    if (_socialPlanState === 'loading') {
+      return '<div class="soc-plan-loading">' +
+        '<span class="soc-spinner"></span>' +
+        '<div><strong>AI가 실행 계획을 작성하고 있습니다.</strong><br>' +
+        '<small>우선순위 과제와 90일 실행 계획을 준비 중입니다. 위 진단 결과는 지금 바로 확인하실 수 있습니다.</small></div>' +
+        '</div>';
+    }
+    if (_socialPlanState === 'error') {
+      return '<div class="soc-plan-error">' +
+        '<div class="soc-plan-error-title">⚠️ AI 실행 계획 생성에 실패했습니다</div>' +
+        '<div class="soc-plan-error-body">위 진단 결과와 다른 섹션은 정상적으로 확인하실 수 있습니다. ' +
+        '실행 계획만 다시 생성할 수 있습니다.</div>' +
+        '<button class="btn btn-gold btn-sm" onclick="App.retrySocialPlan()">다시 시도</button>' +
+        '</div>';
+    }
+
+    const p = _socialPlan || {};
+    const priority = Array.isArray(p.priority) ? p.priority : [];
+    const plan90   = Array.isArray(p.plan90)   ? p.plan90   : [];
+    const cautions = Array.isArray(p.cautions) ? p.cautions : [];
+    if (!priority.length && !plan90.length && !cautions.length) {
+      return '<div class="soc-plan-error">' +
+        '<div class="soc-plan-error-title">⚠️ 실행 계획 내용이 비어 있습니다</div>' +
+        '<button class="btn btn-gold btn-sm" onclick="App.retrySocialPlan()">다시 시도</button></div>';
+    }
+
+    let html = '';
+
+    if (priority.length) {
+      html += '<div class="soc-sub-title">먼저 해야 할 일</div><div class="soc-prio-list">' +
+        priority.map(function (x, i) {
+          const ord = x && x.order ? x.order : (i + 1);
+          return '<div class="soc-prio-card">' +
+            '<div class="soc-prio-num">' + _esc(ord) + '</div>' +
+            '<div class="soc-prio-body">' +
+              '<div class="soc-prio-action">' + _esc((x && x.action) || '') + '</div>' +
+              ((x && x.why)  ? '<div class="soc-prio-why"><span>왜</span>' + _esc(x.why) + '</div>' : '') +
+              ((x && x.how)  ? '<div class="soc-prio-how"><span>어떻게</span>' + _esc(x.how) + '</div>' : '') +
+            '</div></div>';
+        }).join('') + '</div>';
+    }
+
+    /* 90일 계획 — 사용자가 특히 기다리는 내용이므로 눈에 띄게 배치한다 */
+    if (plan90.length) {
+      html += '<div class="soc-sub-title soc-plan90-title">90일 실행 계획</div><div class="soc-plan90">' +
+        plan90.map(function (m, i) {
+          const mon = (m && m.month) ? m.month : (i + 1);
+          const tasks = (m && Array.isArray(m.tasks)) ? m.tasks : [];
+          return '<div class="soc-month">' +
+            '<div class="soc-month-head"><span class="soc-month-num">' + _esc(mon) + '</span>개월차</div>' +
+            '<div class="soc-month-focus">' + _esc((m && m.focus) || '') + '</div>' +
+            (tasks.length
+              ? '<ul class="soc-month-tasks">' + tasks.map(function (t) { return '<li>' + _esc(t) + '</li>'; }).join('') + '</ul>'
+              : '') +
+            '</div>';
+        }).join('') + '</div>';
+    }
+
+    if (cautions.length) {
+      html += '<div class="soc-caution-box"><div class="soc-caution-title">⚠️ 실행할 때 주의할 점</div><ul>' +
+        cautions.map(function (c) { return '<li>' + _esc(c) + '</li>'; }).join('') + '</ul></div>';
+    }
+
+    return html;
+  }
+
+  /* ── ⑧ 무엇부터 할 것인가 — 진단 경고(즉시) + AI 실행 계획(비동기) ── */
   function renderSocialAction(fd) {
     const all = _sortWarn(_socialWarnings(fd));
     const LEVEL_LABEL = { CRITICAL: '지금 바로', HIGH: '이번 달 안에', MEDIUM: '분기 안에' };
@@ -862,9 +946,7 @@ const Dashboard = (() => {
           list.map(function (w) { return _warnCard(w); }).join('') + '</div>';
       });
     }
-    html += '<div class="soc-placeholder">🤖 <strong>AI 실행 계획은 준비 중입니다.</strong><br>' +
-      '우선순위 과제와 90일 실행 캘린더는 다음 단계에서 연결됩니다. ' +
-      '지금은 위 항목을 시급한 순서대로 확인해 주십시오.</div>';
+    html += _socialPlanHtml();
     _setSoc('socialActionContent', html);
   }
 
@@ -1595,5 +1677,5 @@ const Dashboard = (() => {
     el.classList.remove('print-target');
   }
 
-  return { render, renderSocial, renderFunding, renderFundingRoadmap, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
+  return { render, renderSocial, renderSocialPlan, renderFunding, renderFundingRoadmap, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
 })();
