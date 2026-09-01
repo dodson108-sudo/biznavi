@@ -147,6 +147,55 @@ const Wizard = (() => {
     return industryKey === 'social_enterprise' ? 'social_enterprise' : 'general';
   }
 
+  /* 진단 문항이 렌더링되는 컨테이너 전체 목록.
+     ⚠ diagTab-common 안에 common/micro/social 3개가 형제로 공존한다.
+        DOM 전역 querySelectorAll('.diag-item')로 세면 현재 경로에서 쓰지 않는
+        컨테이너의 잔존 문항까지 합산된다(사회적기업 진단 후 sme 재진단 시 76개 등).
+        반드시 _activeContainers 기준으로 한정할 것. */
+  const DIAG_CONTAINERS = [
+    'diag-common-container', 'diag-micro-container', 'diag-social-container',
+    'diag-industry-container', 'diag-bizmodel-container',
+  ];
+  /* 이번 경로에서 실제로 렌더링된 컨테이너 — loadDiagnosisUI()가 매번 갱신한다 */
+  let _activeContainers = [];
+
+  /* 활성 컨테이너 하위의 문항 수. signal-only(DX 탐지)는 점수에 반영되지 않으므로 제외한다.
+     ⚠ 탭 라벨·진행률 분모·validate(2)가 모두 이 함수를 쓴다 — 기준을 하나로 통일한다 */
+  function _countDiagItems(ids) {
+    const list = (ids && ids.length) ? ids : _activeContainers;
+    if (!list.length) return 0;
+    const sel = list.map(id => '#' + id + ' .diag-item:not([data-signal-only])').join(', ');
+    return document.querySelectorAll(sel).length;
+  }
+  /* 응답 완료 수 — 분모(DOM)와 같은 범위(활성 컨테이너 접두어)로 한정한다.
+     범위가 어긋나면 전 문항을 채워도 100%가 되지 않는다 */
+  function _countDoneScores() {
+    if (!_activeContainers.length) return 0;
+    return Object.keys(diagScores).filter(k => {
+      if (k.indexOf('dx_detect') >= 0) return false;
+      if (!(diagScores[k] && diagScores[k].score > 0)) return false;
+      return _activeContainers.some(c => k.indexOf(c + '_') === 0);
+    }).length;
+  }
+  /* 이번 경로에서 쓰지 않는 컨테이너를 비운다 (잔존 문항이 진행률·검증에 섞이지 않게) */
+  function _clearInactiveContainers() {
+    DIAG_CONTAINERS.forEach(id => {
+      if (_activeContainers.indexOf(id) >= 0) return;
+      const el = document.getElementById(id);
+      if (el && el.innerHTML) el.innerHTML = '';
+    });
+  }
+  function _clearAllDiagContainers() {
+    DIAG_CONTAINERS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
+    _activeContainers = [];
+  }
+  /* 라벨용 문항 수 표기 — 셀 수 없으면 숫자를 붙이지 않는다.
+     잘못된 숫자를 보여주느니 빼는 편이 낫다 */
+  function _cntSuffix(c) { return c > 0 ? ' (' + c + '문항)' : ''; }
+
   /* 탭 순서 — 조직 형태와 무관하게 공통 + 업종 특화 2탭을 유지한다.
      (사회적기업도 업종은 별개로 존재하므로 업종 특화 5문항이 유효하다.
       과거 'industryKey === social_enterprise' 시절에는 업종 탭이 S1~S8과
@@ -1267,9 +1316,10 @@ const Wizard = (() => {
       if (!get('bizItem'))     { alert('종목을 입력해주세요.\n(사업자등록증의 종목 — 예: 미용업, 한식, 자동차부품)'); return false; }
     }
     if (step === 2) {
-      const total = document.querySelectorAll('.diag-item:not([data-signal-only])').length;
+      // 진행률과 동일한 기준(활성 컨테이너 · signal-only 제외)을 쓴다
+      const total = _countDiagItems();
       if (!total) { alert('진단 화면이 로드되지 않았습니다. 잠시 후 다시 시도해주세요.'); return false; }
-      const done  = Object.keys(diagScores).filter(k => !k.includes('dx_detect') && diagScores[k].score > 0).length;
+      const done  = _countDoneScores();
       if (done < total) {
         alert('진단 항목을 모두 입력해주세요. (' + done + ' / ' + total + '개 완료)');
         return false;
@@ -1322,18 +1372,22 @@ const Wizard = (() => {
 
     // 공통 모듈 렌더링 — social: DiagSocial S1~S8 / micro: DiagMicro 7대 분야 / startup: STARTUP / 그 외: DiagCommon
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
+    _activeContainers = [];
     if (isSocial) {
+      _activeContainers.push('diag-social-container');
       renderDiagModule('diag-social-container', _diagSocialToAreas(DiagSocial));
       if (socialContainer) socialContainer.classList.remove('hidden');
       if (microContainer)  microContainer.classList.add('hidden');
       if (commonContainer) commonContainer.classList.add('hidden');
     } else if (isMicro) {
+      _activeContainers.push('diag-micro-container');
       const microGroup = DiagMicro.getGroup(industryKey);
       renderDiagModule('diag-micro-container', _diagMicroToAreas(DiagMicro, microGroup));
       if (microContainer)  microContainer.classList.remove('hidden');
       if (commonContainer) commonContainer.classList.add('hidden');
       if (socialContainer) socialContainer.classList.add('hidden');
     } else {
+      _activeContainers.push('diag-common-container');
       if (microContainer)  microContainer.classList.add('hidden');
       if (socialContainer) socialContainer.classList.add('hidden');
       if (commonContainer) commonContainer.classList.remove('hidden');
@@ -1378,9 +1432,20 @@ const Wizard = (() => {
     // 업종 탭은 조직 형태와 무관하게 유지한다 — 사회적기업도 업종(컨설팅업 등)은 별개로 존재하며
     // S1~S8(조직 축)과 업종 특화 5문항(사업 축)은 내용이 겹치지 않는다
     const industryData = industryVarMap[industryKey];
-    if (industryData) renderDiagModule('diag-industry-container', industryData);
+    if (industryData) {
+      renderDiagModule('diag-industry-container', industryData);
+      _activeContainers.push('diag-industry-container');
+    }
+    // ⚠ industryData가 없으면(미지원 업종) 이전 렌더 결과가 남으므로 비운다
+    //    — _clearInactiveContainers()가 활성 목록에 없는 이 컨테이너를 정리한다
     const tabIndustryBtn = document.getElementById('diagTabBtn-industry');
-    if (tabIndustryBtn) tabIndustryBtn.style.display = '';
+    if (tabIndustryBtn) tabIndustryBtn.style.display = industryData ? '' : 'none';
+
+    // 이번 경로에서 쓰지 않는 컨테이너 정리 — 라벨·진행률 계산 전에 반드시 수행
+    _clearInactiveContainers();
+
+    const commonCount   = _countDiagItems(['diag-common-container', 'diag-micro-container', 'diag-social-container']);
+    const industryCount = _countDiagItems(['diag-industry-container']);
 
     // 탭 버튼 레이블 동적 업데이트 (업종 반영)
     const aiLabel = document.getElementById('aiIndustryKey') ? (() => {
@@ -1390,18 +1455,21 @@ const Wizard = (() => {
     })() : null;
     const indLabel  = aiLabel || document.getElementById('bizItem')?.value || industry || '업종';
     const tabIndustry = document.getElementById('diagTabBtn-industry');
-    if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단 (5문항)';
+    // 문항 수는 실제 렌더링 결과에서 파생한다 (과거 '(5문항)' 하드코딩은 실제 16문항과 불일치했다)
+    if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단' + _cntSuffix(industryCount);
 
     // 탭 레이블 — micro / 창업 초기 / 기본 경영 분기
     const tabCommon = document.getElementById('diagTabBtn-common');
     if (tabCommon) {
-      tabCommon.textContent = isSocial
-        ? '🤝 ' + ORG_TYPE_LABEL[_orgType] + ' 8대 영역 (40문항)'
+      // 문항 수는 하드코딩하지 않고 실제 렌더링 결과에서 파생한다.
+      // 기준은 진행률 분모와 동일(signal-only 제외) — 라벨 21 / 분모 20 같은 불일치를 막는다
+      tabCommon.textContent = (isSocial
+        ? '🤝 ' + ORG_TYPE_LABEL[_orgType] + ' 8대 영역'
         : isMicro
-        ? '🏪 소상공인 7대 분야 (35문항)'
+        ? '🏪 소상공인 7대 분야'
         : isStartupMode
-          ? '🚀 창업 초기 진단 (8문항)'
-          : '📋 기본 경영 진단 (8문항)';
+          ? '🚀 창업 초기 진단'
+          : '📋 기본 경영 진단') + _cntSuffix(commonCount);
     }
 
     // 진단 유형 배너 — 조직 형태 전용 진단이 적용됐음을 사용자에게 명시한다
@@ -1412,7 +1480,9 @@ const Wizard = (() => {
         const lbl = ORG_TYPE_LABEL[_orgType];
         const borrowed = _orgType !== 'social_enterprise'
           ? `<span class="dtb-note">전용 진단 준비 중 — 사회적기업 진단(공통 항목)으로 진행합니다</span>` : '';
-        typeBanner.innerHTML = `🤝 <strong>${lbl} 전용 진단</strong> (8대 영역 40문항) + 업종 특화 5문항${borrowed}`;
+        const areaTxt = commonCount > 0 ? ' (8대 영역 ' + commonCount + '문항)' : ' (8대 영역)';
+        const indTxt  = industryCount > 0 ? ' + 업종 특화 ' + industryCount + '문항' : '';
+        typeBanner.innerHTML = `🤝 <strong>${lbl} 전용 진단</strong>${areaTxt}${indTxt}${borrowed}`;
         typeBanner.classList.remove('hidden');
       } else {
         typeBanner.innerHTML = '';
@@ -1420,17 +1490,15 @@ const Wizard = (() => {
       }
     }
 
-    // 진행률 카운터 총 항목 수 동적 갱신 (signal-only 제외)
-    const totalItems = document.querySelectorAll('.diag-item:not([data-signal-only])').length || 13;
-    const progressText = document.getElementById('diag-progress-text');
-    if (progressText) progressText.textContent = '0 / ' + totalItems + ' 항목 완료';
-
     // 첫 탭으로 리셋
     curDiagTab = 'common';
     updateDiagTabUI('common');
 
     // 저장된 점수 복원
     restoreScores();
+
+    // 진행률 갱신 — 복원된 점수를 반영해야 하므로 restoreScores() 뒤에 호출한다
+    updateDiagProgress();
   }
 
   /* ── 타입별 항목 렌더러 ── */
@@ -1764,9 +1832,10 @@ const Wizard = (() => {
   }
 
   function updateDiagProgress() {
-    const total = document.querySelectorAll('.diag-item:not([data-signal-only])').length || 13;
-    const done = Object.keys(diagScores).filter(k => !k.includes('dx_detect') && diagScores[k].score > 0).length;
-    const pct = Math.round((done / total) * 100);
+    // ⚠ 분모·분자 모두 활성 컨테이너 기준. 범위가 어긋나면 100%가 되지 않는다
+    const total = _countDiagItems();
+    const done  = _countDoneScores();
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     const el = document.getElementById('diag-progress-text');
     const fill = document.getElementById('diag-progress-fill');
     if (el) el.textContent = done + ' / ' + total + ' 항목 완료';
@@ -2957,6 +3026,8 @@ const Wizard = (() => {
     _inferredBmKey = '';
     _purpose = 'general';
     _orgType = 'general';
+    // 진단 컨테이너 초기화 — 비우지 않으면 다음 경로의 진행률·검증에 이전 문항이 섞인다
+    _clearAllDiagContainers();
     const orgSel = document.getElementById('orgTypeSelect');
     if (orgSel) orgSel.value = 'general';
     const typeBanner = document.getElementById('diag-type-banner');
