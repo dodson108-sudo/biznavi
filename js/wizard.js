@@ -114,14 +114,13 @@ const Wizard = (() => {
   /* ══ orgType → 진단 모듈 단일 진입점 ══
      ⚠ orgType 분기를 여러 곳에 흩뿌리지 않는다. 모듈이 늘어나도 여기만 고친다.
         (과거 orgType === 'social_enterprise' 단일 비교가 세 곳에 흩어져 사고가 났다)
-     협동조합은 전용 모듈이 없어 DiagSocial을 빌려 쓴다. 전용 모듈이 생기면 여기 한 줄만 바꾼다.
+     사회적경제 3유형 모두 전용 모듈을 갖는다. 유형이 늘어나면 여기 한 줄만 추가한다.
      컨테이너 id·점수 키 접두어도 모듈의 KEY_PREFIX에서 파생시킨다 — 하드코딩 금지 */
   function _orgDiagModule(orgType) {
     const G = (typeof window !== 'undefined') ? window : {};
     if (orgType === 'social_venture')    return G.DiagVenture || (typeof DiagVenture !== 'undefined' ? DiagVenture : null);
-    if (orgType === 'social_enterprise' || orgType === 'cooperative') {
-      return G.DiagSocial || (typeof DiagSocial !== 'undefined' ? DiagSocial : null);
-    }
+    if (orgType === 'cooperative')       return G.DiagCoop    || (typeof DiagCoop    !== 'undefined' ? DiagCoop    : null);
+    if (orgType === 'social_enterprise') return G.DiagSocial  || (typeof DiagSocial  !== 'undefined' ? DiagSocial  : null);
     return null;
   }
   /* 'diag-venture-container_' → 'diag-venture-container' */
@@ -130,6 +129,10 @@ const Wizard = (() => {
     return mod.KEY_PREFIX.replace(/_$/, '');
   }
 
+  /* 조직 형태 아이콘 — 탭 라벨·배너가 함께 쓴다(분기 중복 방지) */
+  const ORG_ICON = {
+    general: '', social_enterprise: '🤝', cooperative: '🧑‍🤝‍🧑', social_venture: '🚀',
+  };
   const ORG_TYPE_LABEL = {
     general:           '일반 기업',
     social_enterprise: '사회적기업',
@@ -139,10 +142,10 @@ const Wizard = (() => {
 
   /* 전용 진단 모듈이 아직 없는 조직 형태 — 선택 시 사회적기업 진단을 빌려 쓸지 확인받는다 */
   /* 전용 진단 모듈이 아직 없는 조직 형태만 남긴다.
-     소셜벤처는 DiagVenture(V1~V8) 신설로 제외했다 */
-  const ORG_TYPE_PENDING = {
-    cooperative: '협동조합',
-  };
+     ⚠ 사회적경제 3유형(사회적기업 S1~S8 / 소셜벤처 V1~V8 / 협동조합 C1~C8)이
+        모두 전용 모듈을 갖췄으므로 현재는 비어 있다.
+        전용 모듈 없는 유형을 추가하면 여기에 등록해 confirm을 띄운다 */
+  const ORG_TYPE_PENDING = {};
   function _onOrgTypeChange(e) {
     const sel = e?.target || document.getElementById('orgTypeSelect');
     if (!sel) return;
@@ -174,7 +177,8 @@ const Wizard = (() => {
         반드시 _activeContainers 기준으로 한정할 것. */
   const DIAG_CONTAINERS = [
     'diag-common-container', 'diag-micro-container', 'diag-social-container',
-    'diag-venture-container', 'diag-industry-container', 'diag-bizmodel-container',
+    'diag-venture-container', 'diag-coop-container',
+    'diag-industry-container', 'diag-bizmodel-container',
   ];
   /* 이번 경로에서 실제로 렌더링된 컨테이너 — loadDiagnosisUI()가 매번 갱신한다 */
   let _activeContainers = [];
@@ -1386,6 +1390,7 @@ const Wizard = (() => {
     const commonContainer = document.getElementById('diag-common-container');
     const socialContainer  = document.getElementById('diag-social-container');
     const ventureContainer = document.getElementById('diag-venture-container');
+    const coopContainer    = document.getElementById('diag-coop-container');
 
     /* 조직 유형 판별 — 조직 형태별 전용 진단(S1~S8 또는 V1~V8) 40문항을 렌더링한다.
        ⚠ 모듈 선택은 _orgDiagModule() 한 곳에서만 한다 */
@@ -1402,7 +1407,7 @@ const Wizard = (() => {
       renderDiagModule(orgContainerId, _diagOrgToAreas(orgMod));
       const activeEl = document.getElementById(orgContainerId);
       if (activeEl) activeEl.classList.remove('hidden');
-      [socialContainer, ventureContainer].forEach(el => {
+      [socialContainer, ventureContainer, coopContainer].forEach(el => {
         if (el && el.id !== orgContainerId) el.classList.add('hidden');
       });
       if (microContainer)  microContainer.classList.add('hidden');
@@ -1415,11 +1420,13 @@ const Wizard = (() => {
       if (commonContainer)  commonContainer.classList.add('hidden');
       if (socialContainer)  socialContainer.classList.add('hidden');
       if (ventureContainer) ventureContainer.classList.add('hidden');
+      if (coopContainer)    coopContainer.classList.add('hidden');
     } else {
       _activeContainers.push('diag-common-container');
       if (microContainer)   microContainer.classList.add('hidden');
       if (socialContainer)  socialContainer.classList.add('hidden');
       if (ventureContainer) ventureContainer.classList.add('hidden');
+      if (coopContainer)    coopContainer.classList.add('hidden');
       if (commonContainer)  commonContainer.classList.remove('hidden');
       let commonDiag;
       if (isStartupMode && typeof STARTUP_DIAGNOSIS !== 'undefined') {
@@ -1476,7 +1483,8 @@ const Wizard = (() => {
     _clearInactiveContainers();
 
     const commonCount   = _countDiagItems(['diag-common-container', 'diag-micro-container',
-                                           'diag-social-container', 'diag-venture-container']);
+                                           'diag-social-container', 'diag-venture-container',
+                                           'diag-coop-container']);
     const industryCount = _countDiagItems(['diag-industry-container']);
 
     // 탭 버튼 레이블 동적 업데이트 (업종 반영)
@@ -1496,7 +1504,7 @@ const Wizard = (() => {
       // 문항 수는 하드코딩하지 않고 실제 렌더링 결과에서 파생한다.
       // 기준은 진행률 분모와 동일(signal-only 제외) — 라벨 21 / 분모 20 같은 불일치를 막는다
       tabCommon.textContent = (isSocial
-        ? (_orgType === 'social_venture' ? '🚀 ' : '🤝 ') + ORG_TYPE_LABEL[_orgType] + ' 8대 영역'
+        ? ORG_ICON[_orgType] + ' ' + ORG_TYPE_LABEL[_orgType] + ' 8대 영역'
         : isMicro
         ? '🏪 소상공인 7대 분야'
         : isStartupMode
@@ -1510,10 +1518,10 @@ const Wizard = (() => {
     if (typeBanner) {
       if (isSocial) {
         const lbl = ORG_TYPE_LABEL[_orgType];
-        // 전용 모듈이 없어 다른 진단을 빌려 쓰는 형태에만 안내를 붙인다(현재는 협동조합)
-        const borrowed = (_orgType === 'cooperative')
-          ? `<span class="dtb-note">전용 진단 준비 중 — 사회적기업 진단(공통 항목)으로 진행합니다</span>` : '';
-        const icon = _orgType === 'social_venture' ? '🚀' : '🤝';
+        /* 사회적경제 3유형 모두 전용 모듈을 갖췄으므로 '빌려 쓴다'는 안내가 필요 없다.
+           전용 모듈이 없는 유형이 새로 추가되면 여기에 다시 조건을 넣는다 */
+        const borrowed = '';
+        const icon = ORG_ICON[_orgType] || '🤝';
         const areaTxt = commonCount > 0 ? ' (8대 영역 ' + commonCount + '문항)' : ' (8대 영역)';
         const indTxt  = industryCount > 0 ? ' + 업종 특화 ' + industryCount + '문항' : '';
         typeBanner.innerHTML = `${icon} <strong>${lbl} 전용 진단</strong>${areaTxt}${indTxt}${borrowed}`;
@@ -2345,6 +2353,59 @@ const Wizard = (() => {
     }
   };
 
+  /* ── 협동조합 8대 영역 해설 (C1~C8) ──
+     키는 _calcOrgDomainScores의 반환 키(c1~c8)와 반드시 일치해야 한다.
+     ⚠ 협동조합은 설립 신고로 성립하므로 인증 만료·갱신을 전제한 문구를 쓰지 않는다 */
+  const COOP_DOMAIN_EXPLAIN = {
+    c1: {
+      icon: '👥', what: '조합원 자격·가입 절차·출자금 관리·이용고 기록 체계를 진단한 결과입니다.',
+      high: '조합원 관리가 정비되어 있습니다. 이용고 기록을 배당 산정과 총회 자료에 그대로 활용하세요.',
+      low:  '조합원 명부·출자금 대장·이용 실적이 정리되지 않으면 이용고 배당의 근거를 만들 수 없고 결산에서도 문제가 됩니다. 명부와 대장 대조부터 시작하세요.'
+    },
+    c2: {
+      icon: '🗳️', what: '총회 개최, 1인 1표의 실질적 작동, 이사회·감사 기능, 조합원 교육을 진단한 결과입니다.',
+      high: '민주적 운영이 자리 잡았습니다. 의사록과 교육 기록을 지원사업 신청 자료로 활용하세요.',
+      low:  '총회가 형식적이거나 특정인이 결정을 좌우하면 협동조합의 실체성 자체가 문제가 됩니다. 정관에 정한 주기로 총회를 열고 의사록을 남기는 것부터 하세요.'
+    },
+    c3: {
+      icon: '🌱', what: '주 사업과 조합원 실익의 연결, 조합원 외 거래 비중 관리 수준을 진단한 결과입니다.',
+      high: '사업과 조합원 실익이 잘 연결되어 있습니다. 실익을 수치로 집계해 총회에 보고하세요.',
+      low:  '조합원에게 돌아가는 실익이 불분명하면 참여와 출자 의지가 함께 떨어집니다. 사회적협동조합은 조합원 외 거래 비중에 법적 제한도 있으니 비중부터 집계하세요.'
+    },
+    c4: {
+      icon: '💰', what: '출자금 외 자립성, 원가 구분, 공헌이익·BEP, 잉여금 처리의 적법성을 진단한 결과입니다.',
+      high: '재정 구조 파악이 잘 되어 있습니다. 잉여금 처리 내역을 결산서·의사록과 일치시켜 두세요.',
+      low:  '손익분기점을 모르면 지원이 끊기는 시점에 대응할 수 없습니다. 잉여금은 법정적립금이 우선이고 배당은 이용고 기준이라는 점도 함께 확인하세요.'
+    },
+    c5: {
+      icon: '📑', what: '설립·변경 신고, 결산보고서 제출, 정관과 실제 운영의 일치를 진단한 결과입니다.',
+      high: '법정 의무 이행이 안정적입니다. 점검을 정기 업무로 두어 담당자가 바뀌어도 이어지게 하세요.',
+      low:  '신고·결산보고서 미이행은 지원사업 신청에서 결격 사유가 될 수 있습니다. 다른 과제보다 먼저 미제출·미신고 항목을 확인하세요.'
+    },
+    c6: {
+      icon: '📣', what: '조합 브랜드, 공공조달·우선구매 활용, 홍보 채널, 협동조합 간 연대를 진단한 결과입니다.',
+      high: '판로와 브랜드가 갖춰져 있습니다. 협동조합 간 공동사업으로 규모의 이점을 만들어 보세요.',
+      low:  '협동조합에 열려 있는 조달·우선구매 채널을 쓰지 못하고 있습니다. 등록 요건부터 확인하세요.'
+    },
+    c7: {
+      icon: '📋', what: '사회적협동조합 전환 검토, 지원사업·중간지원조직·세제 혜택 활용도를 진단한 결과입니다.',
+      high: '제도 활용이 적극적입니다. 수행 실적을 다음 신청의 근거로 쌓아가세요.',
+      low:  '활용할 수 있는 제도를 파악하지 못하고 있습니다. 중간지원조직·연합회 상담으로 해당 제도부터 확인하세요.'
+    },
+    c8: {
+      icon: '🤖', what: '조합원·출자금 데이터 관리, 온라인 의사결정, AI 활용, 디지털 격차 해소를 진단한 결과입니다.',
+      high: '디지털 기반이 갖춰져 있습니다. 온라인 의사결정 절차를 내규에 반영해 기록까지 남기세요.',
+      low:  '조합원 데이터가 수기·개인 파일에 흩어져 있으면 집계와 대조에 시간이 걸립니다. 한곳에 모으는 것부터 시작하세요.'
+    }
+  };
+
+  /* orgType → 영역 해설 맵. 분기를 여기 한 곳에 모은다 */
+  const ORG_DOMAIN_EXPLAIN = {
+    social_enterprise: SOCIAL_DOMAIN_EXPLAIN,
+    cooperative:       COOP_DOMAIN_EXPLAIN,
+    social_venture:    VENTURE_DOMAIN_EXPLAIN,
+  };
+
   /* 레이더차트 8축 색상 — 영역 순서대로 적용 (모듈 무관) */
   var ORG_DOMAIN_COLORS = ['#4ADE80', '#60A5FA', '#C084FC', '#F5C030',
                            '#FB923C', '#34D399', '#F87171', '#A78BFA'];
@@ -2400,12 +2461,27 @@ const Wizard = (() => {
         ? _calcMicroDomainScores(scores)
         : calcDomainScores(scores, isStartup);
     const explainMap = isSocial
-      ? (data.orgType === 'social_venture' ? VENTURE_DOMAIN_EXPLAIN : SOCIAL_DOMAIN_EXPLAIN)
+      ? (ORG_DOMAIN_EXPLAIN[data.orgType] || SOCIAL_DOMAIN_EXPLAIN)
       : isMicro ? MICRO_DOMAIN_EXPLAIN
       : (isStartup ? STARTUP_DOMAIN_EXPLAIN : DOMAIN_EXPLAIN);
 
     let primary, secondary, pType, sType;
-    if (isSocial && data.orgType === 'social_venture') {
+    if (isSocial && data.orgType === 'cooperative') {
+      primary = 'coop_diag'; secondary = '';
+      pType = {
+        icon: '🧑‍🤝‍🧑', label: '협동조합 8대 영역 진단',
+        desc: '조합원 기반·민주적 운영·사업 지속성·재정·법규 준수·판로·제도 활용·디지털 8대 영역을 종합 진단했습니다. 법정 의무 이행이 미흡한 항목을 먼저 정리하십시오.',
+        preview: [
+          'C1 조합원 명부·출자금·이용고 기록 정비',
+          'C2 총회 개최와 1인 1표의 실질적 작동',
+          'C3 주 사업과 조합원 실익의 연결 점검',
+          'C4 잉여금 처리 — 법정적립금·이용고 배당 원칙',
+          'C5 설립·변경 신고와 결산보고서 제출',
+          'C7 사회적협동조합 전환·지원제도 검토'
+        ]
+      };
+      sType = { icon: '', label: '', desc: '' };
+    } else if (isSocial && data.orgType === 'social_venture') {
       primary = 'venture_diag'; secondary = '';
       pType = {
         icon: '🚀', label: '소셜벤처 8대 영역 진단',
@@ -2505,7 +2581,10 @@ const Wizard = (() => {
     // 역량 프로파일 섹션 타이틀 동적 변경 (micro: 7대 영역 / SME: 5대 역량)
     const elProfileTitle = document.getElementById('drProfileTitle');
     const elProfileDesc  = document.getElementById('drProfileDesc');
-    if (isSocial && data.orgType === 'social_venture') {
+    if (isSocial && data.orgType === 'cooperative') {
+      if (elProfileTitle) elProfileTitle.textContent = '📊 협동조합 8대 영역 프로파일';
+      if (elProfileDesc)  elProfileDesc.textContent  = '협동조합 8대 영역(C1~C8) 진단 결과입니다. 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다. 8개 영역은 균등 배점이며 협동조합기본법상 법정 의무 이행 여부를 함께 봅니다.';
+    } else if (isSocial && data.orgType === 'social_venture') {
       if (elProfileTitle) elProfileTitle.textContent = '📊 소셜벤처 8대 영역 프로파일';
       if (elProfileDesc)  elProfileDesc.textContent  = '소셜벤처 8대 영역(V1~V8) 진단 결과입니다. 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다. 8개 영역은 균등 배점이며 기술보증기금 소셜벤처 판별표의 예상 점수가 아닙니다.';
     } else if (isSocial) {
@@ -3430,5 +3509,5 @@ const Wizard = (() => {
     if (orgSel) orgSel.addEventListener('change', _onOrgTypeChange);
   });
 
-  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN };
+  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN, COOP_DOMAIN_EXPLAIN, ORG_DOMAIN_EXPLAIN };
 })();

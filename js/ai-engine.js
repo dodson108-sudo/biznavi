@@ -3236,7 +3236,7 @@ JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙
   /* 조직 형태 라벨 — wizard.js와 별개로 표시용만 보유 (판정에 쓰지 않는다) */
   const _SOCIAL_ORG_LABEL = {
     social_enterprise: '사회적기업(인증 또는 예비)',
-    cooperative:       '협동조합·마을기업',
+    cooperative:       '협동조합(협동조합기본법상 법인)',
     social_venture:    '소셜벤처(기술보증기금 판별 트랙)',
   };
 
@@ -3248,7 +3248,9 @@ JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙
     const domains = sc.domains || {};
     // 조직 형태에 맞는 모듈에서 영역 목록을 가져온다 (소셜벤처는 DiagVenture)
     const G = (typeof window !== 'undefined') ? window : {};
-    const mod = (d && d.orgType === 'social_venture') ? G.DiagVenture : G.DiagSocial;
+    const mod = (d && d.orgType === 'social_venture') ? G.DiagVenture
+              : (d && d.orgType === 'cooperative')    ? G.DiagCoop
+              : G.DiagSocial;
     const list = (mod && Array.isArray(mod.DOMAINS)) ? mod.DOMAINS : [];
     if (!list.length || !Object.keys(domains).length) return '(진단 점수 없음)';
 

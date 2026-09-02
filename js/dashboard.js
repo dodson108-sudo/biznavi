@@ -534,15 +534,17 @@ const Dashboard = (() => {
         DiagSocial 미로드 시 빈 배열을 반환해 화면이 비더라도 예외는 나지 않는다. */
   /* orgType → 진단 모듈. wizard.js의 _orgDiagModule과 같은 기준이며,
      모듈 인스턴스는 window에서 읽는다(배열·매핑 복제 금지).
-     ⚠ 협동조합은 전용 모듈이 없어 DiagSocial을 빌려 쓴다 */
+     사회적경제 3유형 모두 전용 모듈을 갖는다 */
   function _orgModule(fd) {
     const G = (typeof window !== 'undefined') ? window : {};
     const t = (fd && fd.orgType) || (_lastFd && _lastFd.orgType) || '';
-    if (t === 'social_venture') return G.DiagVenture || null;
-    if (t === 'social_enterprise' || t === 'cooperative') return G.DiagSocial || null;
+    if (t === 'social_venture')    return G.DiagVenture || null;
+    if (t === 'cooperative')       return G.DiagCoop    || null;
+    if (t === 'social_enterprise') return G.DiagSocial  || null;
     // orgType이 없는 레거시 데이터 — 점수 키 접두어로 역추적
     const pre = (fd && fd.orgDiagKeyPrefix) || '';
     if (pre.indexOf('venture') >= 0) return G.DiagVenture || null;
+    if (pre.indexOf('coop') >= 0)    return G.DiagCoop    || null;
     return G.DiagSocial || null;
   }
   /* 점수 키 접두어 — collect()가 실어 보낸 값을 쓰고, 없으면 모듈에서 파생한다.
@@ -560,18 +562,31 @@ const Dashboard = (() => {
     const D = _orgModule(fd);
     return (D && D.ITEMS) ? D.ITEMS : {};
   }
-  /* 소셜벤처 여부 — 섹션 라벨 분기용 */
-  function _isVentureFd(fd) {
+  /* 조직 형태 키 — 섹션 라벨·영역 매핑 분기용. 'social' | 'venture' | 'coop'
+     ⚠ 분기를 여기 한 곳에 모은다. 유형이 늘어나면 이 함수만 고친다 */
+  function _orgKind(fd) {
     const t = (fd && fd.orgType) || (_lastFd && _lastFd.orgType) || '';
-    if (t) return t === 'social_venture';
-    return String((fd && fd.orgDiagKeyPrefix) || '').indexOf('venture') >= 0;
+    if (t === 'social_venture') return 'venture';
+    if (t === 'cooperative')    return 'coop';
+    if (t === 'social_enterprise') return 'social';
+    const pre = String((fd && fd.orgDiagKeyPrefix) || '');
+    if (pre.indexOf('venture') >= 0) return 'venture';
+    if (pre.indexOf('coop') >= 0)    return 'coop';
+    return 'social';
   }
+  function _isVentureFd(fd) { return _orgKind(fd) === 'venture'; }
   /* 영역 해설은 wizard.js의 SOCIAL_DOMAIN_EXPLAIN(키 s1~s8)을 그대로 쓴다 — 문구 복제 금지 */
   function _socialExplain(fd) {
     const W = (typeof window !== 'undefined' && window.Wizard) ||
               (typeof Wizard !== 'undefined' ? Wizard : null);
     if (!W) return {};
-    return (_isVentureFd(fd) ? W.VENTURE_DOMAIN_EXPLAIN : W.SOCIAL_DOMAIN_EXPLAIN) || {};
+    const t = (fd && fd.orgType) || (_lastFd && _lastFd.orgType) || '';
+    const byType = (W.ORG_DOMAIN_EXPLAIN && W.ORG_DOMAIN_EXPLAIN[t]) || null;
+    if (byType) return byType;
+    const k = _orgKind(fd);
+    return (k === 'venture' ? W.VENTURE_DOMAIN_EXPLAIN
+          : k === 'coop'    ? W.COOP_DOMAIN_EXPLAIN
+          : W.SOCIAL_DOMAIN_EXPLAIN) || {};
   }
 
   /* 조직 형태 판정 — collect()가 실어 보낸 파생 플래그를 쓴다(SOCIAL_ORG_TYPES 배열 복제 금지).
@@ -601,6 +616,17 @@ const Dashboard = (() => {
     ir_not_ready: 'revenue', public_finance_unused: 'revenue',
     team_single_point: 'org',
     application_unready: 'system',
+
+    /* 협동조합(DiagCoop) 경고 코드 — C1~C8 대응 */
+    member_benefit_unclear: 'mission', nonmember_ratio_unmanaged: 'mission',
+    coop_identity_diluted: 'mission', membership_process_weak: 'mission',
+    withdrawal_risk: 'mission', decision_without_members: 'mission',
+    patronage_dividend_impossible: 'mission',
+    revenue_concentration: 'revenue', concentration_and_weak_brand: 'revenue',
+    coop_benefits_unused: 'revenue', coop_subsidy_cliff: 'revenue',
+    legal_duty_unmet: 'profit', books_unauditable: 'profit',
+    coop_in_name_only: 'org', board_and_term_lapsed: 'org',
+    education_duty_ignored: 'org', digital_base_missing_coop: 'org',
   };
 
   /* 섹션별 대응 영역 id — 조직 형태에 따라 다르다.
@@ -609,9 +635,39 @@ const Dashboard = (() => {
   const SEC_DOMAINS = {
     social:  { mission: ['s1', 's2'], revenue: ['s3', 's6'], profit: ['s4'], org: ['s5', 's8'], system: ['s7'] },
     venture: { mission: ['v1', 'v2'], revenue: ['v5', 'v4'], profit: ['v3'], org: ['v6', 'v8'], system: ['v7'] },
+    coop:    { mission: ['c1', 'c3'], revenue: ['c6', 'c4'], profit: ['c5'], org: ['c2', 'c8'], system: ['c7'] },
   };
   function _secDomainIds(fd, key) {
-    return SEC_DOMAINS[_isVentureFd(fd) ? 'venture' : 'social'][key] || [];
+    return (SEC_DOMAINS[_orgKind(fd)] || SEC_DOMAINS.social)[key] || [];
+  }
+
+  /* 섹션 라벨·배지 — 9섹션 구조는 그대로 두고 문구만 조직 형태에 맞춘다.
+     ⚠ 목차(buildNav)와 섹션 제목(renderSocial)이 같은 테이블을 쓴다 — 분기 중복 방지 */
+  const SEC_LABEL = {
+    social: {
+      mission: { t: '미션과 사업이 맞물리나',   b: 'S1 · S2' },
+      revenue: { t: '어디서 돈이 들어오나',      b: 'S3 · S6' },
+      profit:  { t: '수익 구조 점검',            b: 'S4' },
+      org:     { t: '조직이 버틸 수 있나',       b: 'S5 · S8' },
+      system:  { t: '제도를 제대로 쓰고 있나',   b: 'S7' },
+    },
+    venture: {
+      mission: { t: '사회문제를 제대로 정의했나', b: 'V1 · V2' },
+      revenue: { t: '자금을 어떻게 조달하나',     b: 'V5 · V4' },
+      profit:  { t: '기술이 무기가 되고 있나',    b: 'V3' },
+      org:     { t: '팀이 버틸 수 있나',          b: 'V6 · V8' },
+      system:  { t: '판별과 제도를 활용하고 있나', b: 'V7' },
+    },
+    coop: {
+      mission: { t: '조합원 실익과 사업이 맞물리나', b: 'C1 · C3' },
+      revenue: { t: '어디서 돈이 들어오나',          b: 'C6 · C4' },
+      profit:  { t: '법과 정관을 지키고 있나',       b: 'C5' },
+      org:     { t: '조합 운영이 건강한가',          b: 'C2 · C8' },
+      system:  { t: '제도를 제대로 쓰고 있나',       b: 'C7' },
+    },
+  };
+  function _secLabel(fd, key) {
+    return (SEC_LABEL[_orgKind(fd)] || SEC_LABEL.social)[key] || SEC_LABEL.social[key];
   }
   const SOCIAL_LEVEL_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
 
@@ -799,9 +855,11 @@ const Dashboard = (() => {
     const w = _warnsFor(fd, 'mission');
     _setSoc('socialMissionContent',
       '<p class="soc-lead">' +
-      (_isVentureFd(fd)
-        ? '해결하려는 사회문제가 정관에 명시되어 있는지, 성과를 숫자로 증빙할 수 있는지를 봅니다. 판별 심사에서 사회성 항목의 근거가 되는 영역입니다.'
-        : '사회적 미션이 문서에만 있는지, 실제 사업 판단에 쓰이는지를 봅니다. 재인증 심사에서 사회적 목적 실현 여부가 쟁점이 되는 영역입니다.') + '</p>' +
+      ({
+        venture: '해결하려는 사회문제가 정관에 명시되어 있는지, 성과를 숫자로 증빙할 수 있는지를 봅니다. 판별 심사에서 사회성 항목의 근거가 되는 영역입니다.',
+        coop:    '조합원 명부·출자금·이용 실적이 관리되고 있는지, 주 사업이 조합원의 실익과 연결되는지를 봅니다. 이용고 배당의 법적 근거가 되는 영역입니다.',
+        social:  '사회적 미션이 문서에만 있는지, 실제 사업 판단에 쓰이는지를 봅니다. 재인증 심사에서 사회적 목적 실현 여부가 쟁점이 되는 영역입니다.',
+      }[_orgKind(fd)]) + '</p>' +
       _socItemTable(fd, _secDomainIds(fd, 'mission')) +
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
@@ -811,9 +869,11 @@ const Dashboard = (() => {
     const w = _warnsFor(fd, 'revenue');
     _setSoc('socialRevenueContent',
       '<p class="soc-lead">' +
-      (_isVentureFd(fd)
-        ? '투자·보증·정부 프로그램 중 어떤 경로를 확보했는지, 12개월 자금 소요를 계산해 두었는지를 봅니다. 자금 계획이 없으면 언제 바닥나는지 알 수 없어 대응할 시간을 확보하지 못합니다.'
-        : '매출이 어느 채널에서 나오는지, 한쪽에 쏠려 있지는 않은지를 봅니다. 공공 발주에만 의존하면 발주 기관의 예산이 삭감될 때 매출이 한 번에 끊깁니다.') + '</p>' +
+      ({
+        venture: '투자·보증·정부 프로그램 중 어떤 경로를 확보했는지, 12개월 자금 소요를 계산해 두었는지를 봅니다. 자금 계획이 없으면 언제 바닥나는지 알 수 없어 대응할 시간을 확보하지 못합니다.',
+        coop:    '판로와 브랜드가 갖춰져 있는지, 출자금·지원금 없이도 운영이 유지되는지를 봅니다. 협동조합에 열려 있는 조달·우선구매 채널을 쓰고 있는지도 함께 봅니다.',
+        social:  '매출이 어느 채널에서 나오는지, 한쪽에 쏠려 있지는 않은지를 봅니다. 공공 발주에만 의존하면 발주 기관의 예산이 삭감될 때 매출이 한 번에 끊깁니다.',
+      }[_orgKind(fd)]) + '</p>' +
       _socItemTable(fd, _secDomainIds(fd, 'revenue')) +
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
@@ -824,17 +884,23 @@ const Dashboard = (() => {
   function renderSocialProfit(fd) {
     const w = _warnsFor(fd, 'profit');
     /* 이 섹션의 핵심 경고를 문항표보다 앞에 강조 배치한다 */
-    const HEADLINE = _isVentureFd(fd) ? 'tech_social_disconnect' : 'winning_but_losing';
-    const HEADLINE_TITLE = _isVentureFd(fd)
-      ? '🔬 기술은 있으나 사회문제 해결과의 연결을 설명하지 못하고 있습니다'
-      : '💸 수주는 하는데 남는 게 없는 구조일 수 있습니다';
+    const HEADLINE_BY_KIND = {
+      venture: { code: 'tech_social_disconnect', title: '🔬 기술은 있으나 사회문제 해결과의 연결을 설명하지 못하고 있습니다' },
+      coop:    { code: 'legal_duty_unmet',       title: '📑 법정 의무 이행이 미흡합니다 — 지원사업 결격 사유가 될 수 있습니다' },
+      social:  { code: 'winning_but_losing',     title: '💸 수주는 하는데 남는 게 없는 구조일 수 있습니다' },
+    };
+    const _hl = HEADLINE_BY_KIND[_orgKind(fd)] || HEADLINE_BY_KIND.social;
+    const HEADLINE = _hl.code;
+    const HEADLINE_TITLE = _hl.title;
     const key = w.filter(function (x) { return x.code === HEADLINE; });
     const rest = w.filter(function (x) { return x.code !== HEADLINE; });
     _setSoc('socialProfitContent',
       '<p class="soc-lead">' +
-      (_isVentureFd(fd)
-        ? '기술의 차별성이 문서로 뒷받침되는지, 그 기술이 사회문제 해결에 어떻게 기여하는지 설명할 수 있는지를 봅니다.'
-        : '지원금 없이도 버틸 수 있는 구조인지, 사업마다 실제로 남는 게 있는지를 봅니다.') + '</p>' +
+      ({
+        venture: '기술의 차별성이 문서로 뒷받침되는지, 그 기술이 사회문제 해결에 어떻게 기여하는지 설명할 수 있는지를 봅니다.',
+        coop:    '설립·변경 신고와 결산보고서 제출 같은 법정 의무를 지키고 있는지, 정관과 실제 운영이 일치하는지를 봅니다. 미이행은 지원사업 신청에서 결격 사유가 될 수 있습니다.',
+        social:  '지원금 없이도 버틸 수 있는 구조인지, 사업마다 실제로 남는 게 있는지를 봅니다.',
+      }[_orgKind(fd)]) + '</p>' +
       (key.length
         ? '<div class="soc-headline-warn">' +
           '<div class="soc-headline-title">' + HEADLINE_TITLE + '</div>' +
@@ -849,9 +915,11 @@ const Dashboard = (() => {
     const w = _warnsFor(fd, 'org');
     _setSoc('socialOrgContent',
       '<p class="soc-lead">' +
-      (_isVentureFd(fd)
-        ? '대표와 핵심 인력의 역량이 사업과 연결되는지, 한 사람이 빠져도 개발과 의사결정이 이어지는지를 봅니다.'
-        : '대표가 자리를 비워도 사업이 굴러가는지, 일한 기록이 조직에 남는지를 봅니다.') + '</p>' +
+      ({
+        venture: '대표와 핵심 인력의 역량이 사업과 연결되는지, 한 사람이 빠져도 개발과 의사결정이 이어지는지를 봅니다.',
+        coop:    '총회가 제대로 열리는지, 출자액과 무관하게 1인 1표가 실질적으로 작동하는지를 봅니다. 형식만 협동조합이 되면 법인격 유지와 심사 양쪽에서 문제가 됩니다.',
+        social:  '대표가 자리를 비워도 사업이 굴러가는지, 일한 기록이 조직에 남는지를 봅니다.',
+      }[_orgKind(fd)]) + '</p>' +
       _socItemTable(fd, _secDomainIds(fd, 'org')) +
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
@@ -865,6 +933,44 @@ const Dashboard = (() => {
     const PRE = _orgKeyPrefix(fd);
     const g = function (k) { return Number(flat[PRE + k] || 0); };
     const w = _warnsFor(fd, 'system');
+
+    /* ── 협동조합: 제도 활용도 중심 ──
+       ⚠ 설립 신고로 성립하는 법인 형태이므로 인증 만료·갱신 개념이 없다 */
+    if (_orgKind(fd) === 'coop') {
+      const review = g('c7_1');
+      const box = review === 0
+        ? '<div class="soc-use-item none"><div class="soc-use-head">사회적협동조합 검토 — 미응답</div>' +
+          '<div class="soc-use-body">사회적협동조합 인가 또는 전환 검토 여부를 입력하지 않으셨습니다.</div></div>'
+        : review <= 2
+        ? '<div class="soc-use-item warn"><div class="soc-use-head">🔍 사회적협동조합 전환을 검토해 보지 않았습니다</div>' +
+          '<div class="soc-use-body">일반 협동조합과 사회적협동조합은 <strong>적용받는 제도의 범위가 다릅니다</strong>. ' +
+          '다만 사회적협동조합은 조합원 외 거래 비중에 법적 제한이 있으므로 사업 구조와 함께 따져 보아야 합니다. ' +
+          '중간지원조직 상담으로 요건부터 확인하십시오.</div></div>'
+        : '<div class="soc-use-item ok"><div class="soc-use-head">✅ 사회적협동조합 전환을 검토했거나 인가받았습니다</div>' +
+          '<div class="soc-use-body">현재 형태에 맞는 지원 제도를 정리해 두고 공고 시기에 맞춰 활용하십시오.</div></div>';
+
+      const gaps = [];
+      if (g('c7_4') > 0 && g('c7_4') <= 2) gaps.push({ n: '우선구매·세제 혜택 파악', d: '협동조합에 적용되는 제도를 확인하지 않으면 쓸 수 있는 혜택을 그대로 놓칩니다. 해당 제도 목록부터 정리하십시오.' });
+      if (g('c7_2') > 0 && g('c7_2') <= 2) gaps.push({ n: '협동조합 지원사업 신청', d: '지원사업 신청 이력이 없습니다. 조합의 단계에 맞는 공고부터 확인하십시오.' });
+      if (g('c7_3') > 0 && g('c7_3') <= 2) gaps.push({ n: '중간지원조직·연합회 연결', d: '권역별 중간지원조직과 협동조합연합회를 통해 컨설팅·공고 정보·공동사업 기회를 얻을 수 있습니다.' });
+      if (g('c7_5') > 0 && g('c7_5') <= 2) gaps.push({ n: '교육·컨설팅 지원 활용', d: '협동조합기본법은 조합원 교육을 의무로 두고 있습니다. 외부 지원 제도를 쓰면 부담 없이 이행할 수 있습니다.' });
+      if (g('c6_2') > 0 && g('c6_2') <= 2) gaps.push({ n: '공공조달·우선구매 채널', d: '조달 채널에 등록하지 않으면 우선구매 제도가 있어도 발주 기관이 찾을 수 없습니다.' });
+
+      _setSoc('socialSystemContent',
+        '<p class="soc-lead">협동조합은 <strong>설립 신고로 성립하는 법인 형태</strong>이므로 인증 만료·갱신을 걱정할 필요가 없습니다. ' +
+        '대신 <strong>쓸 수 있는 제도를 실제로 쓰고 있는지</strong>를 봅니다.</p>' +
+        '<div class="soc-use-list">' + box + '</div>' +
+        '<div class="soc-sub-title">활용하지 못하고 있는 제도</div>' +
+        (gaps.length
+          ? '<div class="soc-use-list">' + gaps.map(function (u) {
+              return '<div class="soc-use-item warn"><div class="soc-use-head">🔓 ' + _esc(u.n) + '</div>' +
+                '<div class="soc-use-body">' + _esc(u.d) + '</div></div>';
+            }).join('') + '</div>'
+          : '<div class="soc-ok-box">✅ 진단 응답 기준으로 뚜렷하게 놓치고 있는 제도는 확인되지 않았습니다.</div>') +
+        _socItemTable(fd, _secDomainIds(fd, 'system')) +
+        (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
+      return;
+    }
 
     /* ── 소셜벤처: 판별 준비도 중심 ── */
     if (_isVentureFd(fd)) {
@@ -1067,28 +1173,16 @@ const Dashboard = (() => {
 
     const ORG_LABEL = { social_enterprise: '사회적기업', cooperative: '협동조합·마을기업', social_venture: '소셜벤처' };
     const orgLabel = ORG_LABEL[(fd && fd.orgType)] || '사회적경제 조직';
-    const isVenture = _isVentureFd(fd);
-
-    /* 섹션 제목·배지도 조직 형태에 맞춘다 (구조는 9섹션 그대로) */
-    const SEC_TITLE = {
-      'sec-social-revenue': isVenture
-        ? { t: '자금을 어떻게 조달하나', b: 'V5 · V4' } : { t: '어디서 돈이 들어오나', b: 'S3 · S6' },
-      'sec-social-system': isVenture
-        ? { t: '판별과 제도를 활용하고 있나', b: 'V7' } : { t: '제도를 제대로 쓰고 있나', b: 'S7' },
-      'sec-social-mission': isVenture
-        ? { t: '사회문제를 제대로 정의했나', b: 'V1 · V2' } : { t: '미션과 사업이 맞물리나', b: 'S1 · S2' },
-      'sec-social-profit': isVenture
-        ? { t: '기술이 무기가 되고 있나', b: 'V3' } : { t: '수익 구조 점검', b: 'S4' },
-      'sec-social-org': isVenture
-        ? { t: '팀이 버틸 수 있나', b: 'V6 · V8' } : { t: '조직이 버틸 수 있나', b: 'S5 · S8' },
-    };
-    Object.keys(SEC_TITLE).forEach(function (id) {
-      const sec = document.getElementById(id);
+    /* 섹션 제목·배지도 조직 형태에 맞춘다 (구조는 9섹션 그대로).
+       목차와 같은 SEC_LABEL 테이블을 쓴다 */
+    ['mission', 'revenue', 'profit', 'org', 'system'].forEach(function (key) {
+      const sec = document.getElementById('sec-social-' + key);
       if (!sec) return;
+      const spec = _secLabel(fd, key);
       const h = sec.querySelector('.sec-title h3');
       const bd = sec.querySelector('.sec-title .badge');
-      if (h)  h.textContent  = SEC_TITLE[id].t;
-      if (bd) bd.textContent = SEC_TITLE[id].b;
+      if (h)  h.textContent  = spec.t;
+      if (bd) bd.textContent = spec.b;
     });
 
     const title = document.getElementById('dTitle');
@@ -1119,7 +1213,7 @@ const Dashboard = (() => {
     const nav = document.getElementById('reportNav');
     if (!nav) return;
     // 섹션 구조(9개)는 그대로 두고 라벨만 조직 형태에 맞춘다
-    const isVenture = isSocial && _isVentureFd(_lastFd);
+    const L = k => _secLabel(_lastFd, k).t;
 
     /* 사회적경제 조직 — 전용 8섹션 + 기존 sec-gov 재사용.
        목차 라벨은 프레임워크 이름 대신 사장님이 읽는 말로 쓴다.
@@ -1127,11 +1221,11 @@ const Dashboard = (() => {
     const links = isSocial ? [
       { href: 'sec-social-summary', label: '한눈에 보기' },
       { href: 'sec-social-status',  label: '우리 조직 현재 상태' },
-      { href: 'sec-social-mission', label: '미션과 사업이 맞물리나' },
-      { href: 'sec-social-revenue', label: isVenture ? '자금을 어떻게 조달하나' : '어디서 돈이 들어오나' },
-      { href: 'sec-social-profit',  label: '수익 구조 점검' },
-      { href: 'sec-social-org',     label: '조직이 버틸 수 있나' },
-      { href: 'sec-social-system',  label: isVenture ? '판별과 제도를 활용하고 있나' : '제도를 제대로 쓰고 있나' },
+      { href: 'sec-social-mission', label: L('mission') },
+      { href: 'sec-social-revenue', label: L('revenue') },
+      { href: 'sec-social-profit',  label: L('profit') },
+      { href: 'sec-social-org',     label: L('org') },
+      { href: 'sec-social-system',  label: L('system') },
       { href: 'sec-social-action',  label: '무엇부터 할 것인가' },
       { href: 'sec-gov',            label: '정부지원사업' },
     ] : isFunding ? [
