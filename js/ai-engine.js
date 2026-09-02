@@ -3199,6 +3199,18 @@ ${govBlock || '(매칭된 지원사업 없음)'}
 - 제도 활용도: 인증을 보유하는 것과 그 제도를 실제로 쓰는 것은 다르다.
   우선구매·조달 등록·중간지원조직 연결 등 이미 자격이 있는데 못 쓰고 있는 것을 먼저 본다.
 
+[소셜벤처인 경우 — 위 맥락 대신 아래를 적용한다]
+- 소셜벤처는 상법상 영리법인이며 공공조달이 아니라 투자·기술보증 트랙을 탄다.
+  공공 용역 수주를 전제한 조언을 하지 마라.
+- 소셜벤처 판별은 특별법상 지속 자격이 아니라 지원사업 신청 기준이다.
+  인증 만료·갱신을 전제로 조언하지 마라. "신청 전에 갖춰야 할 것" 관점으로 쓴다.
+- 사회성과 혁신성장성 두 축의 연결이 판별의 핵심이다.
+  기술이 사회문제 해결의 어느 지점을 어떻게 바꾸는지 설명하도록 이끈다.
+- 정관에 사회문제를 명시하는 것은 배점이 큰 항목이며, 정관 변경은 총회 의결과 등기가 필요해
+  준비 기간이 든다. 일정이 걸리는 항목은 먼저 착수하도록 순서를 잡는다.
+- ⚠ 기술보증기금 소셜벤처 판별표의 예상 점수(사회성 70점 / 혁신성장성 70점)를 추정하지 마라.
+  BizNavi는 판별 점수를 예측하는 도구가 아니라 준비도를 진단하는 도구다.
+
 [출력 형식]
 JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙이지 마라.
 {
@@ -3225,7 +3237,7 @@ JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙
   const _SOCIAL_ORG_LABEL = {
     social_enterprise: '사회적기업(인증 또는 예비)',
     cooperative:       '협동조합·마을기업',
-    social_venture:    '소셜벤처',
+    social_venture:    '소셜벤처(기술보증기금 판별 트랙)',
   };
 
   /* 8영역 점수 블록 — fallback 전용.
@@ -3234,8 +3246,10 @@ JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙
   function _buildSocialScoreBlock(d) {
     const sc = (d && d.scaleScores) || {};
     const domains = sc.domains || {};
-    const list = (typeof window !== 'undefined' && window.DiagSocial && Array.isArray(window.DiagSocial.DOMAINS))
-      ? window.DiagSocial.DOMAINS : [];
+    // 조직 형태에 맞는 모듈에서 영역 목록을 가져온다 (소셜벤처는 DiagVenture)
+    const G = (typeof window !== 'undefined') ? window : {};
+    const mod = (d && d.orgType === 'social_venture') ? G.DiagVenture : G.DiagSocial;
+    const list = (mod && Array.isArray(mod.DOMAINS)) ? mod.DOMAINS : [];
     if (!list.length || !Object.keys(domains).length) return '(진단 점수 없음)';
 
     let t = '';
@@ -3251,7 +3265,9 @@ JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙
 
   /* 교차 경고 블록 — msg는 완성 문장이므로 그대로 전달하고 재판정을 금지한다 */
   function _buildSocialWarnBlock(d) {
-    const w = (d && Array.isArray(d.socialWarnings)) ? d.socialWarnings : [];
+    // orgWarnings가 정본. socialWarnings는 구 필드(병행 유지 중)
+    const w = (d && Array.isArray(d.orgWarnings)) ? d.orgWarnings
+            : (d && Array.isArray(d.socialWarnings)) ? d.socialWarnings : [];
     if (!w.length) return '  (교차 진단에서 발동된 경고 없음)\n';
     const ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
     return w.slice()
@@ -3290,7 +3306,7 @@ JSON만 출력한다. 코드펜스(\`\`\`)를 쓰지 말고 설명 문장도 붙
 - 고객이 겪는 문제: ${data.customerProblem || '미입력'}
 ${data.extraDiagArea ? '- 대표가 추가로 요청한 진단 영역: ' + data.extraDiagArea + '\n' : ''}
 [2. 8대 영역 진단 결과 — 5점 만점]
-${data.socialPrompt || _buildSocialScoreBlock(data)}
+${data.orgPrompt || data.socialPrompt || _buildSocialScoreBlock(data)}
 [3. 교차 진단 경고 — 이미 확정된 판정입니다]
 ⚠ 아래 문장은 완성된 판정 결과입니다. 다시 판정하거나 표현을 바꾸지 마십시오.
    각 경고를 "어떤 순서로, 어떻게 해소할 것인가"만 작성하십시오.

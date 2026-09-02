@@ -532,21 +532,46 @@ const Dashboard = (() => {
      ⚠ 하드코딩하지 않고 DiagSocial.DOMAINS에서 런타임 파생한다 —
         영역이 바뀌거나 전용 모듈(DiagCoop 등)이 추가돼도 한쪽만 고쳐 조용히 깨지는 일이 없도록.
         DiagSocial 미로드 시 빈 배열을 반환해 화면이 비더라도 예외는 나지 않는다. */
-  function _socialDomainList() {
-    const D = (typeof window !== 'undefined' && window.DiagSocial) ||
-              (typeof DiagSocial !== 'undefined' ? DiagSocial : null);
+  /* orgType → 진단 모듈. wizard.js의 _orgDiagModule과 같은 기준이며,
+     모듈 인스턴스는 window에서 읽는다(배열·매핑 복제 금지).
+     ⚠ 협동조합은 전용 모듈이 없어 DiagSocial을 빌려 쓴다 */
+  function _orgModule(fd) {
+    const G = (typeof window !== 'undefined') ? window : {};
+    const t = (fd && fd.orgType) || (_lastFd && _lastFd.orgType) || '';
+    if (t === 'social_venture') return G.DiagVenture || null;
+    if (t === 'social_enterprise' || t === 'cooperative') return G.DiagSocial || null;
+    // orgType이 없는 레거시 데이터 — 점수 키 접두어로 역추적
+    const pre = (fd && fd.orgDiagKeyPrefix) || '';
+    if (pre.indexOf('venture') >= 0) return G.DiagVenture || null;
+    return G.DiagSocial || null;
+  }
+  /* 점수 키 접두어 — collect()가 실어 보낸 값을 쓰고, 없으면 모듈에서 파생한다.
+     ⚠ 'diag-social-container_'를 하드코딩하지 않는다 (소셜벤처는 diag-venture-container_) */
+  function _orgKeyPrefix(fd) {
+    if (fd && fd.orgDiagKeyPrefix) return fd.orgDiagKeyPrefix;
+    const m = _orgModule(fd);
+    return (m && m.KEY_PREFIX) || 'diag-social-container_';
+  }
+  function _socialDomainList(fd) {
+    const D = _orgModule(fd);
     return (D && Array.isArray(D.DOMAINS)) ? D.DOMAINS : [];
   }
-  function _socialItems() {
-    const D = (typeof window !== 'undefined' && window.DiagSocial) ||
-              (typeof DiagSocial !== 'undefined' ? DiagSocial : null);
+  function _socialItems(fd) {
+    const D = _orgModule(fd);
     return (D && D.ITEMS) ? D.ITEMS : {};
   }
+  /* 소셜벤처 여부 — 섹션 라벨 분기용 */
+  function _isVentureFd(fd) {
+    const t = (fd && fd.orgType) || (_lastFd && _lastFd.orgType) || '';
+    if (t) return t === 'social_venture';
+    return String((fd && fd.orgDiagKeyPrefix) || '').indexOf('venture') >= 0;
+  }
   /* 영역 해설은 wizard.js의 SOCIAL_DOMAIN_EXPLAIN(키 s1~s8)을 그대로 쓴다 — 문구 복제 금지 */
-  function _socialExplain() {
+  function _socialExplain(fd) {
     const W = (typeof window !== 'undefined' && window.Wizard) ||
               (typeof Wizard !== 'undefined' ? Wizard : null);
-    return (W && W.SOCIAL_DOMAIN_EXPLAIN) ? W.SOCIAL_DOMAIN_EXPLAIN : {};
+    if (!W) return {};
+    return (_isVentureFd(fd) ? W.VENTURE_DOMAIN_EXPLAIN : W.SOCIAL_DOMAIN_EXPLAIN) || {};
   }
 
   /* 조직 형태 판정 — collect()가 실어 보낸 파생 플래그를 쓴다(SOCIAL_ORG_TYPES 배열 복제 금지).
@@ -567,7 +592,27 @@ const Dashboard = (() => {
     subsidy_cliff: 'profit', winning_but_losing: 'profit',
     ceo_bottleneck: 'org', employment_unstable: 'org', digital_base_missing: 'org',
     svi_gap: 'system', formal_shell: 'system',
+
+    /* 소셜벤처(DiagVenture) 경고 코드 — V1~V8 대응 */
+    articles_not_ready: 'mission', impact_unprovable: 'mission',
+    target_unmeasured: 'mission', no_differentiation_story: 'mission',
+    tech_social_disconnect: 'profit', rnd_asset_missing: 'profit',
+    runway_blind: 'revenue', unproven_and_unfunded: 'revenue',
+    ir_not_ready: 'revenue', public_finance_unused: 'revenue',
+    team_single_point: 'org',
+    application_unready: 'system',
   };
+
+  /* 섹션별 대응 영역 id — 조직 형태에 따라 다르다.
+     ⚠ 수미쌍관: 8영역이 빠짐없이 어느 섹션엔가 배정되어야 한다.
+        사회적기업 S1~S8 / 소셜벤처 V1~V8 모두 8/8이 배정된다 */
+  const SEC_DOMAINS = {
+    social:  { mission: ['s1', 's2'], revenue: ['s3', 's6'], profit: ['s4'], org: ['s5', 's8'], system: ['s7'] },
+    venture: { mission: ['v1', 'v2'], revenue: ['v5', 'v4'], profit: ['v3'], org: ['v6', 'v8'], system: ['v7'] },
+  };
+  function _secDomainIds(fd, key) {
+    return SEC_DOMAINS[_isVentureFd(fd) ? 'venture' : 'social'][key] || [];
+  }
   const SOCIAL_LEVEL_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
 
   function _esc(v) {
@@ -587,8 +632,10 @@ const Dashboard = (() => {
   }
 
   function _socialWarnings(fd) {
+    // orgWarnings가 정본. socialWarnings는 구 필드(병행 유지 중)
+    if (fd && Array.isArray(fd.orgWarnings)) return fd.orgWarnings;
     if (fd && Array.isArray(fd.socialWarnings)) return fd.socialWarnings;
-    const D = (typeof window !== 'undefined' && window.DiagSocial) || null;
+    const D = _orgModule(fd);
     if (!D || !D.detectCrossWarnings) return [];
     try { return D.detectCrossWarnings(_socialFlatScores(fd)) || []; } catch (e) { return []; }
   }
@@ -616,11 +663,11 @@ const Dashboard = (() => {
   function _socialDomains(fd) {
     let sc = (fd && fd.scaleScores) || null;
     if (!sc || !sc.domains) {
-      const D = (typeof window !== 'undefined' && window.DiagSocial) || null;
+      const D = _orgModule(fd);
       if (D && D.calcScores) { try { sc = D.calcScores(_socialFlatScores(fd)); } catch (e) { sc = null; } }
     }
     const domains = (sc && sc.domains) || {};
-    return _socialDomainList().map(function (d) {
+    return _socialDomainList(fd).map(function (d) {
       const v = domains[d.key] || {};
       return {
         id: d.id, key: d.key, label: d.label, icon: d.icon, desc: d.desc,
@@ -649,14 +696,15 @@ const Dashboard = (() => {
   /* 문항별 점수표 — 지정한 영역(s1 등)의 5문항 + 2점 이하 지적 */
   function _socItemTable(fd, domainIds) {
     const flat = _socialFlatScores(fd);
-    const items = _socialItems();
+    const items = _socialItems(fd);
     const doms = _socialDomains(fd);
+    const PRE = _orgKeyPrefix(fd);
     let html = '';
     domainIds.forEach(function (did) {
       const dom = doms.filter(function (d) { return d.id === did; })[0];
       const keys = Object.keys(items).filter(function (k) { return k.indexOf(did + '_') === 0; });
       const rows = keys.map(function (k) {
-        const sc = Number(flat['diag-social-container_' + k] || 0);
+        const sc = Number(flat[PRE + k] || 0);
         const cls = sc >= 4 ? 'high' : sc >= 3 ? 'mid' : sc >= 2 ? 'low' : sc > 0 ? 'risk' : 'none';
         return '<div class="soc-item-row' + (sc > 0 && sc <= 2 ? ' is-weak' : '') + '">' +
           '<span class="soc-item-label">' + _esc(items[k].label) + '</span>' +
@@ -664,7 +712,7 @@ const Dashboard = (() => {
           '</div>';
       }).join('');
       const weak = keys.filter(function (k) {
-        const s = Number(flat['diag-social-container_' + k] || 0); return s > 0 && s <= 2;
+        const s = Number(flat[PRE + k] || 0); return s > 0 && s <= 2;
       }).map(function (k) { return items[k].label; });
       html += '<div class="soc-item-group" data-domain="' + _esc(did) + '">' +
         '<div class="soc-item-head">' +
@@ -727,7 +775,7 @@ const Dashboard = (() => {
   /* ── ② 우리 조직 현재 상태 (S1~S8 전 영역) ── */
   function renderSocialStatus(fd) {
     const doms = _socialDomains(fd);
-    const explain = _socialExplain();
+    const explain = _socialExplain(fd);
     _setSoc('socialStatusContent',
       '<p class="soc-lead">진단한 8개 영역의 현재 점수입니다. 5점이 최고, 1점이 최저입니다.</p>' +
       '<div class="soc-bars">' + doms.map(_socBar).join('') + '</div>' +
@@ -750,9 +798,11 @@ const Dashboard = (() => {
   function renderSocialMission(fd) {
     const w = _warnsFor(fd, 'mission');
     _setSoc('socialMissionContent',
-      '<p class="soc-lead">사회적 미션이 문서에만 있는지, 실제 사업 판단에 쓰이는지를 봅니다. ' +
-      '재인증 심사에서 사회적 목적 실현 여부가 쟁점이 되는 영역입니다.</p>' +
-      _socItemTable(fd, ['s1', 's2']) +
+      '<p class="soc-lead">' +
+      (_isVentureFd(fd)
+        ? '해결하려는 사회문제가 정관에 명시되어 있는지, 성과를 숫자로 증빙할 수 있는지를 봅니다. 판별 심사에서 사회성 항목의 근거가 되는 영역입니다.'
+        : '사회적 미션이 문서에만 있는지, 실제 사업 판단에 쓰이는지를 봅니다. 재인증 심사에서 사회적 목적 실현 여부가 쟁점이 되는 영역입니다.') + '</p>' +
+      _socItemTable(fd, _secDomainIds(fd, 'mission')) +
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
 
@@ -760,9 +810,11 @@ const Dashboard = (() => {
   function renderSocialRevenue(fd) {
     const w = _warnsFor(fd, 'revenue');
     _setSoc('socialRevenueContent',
-      '<p class="soc-lead">매출이 어느 채널에서 나오는지, 한쪽에 쏠려 있지는 않은지를 봅니다. ' +
-      '공공 발주에만 의존하면 발주 기관의 예산이 삭감될 때 매출이 한 번에 끊깁니다.</p>' +
-      _socItemTable(fd, ['s3', 's6']) +
+      '<p class="soc-lead">' +
+      (_isVentureFd(fd)
+        ? '투자·보증·정부 프로그램 중 어떤 경로를 확보했는지, 12개월 자금 소요를 계산해 두었는지를 봅니다. 자금 계획이 없으면 언제 바닥나는지 알 수 없어 대응할 시간을 확보하지 못합니다.'
+        : '매출이 어느 채널에서 나오는지, 한쪽에 쏠려 있지는 않은지를 봅니다. 공공 발주에만 의존하면 발주 기관의 예산이 삭감될 때 매출이 한 번에 끊깁니다.') + '</p>' +
+      _socItemTable(fd, _secDomainIds(fd, 'revenue')) +
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
 
@@ -771,16 +823,24 @@ const Dashboard = (() => {
         문항표보다 앞에 별도 강조 박스로 배치한다 */
   function renderSocialProfit(fd) {
     const w = _warnsFor(fd, 'profit');
-    const key = w.filter(function (x) { return x.code === 'winning_but_losing'; });
-    const rest = w.filter(function (x) { return x.code !== 'winning_but_losing'; });
+    /* 이 섹션의 핵심 경고를 문항표보다 앞에 강조 배치한다 */
+    const HEADLINE = _isVentureFd(fd) ? 'tech_social_disconnect' : 'winning_but_losing';
+    const HEADLINE_TITLE = _isVentureFd(fd)
+      ? '🔬 기술은 있으나 사회문제 해결과의 연결을 설명하지 못하고 있습니다'
+      : '💸 수주는 하는데 남는 게 없는 구조일 수 있습니다';
+    const key = w.filter(function (x) { return x.code === HEADLINE; });
+    const rest = w.filter(function (x) { return x.code !== HEADLINE; });
     _setSoc('socialProfitContent',
-      '<p class="soc-lead">지원금 없이도 버틸 수 있는 구조인지, 사업마다 실제로 남는 게 있는지를 봅니다.</p>' +
+      '<p class="soc-lead">' +
+      (_isVentureFd(fd)
+        ? '기술의 차별성이 문서로 뒷받침되는지, 그 기술이 사회문제 해결에 어떻게 기여하는지 설명할 수 있는지를 봅니다.'
+        : '지원금 없이도 버틸 수 있는 구조인지, 사업마다 실제로 남는 게 있는지를 봅니다.') + '</p>' +
       (key.length
         ? '<div class="soc-headline-warn">' +
-          '<div class="soc-headline-title">💸 수주는 하는데 남는 게 없는 구조일 수 있습니다</div>' +
+          '<div class="soc-headline-title">' + HEADLINE_TITLE + '</div>' +
           key.map(function (x) { return _warnCard(x, 'soc-warn-headline'); }).join('') +
           '</div>' : '') +
-      _socItemTable(fd, ['s4']) +
+      _socItemTable(fd, _secDomainIds(fd, 'profit')) +
       (rest.length ? '<div class="soc-warn-group">' + rest.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
 
@@ -788,8 +848,11 @@ const Dashboard = (() => {
   function renderSocialOrg(fd) {
     const w = _warnsFor(fd, 'org');
     _setSoc('socialOrgContent',
-      '<p class="soc-lead">대표가 자리를 비워도 사업이 굴러가는지, 일한 기록이 조직에 남는지를 봅니다.</p>' +
-      _socItemTable(fd, ['s5', 's8']) +
+      '<p class="soc-lead">' +
+      (_isVentureFd(fd)
+        ? '대표와 핵심 인력의 역량이 사업과 연결되는지, 한 사람이 빠져도 개발과 의사결정이 이어지는지를 봅니다.'
+        : '대표가 자리를 비워도 사업이 굴러가는지, 일한 기록이 조직에 남는지를 봅니다.') + '</p>' +
+      _socItemTable(fd, _secDomainIds(fd, 'org')) +
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
 
@@ -799,8 +862,47 @@ const Dashboard = (() => {
         대신 '가지고 있는데 못 쓰고 있는 제도'(활용도)에 집중한다 */
   function renderSocialSystem(fd) {
     const flat = _socialFlatScores(fd);
-    const g = function (k) { return Number(flat['diag-social-container_' + k] || 0); };
+    const PRE = _orgKeyPrefix(fd);
+    const g = function (k) { return Number(flat[PRE + k] || 0); };
     const w = _warnsFor(fd, 'system');
+
+    /* ── 소셜벤처: 판별 준비도 중심 ── */
+    if (_isVentureFd(fd)) {
+      const screening = g('v7_1');
+      const evidence  = g('v7_5');
+      const box = screening === 0
+        ? '<div class="soc-use-item none"><div class="soc-use-head">판별 준비 — 미응답</div>' +
+          '<div class="soc-use-body">소셜벤처 판별 또는 자가진단 이력을 입력하지 않으셨습니다.</div></div>'
+        : screening <= 2
+        ? '<div class="soc-use-item warn"><div class="soc-use-head">📋 소셜벤처 판별 준비가 되어 있지 않습니다</div>' +
+          '<div class="soc-use-body">판별은 <strong>지속 자격이 아니라 지원사업 신청 기준</strong>입니다. ' +
+          '기술보증기금 소셜벤처 누리집의 자가진단으로 현재 위치를 먼저 확인하십시오. ' +
+          '사회성과 혁신성장성 두 축을 모두 보므로, 어느 쪽이 약한지 알아야 준비 순서를 정할 수 있습니다.</div></div>'
+        : '<div class="soc-use-item ok"><div class="soc-use-head">✅ 판별 또는 자가진단 이력이 있습니다</div>' +
+          '<div class="soc-use-body">판별 결과를 지원사업 신청서와 투자 자료에 그대로 활용하십시오.</div></div>';
+
+      const gaps = [];
+      if (evidence > 0 && evidence <= 2) gaps.push({ n: '증빙자료 사전 정리', d: '정관·특허·투자·협약 자료가 흩어져 있으면 공고 기간이 짧을 때 신청 자체를 못 합니다. 항목별로 한곳에 모아 두십시오.' });
+      if (g('v7_3') > 0 && g('v7_3') <= 2) gaps.push({ n: '소셜벤처 지원사업', d: '소셜벤처를 대상으로 하는 지원사업에 신청한 이력이 없습니다. 단계에 맞는 공고부터 확인하십시오.' });
+      if (g('v7_4') > 0 && g('v7_4') <= 2) gaps.push({ n: '중간지원조직 연결', d: '소셜벤처스퀘어 등 중간지원조직을 통해 컨설팅·네트워킹·공고 정보를 받을 수 있습니다.' });
+      if (g('v7_2') > 0 && g('v7_2') <= 2) gaps.push({ n: '벤처기업·이노비즈 등 인증', d: '다른 인증을 함께 보유하면 지원사업·조달에서 활용 범위가 넓어집니다. 요건부터 확인하십시오.' });
+      if (g('v5_3') > 0 && g('v5_3') <= 2) gaps.push({ n: '기술보증기금 보증 상담', d: '소셜벤처는 기술보증 트랙에서 우대를 받는 경우가 있습니다. 자격 여부를 상담으로 확인하십시오.' });
+
+      _setSoc('socialSystemContent',
+        '<p class="soc-lead">판별을 받았는지가 아니라, <strong>신청 전에 갖춰야 할 것을 갖췄는지</strong>를 봅니다. ' +
+        '소셜벤처 판별은 특별법상 지속 자격이 아니므로 만료·갱신을 걱정할 필요가 없습니다.</p>' +
+        '<div class="soc-use-list">' + box + '</div>' +
+        '<div class="soc-sub-title">신청 전에 채워야 할 것</div>' +
+        (gaps.length
+          ? '<div class="soc-use-list">' + gaps.map(function (u) {
+              return '<div class="soc-use-item warn"><div class="soc-use-head">🔓 ' + _esc(u.n) + '</div>' +
+                '<div class="soc-use-body">' + _esc(u.d) + '</div></div>';
+            }).join('') + '</div>'
+          : '<div class="soc-ok-box">✅ 진단 응답 기준으로 뚜렷하게 비어 있는 항목은 확인되지 않았습니다.</div>') +
+        _socItemTable(fd, _secDomainIds(fd, 'system')) +
+        (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
+      return;
+    }
 
     const svi = g('s7_2');
     const sviBox = svi === 0
@@ -842,7 +944,7 @@ const Dashboard = (() => {
         : '<div class="soc-ok-box">✅ 진단 응답 기준으로 뚜렷하게 놓치고 있는 제도는 확인되지 않았습니다.</div>') +
       '<div class="soc-sub-title">다음 단계 검토</div>' +
       '<div class="soc-next-step">' + nextStep + '</div>' +
-      _socItemTable(fd, ['s7']) +
+      _socItemTable(fd, _secDomainIds(fd, 'system')) +
       (w.length ? '<div class="soc-warn-group">' + w.map(function (x) { return _warnCard(x); }).join('') + '</div>' : ''));
   }
 
@@ -965,6 +1067,29 @@ const Dashboard = (() => {
 
     const ORG_LABEL = { social_enterprise: '사회적기업', cooperative: '협동조합·마을기업', social_venture: '소셜벤처' };
     const orgLabel = ORG_LABEL[(fd && fd.orgType)] || '사회적경제 조직';
+    const isVenture = _isVentureFd(fd);
+
+    /* 섹션 제목·배지도 조직 형태에 맞춘다 (구조는 9섹션 그대로) */
+    const SEC_TITLE = {
+      'sec-social-revenue': isVenture
+        ? { t: '자금을 어떻게 조달하나', b: 'V5 · V4' } : { t: '어디서 돈이 들어오나', b: 'S3 · S6' },
+      'sec-social-system': isVenture
+        ? { t: '판별과 제도를 활용하고 있나', b: 'V7' } : { t: '제도를 제대로 쓰고 있나', b: 'S7' },
+      'sec-social-mission': isVenture
+        ? { t: '사회문제를 제대로 정의했나', b: 'V1 · V2' } : { t: '미션과 사업이 맞물리나', b: 'S1 · S2' },
+      'sec-social-profit': isVenture
+        ? { t: '기술이 무기가 되고 있나', b: 'V3' } : { t: '수익 구조 점검', b: 'S4' },
+      'sec-social-org': isVenture
+        ? { t: '팀이 버틸 수 있나', b: 'V6 · V8' } : { t: '조직이 버틸 수 있나', b: 'S5 · S8' },
+    };
+    Object.keys(SEC_TITLE).forEach(function (id) {
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      const h = sec.querySelector('.sec-title h3');
+      const bd = sec.querySelector('.sec-title .badge');
+      if (h)  h.textContent  = SEC_TITLE[id].t;
+      if (bd) bd.textContent = SEC_TITLE[id].b;
+    });
 
     const title = document.getElementById('dTitle');
     if (title) title.textContent = ((fd && fd.companyName) || '조직') + ' ' + orgLabel + ' 진단 리포트';
@@ -993,6 +1118,8 @@ const Dashboard = (() => {
   function buildNav(isMicro, isFunding, isSocial) {
     const nav = document.getElementById('reportNav');
     if (!nav) return;
+    // 섹션 구조(9개)는 그대로 두고 라벨만 조직 형태에 맞춘다
+    const isVenture = isSocial && _isVentureFd(_lastFd);
 
     /* 사회적경제 조직 — 전용 8섹션 + 기존 sec-gov 재사용.
        목차 라벨은 프레임워크 이름 대신 사장님이 읽는 말로 쓴다.
@@ -1001,10 +1128,10 @@ const Dashboard = (() => {
       { href: 'sec-social-summary', label: '한눈에 보기' },
       { href: 'sec-social-status',  label: '우리 조직 현재 상태' },
       { href: 'sec-social-mission', label: '미션과 사업이 맞물리나' },
-      { href: 'sec-social-revenue', label: '어디서 돈이 들어오나' },
+      { href: 'sec-social-revenue', label: isVenture ? '자금을 어떻게 조달하나' : '어디서 돈이 들어오나' },
       { href: 'sec-social-profit',  label: '수익 구조 점검' },
       { href: 'sec-social-org',     label: '조직이 버틸 수 있나' },
-      { href: 'sec-social-system',  label: '제도를 제대로 쓰고 있나' },
+      { href: 'sec-social-system',  label: isVenture ? '판별과 제도를 활용하고 있나' : '제도를 제대로 쓰고 있나' },
       { href: 'sec-social-action',  label: '무엇부터 할 것인가' },
       { href: 'sec-gov',            label: '정부지원사업' },
     ] : isFunding ? [

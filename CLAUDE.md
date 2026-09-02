@@ -8,6 +8,122 @@
 
 ---
 
+## 최근 수정 이력 (2026-09-02) — 소셜벤처 전용 진단지 신설 (V1~V8 40문항)
+
+**소셜벤처를 선택하면 사회적기업 진단(S1~S8)이 적용되고 있었다.** 두 유형은 평가 축이 근본적으로 다르다.
+
+### ① 근거 — 기술보증기금 소셜벤처 판별기준 (중소벤처기업부고시)
+사회성 판별표 12개 + 혁신성장성 판별표 12개, 각각 70점 이상이어야 판별.
+출처: https://sv.kibo.or.kr/Homepage/attach/guide.pdf
+
+S1~S8을 그대로 쓸 수 없는 이유 3가지:
+1. **특별법상 지속 자격이 없다.** 사회적기업·협동조합·마을기업과 달리 판별은 자격이 아니라 **지원사업 신청 기준**이다 → 만료·갱신 경고를 넣지 않는다
+2. **혁신성장성(기술 혁신성·사업 성장성·R&D 역량·대표자 기술역량)이 평가의 절반**인데 S1~S8에는 이 축이 거의 없다 → V3·V4·V6로 확보
+3. **상법상 영리법인이며 벤처투자·기술보증 트랙**을 탄다. 공공조달 중심인 사회적기업과 자금 조달 경로가 다르다 → S3(공공조달·판로) 자리에 **V5(투자유치·자금조달)**
+
+⚠ **판별표 점수(사회성 70 / 혁신성장성 70)를 예측하지 않는다.** SVI를 흉내내지 않기로 한 것과 동일 원칙 — 실제 판별 결과와 달라지면 신뢰 문제가 생긴다. 8영역 균등 배점(0.125)이며 문항 해설은 "판별 신청 전 갖춰야 할 것"을 짚는다.
+
+### ② `js/diagnosis/diagnosis-venture.js` 신설 — `DiagVenture`
+**V1 사회문제 정의 / V2 임팩트 측정·검증 / V3 기술·아이디어 혁신성 / V4 사업 성장성·시장 / V5 투자유치·자금조달 / V6 팀·R&D 역량 / V7 판별·제도 활용 / V8 디지털·AX** — 8영역 × 5문항 = 40문항.
+점수 키 접두어 `diag-venture-container_`. `detectCrossWarnings` 12규칙(CRITICAL 2 / HIGH 4 / MEDIUM 6).
+- `v1_1`(정관 명시)은 판별표 최대 배점 항목이며 **정관 변경은 총회 의결·등기가 필요**해 준비 기간이 든다 — 경고 문구에 반영
+- `v3_5`(기술↔사회성 연결)는 판별의 핵심축이라 별도 경고(`tech_social_disconnect`)로 둔다
+
+### ③ ⚠ orgType 분기 단일화 — `_orgDiagModule()`
+지금까지 orgType 분기가 여러 곳에 흩어져 반복적으로 사고를 냈다. 모듈이 하나 더 늘어나면서 **단일 진입점**으로 정리했다.
+```js
+_orgDiagModule(orgType) → DiagVenture | DiagSocial | null   // wizard.js 한 곳
+_orgContainerId(mod)    → mod.KEY_PREFIX에서 컨테이너 id 파생 (하드코딩 금지)
+```
+파생 대상 — **하드코딩을 전부 제거했다**:
+
+| 지점 | 이전 | 이후 |
+|---|---|---|
+| `loadDiagnosisUI()` | `renderDiagModule('diag-social-container', _diagSocialToAreas(DiagSocial))` | `renderDiagModule(orgContainerId, _diagOrgToAreas(orgMod))` |
+| `_calcSocialDomainScores()` | 정규식 `/^diag-social-container_s(\d)_/` **하드코딩** | `_calcOrgDomainScores(scores, mod)` — `mod.KEY_PREFIX`·`mod.DOMAINS`에서 파생 |
+| `dashboard.js` 3곳 | `flat['diag-social-container_' + k]` | `flat[PRE + k]`, `PRE = fd.orgDiagKeyPrefix` |
+| `DIAG_CONTAINERS`·`_countDiagItems` | venture 누락 | `diag-venture-container` 추가 |
+
+⚠ **뒤 두 곳을 빠뜨리면 소셜벤처에서 레이더차트가 비고 진행률이 틀린다.** 사회적기업 때 정확히 같은 문제를 겪었으므로 검증 항목에 명시적으로 넣었다([3]·[2] 케이스).
+
+### ④ 필드명 일반화 — `orgPrompt` / `orgWarnings`
+`socialPrompt`/`socialWarnings`가 이미 3개 파일 6곳에 퍼져 있었고, 세 번째 모듈이 같은 필드를 공유하면 "사회적기업 전용"으로 오독된다.
+```js
+data.orgPrompt   = data.socialPrompt   = mod.buildPromptSummary(allScores);
+data.orgWarnings = data.socialWarnings = mod.detectCrossWarnings(allScores);
+// 읽는 쪽: d.orgPrompt || d.socialPrompt
+```
+**구 필드를 같은 값으로 병행 유지**해 이번 커밋의 회귀 위험을 0으로 만들었다. 한 번에 갈아엎으면 변경이 큰 상태에서 회귀 원인 추적이 어려워진다.
+
+### ⑤ 정부지원사업 — `orgType` 태그 세분화
+**문제**: 소셜벤처로 진단해도 사회적경제 사업 5개가 각 +4점으로 상위를 독점해 TIPS 등 벤처 계열이 `slice(0,6)`에서 밀려났다. (TIPS 제외 조건은 이미 `orgType !== 'social_venture'`로 되어 있었으므로 "제외"가 아니라 **점수 독점**이 원인이었다.)
+
+`'social' | 'all'` 2종 → **4종**으로 확장:
+| 태그 | 대상 | 소셜벤처 | 사회적기업·협동조합 | 일반 기업 |
+|---|---|---|---|---|
+| `social_economy` | 사회적기업·협동조합 중심 | +1 | **+4** | 제외 |
+| `social_all` | 사회적경제 전체 | **+4** | **+4** | 제외 |
+| `venture` | 소셜벤처 적합 | **+4** | 제외 | 제외 |
+| `all`/미지정 | 무관 | 0 | 0 | 0 |
+
+신설 2건(`orgType:'venture'`, **금액 수치 없음**): `sv_growth`(소셜벤처 육성사업 — 중소벤처기업부) · `sv_kibo_guarantee`(기술보증기금 소셜벤처 보증)
+- ⚠ **"임팩트 투자 매칭"은 추가하지 않았다.** 모태펀드 임팩트 계정은 연도별 출자사업 공고 형태에 가까워 상시 사업으로 실재하는지 확인되지 않았다. 정책자금에서 세운 **"확인되지 않은 것은 넣지 않는다"** 원칙과 같다
+- 기존 `tips`·`fintech_support`까지 벤처 계열은 4건
+
+### ⑥ 리포트 — 9섹션 구조 유지, 라벨·내용만 조직 형태별
+| 섹션 | 사회적기업 | 소셜벤처 |
+|---|---|---|
+| revenue | 어디서 돈이 들어오나 (S3·S6) | **자금을 어떻게 조달하나** (V5·V4) |
+| system | 제도를 제대로 쓰고 있나 (S7) | **판별과 제도를 활용하고 있나** (V7) |
+| mission | 미션과 사업이 맞물리나 (S1·S2) | 사회문제를 제대로 정의했나 (V1·V2) |
+| profit | 수익 구조 점검 (S4) | 기술이 무기가 되고 있나 (V3) |
+| org | 조직이 버틸 수 있나 (S5·S8) | 팀이 버틸 수 있나 (V6·V8) |
+
+- 핵심 강조 경고도 분기: 사회적기업 `winning_but_losing` / 소셜벤처 `tech_social_disconnect`
+- ⑦ 제도 섹션은 소셜벤처 전용 내용 — **"판별은 지속 자격이 아니므로 만료·갱신을 걱정할 필요가 없다"**를 명시하고 신청 전 준비 항목에 집중
+- `SOCIAL_WARN_SECTION`에 venture 코드 12개를 합쳤다(코드가 겹치지 않으므로 한 테이블)
+
+### ⑦ 검증 (Node DOM 스텁, 69/69 통과)
+**수미쌍관을 코드로 확인** — `data-domain` 속성 역추적:
+
+| ID | 영역 | 렌더링 섹션 |
+|---|---|---|
+| V1 | 사회문제 정의 | status + mission |
+| V2 | 임팩트 측정·검증 | status + mission |
+| V3 | 기술·아이디어 혁신성 | status + profit |
+| V4 | 사업 성장성·시장 | status + revenue |
+| V5 | 투자유치·자금조달 | status + revenue |
+| V6 | 팀·R&D 역량 | status + org |
+| V7 | 판별·제도 활용 | status + system |
+| V8 | 디지털·AX | status + org |
+
+**누락 0. 40문항 라벨이 전부 리포트에 등장.**
+
+| 항목 | 결과 |
+|---|---|
+| 모듈 | 8영역·40문항·영역당 5문항·weight 1.0 · scale 1~5 전수 · 1점→20 / 3점→60 / 5점→100 ✓ |
+| 경고 | 3점 **0건** / 1점 **12건**(CRITICAL 2) ✓ |
+| **레이더차트** | 키 `v1~v8` · **0점 영역 없음** · v3 부분 저점 2.8 정확 · 해설 카드 8건 본문 채워짐 ✓ |
+| **진행률** | 소셜벤처 40 + 업종 16 = **56** · 탭 라벨 40문항 · 배너에 "준비 중" 없음 ✓ |
+| collect | `orgPrompt`/`orgWarnings` 생성 · 구 필드 병행 · `orgDiagKeyPrefix` 전달 · `bizScale` micro 유지 ✓ |
+| gov-support | 소셜벤처 상위에 벤처·보증 계열 포함 · 전용 2건 노출 · 사회적경제 독점 해소 · **소셜벤처 TIPS 포함** ✓ |
+| **회귀** 사회적기업 | S1~S8 40문항 · 진행률 56 · 목차 라벨 기존 유지 · gov-support 사회적경제 상위 ✓ |
+| **회귀** micro | 35문항 · 진행률 51 · 배너 숨김 · social/venture 컨테이너 0 ✓ |
+| **회귀** 일반 기업 | gov-support 6건 · 외식업 스마트화 포함 · orgType 미지정도 동일 ✓ |
+| 하드코딩 | 신규 2건 금액 표기 0 · 구 `orgType:'social'` 0 · dashboard 접두어 하드코딩 0 ✓ |
+
+### ⑧ 기타
+- `js/diagnosis/industry/social_venture.js`(41줄)는 **삭제하지 않고** `industryVarMap`에서만 제외했다
+- biz-context 조직 형태 선택에서 소셜벤처의 "준비 중" confirm 제거 (`ORG_TYPE_PENDING`에 협동조합만 남음)
+- `index.html`에 `diag-venture-container` + 스크립트 태그 추가, 로컬 `?v=` **50곳** 전부 `20260817c`
+
+### ⑨ 남은 이슈
+1. **협동조합 전용 진단지(40문항) 신설 예정.** 협동조합기본법 근거. 현재는 `_orgDiagModule()`에서 `DiagSocial`을 빌려 쓰며, 전용 모듈이 생기면 **그 함수 한 줄만 바꾸면 된다.**
+2. **`socialPrompt`/`socialWarnings`는 `orgPrompt`/`orgWarnings`로 대체됨.** 회귀 방지를 위해 구 필드를 병행 유지 중이며, **협동조합 작업 완료 후 제거 예정.** 새 코드에서는 `orgPrompt`/`orgWarnings`만 사용할 것.
+3. (기존) 사회적경제 AI 결과가 이력 스냅샷에 저장되지 않음 / `claude-analyze-funding.js`의 continuation 미적용 — 변동 없음
+
+---
+
 ## 최근 수정 이력 (2026-09-01) — 사회적경제 리포트 2차: 전용 AI 단일 호출 연결 + 속도 개선
 
 ### ① ⚠ 원인 정정 — "sme 경로·web_search 사용"이 아니다
@@ -3077,6 +3193,8 @@ biznavi/
 - **진단 컨테이너가 여러 개(common/micro/social/industry)이므로 DOM 전역 `querySelectorAll('.diag-item')`로 문항을 세면 안 된다. 활성 경로 기준으로 한정할 것.** `diagTab-common` 안에 3개가 형제로 공존하며, 미사용 컨테이너는 `hidden`일 뿐 내용이 남아 있다. 문항 수 표시(진행률 분모·탭 라벨·배너)는 전부 `_countDiagItems()` 하나를 쓰고, 분자(`_countDoneScores()`)도 같은 범위여야 100%가 성립한다
 - **진단 문항을 만들 때는 그 결과가 리포트 어느 섹션에서 다뤄지는지 함께 설계할 것.** 묻고 안 쓰는 문항은 응답자의 시간을 낭비시킨다. (사회적기업 S5·S7·S8 15문항이 리포트에서 누락돼 있던 전례)
 - **진단 모듈을 추가할 때는 문항뿐 아니라 결과 화면까지 함께 확인할 것** — 레이더차트·도메인 해설·진단유형 카드·정부지원사업 매칭·동종업계 비교 5곳이다. **점수 키 접두어가 다르면 결과 화면이 조용히 비어버린다**(에러가 나지 않아 발견이 늦다). 도메인 점수 함수의 반환 키와 `*_DOMAIN_EXPLAIN`의 키는 반드시 일치해야 한다 — `explainMap[key]` 조회 방식이다
+- **조직 형태별 진단 모듈은 `_orgDiagModule(orgType)` 한 곳에서만 고른다.** 컨테이너 id·점수 키 접두어·영역 목록은 전부 모듈의 `KEY_PREFIX`·`DOMAINS`에서 파생시킨다 — 정규식이나 문자열을 하드코딩하면 모듈이 늘어날 때 매칭이 하나도 안 돼 **레이더차트가 조용히 비고 진행률이 틀린다**(사회적기업·소셜벤처 때 각각 겪음). dashboard는 `fd.orgDiagKeyPrefix`를 쓴다
+- **진단 결과 필드는 `orgPrompt`/`orgWarnings`를 쓴다.** `socialPrompt`/`socialWarnings`는 구 필드로 병행 유지 중이며 협동조합 작업 후 제거 예정 — 새 코드에서 쓰지 말 것
 - **조직 형태(사회적기업·협동조합·소셜벤처)는 업종과 다른 축이다. `industryKey`에 밀어넣지 말고 `orgType`으로 분리해서 다룰 것.** 한 기업이 동시에 컨설팅업이면서 사회적기업일 수 있다(`knowledge_it` + `social_enterprise`). 또한 `api/analyze-biz.js`는 조직 형태를 반환하지 않으므로 **AI 업종분석으로 판별하려는 시도는 항상 실패한다** — 사용자 선택(`#orgTypeSelect`)이 유일한 소스다
 - **`orgType`을 `=== 'social_enterprise'` 단일 비교로 검사하지 말 것.** 협동조합·소셜벤처도 S1~S8을 사용하므로 `_isSocialOrg()`(wizard) 또는 3종 배열 포함 검사(ai-engine)를 쓴다. 단일 비교로 두면 협동조합 선택 시 화면만 사회적기업 진단이고 **점수 계산·AI 프롬프트는 micro로 빠진다**
 - **진단 문항은 사용자의 주관적 해석이 개입하지 않는 형태로 물어야 한다.** "~를 하십니까"보다 "서류에 ~라고 적혀 있습니까"가 정확하다. (2026-08-06 음식점 조리를 제조업으로 오인해 오진 발생)

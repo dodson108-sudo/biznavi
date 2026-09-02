@@ -379,8 +379,12 @@ const GovSupport = (() => {
     },
 
     // ── 사회적경제 (2026-08-16 신설) ──────────────────────────────
-    // orgType: 'social' — 사회적기업·협동조합·소셜벤처 전용/우대 사업.
-    // 일반 기업(orgType 'general')에는 자격이 없으므로 match()에서 제외한다.
+    // orgType 태그 (2026-09-02 세분화):
+    //   'social_economy' — 사회적기업·협동조합 중심 (소셜벤처에는 적합도가 낮다)
+    //   'social_all'     — 사회적경제 전체 (소셜벤처 포함)
+    //   'venture'        — 소셜벤처 적합 (벤처투자·기술보증 트랙)
+    //   'all'/미지정     — 조직 형태 무관
+    // ⚠ 일반 기업(orgType 'general')에는 자격이 없는 사업을 노출하지 않는다.
     // ⚠ 지원 규모·기간 수치는 매년 바뀌므로 넣지 않는다 (형태만 기재)
     {
       id: 'se_growth',
@@ -394,7 +398,7 @@ const GovSupport = (() => {
       industry: ['all'],
       bizModel: ['all'],
       size: ['micro', 'small', 'medium'],
-      orgType: 'social',
+      orgType: 'social_economy',
     },
     {
       id: 'se_fiscal',
@@ -408,7 +412,7 @@ const GovSupport = (() => {
       industry: ['all'],
       bizModel: ['all'],
       size: ['micro', 'small', 'medium'],
-      orgType: 'social',
+      orgType: 'social_economy',
     },
     {
       id: 'coop_support',
@@ -422,7 +426,7 @@ const GovSupport = (() => {
       industry: ['all'],
       bizModel: ['all'],
       size: ['micro', 'small', 'medium'],
-      orgType: 'social',
+      orgType: 'social_economy',
     },
     {
       id: 'svf_loan',
@@ -436,7 +440,7 @@ const GovSupport = (() => {
       industry: ['all'],
       bizModel: ['all'],
       size: ['micro', 'small', 'medium'],
-      orgType: 'social',
+      orgType: 'social_all',   // 사회적경제 전체 대상 (소셜벤처 포함)
     },
     {
       id: 'se_market',
@@ -450,7 +454,39 @@ const GovSupport = (() => {
       industry: ['all'],
       bizModel: ['all'],
       size: ['micro', 'small', 'medium'],
-      orgType: 'social',
+      orgType: 'social_economy',
+    },
+
+    // ── 소셜벤처 (2026-09-02 신설) ──────────────────────────────
+    // ⚠ '임팩트 투자 매칭'은 상시 사업으로 실재하는지 확인되지 않아 추가하지 않았다.
+    //    모태펀드 임팩트 계정은 연도별 출자사업 공고 형태에 가깝다.
+    {
+      id: 'sv_growth',
+      name: '소셜벤처 육성사업',
+      org: '중소벤처기업부',
+      supportType: '판별 연계 성장 지원 및 사업화 프로그램',
+      period: '정기 공고',
+      summary: '소셜벤처 판별 기업 대상 사업화·판로·네트워킹 지원. 사회성과 혁신성장성을 함께 갖춘 기업 우대.',
+      url: 'https://www.mss.go.kr',
+      purpose: ['fund', 'rd', 'marketing'],
+      industry: ['all'],
+      bizModel: ['all'],
+      size: ['micro', 'small', 'medium'],
+      orgType: 'venture',
+    },
+    {
+      id: 'sv_kibo_guarantee',
+      name: '기술보증기금 소셜벤처 보증',
+      org: '기술보증기금',
+      supportType: '소셜벤처 판별기업 대상 기술평가 기반 보증',
+      period: '수시',
+      summary: '소셜벤처 판별 기업에 대한 기술평가 기반 보증 지원. 담보가 부족한 초기 기업의 자금 조달 경로.',
+      url: 'https://sv.kibo.or.kr',
+      purpose: ['fund'],
+      industry: ['all'],
+      bizModel: ['all'],
+      size: ['micro', 'small', 'medium'],
+      orgType: 'venture',
     },
   ];
 
@@ -532,19 +568,31 @@ const GovSupport = (() => {
 
     /* 조직 형태 — 업종과 별개 축. wizard.js의 _isSocialOrg와 같은 기준을 쓴다
        (모듈 간 의존을 만들지 않기 위해 판정 목록을 여기에 둔다) */
-    const orgType  = d.orgType || 'general';
-    const isSocial = SOCIAL_ORG_TYPES.indexOf(orgType) !== -1;
+    const orgType   = d.orgType || 'general';
+    const isSocial  = SOCIAL_ORG_TYPES.indexOf(orgType) !== -1;
+    const isVenture = orgType === 'social_venture';
 
     const scored = PROGRAMS.map(p => {
       let score = 0;
 
-      /* 조직 형태 필터·가점
+      /* 조직 형태 필터·가점 (2026-09-02 태그 세분화)
          ① 사회적경제 전용 사업은 자격이 없는 일반 기업에 보여주지 않는다(제외).
             감점이 아니라 제외인 이유: 신청 자격이 없는 사업을 노출하는 것은 오정보다
-         ② 사회적경제 기업에는 전용 사업을 최우선(+4)으로 올린다 */
-      if (p.orgType === 'social') {
-        if (!isSocial) return { ...p, score: -1, _industryExact: false };
-        score += 4;
+         ② 조직 형태에 맞는 사업을 최우선으로 올린다.
+            ⚠ 소셜벤처에서 사회적경제 사업 5개가 상위를 독점해 벤처투자 계열이 밀려나던 문제를
+               태그 세분화로 해결한다. 소셜벤처는 투자·기술보증 트랙이 오히려 적합하다 */
+      const pOrg = p.orgType || 'all';
+      if (pOrg !== 'all') {
+        if (!isSocial) return { ...p, score: -1, _industryExact: false };   // 일반 기업 — 자격 없음
+        if (pOrg === 'social_all') {
+          score += 4;                                     // 사회적경제 전체 대상
+        } else if (pOrg === 'venture') {
+          if (isVenture) score += 4;                      // 소셜벤처 적합
+          else return { ...p, score: -1, _industryExact: false };
+        } else if (pOrg === 'social_economy') {
+          if (isVenture) score += 1;                      // 소셜벤처에도 자격은 있으나 적합도가 낮다
+          else score += 4;                                // 사회적기업·협동조합 최우선
+        }
       }
       /* ③ 벤처투자 계열은 일반 사회적기업·협동조합에 부적합하므로 제외한다.
             소셜벤처는 실제 대상이 될 수 있으므로 제외하지 않는다 */
