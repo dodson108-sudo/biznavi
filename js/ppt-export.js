@@ -59,9 +59,10 @@ const PptExport = (() => {
   }
 
   /* ── 레이더차트 canvas ──
-     ⚠ index.html에 id="radarChart"가 두 개 있다(diag-reveal · sec-diag).
-        getElementById는 첫 번째만 반환하므로 실제로 그려진 쪽을 골라야 한다.
-        전부 훑어 내용이 있는 canvas를 찾는다 */
+     캔버스가 둘이다: #radarChart(diag-reveal, drawRadarChart가 직접 그림) ·
+     #radarChartDash(대시보드 #sec-diag, Chart.js가 그림).
+     화면 진입 경로에 따라 어느 쪽이 채워졌는지 다르므로 둘 다 훑어 내용이 있는 것을 쓴다.
+     (2026-09-03 id 중복 수정 전에는 둘 다 'radarChart'였다) */
   function _canvasHasContent(cv) {
     if (!cv || !cv.width || !cv.height) return false;
     try {
@@ -72,7 +73,7 @@ const PptExport = (() => {
   }
   function _radarDataUrl() {
     try {
-      const list = document.querySelectorAll('canvas#radarChart, #radarChart');
+      const list = document.querySelectorAll('#radarChart, #radarChartDash');
       for (let i = 0; i < list.length; i++) {
         if (_canvasHasContent(list[i])) return list[i].toDataURL('image/png');
       }

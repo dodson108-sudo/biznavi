@@ -8,6 +8,70 @@
 
 ---
 
+## 최근 수정 이력 (2026-09-03) — radarChart id 중복 · PPT 파일 손상 수정
+
+### ① `radarChart` id 중복 — 대시보드 차트가 diag-reveal을 덮어쓰고 있었다
+`index.html`에 `id="radarChart"`가 **두 개**였다(1550 `#diag-reveal` / 1694 `#sec-diag`). HTML 명세 위반이며 `getElementById`는 **첫 번째만** 반환한다.
+
+⚠ **조사 결과 대시보드 캔버스는 죽은 요소가 아니었다.** [dashboard.js `renderRadar()`](js/dashboard.js)가 **Chart.js로 실제로 그리고 있다**(`new Chart(ctx, {type:'radar'})`).
+그런데 `getElementById('radarChart')`가 diag-reveal 캔버스를 반환하므로:
+1. **Chart.js가 diag-reveal의 수동 레이더차트를 덮어썼다**(`drawRadarChart`가 그린 것 위에)
+2. `#sec-diag`의 캔버스는 **영영 비어 있었다**
+
+**수정**: 1694행을 `id="radarChartDash"`로 바꾸고 `renderRadar()`가 새 id를 참조하게 했다. 두 차트가 각자의 캔버스에 그린다.
+- `ppt-export.js`의 `querySelectorAll` 우회는 **유지하되 의미를 바꿨다** — `'canvas#radarChart, #radarChart'`(중복 회피용) → `'#radarChart, #radarChartDash'`(진입 경로에 따라 채워진 쪽을 고름). 알파 채널 검사는 그대로 둔다
+- 문서 전체 중복 id **0건** 확인
+
+### ② PPT 파일이 열리지 않던 원인 — **CDN URL이 404**
+```
+https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js  → HTTP 404
+```
+**cdnjs는 pptxgenjs를 아예 호스팅하지 않는다.** API 조회 결과 `{"error":true,"status":404,"message":"Library not found"}`.
+2026-09-03 PPT 신설 때 존재하지 않는 URL을 넣었다.
+
+**수정**: 이 프로젝트가 이미 쓰는 jsDelivr로 교체.
+```
+https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js   → 200 OK, 477,529 bytes
+```
+
+**검증 절차(추측하지 않고 실제로 확인한 것)**
+1. Node에 PptxGenJS 3.12.0을 설치해 **현재 코드와 동일한 호출 형태**로 파일 생성 → 유효한 zip. `writeFile({fileName})`·`addShape('rect')`·`addTable`·`addImage(data URI)`·`undefined/NaN` 혼입까지 4케이스 전부 정상
+2. **실제 `ppt-export.js`를 실제 라이브러리로 실행**해 6개 유형 파일 생성 → 전부 유효
+3. 생성 파일을 **실제로 압축 해제**해 `ppt/presentation.xml`·`[Content_Types].xml` 파싱 확인
+→ **코드에는 결함이 없었다.** 라이브러리가 로드되지 않은 것이 유일한 원인이다.
+
+⚠ **다만 보고된 증상과 완전히 일치하지는 않는다.** 404면 `PptxGenJS`가 `undefined`이므로 버튼이 `disabled`되고 `download()`는 안내만 띄운다 — 파일이 생성되지 않아야 한다. "다운로드는 되는데 열리지 않는다"는 이 실패 모드로 설명되지 않는다.
+가능성: 브라우저가 404 HTML을 캐시했거나, 이전 배포 시점의 페이지에서 시도했거나, 다른 파일을 열었을 수 있다. **URL 결함은 확실하므로 고쳤고, 재배포 후 동일 증상이 남으면 브라우저 콘솔 오류를 확인해야 한다.**
+
+### ③ 관련 증상 — "차별화 미표시 · 사업검증도 빈 막대"는 **별개 문제** (이번에 고치지 않음)
+id 중복과 무관하다. 원인은 [wizard.js `calcDomainScores()`](js/wizard.js)의 **창업 초기 분기에서 `differentiation` 도메인에 점수 소스가 없는 것**이다.
+
+```js
+if (isStartup) {
+  finance         ← _s1_, _s2_
+  hr              ← _s4_
+  bm              ← _s3_
+  future          ← diag-industry-container_
+  differentiation ← (없음)          // ← 라벨이 '사업 검증도'
+}
+```
+STARTUP은 4영역(s1~s4)인데 도메인은 5개다. `differentiation`이 항상 빈 배열이 되어 **빈 막대**로 나온다.
+- 일반 라벨은 `차별화·경쟁우위역량`, 창업 초기 라벨은 `사업 검증도` — **같은 도메인**이다. 보고된 두 증상은 한 원인이다
+- 의도는 `differentiation ← s1(사업 검증)` / `finance ← s2(런웨이)`였던 것으로 보이나 `s1`이 `finance`로 들어가 있다. **매핑 오류**
+- ⚠ 지시대로 **원인만 확인하고 수정하지 않았다.** 도메인 매핑 변경은 레이더차트·PatternDB·HistoryTracker에 함께 영향을 준다
+
+### ④ 검증 (지시된 3개 항목)
+| 항목 | 결과 |
+|---|---|
+| ① `id="radarChart"` 유일성 | 1개 · `radarChartDash` 1개 · **문서 전체 중복 id 0건** ✓ |
+| ② diag-reveal 레이더차트 회귀 | `drawRadarChart`가 `radarChart`에 그림 · 5대 역량 산출 · 점수 바 5건 ✓ |
+| ③ PPT zip 유효성 | 6유형 전부 PK 서명·`[Content_Types].xml`·`presentation.xml` OK. 압축 해제 후 슬라이드 수 micro 8 / sme 12 / 사회적경제 9·8·9 / 정책자금 7 — **설계와 일치** ✓ |
+
+### ⑤ 캐시버스팅
+`index.html` 로컬 `?v=` **52곳** 전부 `20260818d`
+
+---
+
 ## 최근 수정 이력 (2026-09-03) — 진단 경로 오류 2건 수정 (mfg_parts 그룹 · micro 창업자 STARTUP)
 
 전면 점검 조사 결과를 바탕으로 **저위험 2건만** 수정했다. 나머지 문제는 남은 이슈로 남긴다.

@@ -1385,7 +1385,10 @@ const Dashboard = (() => {
   }
 
   function renderRadar(scores) {
-    const ctx = document.getElementById('radarChart');
+    /* ⚠ 대시보드(#sec-diag) 전용 캔버스. 과거 id가 'radarChart'로 diag-reveal과 중복되어
+       getElementById가 diag-reveal 캔버스를 반환했고, Chart.js가 그쪽을 덮어썼다.
+       그 결과 이 섹션의 차트는 영영 비어 있었다 (2026-09-03 수정) */
+    const ctx = document.getElementById('radarChartDash');
     if (!ctx || typeof Chart === 'undefined') return;
     if (_radarChart) { _radarChart.destroy(); _radarChart = null; }
 
