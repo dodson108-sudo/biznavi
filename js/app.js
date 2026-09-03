@@ -155,6 +155,8 @@ const App = (() => {
   function restart() {
     if (!confirm('새로 분석하시겠습니까?\n입력하신 모든 정보를 처음부터 다시 입력해야 합니다.')) return;
     _socialReqId++;   // 진행 중인 백그라운드 AI 결과가 새 화면에 꽂히지 않게 무효화
+    // 이전 리포트 데이터가 PPT에 섞이지 않게 초기화한다
+    try { Dashboard.resetReport(); } catch (err) { /* 구버전 호환 */ }
     Wizard.reset();
     show('wizard');
   }

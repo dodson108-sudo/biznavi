@@ -429,6 +429,7 @@ const Dashboard = (() => {
      state: 'loading' | 'error' | 'done'
      ⚠ AI가 실패해도 판정 섹션은 그대로 둔다. 이 섹션에만 실패 안내를 표시한다. */
   function renderFundingRoadmap(state, roadmap) {
+    _fundingRoadmap = (state === 'done') ? (roadmap || null) : null;   // PPT용 보관
     const section = document.getElementById('sec-funding-roadmap');
     const el = document.getElementById('fundingRoadmapContent');
     if (!section || !el) return;
@@ -486,6 +487,7 @@ const Dashboard = (() => {
   // ── 정책자금 전용 진입점 ──────────────────────────────────────
   function renderFunding(fd) {
     _lastFd = fd || {};
+    _lastData = null;                // 정책자금은 경영진단 AI 결과를 쓰지 않는다
     buildNav(false, true);
 
     // 정책자금 4섹션만 표시하고 나머지 리포트 섹션은 전부 숨김
@@ -1164,6 +1166,8 @@ const Dashboard = (() => {
         renderFunding()과 동일한 keep 화이트리스트 패턴을 쓴다 */
   function renderSocial(fd) {
     _lastFd = fd || {};
+    _lastData = null;                // 사회적경제는 경영진단 AI 결과를 쓰지 않는다
+    _fundingRoadmap = null;
     buildNav(false, false, true);
 
     const keep = SOCIAL_ONLY_SECTIONS.concat(['sec-gov']);
@@ -1558,6 +1562,11 @@ const Dashboard = (() => {
   }
 
   let _lastFd = {};
+  /* ⚠ render()는 AI 결과를 DOM에 밀어넣고 버렸다. PPT 내보내기가 원본을 필요로 하므로
+        모듈에 보관한다. 유형이 바뀌면 반드시 갱신·초기화되어야 한다 —
+        이전 회사 데이터가 PPT에 섞이는 것이 최악이다 */
+  let _lastData = null;          // 경영진단(micro/sme) AI 결과
+  let _fundingRoadmap = null;    // 정책자금 AI 로드맵
 
   function render(data, fd, isDemo) {
     _lastFd = fd || {};
@@ -1566,6 +1575,9 @@ const Dashboard = (() => {
        ⚠ 아래 코드는 AI 결과(executiveSummary·swot 등)를 DOM에 직접 밀어넣으므로
           1차(AI 미연결) 상태로 진입하면 깨진다. 기존 micro/sme 경로는 손대지 않는다 */
     if (_isSocialFd(fd)) { renderSocial(fd); return; }
+
+    _lastData = data || null;        // PPT 내보내기용 보관
+    _fundingRoadmap = null;          // 다른 유형의 잔존 데이터 제거
 
     const isMicro = fd.bizScale === 'micro';
 
@@ -1861,6 +1873,48 @@ const Dashboard = (() => {
     pivot_strategy:'사업재편·피벗전략', cx_strategy:'고객경험·서비스전략',
   };
 
+  /* ── 리포트 컨텍스트 노출 (PPT 내보내기용) ─────────────────────
+     ⚠ 유형 판별에 새 분기를 만들지 않는다.
+        기존 _isSocialFd() · _orgKind() · bizScale · purpose를 그대로 재사용한다 */
+  /* 경고 code → 섹션 키. PPT가 매핑 테이블을 복제하지 않도록 노출한다 */
+  function warnSection(code) { return SOCIAL_WARN_SECTION[code] || ''; }
+
+  function reportKind(fd) {
+    const d = fd || _lastFd || {};
+    if (d.purpose === 'funding') return 'funding';
+    if (_isSocialFd(d)) return _orgKind(d);      // 'social' | 'venture' | 'coop'
+    return d.bizScale === 'micro' ? 'micro' : 'sme';
+  }
+
+  function getReportContext() {
+    return {
+      kind:            reportKind(_lastFd),
+      fd:              _lastFd || {},
+      data:            _lastData,
+      socialPlan:      (_socialPlanState === 'done') ? _socialPlan : null,
+      socialPlanState: _socialPlanState,
+      fundingRoadmap:  _fundingRoadmap,
+      /* 사회적경제 리포트의 영역·경고·섹션 라벨 — PPT가 로직을 복제하지 않도록 그대로 넘긴다 */
+      orgDomains:      _isSocialFd(_lastFd) ? _socialDomains(_lastFd) : [],
+      orgTotal:        _isSocialFd(_lastFd) ? _socialTotal(_lastFd) : 0,
+      orgWarnings:     _isSocialFd(_lastFd) ? _socialWarnings(_lastFd) : [],
+      secLabel:        function (key) { return _secLabel(_lastFd, key); },
+      secDomainIds:    function (key) { return _secDomainIds(_lastFd, key); },
+      orgItems:        _isSocialFd(_lastFd) ? _socialItems(_lastFd) : {},
+      orgKeyPrefix:    _isSocialFd(_lastFd) ? _orgKeyPrefix(_lastFd) : '',
+      flatScores:      _isSocialFd(_lastFd) ? _socialFlatScores(_lastFd) : {},
+    };
+  }
+
+  /* 새 진단 시작 시 호출 — 이전 리포트 데이터가 PPT에 섞이지 않게 한다 */
+  function resetReport() {
+    _lastFd = {};
+    _lastData = null;
+    _fundingRoadmap = null;
+    _socialPlan = null;
+    _socialPlanState = 'loading';
+  }
+
   /* ── PDF 저장 (경영전략 보고서) ────────────────────────────── */
   function print() {
     const fd = _lastFd;
@@ -1898,5 +1952,6 @@ const Dashboard = (() => {
     el.classList.remove('print-target');
   }
 
-  return { render, renderSocial, renderSocialPlan, renderFunding, renderFundingRoadmap, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
+  return { render, renderSocial, renderSocialPlan, renderFunding, renderFundingRoadmap,
+    getReportContext, reportKind, resetReport, warnSection, initScrollReveal, initCountUp, addRipple, initInputChecks, print };
 })();
