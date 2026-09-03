@@ -2057,7 +2057,18 @@ const Wizard = (() => {
       if (!val || !val.score) return;
       const s = val.score;
       if (isStartup) {
-        if (key.includes('_s1_') || key.includes('_s2_')) {
+        /* STARTUP 4영역 → 5도메인 매핑 (2026-09-03 수정)
+           ⚠ 과거에는 s1(사업 검증)이 finance에 합산되고 differentiation은 소스가 없었다.
+              그 결과 '사업 검증도' 막대가 항상 비고, 사업 검증 점수가 재무 점수로 왜곡됐다.
+              빈 막대는 증상이고 진짜 문제는 점수 오집계였다.
+           s1 사업 검증 및 계획 수립 → differentiation('사업 검증도')
+           s2 현금 생존력(Runway·BEP) → finance
+           s3 초기 고객 확보·파이프라인 → bm('고객 확보력')
+           s4 핵심 역량·운영 준비도    → hr('운영 준비도')
+           업종 특화                   → future('업종 대응력') */
+        if (key.includes('_s1_')) {
+          domains.differentiation.scores.push(s);
+        } else if (key.includes('_s2_')) {
           domains.finance.scores.push(s);
         } else if (key.includes('_s4_')) {
           domains.hr.scores.push(s);
