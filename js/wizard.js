@@ -1384,7 +1384,14 @@ const Wizard = (() => {
     const empVal = document.getElementById('employees')?.value || '';
     const explicitScale = document.getElementById('bizScale')?.value || document.getElementById('bizScaleSelect')?.value || '';
     const currentBizScale = explicitScale || ((!empVal || empVal === '1~5명') ? 'micro' : 'sme');
-    const isMicro = currentBizScale === 'micro' && typeof DiagMicro !== 'undefined';
+
+    /* 창업 초기(개업 1년 미만) 여부를 먼저 구한다.
+       ⚠ 과거에는 이 검사가 마지막 else 안에만 있어 micro 경로가 STARTUP을 영영 타지 못했다.
+          매출 이력이 없는 창업자에게 '최근 3개월 재방문율'을 묻는 상태였다.
+          isMicro에서 창업 초기를 제외하면 micro도 STARTUP 분기로 흐른다.
+       ⚠ isSocial(사회적경제 3유형)은 건드리지 않는다 — 의도적 배제 여부가 확인되지 않았다. */
+    const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
+    const isMicro = currentBizScale === 'micro' && !isStartupMode && typeof DiagMicro !== 'undefined';
 
     const microContainer  = document.getElementById('diag-micro-container');
     const commonContainer = document.getElementById('diag-common-container');
@@ -1399,8 +1406,7 @@ const Wizard = (() => {
     const orgContainerId = _orgContainerId(orgMod);
     const isSocial = !!orgMod && !!orgContainerId;
 
-    // 공통 모듈 렌더링 — social: DiagSocial S1~S8 / micro: DiagMicro 7대 분야 / startup: STARTUP / 그 외: DiagCommon
-    const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
+    // 공통 모듈 렌더링 — social: 조직형태 전용 / micro: DiagMicro 7대 분야 / startup: STARTUP / 그 외: DiagCommon
     _activeContainers = [];
     if (isSocial) {
       _activeContainers.push(orgContainerId);

@@ -23,7 +23,10 @@ const DiagMicro = (() => {
     restaurant:    'food',
     food_mfg:      'food',
     agri_food:     'food',
-    mfg_parts:     'food',
+    // ⚠ 뿌리 제조·부품가공. 제조업 전용 그룹이 없어 5개 중 가장 덜 부적합한 retail을 쓴다.
+    //    근거: 원가 구조(상품원가+인건비)·B2B 납품 판로·창고/재고 개념이 제조업과 직접 대응한다.
+    //    pro_service는 재료비 개념 자체가 없어(외주비·소모품비) 제조 원가 진단이 성립하지 않는다.
+    mfg_parts:     'retail',
     local_service: 'beauty',
     wholesale:     'retail',
     fashion:       'retail',
