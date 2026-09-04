@@ -2396,6 +2396,15 @@ const DiagMicro = (() => {
         { day:6, title:'Star 서비스 홍보 강화 + 패키지 계약 구성' },
         { day:7, title:'Prime Cost 주간 정산서 취합' },
       ],
+      manufacturing: [
+        { day:1, title:'품목별 수주량·매출 데이터 추출' },
+        { day:2, title:'품목별 재료비(직접재료비) 산출' },
+        { day:3, title:'품목별 가공 시간·설비 점유 시간 측정' },
+        { day:4, title:'ACM 매트릭스 도식화 — 4분면 분류' },
+        { day:5, title:'Dog 품목 수주 중단 또는 단가 재협상 요청' },
+        { day:6, title:'Star 품목 생산 우선순위 상향 배정' },
+        { day:7, title:'재료비+노무비 주간 정산서 취합' },
+      ],
     },
 
     /* ── D2 점포환경·PLACE SEO (domainKey: place_seo) ── */
@@ -2435,6 +2444,15 @@ const DiagMicro = (() => {
         { day:5, title:'자주 쓰는 서류·자료 상담실 근접 배치' },
         { day:6, title:'플레이스 상담 예약 QR 스탠드 설치' },
         { day:7, title:'상담 대기 시간 편차 재측정·기록' },
+      ],
+      manufacturing: [
+        { day:1, title:'보유 설비 목록·사양 1장으로 정리' },
+        { day:2, title:'보유 인증서·시험성적서 유효기간 점검' },
+        { day:3, title:'회사소개서 취급 품목·납품 실적 갱신' },
+        { day:4, title:'자재 입고→가공→검사→출하 동선 실측' },
+        { day:5, title:'통로 적치물 제거 + 완제품 구역 표시' },
+        { day:6, title:'기업정보 등록처 상호·주소·품목 일치 확인' },
+        { day:7, title:'로트별 규격 편차 재측정·기록' },
       ],
     },
 
@@ -2476,6 +2494,15 @@ const DiagMicro = (() => {
         { day:6, title:'비효율 유료 광고 즉시 Off' },
         { day:7, title:'D2C 쿠폰 기존 고객에게 배포 → 반응 체크' },
       ],
+      manufacturing: [
+        { day:1, title:'거래처별 매출 비중 계산 — 1위 의존도 확인' },
+        { day:2, title:'거래처별 결제 조건·회수 기간 정리' },
+        { day:3, title:'부대비용 반영 실질 단가 역산 — 적자 거래처 식별' },
+        { day:4, title:'최근 6개월 견적 대비 수주율 집계' },
+        { day:5, title:'탈락 견적 사유 유형화 — 단가·납기·품질 구분' },
+        { day:6, title:'신규 거래처 후보 10곳 목록화' },
+        { day:7, title:'후보 3곳에 회사소개서 발송 → 반응 체크' },
+      ],
     },
 
     /* ── D4 스마트DX (domainKey: smart_dx) ── */
@@ -2515,6 +2542,15 @@ const DiagMicro = (() => {
         { day:5, title:'CRM 브랜드 무상 테스트 신청' },
         { day:6, title:'카카오 알림톡 상담 확인 자동 발송 연계' },
         { day:7, title:'도입 후 상담 처리 시간 단축 확인 + ΔProfit 계산' },
+      ],
+      manufacturing: [
+        { day:1, title:'최근 3개월 납기 준수율·지연 사유 집계' },
+        { day:2, title:'원자재·재공품·완제품 3단계 재고 실사' },
+        { day:3, title:'장부 재고 vs 실물 재고 차이 원인 파악' },
+        { day:4, title:'바코드·QR 현품표 도입 비용 비교 수집' },
+        { day:5, title:'주력 품번 현품표 시범 부착 — 입출고 기록' },
+        { day:6, title:'설비 이상 대응 절차 1장 매뉴얼 작성' },
+        { day:7, title:'견적서 양식에 납기 확약란 추가' },
       ],
     },
 
@@ -2556,6 +2592,15 @@ const DiagMicro = (() => {
         { day:6, title:'상담 완료 고객에게 리뷰 권유 스크립트 교육' },
         { day:7, title:'스마트플레이스 유입 클릭수·저장수 증가 추이 확인' },
       ],
+      manufacturing: [
+        { day:1, title:'홈페이지 대표 이미지 — 설비·제품 사진 최신성 체크' },
+        { day:2, title:'ChatGPT로 주력 품목 강점 문구 3개 도출' },
+        { day:3, title:'미리캔버스로 제품 카탈로그 1장 시안 제작' },
+        { day:4, title:'카탈로그 PDF 다운로드 링크 개설' },
+        { day:5, title:'견적 문의 폼 개설 + 24시간 회신 원칙 공지' },
+        { day:6, title:'거래처 3곳에 품질 평가·추천 요청' },
+        { day:7, title:'검색 유입 대비 문의 건수 추이 확인' },
+      ],
     },
   };
 
@@ -2584,14 +2629,14 @@ const DiagMicro = (() => {
   /* 교차 경고 문구의 업종별 어휘.
      ⚠ food 값은 중립화 이전 원문과 글자까지 동일해야 한다 (외식업 회귀 방지) */
   const WARN_WORDING = {
-    food:        { cost:'프라임 코스트',       dog:'메뉴',   subj:'이 매장은',   channel:'배달',        owner:'사장이 매장에'   },
-    beauty:      { cost:'프라임 코스트',       dog:'시술',   subj:'이 매장은',   channel:'예약 플랫폼', owner:'원장이 매장에'   },
-    retail:      { cost:'상품원가+인건비',     dog:'상품',   subj:'이 매장은',   channel:'온라인',      owner:'사장이 매장에'   },
-    edu_service: { cost:'교재·재료비+인건비',  dog:'강좌',   subj:'이 학원은',   channel:'오프라인',    owner:'원장이 학원에'   },
-    pro_service: { cost:'외주비+인건비',       dog:'서비스', subj:'이 사무소는', channel:'플랫폼',      owner:'대표가 사무소에' },
+    food:        { cost:'프라임 코스트',       dog:'메뉴',   subj:'이 매장은',   channel:'배달',        owner:'사장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
+    beauty:      { cost:'프라임 코스트',       dog:'시술',   subj:'이 매장은',   channel:'예약 플랫폼', owner:'원장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
+    retail:      { cost:'상품원가+인건비',     dog:'상품',   subj:'이 매장은',   channel:'온라인',      owner:'사장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
+    edu_service: { cost:'교재·재료비+인건비',  dog:'강좌',   subj:'이 학원은',   channel:'오프라인',    owner:'원장이 학원에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
+    pro_service: { cost:'외주비+인건비',       dog:'서비스', subj:'이 사무소는', channel:'플랫폼',      owner:'대표가 사무소에', vis:'사무소 안내 정보와 플레이스 정보',              rev:'리뷰',      cont:'SNS 콘텐츠' },
     // ⚠ 부품가공과 식품제조를 모두 포괄해야 한다. '공장'은 소규모 가공장에 어색할 수 있어
     //    subj는 '이 사업장은'을 쓴다. cost는 1_3이 실제로 재는 것(재료비+노무비)을 그대로 적었다.
-    manufacturing: { cost:'재료비+노무비',   dog:'품목',   subj:'이 사업장은', channel:'B2B 납품',    owner:'대표가 현장에'   },
+    manufacturing: { cost:'재료비+노무비',   dog:'품목',   subj:'이 사업장은', channel:'B2B 납품',    owner:'대표가 현장에',   vis:'홈페이지·기업정보 등록 내용과 검색 노출 정보', rev:'거래처 평판', cont:'회사 소개 콘텐츠' },
   };
 
   /* ⚠ industryGroup 미지정 시 food로 폴백한다 — 인자를 넘기지 않는 기존 호출부의
@@ -2605,7 +2650,7 @@ const DiagMicro = (() => {
       warnings.push({ level:'CRITICAL', code:'sell_more_lose_more', msg:`${w.cost} 60% 초과 + ACM 미산출 — 매출이 늘수록 손실이 커지는 구조입니다. ACM 기반 Dog ${w.dog} 정리가 즉각 필요합니다.` });
 
     if (get('2_2') <= 2 && get('7_5') <= 2)
-      warnings.push({ level:'CRITICAL', code:'digital_invisible', msg:`오프라인 간판 정보와 플레이스 정보가 불일치하고 CTR도 낮습니다. ${w.subj} 온라인에서 존재하지 않는 상태입니다.` });
+      warnings.push({ level:'CRITICAL', code:'digital_invisible', msg:`${w.vis}가 불일치하고 CTR도 낮습니다. ${w.subj} 온라인에서 존재하지 않는 상태입니다.` });
 
     if (get('3_1') <= 2 && get('3_3') <= 2)
       warnings.push({ level:'HIGH', code:'single_channel_feewaste', msg:`${w.channel} 단일 채널 의존 + 수수료 역산 미실시 — 매출이 있어도 수수료가 이익을 갉아먹는 구조입니다.` });
@@ -2620,7 +2665,7 @@ const DiagMicro = (() => {
       warnings.push({ level:'CRITICAL', code:'survival_crisis', msg:'BEP 미관리 + 현금흐름 공백 — 경영 지속 가능성이 3개월 이내에 임계점에 도달할 수 있습니다.' });
 
     if (get('7_1') <= 2 && get('7_3') <= 2 && get('2_2') >= 3)
-      warnings.push({ level:'HIGH', code:'reputation_backfire', msg:'검색 노출은 되지만 SNS 콘텐츠와 리뷰 관리가 없습니다. 노출될수록 부정 이미지가 확산될 수 있습니다.' });
+      warnings.push({ level:'HIGH', code:'reputation_backfire', msg:`검색 노출은 되지만 ${w.cont}와 ${w.rev} 관리가 없습니다. 노출될수록 부정 이미지가 확산될 수 있습니다.` });
 
     return warnings;
   }
