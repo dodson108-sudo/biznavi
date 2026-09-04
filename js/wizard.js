@@ -3124,7 +3124,7 @@ const Wizard = (() => {
     } else if (bizScale === 'micro' && window.DiagMicro) {
       const microGroup = DiagMicro.getGroup(data.industryKey || '');
       scaleScores = DiagMicro.calcScores(allScores);
-      data.microWarnings = DiagMicro.detectCrossWarnings(allScores);
+      data.microWarnings = DiagMicro.detectCrossWarnings(allScores, microGroup);
       data.microPrompt = DiagMicro.buildPromptSummary(allScores, microGroup);
     } else if (bizScale === 'sme' && window.DiagSme &&
                Object.keys(allScores).some(k => k.startsWith('diag-sme-container_'))) {
