@@ -1561,6 +1561,8 @@ const Wizard = (() => {
     const signalCls  = item._signalOnly ? ' diag-signal-item' : '';
     let html = '<div class="diag-item' + signalCls + '" id="diag-item-' + scoreKey + '"' + signalAttr + '>';
     html += '<div class="diag-item-text">' + (item.question || item.label || item.text || '') + '</div>';
+    // guide — 업종별 구체 예시. 질문은 중립이되 예시로 업종 맥락을 준다
+    if (item.guide) html += '<div class="diag-item-guide">' + item.guide + '</div>';
 
     switch (item.type) {
       case 'numeric': html += _renderNumeric(item, scoreKey, savedRaw, savedScore); break;
