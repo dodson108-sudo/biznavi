@@ -3108,6 +3108,18 @@ const Wizard = (() => {
 
     let scaleScores = {};
     const allScores = collectAllScores();
+    /* 응답자 메모 — 점수만으로 알 수 없는 현장 맥락.
+       ⚠ collectAllScores()의 평면 숫자 계약을 건드리지 않기 위해 별도 맵으로 넘긴다
+          (DiagMicro.calcScores·CrossContext.buildScoreMap이 숫자만 기대한다).
+       ⚠ 빈 메모는 담지 않는다. 하나도 없으면 undefined를 넘겨 블록 자체가 생략된다. */
+    const allMemos = (function () {
+      const m = {};
+      Object.keys(diagScores || {}).forEach(function (k) {
+        const t = String((diagScores[k] && diagScores[k].memo) || diagMemos[k] || '').trim();
+        if (t) m[k] = t;
+      });
+      return Object.keys(m).length ? m : undefined;
+    })();
     const _orgMod = _orgDiagModule(data.orgType);
     if (_orgMod) {
       /* 조직 형태 전용 진단 (사회적기업·협동조합 → S1~S8 / 소셜벤처 → V1~V8).
@@ -3117,7 +3129,7 @@ const Wizard = (() => {
             새 코드에서는 orgPrompt/orgWarnings만 사용할 것 */
       scaleScores = _orgMod.calcScores(allScores);
       data.orgWarnings = data.socialWarnings = _orgMod.detectCrossWarnings(allScores);
-      data.orgPrompt   = data.socialPrompt   = _orgMod.buildPromptSummary(allScores);
+      data.orgPrompt   = data.socialPrompt   = _orgMod.buildPromptSummary(allScores, allMemos);
       // 점수 키 접두어를 실어 보낸다 — dashboard가 'diag-social-container_'를 하드코딩하지 않도록
       data.orgDiagKeyPrefix = _orgMod.KEY_PREFIX || '';
       data.orgDiagId = (_orgMod.getSchema && _orgMod.getSchema().id) || '';
@@ -3125,7 +3137,7 @@ const Wizard = (() => {
       const microGroup = DiagMicro.getGroup(data.industryKey || '');
       scaleScores = DiagMicro.calcScores(allScores);
       data.microWarnings = DiagMicro.detectCrossWarnings(allScores, microGroup);
-      data.microPrompt = DiagMicro.buildPromptSummary(allScores, microGroup);
+      data.microPrompt = DiagMicro.buildPromptSummary(allScores, microGroup, allMemos);
     } else if (bizScale === 'sme' && window.DiagSme &&
                Object.keys(allScores).some(k => k.startsWith('diag-sme-container_'))) {
       // ⚠ DiagSme는 'diag-sme-container_*' 키를 기대하지만 해당 컨테이너가 렌더링되지 않아

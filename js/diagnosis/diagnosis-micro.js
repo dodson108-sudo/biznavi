@@ -2670,11 +2670,73 @@ const DiagMicro = (() => {
     return warnings;
   }
 
-  function buildPromptSummary(scores, industryGroup) {
+  /* ── 응답자 메모·점수 분포 공통 헬퍼 ──────────────────────────────
+     ⚠ 2·3차 호출이 이 요약의 앞 500자만 보므로(ai-engine.js) 메모를 맨 앞에 둔다.
+     ⚠ 메모 총량 상한을 두지 않으면 메모만으로 500자를 채워 경고·점수가 밀려난다. */
+  const MEMO_ITEM_MAX  = 200;   // 문항당
+  const MEMO_TOTAL_MAX = 400;   // 블록 전체
+  const WEAK_MAX       = 15;    // 취약 항목 나열 상한
+
+  /* memos: { '<prefix><key>': '메모' } — collectAllScores()의 평면 숫자 계약을
+     건드리지 않기 위해 별도 인자로 받는다. 미전달이면 블록 자체를 생략한다. */
+  function _memoBlock(memos, scores, items, prefix) {
+    if (!memos) return '';
+    const rows = [];
+    Object.keys(items).forEach(function(k) {
+      const raw = String(memos[prefix + k] || memos[k] || '').trim();
+      if (!raw) return;
+      rows.push({
+        label: items[k].label,
+        score: Number(scores[prefix + k] || 0),
+        text:  raw.length > MEMO_ITEM_MAX ? raw.slice(0, MEMO_ITEM_MAX) + '…' : raw,
+      });
+    });
+    if (rows.length === 0) return '';
+    // ⚠ 낮은 점수 문항의 메모를 우선한다 — 취약할수록 현장 맥락이 중요하다
+    rows.sort(function(a, b) { return (a.score || 9) - (b.score || 9); });
+    const out = []; let used = 0, skipped = 0;
+    rows.forEach(function(r) {
+      const line = '  - ' + r.label + ': "' + r.text + '"';
+      if (out.length > 0 && used + line.length > MEMO_TOTAL_MAX) { skipped++; return; }
+      out.push(line); used += line.length;
+    });
+    let s = '[응답자 메모 — 점수로 알 수 없는 현장 맥락. 점수와 어긋나면 메모를 우선할 것]\n' + out.join('\n');
+    if (skipped > 0) s += '\n  ※ 외 ' + skipped + '건의 메모가 더 있으나 분량 관계로 생략(낮은 점수 문항 우선 수록)';
+    return s + '\n\n';
+  }
+
+  /* 취약(1~2점) 전체 + 우수(5점) 전체. 중간(3~4점)은 개수만 — 개별 언급 가치가 낮다 */
+  function _scoreDistBlock(scores, items, prefix) {
+    const weak = [], strong = [];
+    let mid = 0;
+    Object.keys(items).forEach(function(k) {
+      const v = Number(scores[prefix + k] || 0);
+      if (v <= 0) return;
+      if (v <= 2) weak.push({ label: items[k].label, score: v });
+      else if (v === 5) strong.push(items[k].label);
+      else mid++;
+    });
+    weak.sort(function(a, b) { return a.score - b.score; });
+    const shown = weak.slice(0, WEAK_MAX);
+    const rest  = weak.length - shown.length;
+    let s = '[즉각 처방 필요 항목 (2점 이하)]\n';
+    s += shown.length > 0
+      ? shown.map(function(w) { return '  - ' + w.label + ' (' + w.score + '점)'; }).join('\n')
+      : '  - 없음';
+    if (rest > 0) s += '\n  ※ 외 ' + rest + '개 항목이 2점 이하 — 취약 항목은 총 ' + weak.length + '개';
+    s += '\n\n[이미 잘하고 있는 항목 (5점) — 강점으로 유지·활용]\n';
+    s += strong.length > 0 ? strong.map(function(x) { return '  - ' + x; }).join('\n') : '  - 없음';
+    if (mid > 0) s += '\n  ※ 3~4점 보통 항목 ' + mid + '건은 개별 언급 생략';
+    return s;
+  }
+
+  function buildPromptSummary(scores, industryGroup, memos) {
     const group = industryGroup || 'food';
     const groupLabel = GROUP_LABELS[group] || '외식업';
     const result = calcScores(scores);
     const warnings = detectCrossWarnings(scores, group);
+    const items = getSchema(group).items;
+    const PRE = 'diag-micro-container_';
     const domainLines = DOMAINS.map(d => {
       const ds = result.domains[d.key];
       const level = ds.pct >= 80 ? '우수' : ds.pct >= 60 ? '보통' : ds.pct >= 40 ? '취약' : '위험';
@@ -2683,13 +2745,6 @@ const DiagMicro = (() => {
     const warnLines = warnings.length > 0
       ? warnings.map(w => `  ⚠ [${w.level}] ${w.msg}`).join('\n')
       : '  - 복합 경고 없음';
-    const criticalItems = [];
-    // ⚠ 업종 그룹이 덮어쓴 label을 써야 한다. 기본 ITEMS를 쓰면 미용실 진단인데
-    //   프롬프트에는 'POS 데이터 분석' 같은 외식 기준 라벨이 나간다
-    Object.entries(getSchema(group).items).forEach(([key, item]) => {
-      const val = Number(scores[`diag-micro-container_${key}`] || 0);
-      if (val > 0 && val <= 2) criticalItems.push(`${item.label}(${val}점)`);
-    });
     const weakAreaIds = DOMAINS.filter(d => result.domains[d.key].pct < 60).map(d => d.id);
     const actionLines = [];
     weakAreaIds.forEach(function(areaId) {
@@ -2704,21 +2759,20 @@ const DiagMicro = (() => {
     });
     const recommendedActions = actionLines.join('\n');
     return `[소상공인 전용 진단 결과 — 7대 분야 융합 진단 v2.0]
-[업종 그룹]: ${groupLabel}
-종합 점수: ${result.total}점 / 100점
+[업종 그룹]: ${groupLabel} | 종합 ${result.total}점 / 100점
+
+${_memoBlock(memos, scores, items, PRE)}[복합 경고 신호]
+${warnLines}
 
 [영역별 점수]
 ${domainLines}
 
-[복합 경고 신호]
-${warnLines}
-
-[즉각 처방 필요 항목 (2점 이하)]
-${criticalItems.length > 0 ? criticalItems.map(i => `  - ${i}`).join('\n') : '  - 없음'}
+${_scoreDistBlock(scores, items, PRE)}
 
 [권장 7일 즉시 액션]
 ${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'}`.trim();
   }
+
 
   function getGroup(industryKey) {
     return INDUSTRY_GROUP_MAP[industryKey] || 'food';

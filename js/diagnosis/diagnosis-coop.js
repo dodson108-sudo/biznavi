@@ -613,7 +613,63 @@ const DiagCoop = (() => {
     return w;
   }
 
-  function buildPromptSummary(scores) {
+  /* ── 응답자 메모·점수 분포 헬퍼 ───────────────────────────────────
+     ⚠ DiagMicro에 같은 코드가 있다. 4개 모듈이 독립 IIFE이고 시그니처가 달라
+        공용 모듈 신설 + 로드 순서 조정이 필요해 이번엔 복제를 감수한다(별도 작업). */
+  const MEMO_ITEM_MAX  = 200;
+  const MEMO_TOTAL_MAX = 400;
+  const WEAK_MAX       = 15;
+
+  function _memoBlock(memos, scores) {
+    if (!memos) return '';
+    const rows = [];
+    Object.keys(ITEMS).forEach(function(k) {
+      const raw = String(memos[KEY_PREFIX + k] || memos[k] || '').trim();
+      if (!raw) return;
+      rows.push({
+        label: ITEMS[k].label,
+        score: Number((scores || {})[KEY_PREFIX + k] || 0),
+        text:  raw.length > MEMO_ITEM_MAX ? raw.slice(0, MEMO_ITEM_MAX) + '…' : raw,
+      });
+    });
+    if (rows.length === 0) return '';
+    // ⚠ 낮은 점수 문항의 메모를 우선한다 — 취약할수록 현장 맥락이 중요하다
+    rows.sort(function(a, b) { return (a.score || 9) - (b.score || 9); });
+    const out = []; let used = 0, skipped = 0;
+    rows.forEach(function(r) {
+      const line = '  - ' + r.label + ': "' + r.text + '"';
+      if (out.length > 0 && used + line.length > MEMO_TOTAL_MAX) { skipped++; return; }
+      out.push(line); used += line.length;
+    });
+    let s = '[응답자 메모 — 점수로 알 수 없는 현장 맥락. 점수와 어긋나면 메모를 우선할 것]\n' + out.join('\n');
+    if (skipped > 0) s += '\n  ※ 외 ' + skipped + '건의 메모가 더 있으나 분량 관계로 생략(낮은 점수 문항 우선 수록)';
+    return s + '\n\n';
+  }
+
+  function _scoreDistBlock(scores) {
+    const src = scores || {};
+    const weak = [], strong = []; let mid = 0;
+    Object.keys(ITEMS).forEach(function(k) {
+      const v = Number(src[KEY_PREFIX + k] || 0);
+      if (v <= 0) return;
+      if (v <= 2) weak.push({ label: ITEMS[k].label, score: v });
+      else if (v === 5) strong.push(ITEMS[k].label);
+      else mid++;
+    });
+    weak.sort(function(a, b) { return a.score - b.score; });
+    const shown = weak.slice(0, WEAK_MAX), rest = weak.length - shown.length;
+    let s = '[즉각 처방 필요 항목 (2점 이하)]\n';
+    s += shown.length > 0
+      ? shown.map(function(w) { return '  - ' + w.label + ' (' + w.score + '점)'; }).join('\n')
+      : '  - 없음';
+    if (rest > 0) s += '\n  ※ 외 ' + rest + '개 항목이 2점 이하 — 취약 항목은 총 ' + weak.length + '개';
+    s += '\n\n[이미 잘하고 있는 항목 (5점) — 강점으로 유지·활용]\n';
+    s += strong.length > 0 ? strong.map(function(x) { return '  - ' + x; }).join('\n') : '  - 없음';
+    if (mid > 0) s += '\n  ※ 3~4점 보통 항목 ' + mid + '건은 개별 언급 생략';
+    return s;
+  }
+
+  function buildPromptSummary(scores, memos) {
     const result = calcScores(scores);
     const warnings = detectCrossWarnings(scores);
     const src = scores || {};
@@ -628,24 +684,17 @@ const DiagCoop = (() => {
       ? warnings.map(x => `  ⚠ [${x.level}] ${x.msg}`).join('\n')
       : '  - 복합 경고 없음';
 
-    const criticalItems = [];
-    Object.keys(ITEMS).forEach(key => {
-      const val = Number(src[KEY_PREFIX + key] || 0);
-      const th = (ITEMS[key].ai_trigger && ITEMS[key].ai_trigger.threshold) || 2;
-      if (val > 0 && val <= th) criticalItems.push(`${ITEMS[key].label}(${val}점)`);
-    });
 
     return `[협동조합 전용 진단 결과 — C1~C8 8영역 40문항]
 종합 점수: ${result.total}점 / 100점
 
+${_memoBlock(memos, scores)}[복합 경고 신호]
+${warnLines}
+
 [영역별 점수]
 ${domainLines}
 
-[복합 경고 신호]
-${warnLines}
-
-[즉각 처방 필요 항목 (2점 이하)]
-${criticalItems.length ? '  ' + criticalItems.join(', ') : '  - 없음'}
+${_scoreDistBlock(scores)}
 
 [해석 지침]
 - 이 점수는 8영역 균등 배점(각 12.5%)으로 산출한 준비도 지표다.
