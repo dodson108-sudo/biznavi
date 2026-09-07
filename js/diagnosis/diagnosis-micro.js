@@ -9,8 +9,8 @@
 const DiagMicro = (() => {
 
   const DOMAINS = [
-    { id:'1', key:'mgmt_profit',  label:'경영진단·손익분석',    icon:'📊', desc:'POS·ACM·프라임코스트 기반 정량 수익 구조를 진단합니다.',             weight:0.18 },
-    { id:'2', key:'place_seo',    label:'점포환경·PLACE SEO',  icon:'📍', desc:'파사드 시선 주목도와 로컬 SEO 연동 최적화를 진단합니다.',             weight:0.15 },
+    { id:'1', key:'mgmt_profit',  label:'경영진단·손익분석',    icon:'📊', desc:'판매 데이터와 원가를 바탕으로 실제로 남는 구조인지 진단합니다.',             weight:0.18 },
+    { id:'2', key:'place_seo',    label:'점포환경·네이버 플레이스',  icon:'📍', desc:'파사드 시선 주목도와 로컬 SEO 연동 최적화를 진단합니다.',             weight:0.15 },
     { id:'3', key:'multichannel', label:'다채널 판로',          icon:'🛒', desc:'오프라인·배달·이커머스 판로 확장과 수수료 방어력을 진단합니다.',       weight:0.14 },
     { id:'4', key:'smart_dx',     label:'스마트DX',             icon:'🤖', desc:'스마트 기기 도입 효율과 오퍼레이션 자동화 수준을 진단합니다.',         weight:0.14 },
     { id:'5', key:'funds_esg',    label:'운영자금·ESG보증',     icon:'💰', desc:'현금흐름 관리, ESG 실천, 정책보증 연계 역량을 진단합니다.',           weight:0.13 },
@@ -101,7 +101,7 @@ const DiagMicro = (() => {
         { score:1, desc:'개별 상품·서비스의 제공 시간이나 원자재 가격 편차를 고려하지 않고 가격을 책정함.' },
         { score:2, desc:'직접 원가는 알지만 노동 시간 가산 개념 없이 단순 마진만 계산함.' },
         { score:3, desc:'품목별 직접 원가는 파악하나, 제공에 소요되는 시간당 인건비 가산율을 누락함.' },
-        { score:4, desc:'주요 품목에 한해 소요 시간 × 시급 기반 ACM을 분기 1회 계산함.' },
+        { score:4, desc:'주요 품목에 한해 소요 시간 × 시급까지 반영해 실제 남는 돈을 분기 1회 계산함.' },
         { score:5, desc:'전 품목의 직접 노동 원가를 반영하여 정밀한 조정 기여 마진을 정기 정산함.' },
       ],
       ai_trigger: { threshold:2, warning:'acm_blind', warning_msg: '저마진 품목을 무작위 홍보 중입니다. 품목별 실제로 남는 돈 기준 분류가 필요합니다.' },
@@ -544,13 +544,13 @@ const DiagMicro = (() => {
       '3': '현장 수업·온라인 강의·B2B 교육 판로 확장과 수수료 방어력을 진단합니다.',
     },
     pro_service: {
-      '1': '수임 데이터·ACM·업무 원가 기반 정량 수익 구조를 진단합니다.',
+      '1': '수임 데이터와 업무 원가를 바탕으로 실제로 남는 구조인지 진단합니다.',
       '2': '사무소 전문성 노출과 로컬 SEO 연동 최적화를 진단합니다.',
       '3': '직접 수임·온라인 플랫폼·B2B 자문 판로 확장과 수수료 방어력을 진단합니다.',
       '4': '전자문서·CRM 도입 효율과 업무 자동화 수준을 진단합니다.',
     },
     manufacturing: {
-      '1': '제조원가(재료비·노무비)·ACM·수율 기반 정량 수익 구조를 진단합니다.',
+      '1': '제조원가(재료비·노무비)와 수율을 바탕으로 실제로 남는 구조인지 진단합니다.',
       '2': '자재 입고부터 완제품 보관까지의 공정 동선과 온라인 기업 정보 노출을 진단합니다.',
       '3': '거래처 다변화와 B2B 수주 파이프라인, 납품 단가 방어력을 진단합니다.',
       '4': '원자재·재공품·완제품 3단계 재고 관리와 설비·공정 자동화 수준을 진단합니다.',
@@ -1735,7 +1735,7 @@ const DiagMicro = (() => {
           { score:4, desc:'주요 품목에 한해 가공 시간 × 시간당 노무비까지 반영해 실제 남는 돈을 분기 1회 계산함.' },
           { score:5, desc:'전 품목의 직접 노무 원가와 설비 점유 시간을 반영해 저수익 수주를 선별 거절함.' },
         ],
-        ai_trigger: { warning_msg: '저마진 품목을 계속 수주 중입니다. 품목별 ACM 분류와 단가 재협상이 필요합니다.' },
+        ai_trigger: { warning_msg: '저마진 품목을 계속 수주 중입니다. 품목별로 실제 남는 돈을 분류하고 단가 재협상이 필요합니다.' },
       },
       '1_5': {
         question: '생산 계획 수립, 품질 판정, 자재 발주 업무 중 대표가 직접 수행하지 않고 타인에게 위임 가능한 직무가 절반 이상인가?',
@@ -2328,7 +2328,7 @@ const DiagMicro = (() => {
       title: '직접 노동 시간 실측 + 스마트 기기 비교 견적',
       desc: '직원 하루 동선을 스톱워치로 관찰해 단순 노동 시간 산출. 소상공인 지원 프로그램 렌탈 공급사 2곳 제안서 비교.',
       tool: '스톱워치 / 소상공인 스마트화 지원 포털',
-      output: 'TCO 분석 기반 스마트 기기 도입 계획 수립',
+      output: '총소유비용(사는 값 + 유지·수리비) 기준 스마트 기기 도입 계획 수립',
       trigger_area: ['4'],
     },
     {
@@ -2527,10 +2527,10 @@ const DiagMicro = (() => {
       ],
       edu_service: [
         { day:1, title:'출결·수강료 행정 단순 업무 투입 시간 실측' },
-        { day:2, title:'LMS·복합기 렌탈 비용 비교 수집' },
+        { day:2, title:'학원 관리 프로그램·복합기 렌탈 비용 비교 수집' },
         { day:3, title:'등록 지연율 집중 등록 기간 측정' },
         { day:4, title:'온라인 등록 시스템 설치 설계' },
-        { day:5, title:'LMS 브랜드 무상 테스트 신청' },
+        { day:5, title:'학원 관리 프로그램 무상 테스트 신청' },
         { day:6, title:'카카오 알림톡 수업 알림 자동 발송 연계' },
         { day:7, title:'도입 후 행정 시간 단축 확인 + ΔProfit 계산' },
       ],
@@ -2629,8 +2629,8 @@ const DiagMicro = (() => {
   /* 교차 경고 문구의 업종별 어휘.
      ⚠ food 값은 중립화 이전 원문과 글자까지 동일해야 한다 (외식업 회귀 방지) */
   const WARN_WORDING = {
-    food:        { cost:'프라임 코스트',       dog:'메뉴',   subj:'이 매장은',   channel:'배달',        owner:'사장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
-    beauty:      { cost:'프라임 코스트',       dog:'시술',   subj:'이 매장은',   channel:'예약 플랫폼', owner:'원장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
+    food:        { cost:'재료비+인건비',     dog:'메뉴',   subj:'이 매장은',   channel:'배달',        owner:'사장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
+    beauty:      { cost:'재료비+인건비',     dog:'시술',   subj:'이 매장은',   channel:'예약 플랫폼', owner:'원장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
     retail:      { cost:'상품원가+인건비',     dog:'상품',   subj:'이 매장은',   channel:'온라인',      owner:'사장이 매장에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
     edu_service: { cost:'교재·재료비+인건비',  dog:'강좌',   subj:'이 학원은',   channel:'오프라인',    owner:'원장이 학원에',   vis:'오프라인 간판 정보와 플레이스 정보',            rev:'리뷰',      cont:'SNS 콘텐츠' },
     pro_service: { cost:'외주비+인건비',       dog:'서비스', subj:'이 사무소는', channel:'플랫폼',      owner:'대표가 사무소에', vis:'사무소 안내 정보와 플레이스 정보',              rev:'리뷰',      cont:'SNS 콘텐츠' },
@@ -2647,7 +2647,7 @@ const DiagMicro = (() => {
     const get = key => Number(scores[`diag-micro-container_${key}`] || 0);
 
     if (get('1_3') <= 2 && get('1_4') <= 2)
-      warnings.push({ level:'CRITICAL', code:'sell_more_lose_more', msg:`${w.cost} 60% 초과 + ACM 미산출 — 매출이 늘수록 손실이 커지는 구조입니다. 실제로 남는 돈이 적은 ${w.dog} 정리가 즉각 필요합니다.` });
+      warnings.push({ level:'CRITICAL', code:'sell_more_lose_more', msg:`${w.cost} 60% 초과 + 실제 남는 돈 미산출 — 매출이 늘수록 손실이 커지는 구조입니다. 실제로 남는 돈이 적은 ${w.dog} 정리가 즉각 필요합니다.` });
 
     if (get('2_2') <= 2 && get('7_5') <= 2)
       warnings.push({ level:'CRITICAL', code:'digital_invisible', msg:`${w.vis}가 불일치하고 CTR도 낮습니다. ${w.subj} 온라인에서 존재하지 않는 상태입니다.` });

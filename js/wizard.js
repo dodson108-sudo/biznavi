@@ -2251,7 +2251,7 @@ const Wizard = (() => {
   function _calcMicroDomainScores(scores) {
     var MICRO_DOMAINS = [
       { key: 'd1', label: 'D1. 경영진단·손익분析', color: '#4ADE80' },
-      { key: 'd2', label: 'D2. 점포환경·PLACE SEO', color: '#60A5FA' },
+      { key: 'd2', label: 'D2. 점포환경·네이버 플레이스', color: '#60A5FA' },
       { key: 'd3', label: 'D3. 다채널 판로',        color: '#C084FC' },
       { key: 'd4', label: 'D4. 스마트DX',           color: '#FB923C' },
       { key: 'd5', label: 'D5. 운영자금·ESG보증',   color: '#F5C030' },
