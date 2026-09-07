@@ -154,7 +154,8 @@ const App = (() => {
 
   function restart() {
     if (!confirm('새로 분석하시겠습니까?\n입력하신 모든 정보를 처음부터 다시 입력해야 합니다.')) return;
-    _socialReqId++;   // 진행 중인 백그라운드 AI 결과가 새 화면에 꽂히지 않게 무효화
+    _aiReqId++;   // 진행 중인 백그라운드 AI 결과·스냅샷이 새 진단에 꽂히지 않게 무효화
+    _aiState = 'idle'; _aiError = null; _awaitingSolution = false;
     // 이전 리포트 데이터가 PPT에 섞이지 않게 초기화한다
     try { Dashboard.resetReport(); } catch (err) { /* 구버전 호환 */ }
     Wizard.reset();
@@ -215,13 +216,17 @@ const App = (() => {
      diag-reveal을 먼저 띄우고, 사용자가 그 화면을 읽는 동안 AI를 돌린다.
      → 체감 대기 시간이 사실상 사라진다.
 
-     ⚠ 경쟁 조건 방어: 요청마다 _socialReqId를 증가시키고, 응답이 도착했을 때
+     ⚠ 경쟁 조건 방어: 요청마다 _aiReqId를 증가시키고, 응답이 도착했을 때
         자신의 id가 최신인지 확인한다. 사용자가 뒤로 가거나 새 분석을 시작하면
         id가 달라지므로 늦게 도착한 이전 요청 결과는 버려진다.
      ⚠ 백그라운드 실패를 diag-reveal에 띄우지 않는다. 그 시점의 사용자는
         레이더차트를 보고 있다. 에러는 대시보드의 sec-social-action에서만 표시한다.
   ══════════════════════════════════════════════════════════════ */
-  let _socialReqId = 0;
+  let _aiReqId = 0;
+  /* 일반 경로(micro·sme) 백그라운드 AI 상태 — proceedToSolution이 읽는다 */
+  let _aiState = 'idle';       // 'idle' | 'loading' | 'done' | 'error'
+  let _aiError = null;
+  let _awaitingSolution = false;  // 사용자가 로딩 화면에서 보고서를 기다리는 중인가
 
   /* 조직 형태 판정 — collect()가 실어 보낸 파생 플래그를 쓴다(배열 복제 금지).
      플래그가 없는 레거시 데이터는 orgType으로 판단한다 */
@@ -235,10 +240,10 @@ const App = (() => {
   async function _loadSocialPlan(data, reqId) {
     try {
       const plan = await AIEngine.callSocialPlan(data);
-      if (reqId !== _socialReqId) return;            // 낡은 요청 — 결과 폐기
+      if (reqId !== _aiReqId) return;            // 낡은 요청 — 결과 폐기
       Dashboard.renderSocialPlan('done', plan);
     } catch (e) {
-      if (reqId !== _socialReqId) return;
+      if (reqId !== _aiReqId) return;
       console.error('[사회적경제] AI 실행 계획 생성 실패:', e);
       Dashboard.renderSocialPlan('error');
     }
@@ -247,7 +252,7 @@ const App = (() => {
   /* [다시 시도] — AI만 재호출한다. 진단 결과는 재계산하지 않는다 */
   function retrySocialPlan() {
     if (!_pendingData) return;
-    const myId = ++_socialReqId;
+    const myId = ++_aiReqId;
     Dashboard.renderSocialPlan('loading');
     _loadSocialPlan(_pendingData, myId);
   }
@@ -263,6 +268,7 @@ const App = (() => {
     data.consultingType          = _ctResult?.primary   || '';
     data.consultingTypeSecondary = _ctResult?.secondary || '';
     data.domainScores            = _domScores;
+    _setLoadingCopy('진단 결과 정리 중…', '통계·정부지원사업 데이터를 불러오고 있습니다');
     show('loading');
     Wizard.animateLoading(data.bizScale === 'micro');
 
@@ -330,35 +336,88 @@ const App = (() => {
       show('diag-reveal');
 
       // ② 사용자가 레이더차트를 읽는 동안 백그라운드로 AI 호출
-      const myId = ++_socialReqId;
+      const myId = ++_aiReqId;
       Dashboard.renderSocialPlan('loading');
       _loadSocialPlan(data, myId);
       return;
     }
 
-    try {
-      const result = await AIEngine.callClaude(data);
-      _pendingResult = result;
+    /* 일반 경로(micro·sme) — 사회적경제와 같은 방식으로 바꾼다.
+       ⚠ showDiagReveal은 AI 결과에 의존하지 않는다(레이더차트·영역 점수·해설·
+          KOSIS 생존율·진단유형이 전부 diagScores에서 즉시 계산된다).
+          따라서 AI를 기다릴 이유가 없다. 화면 전환 순서만 바꾸며
+          호출 횟수·max_tokens·프롬프트는 그대로다. */
+    {
+      _pendingResult = null;
       _pendingIsDemo = false;
+      _pendingData = data;
+      _aiState = 'loading';
+      _aiError = null;
+      _awaitingSolution = false;
 
-      // 진단 이력 자동 저장
+      /* 이력 먼저 저장 — showDiagReveal이 스냅샷으로 '지난 분기 대비'를 그린다.
+         execSummary는 AI 완료 후 재저장으로 채운다(같은 분기+회사명이면 덮어쓴다) */
       let _currentSnap = null;
       if (typeof HistoryTracker !== 'undefined') {
-        _currentSnap = HistoryTracker.save(data, result);
+        try { _currentSnap = HistoryTracker.save(data, null); }
+        catch (e) { console.error('[이력 저장]', e); }
       }
       window._currentSnap = _currentSnap;
 
+      // ① 진단 결과를 먼저 보여준다
       Wizard.showDiagReveal(data, _currentSnap);
-      _pendingData = data;
       show('diag-reveal');
-    } catch (e) {
-      // ⚠ 가짜 데이터(fakeAnalysis)로 덮지 않는다.
-      //    실제 분석이 실패했는데 그럴듯한 보고서가 나오면 사용자가 자기 회사 분석으로 오인한다.
-      console.error('[AI 분석 실패]', e);   // 원본 메시지(JSON 조각 포함)는 콘솔에만
-      _pendingResult = null;
-      _pendingData = data;
-      showAnalysisError(e);
+
+      // ② 사용자가 레이더차트를 읽는 동안 백그라운드로 AI 호출
+      _runGeneralAI(data, ++_aiReqId);
     }
+  }
+
+  /* 로딩 화면 문구 교체 — 첫 로딩과 보고서 생성 대기를 구분한다.
+     ⚠ animateLoading()은 다시 호출하지 않는다. 첫 호출의 setTimeout 체인이
+        diag-reveal을 보는 동안에도 계속 진행되므로 두 번 부르면 애니메이션이 겹친다 */
+  function _setLoadingCopy(title, sub) {
+    const box = document.querySelector('#loading .ld-text');
+    if (!box) return;
+    const h = box.querySelector('h2'), p = box.querySelector('p');
+    if (h) h.textContent = title;
+    if (p) p.textContent = sub;
+  }
+
+  /* 일반 경로(micro·sme) 백그라운드 AI 호출.
+     ⚠ 호출 횟수·max_tokens·프롬프트는 그대로다. 화면 전환 순서만 바뀐다. */
+  async function _runGeneralAI(data, reqId) {
+    try {
+      const result = await AIEngine.callClaude(data);
+      if (reqId !== _aiReqId) return;          // 낡은 요청 — 새 진단이 시작됐다
+      _pendingResult = result;
+      _pendingIsDemo = false;
+      _aiState = 'done';
+      _aiError = null;
+      /* 이력 재저장 — execSummary를 채운다. 같은 분기+회사명이면 덮어쓰므로 중복이 없다.
+         ⚠ reqId 검사를 통과한 뒤에만 저장한다. 아니면 새 진단의 스냅샷을 덮어쓴다 */
+      if (typeof HistoryTracker !== 'undefined') {
+        try { window._currentSnap = HistoryTracker.save(data, result); }
+        catch (e) { console.error('[이력 저장]', e); }
+      }
+      // 사용자가 로딩 화면에서 기다리고 있었다면 즉시 보고서를 연다
+      if (_awaitingSolution) { _awaitingSolution = false; _renderSolution(); }
+    } catch (e) {
+      if (reqId !== _aiReqId) return;
+      console.error('[AI 분석 실패]', e);      // 원본 메시지는 콘솔에만
+      _pendingResult = null;
+      _aiState = 'error';
+      _aiError = e;
+      /* ⚠ diag-reveal에는 에러를 띄우지 않는다. 그 시점의 사용자는 레이더차트를 보고 있다.
+            에러는 보고서를 요청한 순간에만 보여준다 */
+      if (_awaitingSolution) { _awaitingSolution = false; showAnalysisError(e); }
+    }
+  }
+
+  /* AI 결과가 준비된 상태에서 대시보드를 연다 — 전체를 한 번에 렌더링한다 */
+  function _renderSolution() {
+    Dashboard.render(_pendingResult, _pendingData, _pendingIsDemo);
+    show('dashboard');
   }
 
   /* 실패 원인을 사용자가 이해할 수 있는 말로 변환 — 원본 메시지는 노출하지 않는다 */
@@ -400,9 +459,15 @@ const App = (() => {
       show('dashboard');
       return;
     }
-    if (!_pendingResult) return;
-    Dashboard.render(_pendingResult, _pendingData, _pendingIsDemo);
-    show('dashboard');
+    /* 일반 경로 — 백그라운드 AI 상태에 따라 3분기.
+       ⚠ 예전의 `if (!_pendingResult) return;`을 두면 AI 진행 중 버튼이 먹통이 된다.
+       ⚠ 부분 렌더링은 하지 않는다. 보고서는 AI가 완전히 끝난 뒤 전체를 렌더링한다. */
+    if (_aiState === 'error') { showAnalysisError(_aiError); return; }
+    if (_aiState === 'done' && _pendingResult) { _renderSolution(); return; }
+    // 아직 생성 중 — 로딩 화면에서 기다렸다가 완료 시 자동으로 열린다
+    _awaitingSolution = true;
+    _setLoadingCopy('AI 보고서 생성 중…', 'Claude AI가 보고서를 작성하고 있습니다. 완료되면 자동으로 열립니다');
+    show('loading');
   }
 
   /* 진단 수정: 위저드 STEP 2(진단)로 돌아가기 */
