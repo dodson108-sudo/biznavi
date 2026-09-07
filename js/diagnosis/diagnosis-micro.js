@@ -2778,22 +2778,147 @@ ${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'
     return INDUSTRY_GROUP_MAP[industryKey] || 'food';
   }
 
-  function getSchema(industryGroup) {
+  /* ══════════════════════════════════════════════════════════════
+     SCALE_WORDING — 운영 규모 2차 오버라이드 (업종 위에 덮인다)
+
+     병합 순서:  기본 ITEMS → INDUSTRY_WORDING[group] → SCALE_WORDING[scale]
+     ⚠ 이 순서를 지켜야 업종 문구 위에 규모 문구가 얹힌다.
+       6업종 × 3규모 = 18조합을 각각 쓰면 630문항이라 불가능하므로,
+       규모 층은 업종과 무관한 부분(고용·위임·본인 시간)만 덮는다.
+
+     scale 값:  'solo'(대표 혼자) | 'solo_pt'(대표+알바) | 'team'/미지정(정규 직원)
+     ⚠ team은 오버라이드가 없다. 라디오를 건드리지 않으면 기존과 100% 동일하다.
+
+     _extends: 'solo'  → solo를 먼저 깔고 그 위에 자기 항목을 덮는다
+     '<키>': null      → ⚠ 상속 취소. 기본(team) 문항으로 되돌린다
+        6_3(해고 예고·퇴직금)이 이 장치를 쓴다. 단시간 근로자에게도
+        퇴직금·해고 예고가 그대로 적용되므로 solo_pt는 기본을 그대로 써야 한다.
+        취소 장치가 없으면 solo의 "고용 없음" 문구를 물려받아
+        알바 퇴직금 의무를 아예 묻지 않게 된다.
+     ══════════════════════════════════════════════════════════════ */
+  const SCALE_WORDING = {
+    /* 2단계: 1_5 · 4_3 · 4_5 / 3단계: 5_3 · 6_3 · 2_3 · 2_4 · 4_2 */
+    solo: {
+      /* 위임할 사람이 없다 → 기록·자동화로 대체하는가로 축을 옮긴다 */
+      '1_5': {
+        label: '기록·자동화로 대체하는 정도',
+        question: '주문·재고·단골 정보처럼 머릿속에만 있는 일을 기록이나 자동화 도구로 옮겨 두어, 대표가 잠시 손을 떼도 흐름이 끊기지 않는가?',
+        guide: '예: 발주 주기·단골 요청사항·비밀번호를 적어 두었는가, 예약·주문 접수가 자동으로 남는가',
+        scale: [
+          { score:1, desc:'모든 정보가 머릿속에만 있어 기억을 놓치면 발주·예약이 그대로 빠진다.' },
+          { score:2, desc:'수첩에 적기는 하나 정리가 안 되어 필요할 때 찾지 못한다.' },
+          { score:3, desc:'발주·예약은 기록하지만 단골 요청이나 거래처 조건은 여전히 기억에 의존한다.' },
+          { score:4, desc:'주요 업무를 한곳에 기록하고 예약·주문 접수는 자동으로 남게 해 두었다.' },
+          { score:5, desc:'기록과 자동화로 반복 업무가 스스로 돌아가며, 손을 떼도 이틀은 흐름이 유지된다.' },
+        ],
+      },
+      /* 혼자면 줄이는 대상이 인건비가 아니라 본인 시간이다 */
+      '4_3': {
+        label: '내 시간 되찾기',
+        question: '도구나 기기를 들여 대표 본인이 단순 작업에 쓰는 시간을 실제로 줄이고, 그 시간을 매출이 되는 일로 옮겼는가?',
+        guide: '예: 도입 전후 주당 몇 시간이 줄었는가, 그 시간을 무엇에 썼는가',
+        scale: [
+          { score:1, desc:'도구를 들였지만 하루 일과는 그대로여서 줄어든 시간이 없다.' },
+          { score:2, desc:'조금 편해진 느낌은 있으나 몇 시간이 줄었는지 세어 본 적이 없다.' },
+          { score:3, desc:'시간은 줄었으나 그만큼 다른 잡무로 채워져 매출로 이어지지 않았다.' },
+          { score:4, desc:'주당 5~10시간을 되찾아 홍보·신메뉴 준비 같은 일에 쓰고 있다.' },
+          { score:5, desc:'주당 15시간 이상을 되찾아 매출이 되는 일과 쉬는 시간에 나누어 쓰고 있다.' },
+        ],
+      },
+      /* ⚠ 1인 사업장의 최대 위험 — 대표가 아프면 매출이 0이 된다 */
+      '4_5': {
+        label: '아파서 못 나올 때 대비',
+        question: '대표가 아프거나 사정이 생겨 며칠 못 나오는 상황에 대비해, 매출이 0이 되지 않도록 준비해 둔 것이 있는가?',
+        guide: '예: 대신 봐 줄 사람 연락처, 휴업 안내 방법, 단골 통지 수단, 고정비를 버틸 여유 자금',
+        scale: [
+          { score:1, desc:'생각해 본 적이 없다. 못 나오면 문을 닫고 그날 매출은 그대로 사라진다.' },
+          { score:2, desc:'위험한 줄은 아나 대신 봐 줄 사람도, 알릴 방법도 정해 두지 않았다.' },
+          { score:3, desc:'급하면 부탁할 사람은 있으나 비밀번호·발주처를 몰라 실제로는 못 맡긴다.' },
+          { score:4, desc:'대신 봐 줄 사람과 안내 문구를 준비해 두어 하루 이틀은 넘길 수 있다.' },
+          { score:5, desc:'대신 맡길 사람·인수인계 메모·단골 통지·여유 자금까지 갖춰 일주일을 버틸 수 있다.' },
+        ],
+      },
+    },
+    solo_pt: {
+      _extends: 'solo',
+      /* 갈리는 문항만 여기서 다시 덮는다 (3단계에서 5_3 추가 예정) */
+      /* 알바에게 어디까지 맡길 수 있는가 — 위임 대상이 생겼다 */
+      '1_5': {
+        label: '알바에게 맡길 수 있는 정도',
+        question: '주문·응대·마감 정리처럼 반복되는 일을 알바에게 맡기고, 대표는 발주·정산 같은 판단이 필요한 일에 집중하고 있는가?',
+        guide: '예: 알바에게 맡긴 업무 범위, 가르치는 데 걸리는 시간, 대표만 할 수 있는 일이 무엇인가',
+        scale: [
+          { score:1, desc:'알바가 있어도 옆에서 계속 봐 줘야 해서 오히려 손이 더 간다.' },
+          { score:2, desc:'단순 심부름만 맡기고 응대·마감은 여전히 대표가 전부 한다.' },
+          { score:3, desc:'응대와 마감은 맡기지만 발주·정산·불만 처리는 대표만 할 수 있다.' },
+          { score:4, desc:'맡길 일을 적어 두고 가르쳐서 대표가 몇 시간 자리를 비울 수 있다.' },
+          { score:5, desc:'업무 순서를 적어 두어 새 알바가 와도 며칠이면 같은 수준으로 해낸다.' },
+        ],
+      },
+      /* 본인 시간 + 알바 시간을 함께 본다 */
+      '4_3': {
+        label: '내 시간·알바 시간 배분',
+        question: '도구나 기기를 들여 대표와 알바가 단순 작업에 쓰는 시간을 줄이고, 알바 근무 시간을 손님이 몰리는 때에 맞춰 배치하고 있는가?',
+        guide: '예: 도입 전후 주당 몇 시간이 줄었는가, 알바 시간대가 바쁜 시간과 맞는가',
+        scale: [
+          { score:1, desc:'도구를 들였지만 대표도 알바도 하는 일이 그대로다.' },
+          { score:2, desc:'조금 편해졌으나 줄어든 시간이나 알바 인건비 변화를 세어 본 적이 없다.' },
+          { score:3, desc:'시간은 줄었으나 알바 근무 시간대를 바쁜 때에 맞춰 조정하지는 못했다.' },
+          { score:4, desc:'주당 5~10시간이 줄어 알바 시간을 바쁜 시간대로 옮겼다.' },
+          { score:5, desc:'줄어든 시간만큼 알바 배치를 최적화하고 대표는 매출이 되는 일에 쓰고 있다.' },
+        ],
+      },
+      /* 알바가 있어도 대표 부재 대비는 여전히 핵심이다 */
+      '4_5': {
+        label: '대표가 못 나올 때 알바가 버틸 수 있는가',
+        question: '대표가 아프거나 사정이 생겨 못 나올 때, 알바가 문을 열고 하루를 넘길 수 있도록 준비해 두었는가?',
+        guide: '예: 알바가 아는 비밀번호·발주처 연락처, 응급 상황 대응 메모, 대표 연락이 안 될 때의 판단 기준',
+        scale: [
+          { score:1, desc:'대표가 없으면 알바도 문을 못 열어 그날 매출이 사라진다.' },
+          { score:2, desc:'문은 열 수 있으나 결제 오류나 손님 불만이 생기면 그대로 멈춘다.' },
+          { score:3, desc:'기본 응대는 하나 비밀번호·발주처를 몰라 대표에게 계속 전화해야 한다.' },
+          { score:4, desc:'필요한 정보와 대응 요령을 적어 두어 알바가 하루는 무리 없이 운영한다.' },
+          { score:5, desc:'권한과 대응 기준이 정리돼 대표가 며칠 없어도 알바가 정상 운영한다.' },
+        ],
+      },
+      '6_3': null,   // 상속 취소 — 기본(team) 유지
+    },
+  };
+
+  /* scale 값을 실제 오버라이드 맵으로 해석한다. _extends와 null 취소를 처리한다 */
+  function _resolveScaleWording(scaleMode) {
+    if (!scaleMode || scaleMode === 'team') return null;
+    var own = SCALE_WORDING[scaleMode];
+    if (!own) return null;
+    var base = own._extends ? SCALE_WORDING[own._extends] : null;
+    var out = {};
+    if (base) Object.keys(base).forEach(function (k) { if (k !== '_extends') out[k] = base[k]; });
+    Object.keys(own).forEach(function (k) {
+      if (k === '_extends') return;
+      if (own[k] === null) { delete out[k]; return; }   // 상속 취소 → 기본으로 되돌림
+      out[k] = own[k];
+    });
+    return Object.keys(out).length ? out : null;
+  }
+
+  function getSchema(industryGroup, scaleMode) {
     var group = industryGroup || 'food';
     var overrides = INDUSTRY_WORDING[group] || {};
+    var scaleOv  = _resolveScaleWording(scaleMode);   // null이면 규모 층을 건너뛴다
     var finalItems = ITEMS;
-    if (Object.keys(overrides).length > 0) {
+    if (Object.keys(overrides).length > 0 || scaleOv) {
       finalItems = {};
       Object.keys(ITEMS).forEach(function(key) {
-        if (!overrides[key]) {
-          finalItems[key] = ITEMS[key];
-        } else {
-          var merged = Object.assign({}, ITEMS[key], overrides[key]);
-          if (ITEMS[key].ai_trigger && overrides[key].ai_trigger) {
-            merged.ai_trigger = Object.assign({}, ITEMS[key].ai_trigger, overrides[key].ai_trigger);
-          }
-          finalItems[key] = merged;
+        var ind = overrides[key], sca = scaleOv && scaleOv[key];
+        if (!ind && !sca) { finalItems[key] = ITEMS[key]; return; }
+        // 업종을 먼저 덮고, 그 위에 규모를 덮는다 (순서를 바꾸면 업종 문구가 규모를 지운다)
+        var merged = Object.assign({}, ITEMS[key], ind || {}, sca || {});
+        var trig = ITEMS[key].ai_trigger;
+        if (trig) {
+          merged.ai_trigger = Object.assign({}, trig,
+            (ind && ind.ai_trigger) || {}, (sca && sca.ai_trigger) || {});
         }
+        finalItems[key] = merged;
       });
     }
     // 영역 설명만 그룹별로 덮는다 (label·key·weight·id는 불변)

@@ -1421,7 +1421,7 @@ const Wizard = (() => {
     } else if (isMicro) {
       _activeContainers.push('diag-micro-container');
       const microGroup = DiagMicro.getGroup(industryKey);
-      renderDiagModule('diag-micro-container', _diagMicroToAreas(DiagMicro, microGroup));
+      renderDiagModule('diag-micro-container', _diagMicroToAreas(DiagMicro, microGroup, _soloScale()));
       if (microContainer)   microContainer.classList.remove('hidden');
       if (commonContainer)  commonContainer.classList.add('hidden');
       if (socialContainer)  socialContainer.classList.add('hidden');
@@ -1687,8 +1687,32 @@ const Wizard = (() => {
     return { id: schema.id, label: schema.label, areas };
   }
 
-  function _diagMicroToAreas(diagMicro, industryGroup) {
-    const schema = diagMicro.getSchema(industryGroup);
+  /* ── 1인 사업장 운영 형태 (step1 직원수 아래 라디오) ──────────────
+     ⚠ '1~5명'일 때만 노출한다. 6명 이상인데 1인 사업장일 수 없다.
+     ⚠ 기본값은 'team'이라 라디오를 건드리지 않으면 기존과 100% 동일하게 동작한다. */
+  function _soloScale() {
+    const emp = document.getElementById('employees')?.value || '';
+    if (emp !== '1~5명') return 'team';          // 노출 조건이 아니면 무조건 기존 동작
+    const sel = document.querySelector('input[name="soloScale"]:checked');
+    return (sel && sel.value) || 'team';
+  }
+
+  function updateSoloScaleUI() {
+    const box = document.getElementById('soloScaleBlock');
+    if (!box) return;
+    const emp = document.getElementById('employees')?.value || '';
+    if (emp === '1~5명') {
+      box.classList.remove('hidden');
+    } else {
+      box.classList.add('hidden');
+      // 숨길 때 기본값으로 되돌린다 — 6명 이상인데 solo가 남아 있으면 안 된다
+      const t = document.querySelector('input[name="soloScale"][value="team"]');
+      if (t) t.checked = true;
+    }
+  }
+
+  function _diagMicroToAreas(diagMicro, industryGroup, scaleMode) {
+    const schema = diagMicro.getSchema(industryGroup, scaleMode);
     const areas = schema.domains.map(domain => {
       const items = Object.entries(schema.items)
         .filter(([key]) => key.startsWith(`${domain.id}_`))
@@ -2990,6 +3014,7 @@ const Wizard = (() => {
         const emp = g('employees');
         return (!emp || emp === '1~5명') ? 'micro' : 'sme';
       })(),
+      soloScale:       _soloScale(),    // 'solo' | 'solo_pt' | 'team'
       bizModel:        g('bizModel'),   // 추론된 BM 레이블 (hidden input)
       bizModelKey:     _inferredBmKey,  // 추론된 BM 키
       foundedYear:     g('foundedYear'),
@@ -3252,6 +3277,10 @@ const Wizard = (() => {
     _clearAllDiagContainers();
     const orgSel = document.getElementById('orgTypeSelect');
     if (orgSel) orgSel.value = 'general';
+    // 운영 형태 라디오 초기화 — 새 진단에 이전 선택이 남으면 안 된다
+    const soloTeam = document.querySelector('input[name="soloScale"][value="team"]');
+    if (soloTeam) soloTeam.checked = true;
+    updateSoloScaleUI();
     const typeBanner = document.getElementById('diag-type-banner');
     if (typeBanner) { typeBanner.innerHTML = ''; typeBanner.classList.add('hidden'); }
     Object.keys(diagScores).forEach(k => delete diagScores[k]);
@@ -3518,6 +3547,11 @@ const Wizard = (() => {
 
   // HTML oninput 속성에만 의존하지 않도록 JS에서 직접 이벤트 리스너 등록
   document.addEventListener('DOMContentLoaded', function() {
+    // 직원수 변경 시 운영 형태 라디오 노출 갱신
+    var empEl = document.getElementById('employees');
+    if (empEl) empEl.addEventListener('change', updateSoloScaleUI);
+    updateSoloScaleUI();
+
     var btEl = document.getElementById('bizType');
     var biEl = document.getElementById('bizItem');
     if (btEl) btEl.addEventListener('input', inferIndustryFromType);
@@ -3540,5 +3574,5 @@ const Wizard = (() => {
     if (orgSel) orgSel.addEventListener('change', _onOrgTypeChange);
   });
 
-  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN, COOP_DOMAIN_EXPLAIN, ORG_DOMAIN_EXPLAIN };
+  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, updateSoloScaleUI, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN, COOP_DOMAIN_EXPLAIN, ORG_DOMAIN_EXPLAIN };
 })();
