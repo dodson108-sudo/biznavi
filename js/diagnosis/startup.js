@@ -14,6 +14,7 @@ const STARTUP_DIAGNOSIS = {
       items: [
         {
           id: 's1_1',
+          guide: '예: 무료 시범 제공, 첫 유료 계약, 재구매 발생 여부 · ※ 파일럿 = 소규모로 먼저 해 보는 시범 운영',
           type: 'bars',
           text: '사업 아이디어·서비스를 실제 고객에게 검증(파일럿·시범 서비스·첫 계약)해봤나요? — 검증 없이 시작하면 준비 비용만 소진됩니다',
           anchors: {
@@ -26,6 +27,7 @@ const STARTUP_DIAGNOSIS = {
         },
         {
           id: 's1_2',
+          guide: '예: 월별 매출 목표, 임대료·인건비 등 고정비, 마케팅 예산과 방법',
           type: 'bars',
           text: '사업계획서(월별 매출 목표·주요 비용·마케팅 계획)가 구체적으로 수립되어 있나요?',
           anchors: {
@@ -44,6 +46,7 @@ const STARTUP_DIAGNOSIS = {
       items: [
         {
           id: 's2_1',
+          guide: '※ 런웨이(Runway) = 매출이 하나도 없다고 가정할 때 보유 자금으로 버틸 수 있는 개월 수',
           type: 'bars',
           text: '현재 보유 자금으로 매출이 전혀 없어도 몇 개월을 버틸 수 있나요? (런웨이: Runway) — 창업 초기 가장 중요한 생존 지표입니다',
           anchors: {
@@ -56,6 +59,7 @@ const STARTUP_DIAGNOSIS = {
         },
         {
           id: 's2_2',
+          guide: '※ 손익분기점(BEP, Break-Even Point) = 벌어들인 돈이 나간 돈과 같아지는 매출 수준. 이 아래면 적자다',
           type: 'bars',
           text: '손익분기점(BEP: 모든 비용을 회수하는 최소 매출 수준)을 계산하고, 언제 달성할지 알고 있나요?',
           anchors: {
@@ -74,6 +78,7 @@ const STARTUP_DIAGNOSIS = {
       items: [
         {
           id: 's3_1',
+          guide: '예: 계약서·발주서·예약이 확정된 건, 당월 매출로 잡히는 금액',
           type: 'bars',
           text: '지금 당장 확정된 계약·주문·예약(당월 매출로 이어지는 것)은 어느 수준인가요?',
           anchors: {
@@ -86,6 +91,7 @@ const STARTUP_DIAGNOSIS = {
         },
         {
           id: 's3_2',
+          guide: '예: 상담·견적 요청한 잠재 고객 수, 30~90일 내 계약 가능성',
           type: 'bars',
           text: '향후 30~90일 안에 계약·매출로 이어질 가능성 있는 잠재 고객(세일즈 파이프라인)이 있나요?',
           anchors: {
@@ -104,6 +110,7 @@ const STARTUP_DIAGNOSIS = {
       items: [
         {
           id: 's4_1',
+          guide: '예: 즉시 제공 가능한 재고·인력·설비, 주문부터 전달까지 걸리는 시간',
           type: 'bars',
           text: '지금 당장 고객이 주문·계약을 해도 즉시 서비스·제품을 제공할 수 있는 준비가 되어 있나요?',
           anchors: {
@@ -116,6 +123,7 @@ const STARTUP_DIAGNOSIS = {
         },
         {
           id: 's4_2',
+          guide: '예: 핵심 인력·거래처·외주처 확보 여부, 대체 가능성',
           type: 'bars',
           text: '이 사업의 성공에 꼭 필요한 핵심 파트너·공급사·협력업체·핵심 인력을 확보했나요?',
           anchors: {
