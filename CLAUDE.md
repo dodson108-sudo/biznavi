@@ -8,6 +8,123 @@
 
 ---
 
+## 최근 수정 이력 (2026-09-08) — micro 1차 전용 시스템 프롬프트 신설 (Vercel Hobby 60초 초과 해결 1순위)
+
+**"소상공인이 쓰지 않는 것을 AI가 만들어서 버린다"는 지적에서 출발했으나,
+조사 결과 진짜 원인은 버려지는 필드가 아니라 프롬프트 자기모순이었다.**
+
+### ① 조사 — micro 경로 생성 필드 ↔ 렌더링 전수 대조
+`dashboard.js`·`ppt-export.js`·`history-tracker.js`·`ai-engine.js`(2·3차 입력)를 전부 grep으로 확인했다.
+
+| 필드 | 생성 | 대시보드 | PPT(micro 8장) | History | 2·3차 입력 | 판정 |
+|---|---|---|---|---|---|---|
+| `executiveSummary` | 1차 | `sec-summary` ✔ | 사용 ✔ | 200자 ✔ | 2차·3차 | **필요** |
+| `lifecycleStage` | 1차 | `sec-lifecycle` ✔ | 사용 ✔ | — | 2차·3차 | **필요** |
+| `stp` | 1차 | `sec-market-micro` ✔ | 사용 ✔ | — | — | **필요** |
+| `tam`/`sam`/`som` | 1차 | `sec-market-micro` ✔ | 사용 ✔ | — | — | **필요** |
+| `swot` | 1차 | `sec-swot` = smeOnly **hidden** | 미사용 | — | `strengths[0]`·`weaknesses[0]` | **간접 필요(2개)** |
+| `sixSystems` D1~D4 / D5~D7 | 2·3차 | `sec-six-systems` ✔ | 사용 ✔ | — | 3차 | **필요** |
+| `plan90days` | 3차 | `sec-plan90` ✔ | 사용 ✔ | — | — | **필요** |
+| `roadmap` | 2차 | `sec-roadmap` hidden | 미사용 | — | `[0].tasks[0]` 1줄 | 거의 버림 |
+| `kpi`·`keyStrategies`·`fourP`·`specializedAnalysis` | 2차 | **전부 hidden / 미호출** | 미사용 | — | — | **버림** |
+
+⚠ **`sec-stp` 섹션이 없다고 STP를 "버려지는 것"으로 판단하면 틀린다.**
+`renderMarketMicro(data)`가 `data.stp`(segmentation/targeting/target/positioning)와
+`data.tam`/`sam`/`som`을 실제로 읽는다. **STP·TAM/SAM/SOM은 필요한 것이다.**
+⚠ `swot`도 제거 대상이 아니다 — `_buildPrompt2Micro`가 `r1.swot.strengths[0]`·`weaknesses[0]`을 읽는다.
+⚠ `specializedAnalysis`·`leanCanvas`는 `if (!isMicro)` 가드로 **애초에 렌더 함수가 호출되지 않는다.**
+
+### ② ⚠ 진짜 원인 — 한 요청 안에 상반된 두 명세가 들어가 있었다
+`callClaude()`가 micro 1차에도 **sme용 `SYSTEM`을 그대로** 보내고 있었다.
+
+| | 분량 |
+|---|---|
+| `SYSTEM` 전체 | 11,942자 ≈ **7,464 입력토큰** |
+| └ 그중 sme JSON 템플릿 | 7,124자 ≈ **4,453토큰** |
+
+그 템플릿이 요구하는 것 — `swot` 4분면 × **6개** × `{item,evidence}` = **24객체**(880tok) ·
+`kpi` 10개(875) · `roadmap` 3단계×task6+budget(673) · `keyStrategies` 6개(518) ·
+`leanCanvas` 9블록(398) · `specializedAnalysis`(368) · `fourP`(318) ·
+`executiveSummary` "5~7문장, 수치 포함 필수"(165).
+
+반면 `buildPrompt1` micro 분기는 **"7개 필드만, 각 1개, [운영현황]/[핵심위험]/[즉시과제]"**라고 말한다.
+**모델은 최대 명세 쪽으로 쏠린다** → 실측 output **8,964토큰 / 92초** → Vercel Hobby 60초 초과.
+
+**버려지는 필드 이론보다 이쪽이 훨씬 잘 설명한다.** micro 1차가 실제로 필요한 7개 필드를
+명세대로만 쓰면 1,000토큰 안팎이면 끝난다.
+
+⚠ **2026-05-25 `22ff99e`가 절반만 정리한 결과였다.** 그때 `SYSTEM`에서 `sixSystems`·
+`plan90days` 템플릿과 인과사슬 블록은 걷어냈지만 **SWOT·STP·4P·keyStrategies·kpi·
+roadmap·leanCanvas 템플릿은 남겨 뒀다.**
+
+### ③ 조치 — `_SYSTEM_MICRO_1` 신설 (1순위만. 2순위는 보류)
+```js
+const text1 = await apiCall(_isMicro ? _SYSTEM_MICRO_1 : SYSTEM, buildPrompt1(formData), '1차', _opts1);
+```
+⚠ **`SYSTEM` 상수는 한 글자도 건드리지 않았다.** sme 1차가 공유하므로 손대면 그쪽 품질이 깎인다.
+⚠ **명세는 `_SYSTEM_MICRO_1` 한 곳에만 둔다.** `buildPrompt1` micro 분기의 JSON 템플릿을
+   제거하고 "시스템 프롬프트의 구조를 따르라"는 3줄로 대체했다. **두 곳에 두는 것 자체가
+   이번 문제의 원인이었으므로**, 코드에 "여기 다시 적지 마라"는 주석을 남겼다.
+
+**남긴 블록과 근거** — "절대 규칙·페르소나·언어 원칙만"이 지시였으나 두 블록을 더 남겼다:
+- **필수 반영 원칙** — 1차가 실제로 만드는 SWOT·STP·executiveSummary를 직접 지배한다.
+  특히 4번(진단 점수 등급별 반영)이 빠지면 **진단 결과가 보고서에 반영되지 않는다.**
+  2차·3차 대상인 6번(정부지원→로드맵)만 덜어내고, 프레임워크 10권 중 SWOT·
+  executiveSummary 대상인 ①블루오션·⑥제로투원만 6번 한 줄로 압축했다
+- **응답자 메모 활용 원칙** — 2026-09-07에 넣은 것으로 `executiveSummary`·SWOT에 메모를
+  반영시키는 **유일한 지시**다. 빼면 그 작업이 micro에서 조용히 무효가 된다
+
+**제외한 블록** (전부 2차·3차 필드 전용이라 1차에 도달할 대상이 없다):
+현금 런웨이 4축(plan90days·sixSystems) / 카드사 위험 신호 3개(sixSystems) /
+정책금융 우선순위 4단계 / 정부지원 평가기준(keyStrategies·roadmap) /
+프레임워크 ②③④⑤⑦⑨⑩(keyStrategies·KPI·roadmap·fourP) / consultingType specializedAnalysis(2차)
+
+### ④ 검증 (지시된 4항목 전부 통과)
+| 항목 | 결과 |
+|---|---|
+| **[1] 제거 확인** | micro 1차 요청 전체에서 `kpi`·`roadmap`·`keyStrategies`·`leanCanvas`·`specializedAnalysis`·`fourP`의 **JSON 명세 0건** (금지 지시로만 언급) ✓ |
+| **[2] 7필드 잔존** | `executiveSummary`·`lifecycleStage`·`swot`·`stp`·`tam`·`sam`·`som` 명세 **전부 유지** ✓ |
+| **[3] sme 무영향** | sme 1차 `SYSTEM` **바이트 동일**(11,942자) · sme 1차 유저 프롬프트 **바이트 동일**(2,994자) ✓ |
+| 보존 확인 | 메모 원칙 · 진단 점수 등급 · 언어 원칙 · 페르소나 · 절대 규칙 전부 유지 ✓ |
+| 경로 무변경 | `api/claude-analyze-1/2/3` · `-social` · `-funding` · `lib/claude-stream.js` · `vercel.json` · `dashboard.js` · `wizard.js` · `app.js` · `diagnosis-micro.js` **전부 바이트 동일** ✓ |
+
+**[4] 입력 토큰 실측 (micro 1차 요청 전체)**
+| | 시스템 | 유저 | 합계 |
+|---|---|---|---|
+| before | 11,942자 | 3,540자 | 15,482자 ≈ **9,676 토큰** |
+| after | **2,064자** | 3,174자 | 5,238자 ≈ **3,274 토큰** |
+
+**예상 output**: 8,964 → **1,000~1,500토큰**. 실측 97.4 tok/s 기준 **92초 → 10~16초**.
+
+### ⑤ 2순위는 보류 — 배포 후 실측으로 결정
+`kpi`·`keyStrategies`·`fourP`·`specializedAnalysis`는 micro 대시보드·PPT·History 어디에도
+나오지 않지만 **전부 2차 생성**이다. 1차가 15초로 줄고 2·3차가 60초 안에 들어오면 불필요하다.
+**두 순위를 한 번에 하면 문제 발생 시 원인 구분이 안 되므로 나눴다.**
+
+### ⑥ 사용자가 Vercel Logs에서 확인할 것
+Vercel → 프로젝트 → **Logs** → Function 필터. 함수별로 다음 줄을 본다.
+
+| 로그 | 의미 |
+|---|---|
+| `[1차-micro] 완료: turns=N, 누적 output_tokens=…` | 1차 생성량. **1,500 이하면 성공** |
+| `[2차-micro]` / `[3차]` 같은 줄 | 2·3차 생성량 — **60초 초과 여부의 판단 근거** |
+| 각 요청 행의 **Duration** | 함수별 실제 소요. 60초 상한은 **호출당** 적용된다 |
+| `504` / `FUNCTION_INVOCATION_TIMEOUT` | 어느 함수에서 나는지가 2순위 우선도를 정한다 |
+
+⚠ **Duration은 함수마다 따로 찍힌다.** `claude-analyze-1`만 60초를 넘고 있었다면 이번 수정으로
+끝나고, `-2`·`-3`도 넘고 있다면 2순위(2차 낭비 필드 제거)를 바로 진행해야 한다.
+
+### ⑦ 캐시버스팅
+`index.html` 로컬 `?v=` **52곳** 전부 `20260908a`
+
+### ⑧ 남은 이슈
+1. **2순위 보류 중** — 2차의 `kpi`·`keyStrategies`·`fourP`·`specializedAnalysis`는 micro에서
+   완전히 버려진다. `roadmap`도 3차 프롬프트가 `[0].tasks[0]` 1줄만 쓴다. 배포 후 결정
+2. (기존) 2·3차의 `substring(0, 500)` 컷 근거 불명 — 변동 없음
+3. (기존) `_renderSolution()`을 `try` 안에 다시 넣지 마라 — 렌더 오류가 AI 실패로 분류된다
+
+---
+
 ## 최근 수정 이력 (2026-09-08) — ⚠ 백그라운드 AI 되돌림 (보고서가 나오지 않는 증상)
 
 **속도 개선(`397fac6`) 배포 후 최종 보고서가 나오지 않는다는 보고를 받고 `js/app.js`를 되돌렸다.**

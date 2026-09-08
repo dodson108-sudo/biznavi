@@ -381,6 +381,89 @@ const AIEngine = (() => {
   }
 }`;
 
+
+  /* ── micro 1차 전용 시스템 프롬프트 (2026-09-08 신설) ──────────────────────
+     ⚠ 이 상수를 만든 이유 — 프롬프트 자기모순이 Vercel Hobby 60초 초과의 직접 원인이었다.
+       micro 1차가 sme용 SYSTEM(11,961자 ≈ 7,475토큰)을 그대로 받고 있었다.
+       그 안의 sme JSON 템플릿(7,124자 ≈ 4,453토큰)은 SWOT 4분면 × 6개 {item,evidence}
+       24객체 + kpi 10개 + roadmap 3단계 + keyStrategies 6개 + leanCanvas 9블록 +
+       specializedAnalysis + fourP를 요구한다. 반면 buildPrompt1 micro 분기는
+       "7개 필드만, 각 1개"라고 말한다. 한 요청 안에 상반된 두 명세가 들어가면
+       모델은 최대 명세 쪽으로 쏠린다 → 실측 output 8,964토큰 / 92초.
+       (2026-05-25 22ff99e가 SYSTEM에서 sixSystems·plan90days만 걷어내고
+        SWOT·STP·4P·keyStrategies·kpi·roadmap·leanCanvas 템플릿은 남겨 둔 것이 여기까지 왔다.)
+
+     ⚠ 명세는 이 상수 한 곳에만 둔다. buildPrompt1 micro 분기에 JSON 템플릿을 다시
+       넣지 마라 — 두 곳에 두는 것 자체가 이번 문제의 원인이었다.
+     ⚠ SYSTEM 상수는 sme 1차가 공유하므로 절대 건드리지 않는다. micro만 이쪽을 쓴다.
+
+     남긴 블록과 근거:
+       절대 규칙 / 페르소나 / 언어 원칙 — 출력 형식과 문체의 기반이다.
+       필수 반영 원칙 — 1차가 실제로 만드는 7개 필드(SWOT·STP·executiveSummary)를
+         직접 지배한다. 특히 4번(진단 점수 등급별 반영)이 빠지면 진단 결과가
+         보고서에 반영되지 않는다. 2차·3차 대상 항목(정부지원→로드맵)만 덜어냈다.
+       응답자 메모 활용 원칙 — 2026-09-07에 넣은 것으로 executiveSummary·SWOT에
+         메모를 반영시키는 유일한 지시다. 빼면 그 작업이 micro에서 무효가 된다.
+
+     제외한 블록과 근거 (전부 2차·3차 필드 전용이라 1차에 도달할 대상이 없다):
+       현금 런웨이 4축 → plan90days·sixSystems 재무 / 카드사 위험 신호 3개 → sixSystems
+       정책금융 우선순위 4단계 → 자금 조달 서술 / 정부 지원사업 평가 기준 → keyStrategies·roadmap
+       프레임워크 10권 중 ②③④⑤⑦⑨⑩ → keyStrategies·KPI·roadmap·fourP
+         (①블루오션·⑥제로투원·⑧헤지호그만 SWOT·executiveSummary 대상이라 원칙 6번으로 압축)
+       consultingType별 specializedAnalysis → 2차 필드
+  */
+  const _SYSTEM_MICRO_1 = `[절대 규칙]
+- 응답은 반드시 순수 JSON만 출력한다. 코드블록(\`\`\`) 사용 금지.
+- 첫 글자는 반드시 { 이어야 한다.
+- JSON 외 설명 텍스트 절대 금지.
+- JSON이 완성되지 않으면 각 항목 내용을 줄여서라도 반드시 완성할 것.
+
+당신은 30년 카드/금융 출신 경영지도사입니다.
+삼성카드 → 하나은행 → 하나카드 전략·마케팅·상품·영업·글로벌 부문을 두루 거쳤으며, 현재 AI지도사·ESG경영전문가·탄소중립지도사 자격을 보유한 현장형 컨설턴트입니다.
+한국 중소기업·소상공인의 실제 현금흐름·카드결제 구조·정책금융 경로를 속속들이 알며, 대표가 내일 당장 실행에 옮길 수 있는 액션플랜을 제시하는 것이 핵심 역할입니다.
+단순한 방향 제시가 아닌, 카드사 리스크 심사관이 보듯 냉정하게 사업의 생존 가능성을 진단하고, 경영지도사로서 법적·정책적으로 실현 가능한 처방을 내립니다.
+
+[언어 원칙]
+- 중소기업 대표가 바로 이해할 수 있는 쉬운 한국어 사용.
+- 영어 약어 사용 시 반드시 괄호 안에 한국어로 풀어서 설명.
+  예) NPS(고객 추천 지수), MRR(월 반복 매출), CAC(고객 획득 비용), ROAS(광고비 대비 매출), BEP(손익분기점)
+- 일반론적 표현("디지털 전환 필요", "고객 만족 향상") 절대 금지.
+  반드시 입력된 기업명·업종·수치·경쟁사를 직접 언급하며 특화된 표현 사용.
+
+[1차 호출 산출 범위 — 절대 규칙]
+- 너는 지금 소상공인(micro) 1차 호출이다. 아래 7개 필드만 출력한다.
+  executiveSummary, lifecycleStage, swot, stp, tam, sam, som
+- keyStrategies, fourP, specializedAnalysis, kpi, roadmap, sixSystems, plan90days, leanCanvas는 절대 출력하지 마라. 상세 처방과 실행 계획은 2차·3차 호출에서 별도로 작성한다.
+- 각 필드는 아래 JSON 구조에 적힌 분량을 지킨다. 더 길게 쓰지 마라.
+
+[필수 반영 원칙 — 1차 7개 필드에 적용]
+1. 5 Forces 분석 결과 → SWOT 기회·위협에 직접 문장으로 인용할 것.
+2. TAM/SAM/SOM → STP 세분화에 반드시 반영.
+3. 경쟁사 약점 → SWOT 기회 + 포지셔닝에 직접 활용.
+4. 진단 점수 반영:
+   - 위험(1~1.9점): SWOT 약점 최상단 + executiveSummary [핵심위험]에 최우선 반영
+   - 취약(2~2.9점): SWOT 약점에 포함
+   - 보통(3~3.9점): 개선 방향으로 언급
+   - 강점(4~5점): SWOT 강점 + 포지셔닝의 핵심 무기로 활용
+5. 업종 시장 트렌드(제공된 데이터) → SWOT 기회에 직접 인용.
+6. SWOT 강점에는 이 기업만이 가진 독점적 우위를, 기회에는 경쟁 없는 새 시장 관점을 각각 1개 이상 반영한다.
+
+[응답자 메모 활용 원칙 — 반드시 지킬 것]
+- 진단 결과에 [응답자 메모] 블록이 있으면 그것은 점수만으로 알 수 없는 현장 맥락이다.
+- 보고서 작성 시 메모 내용을 반드시 반영하라.
+- 메모와 점수가 어긋나면 메모를 우선 고려하라.
+- 메모를 인용할 때는 응답자가 쓴 표현을 그대로 살려라. 자기 말로 바꾸지 마라.
+
+반드시 다음 JSON 구조로만 응답 (마크다운 코드블록 없이 순수 JSON). 각 항목의 지정 분량을 초과하지 말 것:
+{
+  "executiveSummary": "[운영현황]\n현황 1~2문장\n\n[핵심위험]\n위험 1~2문장\n\n[즉시과제]\n즉시 실행 과제 1문장",
+  "lifecycleStage": "창업기|생존기|성장기|성숙기|전환기 중 하나 + 한 줄 근거",
+  "swot": { "strengths": ["강점 1개"], "weaknesses": ["약점 1개"], "opportunities": ["기회 1개"], "threats": ["위협 1개"] },
+  "stp": { "segmentation": "1줄", "target": "1줄", "positioning": "1줄" },
+  "tam": "TAM 수치+단위",
+  "sam": "SAM 수치+단위",
+  "som": "SOM 수치+단위"
+}`;
   /* ── 2차 호출 전용 시스템 프롬프트 (실행플랜: KPI·로드맵·6시스템·90일플랜·린캔버스) ── */
   const _SYSTEM_EXEC = `[절대 규칙]
 - 응답은 반드시 순수 JSON만 출력한다. 코드블록(\`\`\`) 사용 금지.
@@ -1266,23 +1349,13 @@ ${_buildSurvivalInsights(d, d.survivalData || (typeof window !== 'undefined' && 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ★ 1차 호출 응답 범위 (반드시 준수) ★
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${d.bizScale === 'micro' ? `[1차 호출 절대 규칙] 너는 지금 1차 호출이다. 아래 7개 필드만 JSON으로 출력하고 절대 다른 내용을 추가하지 마라: executiveSummary, lifecycleStage, swot, stp, tam, sam, som
+${d.bizScale === 'micro' ? `[1차 호출 절대 규칙] 너는 지금 소상공인(micro) 1차 호출이다.
+시스템 프롬프트의 [1차 호출 산출 범위]와 그 아래 JSON 구조를 그대로 따르라.
+7개 필드(executiveSummary, lifecycleStage, swot, stp, tam, sam, som) 외에는 아무것도 출력하지 마라.
 
-[소상공인 모드 — 1차 최소 응답 (토큰 절약)]
-아래 7개 필드만 작성. 각 항목 반드시 최소화.
-
-{
-  "executiveSummary": "[운영현황]\n현황 1~2문장\n\n[핵심위험]\n위험 1~2문장\n\n[즉시과제]\n즉시 실행 과제 1문장",
-  "lifecycleStage": "창업기|생존기|성장기|성숙기|전환기 중 하나 + 한 줄 근거",
-  "swot": { "strengths": ["강점 1개"], "weaknesses": ["약점 1개"], "opportunities": ["기회 1개"], "threats": ["위협 1개"] },
-  "stp": { "segmentation": "1줄", "target": "1줄", "positioning": "1줄" },
-  "tam": "TAM 수치+단위",
-  "sam": "SAM 수치+단위",
-  "som": "SOM 수치+단위"
-}
-
-keyStrategies, fourP, specializedAnalysis, kpi, roadmap, sixSystems, plan90days, leanCanvas는 모두 생략.
-전략 상세·처방은 2차·3차에서 작성.` : `이번 응답에는 executiveSummary, swot, stp, fourP, keyStrategies, specializedAnalysis 6개 필드만 포함하세요.
+⚠ JSON 구조 명세를 여기 다시 적지 마라. 명세는 _SYSTEM_MICRO_1 한 곳에만 둔다 —
+두 곳에 두면 서로 어긋나 모델이 더 큰 쪽을 따라가고, 그것이 2026-09-08 이전
+1차 output 8,964토큰 / 92초(Vercel Hobby 60초 초과)의 원인이었다.` : `이번 응답에는 executiveSummary, swot, stp, fourP, keyStrategies, specializedAnalysis 6개 필드만 포함하세요.
 kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2차 호출에서 별도로 더 깊이 작성합니다)`}`;
 
     if (typeof window !== 'undefined' && window.DiagCommon && d.diagScores) {
@@ -1464,7 +1537,11 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
     const _isMicro  = formData.bizScale === 'micro';
     // micro 1차: noSearch=true → 서버에서 stream:true + max_tokens:16000 적용 (JSON 절단 방지)
     const _opts1    = _isMicro ? { noSearch: true } : {};
-    const text1 = await apiCall(SYSTEM, buildPrompt1(formData), '1차', _opts1);
+    /* ⚠ micro 1차는 _SYSTEM_MICRO_1을 쓴다. sme용 SYSTEM을 보내면 그 안의
+       sme JSON 템플릿(약 4,450토큰)이 "7개 필드만"이라는 유저 프롬프트와 충돌해
+       모델이 최대 명세로 쏠린다(실측 8,964토큰 / 92초 → Hobby 60초 초과).
+       sme는 SYSTEM 그대로 — 이 삼항 외에 SYSTEM을 건드리지 마라. */
+    const text1 = await apiCall(_isMicro ? _SYSTEM_MICRO_1 : SYSTEM, buildPrompt1(formData), '1차', _opts1);
     console.log('1차 응답 (처음 400자):', text1.substring(0, 400));
     const result1 = extractJSON(text1);
     if (!result1) throw new Error('1차 분석 JSON 파싱 실패: ' + text1.substring(0, 200));
