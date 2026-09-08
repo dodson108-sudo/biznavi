@@ -8,6 +8,130 @@
 
 ---
 
+## 최근 수정 이력 (2026-09-08) — ⚠ 창업 초기 소상공인 진단 점수 전부 0 (경로 판정 비대칭) · _diagPathOf 신설
+
+**"진단을 다 입력했는데 7대 영역이 전부 비고 'D1 미입력'으로 최종 보고서 진입이 막힌다."**
+개업 1년 미만 외식업, 종업원 `사장+알바`(solo_pt) 조건에서 보고됐다.
+
+### ① 증상 1·2·3은 하나의 원인이다 — AI 결과 문제가 아니었다
+셋 다 `domainScores`가 전부 0인 결과이며, 전부 **AI 호출 전** 진단 점수만으로 그리는 부분이다.
+| 증상 | 코드 |
+|---|---|
+| 7대 영역 프로파일 빔 | `drScoreList` — `avg>0 ? avg.toFixed(1) : '—'` + `'미입력'` |
+| 미리보기 내용 빈칸 | `drDomainGuide` — `if (d.avg === 0) return '';` → 카드 전부 소멸 |
+| D1 미입력 잠금 | `d1Avg === 0` → `disabled` |
+
+⚠ **`49808a9`(micro 1차 프롬프트)와 무관하다.** 그 커밋에서 `wizard.js`·`app.js`·`dashboard.js`는 바이트 동일이었다.
+
+### ② ⚠ 1인 사업장은 원인이 아니었다 — 지목된 가설을 실측으로 기각
+`getSchema('food', 'team'/'solo'/'solo_pt')` 전부 **35문항 · 키 `1_1`~`7_5` 동일**이고,
+컨테이너 id도 scale과 무관하게 `'diag-micro-container'` 고정이다. 세 구간 모두 정규식 매칭 정상.
+**`SCALE_WORDING`은 문구만 덮고 키를 건드리지 않는다** — 설계대로였다.
+
+### ③ 진짜 원인 — 두 함수가 같은 판정을 각자 하고 있었다
+```
+loadDiagnosisUI : isMicro = bizScale==='micro' && !isStartupMode && DiagMicro존재  ← 어디에 그릴지
+showDiagReveal  : isMicro = !isSocial && bizScale==='micro'                        ← 어느 키로 읽을지
+```
+`bizScale` 산출식은 양쪽이 글자까지 같아 어긋날 수 없다. **차이는 `isStartupMode` 하나뿐이었다.**
+
+→ 개업 1년 미만 micro는 STARTUP 8문항이 `diag-common-container`에 렌더되어
+점수가 **`diag-common-container_s1_1`**로 저장되는데,
+`showDiagReveal`은 `isMicro=true`로 판정해 **`/^diag-micro-container_(\d)_/`**로 읽는다.
+하나도 매칭되지 않아 전 영역 0 → 세 증상이 동시에 나온다.
+
+**출처를 특정했다 — `e7c4056`(2026-09-03).** 그 커밋이 `loadDiagnosisUI`의 `isMicro`에
+`!isStartupMode`를 넣으면서 **`showDiagReveal`을 손대지 않았다.**
+검증 항목도 문항 수·진행률·탭 라벨·활성 컨테이너뿐이고 **결과 화면이 빠져 있었다** —
+CLAUDE.md의 *"진단 모듈을 추가할 때는 결과 화면까지 함께 확인할 것"* 규칙을 그 커밋이 위반했다.
+
+⚠ 재현으로 확정했다. 사용자 콘솔 실측 키가 `diag-common-container_s1_1`이었다.
+
+### ④ ⚠ 조사 중 발견한 세 번째 결함 — 허위 진단이 AI로 나가고 있었다
+`collect()`의 micro 분기가 `bizScale === 'micro' && window.DiagMicro`뿐이라
+창업 초기도 여기 걸렸다. `DiagMicro.calcScores(STARTUP 키)` → **전 항목 0점**,
+`buildPromptSummary`가 그 0점으로 **CRITICAL 경고 6건을 지어내 AI에 보냈다**:
+> `종합 0점 / 100점` · `재료비+인건비 60% 초과` · `BEP 미관리` · `계좌 혼용 + 현금흐름 미관리`
+
+**사용자가 답한 적 없는 내용이다.** 창업자에게 "재료비 60% 초과"를 진단하는 보고서가 나갔다.
+`DiagSme`가 이미 같은 이유로 접두어 가드를 쓰고 있었는데 micro만 빠져 있었다.
+→ `_diagPathOf(data).isMicro`로 교체해 차단했다. 창업 초기는 `sme+창업초기`와 동일하게
+`microPrompt`를 만들지 않는다(허위 요약보다 없는 편이 낫다).
+
+### ⑤ 근본 대책 — `_diagPathOf()` 단일 판정 함수 신설
+**이 사고는 세 번째다.** 전부 "그리는 쪽"과 "읽는 쪽"이 각자 판정해서 났다.
+| 회차 | 시점 | 내용 |
+|---|---|---|
+| 1 | 2026-08-16 | 사회적기업 — `bizScale`만 보고 `orgType`을 몰라 `s1_1`을 못 읽음 |
+| 2 | 2026-09-02 | 소셜벤처 — 접두어 정규식 하드코딩 |
+| 3 | 2026-09-03 | `e7c4056` — `isStartupMode` 누락 (이번 건) |
+
+```js
+_diagPathOf({ bizScale, isStartup, orgType })
+  → { isSocial, isMicro, isStartup, orgMod, containerId, keyPrefix }
+```
+판정 축은 셋이고 **우선순위가 있다: 조직형태 → 창업초기 → 규모.**
+⚠ `isSocial`이 맨 앞이어야 한다 — 사회적경제도 `bizScale`은 micro라 순서가 바뀌면 영원히 micro로 빠진다.
+⚠ `isStartup`이 `isMicro`보다 앞이다 — 개업 1년 미만은 실적 기반 35문항을 답할 수 없다.
+
+**이번엔 `loadDiagnosisUI`·`showDiagReveal`·`collect()` 세 곳만 교체했다.**
+한 커밋에서 전부 갈아엎으면 회귀 원인 추적이 어려워진다. `dashboard.js`는 남은 이슈로 둔다.
+
+### ⑥ 진행 버튼 잠금 — 원상복구 분기를 명시했다
+기존에는 잠금 처리가 `if (isMicro && drProceedBtn)` **안에만** 있어,
+경로가 바뀌면 이전 렌더의 `disabled`와 `⚠ D1 미입력` 문구가 **그대로 남았다.**
+→ `if (drProceedBtn)`으로 열고 `else`에서 HTML 기본값(`솔루션 전체 보고서 보기 →` · `disabled` 없음)으로 되돌린다.
+⚠ **STARTUP·사회적경제·sme에는 `d1`이 존재하지 않으므로 `d1Avg`를 보면 안 된다.** 잠금은 micro(비창업) 전용이다.
+
+### ⑦ 대시보드 7섹션 전수 확인 — `sec-diag` 하나만 비어 있었다
+| 섹션 | 데이터 출처 | 창업 초기 |
+|---|---|---|
+| `sec-summary` · `sec-lifecycle` · `sec-market-micro` | AI 1차 | 채워짐 (진단 점수 비의존) |
+| `sec-six-systems` · `sec-plan90` | AI 2·3차 | 채워짐 |
+| `sec-gov` | `GovSupport.match` | 채워짐 |
+| **`sec-diag`** | `fd.diagScores` → `calcDiagScores` | **비어 있었다** |
+
+**원인**: STARTUP 키는 `calcDiagScores`에서 `area_s1`~`area_s4`가 되는데
+`renderRadar`·`renderWeakAreas`가 **`['area_1'..'area_4']`를 하드코딩**해 하나도 잡지 못했다.
+남는 축이 업종특화 1개뿐이라 `labels.length < 3`에서 `return` → 레이더가 통째로 비었다.
+
+⚠ **억지로 7개(D1~D7)에 맞추지 않았다.** 창업 초기는 실제로 **4영역 + 업종특화 = 5축**이며,
+`diag-reveal`의 창업 5축(`calcDomainScores(scores, true)`)과 축 수가 정확히 일치한다.
+`STARTUP_AREA_LABELS`(사업 검증·현금 생존력·고객 확보·운영 준비도)를 신설하고,
+`_commonAreaList(scores)`가 **점수 키에서 어느 표를 쓸지 파생**하게 했다 — 배열 하드코딩을 없앴다.
+
+⚠ **이 수정은 `sme+창업초기`의 `sec-diag`도 함께 살린다.** 그쪽도 같은 이유로 비어 있었다
+(`e7c4056` 이전부터의 문제이며 이번 원인과는 별개다). **"기존과 동일"에서 벗어나지만
+비어 있던 것이 채워지는 방향이므로 회귀가 아니라고 판단했다.** 비창업 경로의 축 라벨·개수는 불변이다.
+
+### ⑧ 검증 (23/23 통과)
+| 항목 | 결과 |
+|---|---|
+| **[1] micro+창업초기** | `isMicro=false` → D1~D7 정규식 미사용 · `isStartup=true` → 창업 5축 · **읽기 접두어 = 저장 접두어** · D1 잠금 미적용 ✓ |
+| **[2] 대시보드 7섹션** | `sec-diag` 축 **4 + 업종특화 = 5** (`사업 검증·현금 생존력·고객 확보·운영 준비도`) · 나머지 6섹션 진단 점수 비의존 ✓ |
+| **[3] micro 일반 회귀** | `diag-micro-container_` 저장==읽기 · 공통 축 라벨 `재무건전성…경영역량` 불변 ✓ |
+| **[4] sme+창업초기 회귀** | 경로 판정 불변(`diag-common-container_`) ✓ (`sec-diag`는 ⑦대로 개선) |
+| **[5] 사회적경제 3유형** | 사회적기업·협동조합·소셜벤처 저장==읽기 전부 불변 ✓ |
+| 우선순위 | **사회적기업+창업초기 → 사회적기업 경로 유지**(isSocial 우선) ✓ |
+| 무변경 | `ai-engine.js`·`app.js`·`diagnosis-micro.js`·`common.js`·`startup.js`·사회적경제 3모듈·`gov-support.js`·`ppt-export.js`·`funding-rules.js`·`api/`·`vercel.json` **전부 바이트 동일** ✓ |
+
+**변경 파일은 `wizard.js`·`dashboard.js` 둘뿐이다.** 진단 문항·용어 정리·1인 사업장 작업은 손대지 않았다.
+
+### ⑨ 캐시버스팅
+`index.html` 로컬 `?v=` **52곳** 전부 `20260908b`
+
+### ⑩ 남은 이슈
+1. **`dashboard.js`가 아직 `_diagPathOf`를 쓰지 않는다.** `isMicro = fd.bizScale === 'micro'`로
+   자체 판정하므로 **micro+창업초기 대시보드가 micro 7섹션 구성으로 뜬다.**
+   AI도 `bizScale` 기준이라 D1~D7 처방을 생성하므로 지금은 앞뒤가 맞지만,
+   **진단은 4영역인데 처방은 7영역**이라는 축 불일치가 남는다.
+   창업 초기 전용 리포트 구성이 필요한지는 별도 판단 사안이다
+2. **`_diagPathOf`를 쓰지 않는 나머지 지점** — `dashboard.js`·`ppt-export.js`.
+   네 번째 사고를 막으려면 결국 전부 이 함수를 거쳐야 한다
+3. (기존) 2·3차의 `substring(0, 500)` 컷 근거 불명 / micro 2차 낭비 필드 제거(2순위 보류)
+
+---
+
 ## 최근 수정 이력 (2026-09-08) — micro 1차 전용 시스템 프롬프트 신설 (Vercel Hobby 60초 초과 해결 1순위)
 
 **"소상공인이 쓰지 않는 것을 AI가 만들어서 버린다"는 지적에서 출발했으나,

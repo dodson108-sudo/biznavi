@@ -16,6 +16,31 @@ const Dashboard = (() => {
     area_4: '경영역량'
   };
 
+  /* 창업 초기(STARTUP) 4영역 — 점수 키가 diag-common-container_s1_1 형태라
+     calcDiagScores가 'area_s1'~'area_s4'를 만든다.
+     ⚠ 과거 renderRadar·renderWeakAreas가 ['area_1'..'area_4']만 훑어 이 4개를
+        하나도 잡지 못했고, 남는 축이 업종특화 1개뿐이라 labels.length < 3에서
+        return돼 #sec-diag 레이더가 통째로 비었다(sme·micro 창업 경로 공통).
+     ⚠ 억지로 7개(D1~D7)에 맞추지 않는다. 창업 초기는 실제로 4영역 + 업종특화 = 5축이며
+        diag-reveal의 창업 5축(calcDomainScores(scores,true))과 축 수가 일치한다. */
+  const STARTUP_AREA_LABELS = {
+    area_s1: '사업 검증',
+    area_s2: '현금 생존력',
+    area_s3: '고객 확보',
+    area_s4: '운영 준비도'
+  };
+
+  /* 공통 탭의 영역 목록을 실제 점수 키에서 파생한다 — 배열을 하드코딩하지 않는다 */
+  function _commonAreaList(scores) {
+    if (!scores || !scores.common) return [];
+    const areas = scores.common.areas || {};
+    const startup = Object.keys(areas).some(k => /^area_s\d$/.test(k));
+    const table   = startup ? STARTUP_AREA_LABELS : COMMON_AREA_LABELS;
+    return Object.keys(table)
+      .filter(id => areas[id] !== undefined)
+      .map(id => ({ id, label: table[id], score: areas[id] }));
+  }
+
   function scoreLabel(s) {
     if (s >= 4.0) return '강점';
     if (s >= 3.0) return '보통';
@@ -1396,14 +1421,7 @@ const Dashboard = (() => {
     const data   = [];
 
     // 공통 4개 영역
-    if (scores.common) {
-      ['area_1','area_2','area_3','area_4'].forEach(id => {
-        if (scores.common.areas[id] !== undefined) {
-          labels.push(COMMON_AREA_LABELS[id]);
-          data.push(scores.common.areas[id]);
-        }
-      });
-    }
+    _commonAreaList(scores).forEach(a => { labels.push(a.label); data.push(a.score); });
     if (scores.industry) { labels.push('업종특화'); data.push(scores.industry.avg); }
     if (scores.bizmodel) { labels.push('사업모델'); data.push(scores.bizmodel.avg); }
     if (labels.length < 3) return;
@@ -1495,12 +1513,7 @@ const Dashboard = (() => {
     if (!banner) return;
 
     const allAreas = [];
-    if (scores.common) {
-      ['area_1','area_2','area_3','area_4'].forEach(id => {
-        if (scores.common.areas[id] !== undefined)
-          allAreas.push({ label: COMMON_AREA_LABELS[id], score: scores.common.areas[id] });
-      });
-    }
+    _commonAreaList(scores).forEach(a => allAreas.push({ label: a.label, score: a.score }));
     if (scores.industry) allAreas.push({ label: '업종특화 종합', score: scores.industry.avg });
     if (scores.bizmodel) allAreas.push({ label: '사업모델 종합', score: scores.bizmodel.avg });
 

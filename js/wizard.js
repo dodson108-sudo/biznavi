@@ -129,6 +129,38 @@ const Wizard = (() => {
     return mod.KEY_PREFIX.replace(/_$/, '');
   }
 
+  /* ── 진단 경로 단일 판정 (2026-09-08 신설) ────────────────────────────────
+     ⚠ 이 함수가 없어서 같은 사고가 세 번 났다.
+       "어느 컨테이너에 그릴지"(loadDiagnosisUI)와 "어느 키로 읽을지"(showDiagReveal)를
+       각자 판정하다 조건이 어긋나면, 점수는 A 접두어로 저장되고 B 접두어로 읽혀
+       화면이 조용히 전부 0이 된다. 예외가 나지 않아 발견이 늦다.
+         1회차 2026-08-16 사회적기업 — bizScale만 보고 orgType을 몰라 s1_1을 못 읽음
+         2회차 2026-09-02 소셜벤처   — 접두어 정규식 하드코딩
+         3회차 2026-09-03 e7c4056    — loadDiagnosisUI의 isMicro에만 !isStartupMode를
+                                        넣고 showDiagReveal은 그대로 둬, 개업 1년 미만
+                                        소상공인이 STARTUP을 풀고도 D1~D7을 읽혀 전부 0.
+                                        "D1 미입력"으로 최종 보고서 진입이 막혔다.
+     판정 축은 셋이고 우선순위가 있다: 조직형태 → 창업초기 → 규모.
+     ⚠ isSocial을 맨 앞에 둬야 한다. 사회적경제도 bizScale은 micro라 순서가 바뀌면
+       영원히 micro로 빠진다(2026-08-16에 실제로 겪음).
+     ⚠ isStartup이 isMicro보다 앞이다. 개업 1년 미만은 실적 기반 35문항을 답할 수 없다.
+
+     src는 DOM(loadDiagnosisUI)에서 오든 collect() 결과(showDiagReveal)에서 오든
+     같은 모양이어야 한다: { bizScale, isStartup, orgType }. */
+  function _diagPathOf(src) {
+    const s = src || {};
+    const orgMod   = _orgDiagModule(s.orgType);
+    const orgCid   = _orgContainerId(orgMod);
+    const isSocial = !!orgMod && !!orgCid;
+    const isStartup = !!s.isStartup;
+    const isMicro  = !isSocial && !isStartup
+                     && s.bizScale === 'micro' && typeof DiagMicro !== 'undefined';
+    const containerId = isSocial ? orgCid
+                      : isMicro  ? 'diag-micro-container'
+                      : 'diag-common-container';
+    return { isSocial, isMicro, isStartup, orgMod, containerId, keyPrefix: containerId + '_' };
+  }
+
   /* 조직 형태 아이콘 — 탭 라벨·배너가 함께 쓴다(분기 중복 방지) */
   const ORG_ICON = {
     general: '', social_enterprise: '🤝', cooperative: '🧑‍🤝‍🧑', social_venture: '🚀',
@@ -1391,7 +1423,6 @@ const Wizard = (() => {
           isMicro에서 창업 초기를 제외하면 micro도 STARTUP 분기로 흐른다.
        ⚠ isSocial(사회적경제 3유형)은 건드리지 않는다 — 의도적 배제 여부가 확인되지 않았다. */
     const isStartupMode = document.getElementById('aiIsStartup')?.value === 'true';
-    const isMicro = currentBizScale === 'micro' && !isStartupMode && typeof DiagMicro !== 'undefined';
 
     const microContainer  = document.getElementById('diag-micro-container');
     const commonContainer = document.getElementById('diag-common-container');
@@ -1402,9 +1433,14 @@ const Wizard = (() => {
     /* 조직 유형 판별 — 조직 형태별 전용 진단(S1~S8 또는 V1~V8) 40문항을 렌더링한다.
        ⚠ 모듈 선택은 _orgDiagModule() 한 곳에서만 한다 */
     _orgType = _detectOrgType(industryKey);
-    const orgMod = _orgDiagModule(_orgType);
-    const orgContainerId = _orgContainerId(orgMod);
-    const isSocial = !!orgMod && !!orgContainerId;
+
+    /* ⚠ 경로 판정은 _diagPathOf() 한 곳에서만 한다. 여기서 조건을 따로 쓰면
+       showDiagReveal과 어긋나 점수를 못 읽는 사고가 재발한다(2026-09-08 ③ 참조). */
+    const _path = _diagPathOf({ bizScale: currentBizScale, isStartup: isStartupMode, orgType: _orgType });
+    const isSocial = _path.isSocial;
+    const isMicro  = _path.isMicro;
+    const orgMod = _path.orgMod;
+    const orgContainerId = _path.isSocial ? _path.containerId : '';
 
     // 공통 모듈 렌더링 — social: 조직형태 전용 / micro: DiagMicro 7대 분야 / startup: STARTUP / 그 외: DiagCommon
     _activeContainers = [];
@@ -2491,13 +2527,15 @@ const Wizard = (() => {
   /* ── 진단유형 확인 화면 렌더링 ── */
   function showDiagReveal(data, currentSnap) {
     const scores = data.diagScores || diagScores;
-    const isStartup = !!(data.isStartup);
-    /* ⚠ orgType 판정을 bizScale보다 먼저 둔다.
-       사회적기업도 bizScale은 micro/sme 그대로이므로 순서가 반대면
-       영원히 micro 분기로 빠져 diag-social-container_ 키를 하나도 읽지 못한다 */
-    const orgMod    = _orgDiagModule(data.orgType);
-    const isSocial  = !!orgMod;
-    const isMicro   = !isSocial && (data.bizScale === 'micro');
+    /* ⚠ 경로 판정은 loadDiagnosisUI와 반드시 같은 함수를 써야 한다.
+       과거 여기서 isMicro를 따로 계산해 isStartup을 빠뜨린 탓에,
+       STARTUP(diag-common-container_s1_1)으로 저장된 점수를
+       diag-micro-container_ 정규식으로 읽어 전 영역 0점이 됐다. */
+    const _path     = _diagPathOf(data);
+    const isStartup = _path.isStartup;
+    const orgMod    = _path.orgMod;
+    const isSocial  = _path.isSocial;
+    const isMicro   = _path.isMicro;
     const domainScores = isSocial
       ? _calcOrgDomainScores(scores, orgMod)
       : isMicro
@@ -2641,11 +2679,15 @@ const Wizard = (() => {
       if (elProfileDesc)  elProfileDesc.textContent  = '진단 응답을 바탕으로 귀사의 핵심 역량을 5개 영역별로 수치화한 결과입니다. 5점이 최고, 1점이 최저이며 3점이 업종 평균 수준입니다. 점수가 낮은 영역부터 솔루션 보고서에서 우선 개선 전략이 제시됩니다.';
     }
 
-    // micro D1 미입력 시 진행 버튼 비활성화
+    /* 진행 버튼 잠금 — micro(비창업)에서 D1 미입력일 때만 건다.
+       ⚠ STARTUP·사회적경제·sme에는 d1이 존재하지 않으므로 d1Avg를 보면 안 된다.
+          과거 이 블록이 `if (isMicro && …)` 안에만 있어, 경로가 바뀌면 이전 렌더의
+          disabled·"⚠ D1 미입력" 문구가 그대로 남았다. else로 원상복구를 명시한다
+          (HTML 기본값 '솔루션 전체 보고서 보기 →' · disabled 없음과 동일). */
     const drProceedBtn = document.querySelector('.dr-proceed-btn');
-    if (isMicro && drProceedBtn) {
-      const d1Avg = (domainScores.d1 && domainScores.d1.avg) || 0;
-      if (d1Avg === 0) {
+    if (drProceedBtn) {
+      const d1Avg = (isMicro && domainScores.d1 && domainScores.d1.avg) || 0;
+      if (isMicro && d1Avg === 0) {
         drProceedBtn.disabled = true;
         drProceedBtn.setAttribute('title', 'D1 경영진단·손익 항목을 먼저 입력해주세요');
         drProceedBtn.textContent = '⚠ D1 미입력 — 진단 수정 후 진행하세요';
@@ -3158,7 +3200,12 @@ const Wizard = (() => {
       // 점수 키 접두어를 실어 보낸다 — dashboard가 'diag-social-container_'를 하드코딩하지 않도록
       data.orgDiagKeyPrefix = _orgMod.KEY_PREFIX || '';
       data.orgDiagId = (_orgMod.getSchema && _orgMod.getSchema().id) || '';
-    } else if (bizScale === 'micro' && window.DiagMicro) {
+    } else if (_diagPathOf(data).isMicro) {
+      /* ⚠ isStartup 가드가 핵심이다. 창업 초기는 STARTUP(diag-common-container_s1_1)으로
+         답하므로 DiagMicro.calcScores가 전 항목 0점을 반환하고, buildPromptSummary가
+         "종합 0점 / 재료비+인건비 60% 초과 / BEP 미관리" 같은 CRITICAL 경고 6건을
+         지어내 AI에 보낸다 — 사용자가 답한 적 없는 내용이다.
+         DiagSme가 이미 같은 이유로 접두어 가드를 쓰고 있다(아래 분기). */
       const microGroup = DiagMicro.getGroup(data.industryKey || '');
       scaleScores = DiagMicro.calcScores(allScores);
       data.microWarnings = DiagMicro.detectCrossWarnings(allScores, microGroup);
