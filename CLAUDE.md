@@ -8,6 +8,82 @@
 
 ---
 
+## 최근 수정 이력 (2026-09-08) — micro 2차 낭비 필드 제거 (60초 초과 해결 2순위)
+
+**1순위(`_SYSTEM_MICRO_1`) 배포 후 Vercel 로그 실측으로 병목이 2차임이 확정됐다.**
+
+| 호출 | 소요 | output_tokens |
+|---|---|---|
+| 1차-micro | **47초** | — (49808a9로 92초 → 47초) |
+| **2차-micro** | **141초** | **8,349** ← 60초 상한 초과 |
+| 3차-micro | 141초 구간 이후 | 4,578 |
+
+경로는 `[1차-micro]` 로그로 micro 정상 확인됐다. **2차 생성량만 줄이면 된다.**
+
+### ① 제거 대상 4개 — micro에서 소비처가 0인 것을 전수 재확인
+| 소비처 | keyStrategies · fourP · specializedAnalysis · kpi |
+|---|---|
+| `dashboard.js` | `sec-strategy`·`sec-4p`·`sec-consulting`·`sec-kpi`가 전부 **`smeOnly` → micro에서 `display:none`**. `renderSpecializedSection`은 `if (!isMicro)`라 **호출조차 되지 않는다** |
+| `ppt-export.js` | 네 필드 참조가 전부 **`_buildSme`(331~470) 안**. micro 8장(`_buildMicro` 248~330)은 `executiveSummary`·`lifecycleStage`·`stp`·`tam`/`sam`/`som`·`sixSystems`·`plan90days`만 쓴다 |
+| `history-tracker.js` | **참조 0건** (`executiveSummary` 200자만 저장) |
+| 3차 프롬프트 | 네 필드를 입력으로 쓰지 않는다 |
+
+→ **141초를 들여 만들고 버리고 있었다.**
+
+⚠ **`roadmap`은 제거하지 않았다.** `_buildPrompt3Micro`가 `r2.roadmap[0].tasks[0]` **한 줄**을
+3차 프롬프트에 넣는다(`1단계: …`). 제거하면 3차가 `'즉시 실행 액션'` 폴백으로 떨어진다.
+→ **1단계 × task 1개**의 최소 형태로 줄였다. 화면에는 나오지 않으므로(`sec-roadmap` = smeOnly) 손실이 없다.
+
+⚠ **`sixSystems` D1~D4는 건드리지 않았다.** `sec-six-systems`와 PPT '영역별 처방'에 실제로 나온다.
+
+### ② 예상 효과 (실측 8,349토큰 / 141초 = 59 tok/s 기준)
+스펙 분량을 출력량의 대리지표로 안분했다.
+
+| 필드 | 스펙 | 비중 | 추정 output | 조치 |
+|---|---|---|---|---|
+| specializedAnalysis | 341자 | 13.1% | ~1,090 | 제거 |
+| keyStrategies | 275자 | 10.5% | ~879 | 제거 |
+| kpi | 267자 | 10.2% | ~853 | 제거 |
+| fourP | 248자 | 9.5% | ~793 | 제거 |
+| roadmap | 561자 | 21.5% | ~1,793 | **최소화(~40)** |
+| **sixSystems** | 920자 | 35.2% | ~2,941 | **유지** |
+
+**예상 output ~2,981토큰(36%) → ~51초.**
+보수 시나리오(sixSystems가 실제로 40% 차지)에서도 **3,380토큰 → 57초**로 상한 안이다.
+
+입력도 함께 줄었다 — `_SYSTEM_EXEC_MICRO_2` **2,722자 → 1,269자**(~1,701 → ~793 토큰).
+
+### ③ 더 줄여야 할 경우의 후보 (임의로 적용하지 않았다)
+57초는 여유가 크지 않다. 배포 후 실측이 60초를 넘으면 아래 순으로 검토한다.
+1. `sixSystems.issue` **"2~3문장" → "2문장"** — 화면에 나오지만 길이만 줄이므로 손실이 가장 작다
+2. `sixSystems.actions` **3개 → 2개** — 처방 개수가 줄어 체감이 있다
+3. `roadmap` 완전 제거 + `_buildPrompt3Micro`가 폴백 문자열을 쓰게 함 — 3차 입력 품질이 미세하게 떨어진다
+4. 2·3차의 `microPrompt.substring(0, 500)` 재검토 — 입력 축소라 소요 단축 효과는 작다
+
+⚠ **`sixSystems` 항목 수(D1~D4)는 줄이면 안 된다.** 화면의 7대 영역 처방이 비게 된다.
+
+### ④ 검증 (16/16 통과)
+| 항목 | 결과 |
+|---|---|
+| **[1] 제거** | micro 2차 요청에서 `keyStrategies`·`fourP`·`specializedAnalysis`·`kpi`·`leanCanvas`·`plan90days` **JSON 명세 0건** ✓ |
+| 유지 | `sixSystems` D1~D4 **4개** · `roadmap` **1단계만** ✓ |
+| **[2] 대시보드 7섹션** | `sec-summary`·`sec-lifecycle`·`sec-market-micro`(1차) · `sec-diag`(진단) · `sec-six-systems`(2·3차) · `sec-plan90`(3차) · `sec-gov`(로컬) — **4개 필드에 의존하는 섹션 없음**. `if (data.kpi)`·`if (data.fourP)`·`if (data.keyStrategies)`·`if (data.roadmap)` 전부 undefined 가드 있음 ✓ |
+| **[3] sme 완전 불변** | `SYSTEM`·`_SYSTEM_EXEC`·`_SYSTEM_MICRO_1`·`_SYSTEM_EXEC_MICRO_3` **바이트 동일** · sme 1차·2차 유저 프롬프트 **바이트 동일** ✓ |
+| 무변경 | `wizard.js`·`dashboard.js`·`app.js`·`api/claude-analyze-1/2/3`·`vercel.json`·`ppt-export.js`·`history-tracker.js` **전부 바이트 동일** ✓ |
+
+**변경 파일은 `ai-engine.js` 하나뿐이다.**
+
+### ⑤ 캐시버스팅
+`index.html` 로컬 `?v=` **52곳** 전부 `20260908c`
+
+### ⑥ 남은 이슈
+1. **3차(4,578토큰)는 손대지 않았다.** 141초 구간이 2차였으므로 3차 단독 소요를 아직 모른다.
+   배포 후 `[3차]` Duration을 확인해 60초를 넘으면 `plan90days`·D5~D7 분량을 검토한다
+2. (기존) `dashboard.js`·`ppt-export.js`가 `_diagPathOf`를 쓰지 않는다
+3. (기존) 2·3차의 `substring(0, 500)` 컷 근거 불명
+
+---
+
 ## 최근 수정 이력 (2026-09-08) — ⚠ 창업 초기 소상공인 진단 점수 전부 0 (경로 판정 비대칭) · _diagPathOf 신설
 
 **"진단을 다 입력했는데 7대 영역이 전부 비고 'D1 미입력'으로 최종 보고서 진입이 막힌다."**

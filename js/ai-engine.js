@@ -638,66 +638,41 @@ const AIEngine = (() => {
   }
 }`;
 
-  /* ── 소상공인 전용 2차 시스템 프롬프트 — 전략 + D1~D4 처방 + KPI·로드맵 ─── */
+  /* ── 소상공인 전용 2차 시스템 프롬프트 — D1~D4 처방 전용 ──────────────────
+     ⚠ 2026-09-08: keyStrategies·fourP·specializedAnalysis·kpi를 제거했다.
+       실측 output 8,349토큰 / 141초로 Vercel Hobby 60초 상한을 크게 넘겼는데,
+       그 넷은 micro 경로 어디에서도 소비되지 않는다 — 전수 확인 결과:
+         dashboard : sec-strategy·sec-4p·sec-consulting·sec-kpi 전부 smeOnly →
+                     micro에서 display:none. renderSpecializedSection은 if(!isMicro)로 미호출
+         ppt-export: fourP·keyStrategies·kpi·specializedAnalysis 참조는 전부 _buildSme(331~470) 안.
+                     micro 8장(_buildMicro 248~330)은 executiveSummary·lifecycleStage·stp·
+                     tam/sam/som·sixSystems·plan90days만 쓴다
+         HistoryTracker : 참조 0건 (executiveSummary만 200자 저장)
+         3차 프롬프트   : 이 넷을 입력으로 쓰지 않는다
+       즉 141초를 들여 만들고 버리고 있었다.
+     ⚠ roadmap은 제거하지 않는다. _buildPrompt3Micro가 r2.roadmap[0].tasks[0] 한 줄을
+       3차 프롬프트에 넣는다. 대신 그 한 줄만 남기는 최소 형태로 줄인다.
+     ⚠ sixSystems D1~D4는 sec-six-systems와 PPT '영역별 처방'에 실제로 나온다. 건드리지 않았다.
+     ⚠ sme 2차(_SYSTEM_EXEC)는 이 상수와 무관하다. 한 글자도 건드리지 않는다. */
   const _SYSTEM_EXEC_MICRO_2 = `[절대 규칙]
-반드시 다음 JSON 구조로만 응답 (keyStrategies, fourP, specializedAnalysis, kpi, roadmap, sixSystems 6개 필드):
+반드시 다음 JSON 구조로만 응답 (sixSystems, roadmap 2개 필드). 그 외 필드는 절대 출력하지 마라.
+keyStrategies·fourP·specializedAnalysis·kpi·leanCanvas·plan90days·lifecycleStage는 출력 금지 — 소상공인 리포트에서 쓰지 않는다.
 
 {
-  "keyStrategies": [
-    {
-      "title": "전략 제목 (소상공인 현실 — 즉시 실행 가능한 핵심 전략)",
-      "description": "[진단] 현황 1문장. [방침] 방향 1문장. [행동] 이번 주 당장 실행 가능한 구체 액션 3가지 (무료 도구명 포함)",
-      "priority": "high|medium|low",
-      "owner": "대표 본인",
-      "timeline": "30일|60일|90일"
-    }
-  ],
-  "fourP": {
-    "product": "제품·서비스 핵심 차별화 포인트 (메뉴·서비스명 포함, 2문장)",
-    "price": "가격 전략 — 단가·수수료·프리미엄 구조 현황과 개선 방향",
-    "place": "오프라인 입지 현황 + 온라인(플레이스·배달앱·SNS) 채널 구성",
-    "promotion": "StoryBrand: [고객 문제] → [해결책] → [CTA] 구조로 SNS·플레이스 활용 방법"
-  },
-  "specializedAnalysis": {
-    "type": "micro_ops",
-    "framework": "소상공인 생존 진단",
-    "summary": "현재 가장 긴급한 처방 2문장",
-    "blocks": [
-      { "label": "Prime Cost 현황", "content": "ACM 비율 진단 및 개선 포인트" },
-      { "label": "상권 경쟁 포지션", "content": "네이버 플레이스·구글 지도 경쟁 현황" },
-      { "label": "D2C 채널 기회", "content": "직접 판매 채널 확보 방향" }
-    ]
-  },
-  "kpi": [
-    {
-      "title": "KPI 명칭 (소상공인 현실 지표 — 예: 월 재방문율, Prime Cost 비율, 플레이스 순위)",
-      "current": "현재값 (모르면 '미파악')",
-      "target": "목표값 (90일 달성 가능)",
-      "unit": "단위 (%, 원, 건, 위 등)",
-      "method": "측정 방법 (무료 도구 우선)",
-      "owner": "대표 본인"
-    }
+  "sixSystems": [
+    { "name": "D1. 경영진단·손익분석", "icon": "📊", "status": "취약|보통|강점", "issue": "재료비+인건비 비율과 실제로 남는 돈 현황 2~3문장", "actions": ["품목별로 실제 남는 돈 계산", "재료비+인건비 65% 목표 점검", "손익 자동 집계 도입"], "resource": "소상공인진흥공단 경영컨설팅 / 국세청 홈택스" },
+    { "name": "D2. 점포환경·네이버 플레이스", "icon": "🏪", "status": "취약|보통|강점", "issue": "플레이스 노출 순위·매장 전면 현황 2~3문장", "actions": ["스마트플레이스 완성도 100%", "대표 상품 사진 5장", "매장 전면(파사드) 개선 3가지"], "resource": "네이버 스마트플레이스 / 소상공인 간판지원" },
+    { "name": "D3. 다채널 판로", "icon": "🛒", "status": "취약|보통|강점", "issue": "채널별 수수료·직접 판매 비중 2~3문장", "actions": ["수수료 역산표 작성", "직접 판매 채널 1개 신설", "단골 관리 시작"], "resource": "소상공인 온라인 판로개척 지원" },
+    { "name": "D4. 스마트DX", "icon": "📱", "status": "취약|보통|강점", "issue": "도입한 도구의 효과 현황 2~3문장", "actions": ["현재 도구 효과 계산", "무료 도구 1개 도입", "스마트상점 지원사업 자격 확인"], "resource": "소상공인 스마트상점 기술보급 / 디지털 전환 바우처" }
   ],
   "roadmap": [
-    {
-      "phase": "1단계: 즉시 실행 — 생존 위협 제거",
-      "period": "1~30일",
-      "budget": "예상 예산 (무료·저비용 우선)",
-      "framework": "🔥 린 스타트업",
-      "tasks": ["이번 주 실행 가능한 액션 (도구명 포함)", "2주차 실행", "3~4주차 실행", "소상공인진흥공단 지원사업 신청 (사업명+마감일)"]
-    },
-    { "phase": "2단계: 구조 개선 — 수익성 회복", "period": "31~60일", "budget": "예상 예산", "framework": "📈 취약 D영역 처방", "tasks": ["액션 1", "액션 2", "액션 3", "액션 4"] },
-    { "phase": "3단계: 성장 도약 — 재방문·단가 상승", "period": "61~90일", "budget": "예상 예산", "framework": "🌱 플라이휠", "tasks": ["액션 1", "액션 2", "액션 3", "액션 4"] }
-  ],
-  "sixSystems": [
-    { "name": "D1. 경영진단·손익분석", "icon": "📊", "status": "취약|보통|강점", "issue": "ACM 비율·Prime Cost 현황 2~3문장", "actions": ["ACM 계산", "Prime Cost 65% 목표 점검", "손익 자동화 도입"], "resource": "소상공인진흥공단 경영컨설팅 / 국세청 홈택스" },
-    { "name": "D2. 점포환경·네이버 플레이스", "icon": "🏪", "status": "취약|보통|강점", "issue": "플레이스 랭킹·파사드 현황 2~3문장", "actions": ["스마트플레이스 완성도 100%", "대표메뉴 사진 5장", "파사드 개선 3가지"], "resource": "네이버 스마트플레이스 / 소상공인 간판지원" },
-    { "name": "D3. 다채널 판로", "icon": "🛒", "status": "취약|보통|강점", "issue": "채널별 수수료·D2C 비중 2~3문장", "actions": ["수수료 역산표 작성", "D2C 채널 1개 신설", "단골 관리 시작"], "resource": "소상공인 온라인 판로개척 지원" },
-    { "name": "D4. 스마트DX", "icon": "📱", "status": "취약|보통|강점", "issue": "스마트기기 ROI 현황 2~3문장", "actions": ["현재 도구 ROI 계산", "무료 DX 도구 1개 도입", "스마트상점 지원사업 자격 확인"], "resource": "소상공인 스마트상점 기술보급 / 디지털 전환 바우처" }
+    { "phase": "1단계: 즉시 실행", "period": "1~30일", "tasks": ["이번 주 당장 실행할 액션 1가지 (도구명 포함, 1줄)"] }
   ]
 }
 
-lifecycleStage·plan90days·D5~D7은 생략. keyStrategies 4~6개, KPI 5개. 소상공인 현실 기준 — 무료·저비용 도구 우선.`;
+D1~D4 4개 항목만 작성한다. D5~D7·90일 계획은 3차에서 처리한다.
+roadmap은 위 1단계 1줄만 작성하고 2·3단계를 만들지 마라.
+소상공인 현실 기준 — 무료·저비용 도구 우선.`;
 
   /* ── 소상공인 전용 3차 시스템 프롬프트 — D5~D7 처방 + plan90days ── */
   const _SYSTEM_EXEC_MICRO_3 = `[절대 규칙]
@@ -1395,10 +1370,10 @@ ${diagSummary ? `\n[D1~D4 진단 점수]\n${diagSummary}` : ''}
 [SWOT 요약 (1차)]
 S: ${(r1.swot && r1.swot.strengths && r1.swot.strengths[0]) || '미확인'} | W: ${(r1.swot && r1.swot.weaknesses && r1.swot.weaknesses[0]) || '미확인'}
 
-[작성 지침] system prompt의 JSON 구조(6개 필드)로만 응답.
-keyStrategies(4~6개), fourP, specializedAnalysis를 소상공인 업종·진단 점수에 맞춰 구체 작성.
-D1~D4(경영진단·점포환경·판로·스마트DX) 4개 항목만 sixSystems에 작성. D5~D7은 3차에서 처리.
-KPI 5개, 로드맵 3단계. 무료·저비용 도구 우선. 소상공인진흥공단 지원사업 연계.`;
+[작성 지침] system prompt의 JSON 구조(sixSystems, roadmap 2개 필드)로만 응답.
+D1~D4(경영진단·점포환경·판로·스마트DX) 4개 항목을 업종·진단 점수에 맞춰 구체 작성. D5~D7은 3차에서 처리.
+roadmap은 1단계 1줄만. 무료·저비용 도구 우선. 소상공인진흥공단 지원사업 연계.
+⚠ keyStrategies·fourP·specializedAnalysis·kpi는 출력하지 마라 — 소상공인 리포트에 표시되지 않는다.`;
   }
 
   /* ── 소상공인 전용 3차 프롬프트 — D5~D7 처방 + 90일플랜 ────────────── */
