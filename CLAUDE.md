@@ -5032,6 +5032,20 @@ biznavi/
 ## 작업 규칙
 
 ### ⚠ 반드시 지킬 것 (반복 사고 방지)
+- **진단 경로 판정은 `wizard.js`의 `_diagPathOf()` 한 곳에서만 한다.** `{ isSocial, isMicro, isStartup, orgMod, containerId, keyPrefix }`를 반환하며 판정 우선순위는 **조직형태 → 창업초기 → 규모**다.
+  **왜**: 점수를 저장하는 키 접두어는 *어느 컨테이너에 그렸는가*로 정해지고(`loadDiagnosisUI`), 읽는 정규식은 *어느 경로라고 판정했는가*로 정해진다(`showDiagReveal`·`collect`). **두 곳이 각자 판정하면 조건이 하나만 어긋나도 A 접두어로 저장하고 B 접두어로 읽어 전 영역이 0이 된다.** 예외가 나지 않아 화면이 조용히 비고 발견이 매우 늦다.
+  **언제 터졌나 — 같은 패턴으로 세 번**:
+  ① 2026-08-16 사회적기업 — `bizScale`만 보고 `orgType`을 몰라 `diag-social-container_s1_1`을 하나도 못 읽음(전 영역 0)
+  ② 2026-09-02 소셜벤처 — 접두어 정규식을 하드코딩해 모듈이 늘자 매칭 실패(레이더 빔·진행률 오류)
+  ③ 2026-09-03 `e7c4056` — `loadDiagnosisUI`의 `isMicro`에만 `!isStartupMode`를 넣고 `showDiagReveal`은 그대로 둠. 개업 1년 미만 소상공인이 STARTUP을 다 풀고도 D1~D7로 읽혀 전 영역 0 → **"D1 미입력"으로 최종 보고서 진입 자체가 막혔다.** 그 커밋의 검증 항목은 문항 수·진행률·탭 라벨·활성 컨테이너뿐이고 **결과 화면이 빠져 있었다**
+  ⚠ `isSocial`이 맨 앞이어야 한다 — 사회적경제도 `bizScale`은 `micro`라 순서가 바뀌면 영원히 micro로 빠진다. `isStartup`은 `isMicro`보다 앞이다 — 개업 1년 미만은 실적 기반 35문항을 답할 수 없다.
+  ⚠ **`dashboard.js`·`ppt-export.js`는 아직 이 함수를 쓰지 않는다**(각자 `fd.bizScale`로 판정). 네 번째 사고를 막으려면 결국 전부 거쳐야 한다.
+- **AI 프롬프트의 출력 명세(JSON 구조)를 두 곳에 두지 않는다.** 시스템 프롬프트에 두든 유저 프롬프트에 두든 **한 곳만** 둔다.
+  **왜**: 한 요청 안에 상반된 두 명세가 들어가면 **모델은 큰 쪽을 따라간다.** 작은 쪽을 적어 둬도 소용이 없다.
+  **언제 터졌나**: 2026-09-08 — micro 1차가 sme용 `SYSTEM`(7,464토큰, 그중 sme JSON 템플릿 4,453토큰)을 그대로 받고 있었다. 그 템플릿은 SWOT 4분면 × 6개 `{item,evidence}` 24객체 + `kpi` 10개 + `roadmap` + `keyStrategies` + `leanCanvas` + `specializedAnalysis` + `fourP`를 요구하는데, `buildPrompt1`의 micro 분기는 "7개 필드만, 각 1개"라고 말했다. 결과는 output **8,964토큰 / 92초** — **Vercel Hobby 60초 상한 초과의 직접 원인**이었다. `_SYSTEM_MICRO_1`로 명세를 한 곳에 모아 47초가 됐다.
+  ⚠ 규모·유형별로 출력이 다르면 **시스템 프롬프트를 분기**하라(`_SYSTEM_MICRO_1` / `SYSTEM`). 공용 상수를 그대로 보내고 유저 프롬프트에서 "이번엔 이것만"이라고 덧붙이는 방식은 **작동하지 않는다.**
+  ⚠ 공용 상수(`SYSTEM`·`_SYSTEM_EXEC`)를 줄여서 해결하지 마라 — sme 경로가 공유하므로 그쪽 품질이 깎인다.
+  ⚠ 필드를 빼기 전에 **소비처를 전수 확인**하라. 화면에 없어도 다른 호출의 입력일 수 있다 — micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `strengths[0]`을 읽고, `roadmap`은 `_buildPrompt3Micro`가 `[0].tasks[0]`을 읽는다. 반대로 `sec-stp` 섹션이 없다고 `stp`를 버려진 것으로 판단하면 틀린다 — `sec-market-micro`가 실제로 쓴다.
 - **진단 점수는 `diagScores` 객체에만 존재한다.** DOM에서 `querySelectorAll('[id^="diag-"]')` 등으로 수집하려는 시도는 **항상 빈 객체를 반환한다** (`type="hidden"` 입력이 존재하지 않음). 점수가 필요하면 `wizard.js`의 `collectAllScores()`를 사용할 것
 - **`js/*.js` 또는 `css/*.css` 수정 시 `index.html`의 `?v=` 캐시버스팅 값을 반드시 함께 갱신할 것.** 갱신하지 않으면 배포되어도 브라우저가 옛 파일을 사용해 수정이 반영되지 않는다
 - **진단 컨테이너가 여러 개(common/micro/social/industry)이므로 DOM 전역 `querySelectorAll('.diag-item')`로 문항을 세면 안 된다. 활성 경로 기준으로 한정할 것.** `diagTab-common` 안에 3개가 형제로 공존하며, 미사용 컨테이너는 `hidden`일 뿐 내용이 남아 있다. 문항 수 표시(진행률 분모·탭 라벨·배너)는 전부 `_countDiagItems()` 하나를 쓰고, 분자(`_countDoneScores()`)도 같은 범위여야 100%가 성립한다
