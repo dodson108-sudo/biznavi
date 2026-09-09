@@ -8,6 +8,128 @@
 
 ---
 
+## 최근 수정 이력 (2026-09-09) — DiagMicro 업종→그룹 전면 재편 (6그룹 → 9그룹) · 1단계 골격
+
+**"인테리어 공사·가구 제조 복합업"으로 진단했더니 매장 문항이 나왔다는 실사용 보고에서 출발했다.**
+> "매장 반경 500m 이내 유동인구 증감 추이" · "일별·시간대별 POS 결제 내역" ·
+> "매장 내 재고 관리, 고객 응대, 상품 발주 업무 중 점주가 직접…" · "네이버 플레이스"
+
+**현장 시공업에 소매점 문항이 나가고 있었다.**
+
+### ① 원인 — retail이 "기타" 통이 됐다
+16개 업종이 6그룹에 배정돼 있었는데 **retail 하나에 5개 업종**(wholesale·fashion·
+logistics·construction·export_sme)이 몰려 사실상 분류 기능을 잃었다.
+
+| 업종 | 받고 있던 문구 | 실제 필요한 축 |
+|---|---|---|
+| construction | 매장·POS·계산대 | 현장 시공·기성 수금·공정률 |
+| logistics | 매장 | 차량·배송 거점·배차 |
+| export_sme | 국내 상권 | 해외 바이어·통관·환율 |
+| agri_food | 외식 홀 | 1차 생산·원물 |
+| energy | 상담실(pro_service) | 설비 시공·인증 |
+
+### ② ⚠ 사전 확인에서 더 큰 것이 나왔다 — `etc`가 외식을 받고 있었다
+`wizard.js`는 매핑되지 않은 업종을 **`'etc'`로 떨어뜨린다**(`INDUSTRY_MAP[industry] || 'etc'`, 2곳).
+`INDUSTRY_MAP`에 `'기타': 'etc'`도 실재한다. 그런데 `INDUSTRY_GROUP_MAP`에 `etc`가 없어
+`getGroup`의 `|| 'food'` 폴백이 걸렸다 →
+**기타 업종·업종 미판별 사용자가 외식 35문항을 100% 받고 있었다.**
+2026-09-03에 고친 `mfg_parts` 오매핑과 같은 구조다.
+
+⚠ **`getGroup` 기본값만 중립으로 바꾸는 것으로는 절반만 해결된다.** 실측 결과
+미등록 그룹은 **부속 테이블 3개가 여전히 food로 폴백**했다:
+| 테이블 | 미등록 그룹의 실제 출력 |
+|---|---|
+| `WARN_WORDING` | `"…실제로 남는 돈이 적은 **메뉴** 정리가 즉각 필요합니다"` |
+| `DOMAIN_DESC_BY_GROUP` | D2 `"**매장 전면(파사드)**…**네이버 플레이스** 연동"` |
+| `ACTION_PLAN_7DAY_BY_GROUP` | `null` → base(외식) 폴백 |
+
+→ **`etc`를 정식 그룹으로 등록**하고 네 테이블을 모두 채우는 방식(A안)을 채택했다.
+`INDUSTRY_WORDING.etc`만 의도적으로 비워 둔다 — 업종을 특정할 수 없으므로 중립 기본이 맞다.
+
+### ③ 확정 그룹 9개
+| 그룹 | 업종 |
+|---|---|
+| food | restaurant |
+| beauty | local_service |
+| retail | fashion, wholesale |
+| edu_service | education |
+| pro_service | medical, knowledge_it, finance, media |
+| manufacturing | mfg_parts, food_mfg, **agri_food**(이동) |
+| **construction**(신설) | construction, **energy**(이동) |
+| **trade_logistics**(신설) | logistics, export_sme |
+| **etc**(신설) | etc + **모든 미판별 폴백** |
+
+### ④ 1단계에서 한 것 (골격만)
+`INDUSTRY_GROUP_MAP` 재배정 · `GROUP_LABELS` 3개 추가 ·
+`INDUSTRY_WORDING`에 3그룹 **빈 객체**(2·3단계 앵커) ·
+`WARN_WORDING` 3그룹(8필드) · `DOMAIN_DESC_BY_GROUP` 3그룹(도메인 1·2·3·4) ·
+`getGroup` 폴백 `'food'` → **`'etc'`**.
+
+⚠ `WARN_WORDING`은 **완성된 구(句)로 저장**한다 — 어절만 바꾸면 한국어 조사가 어긋난다.
+2026-09-04에 어절 단위로 바꿨다가 food 문구까지 훼손한 전례가 있다.
+⚠ `DOMAIN_DESC_BY_GROUP`은 **`desc`만** 덮는다. `label`·`key`·`weight`·`id`는 절대 분기하지 않는다 —
+`calcScores`가 `domain.label`을 반환값에 실어 레이더차트·대시보드로 흘려보낸다.
+⚠ `construction`은 인테리어 시공과 태양광 설비를 모두 포괄해야 하므로
+한쪽 전용어(도배·타일 / 모듈·인버터)를 쓰지 않았다. `subj`는 `'이 사업장은'`.
+
+### ⑤ 1단계 시점 상태 — 중립이 retail보다 명확히 낫다 (실측)
+본문(`label`·`question`·`scale`)의 소매/외식 용어 건수:
+| 상태 | 건수 | 내역 |
+|---|---|---|
+| **이전(retail)** | **26건** | 매장 11 · 계산대 6 · 진열 4 · 플레이스 3 · POS 2 |
+| **1단계 후(중립 기본)** | **6건** | 매장 2 · 플레이스 4 |
+
+⚠ **0건은 아니다.** 남은 6건의 정확한 위치이며 **2·3단계에서 반드시 덮어야 한다**:
+`2_1`(label·scale4 — 매장 전면·파사드) · `2_2`(label·question·scale3~5 — 네이버 플레이스) ·
+`7_1`(question) · `7_4`(label·question — 플레이스 저장하기) · `7_5`(label·question·scale1 — 플레이스 CTR)
+
+### ⑥ 검증 (57/57 + 렌더 12/12)
+| 항목 | 결과 |
+|---|---|
+| **[1] 9그룹 매핑** | 17개 업종 키 전부 확정안대로 ✓ |
+| **[7] 폴백** | `''`·`'unknown'`·`undefined`·`null`·미등록 전부 **`etc`** ✓ |
+| **⚠ 9그룹 키 개수(경계 침범 검사)** | 전 그룹 **35/35문항**. 실효 오버라이드 food 29 / beauty 26 / retail 26 / edu 27 / pro 27 / manufacturing 31 / **신설 3그룹 0**(의도) ✓ |
+| **[4] 기존 6그룹 불변** | `items`·`domains`·`ACTION_PLAN` 5키 **전부 JSON 동일** ✓ |
+| **[5] calcScores** | 1~5점 전부 20/40/60/80/100 동일 ✓ |
+| **[6] guide** | **9그룹 × 35 = 315건** ✓ |
+| 부속 테이블 폴백 | 신설 3그룹의 경고·D2 desc에 외식/소매 용어 **0건**(food 폴백 안 함) ✓ |
+| **[8] 진행률** | 신설 3그룹 전부 **35 + 16 = 51문항** ✓ |
+| **[9] 레이더** | 신설 3그룹 전부 **d1~d7 산출, 0점 영역 없음** ✓ |
+| scale·ai_trigger | 5단계 전수 · 35건 보존 ✓ |
+
+`DIAG_CONTAINERS`·`_countDiagItems`·`_calcMicroDomainScores`는 **컨테이너 id 고정**이고
+group 인자를 받지 않으므로 그룹 추가와 무관하다(코드 확인 + 렌더 실측).
+
+### ⑦ 캐시버스팅
+`index.html` 로컬 `?v=` **52곳** 전부 `20260909a`
+
+### ⑧ ⚠ 5단계로 분리한 것 — `local_service` 분리 (반드시 처리할 것)
+**`local_service` 하나에 미용실·세탁소·펫샵·주유소·FM·경비·청소대행이 섞여 있다.**
+`beauty` 그룹의 **시술·예약 밀도** 문구가 FM·경비·주유소에 부적합하다.
+
+⚠ **그룹만 옮기면 미용실이 그룹을 잃는다.** `api/analyze-biz.js`의 분류 기준상
+`local_service`에 **헤어·네일·피부샵이 첫 번째로 명시**돼 있고, `fashion`은
+`"(미용 서비스 제외)"`로 명시적으로 배제하므로 미용실이 갈 곳이 없다.
+`beauty` 그룹에 배정된 업종도 `local_service` **단 하나**다.
+
+**해결하려면 `api/analyze-biz.js`의 16개 분류에 `facility_service`를 신설해야 하며,
+이는 AI 업종 판별 결과가 전 사용자에게 바뀌는 작업이다.**
+그룹 재편(1~4단계)과 위험 성격이 달라 **5단계로 분리했다.**
+**반드시 처리할 것 — 미루면 세탁소·경비업 사장님이 '시술 재료비'를 계속 받는다.**
+
+5단계 착수 시 확인할 것(1~4단계 중에는 하지 않는다):
+- 분류 기준 변경의 파급 범위 — `INDUSTRY_MAP` · `INDUSTRY_GROUP_MAP` ·
+  `js/diagnosis/industry/` 18개 모듈 · `gov-support` 태그 · `CrossContext` · `funding-rules`
+- `facility_service` 신설 시 **AI 재분류 품질을 어떻게 검증할지**(실측 수단 확보)
+- 기존 사용자의 **저장된 진단 이력**(HistoryTracker 스냅샷)에 미치는 영향
+
+### ⑨ 남은 단계
+2단계 `construction` D1~D7 · 3단계 `trade_logistics` D1~D7 ·
+4단계 `ACTION_PLAN_7DAY_BY_GROUP` **3그룹 × 5키 × 7일 = 105항목**(`etc` 포함).
+⚠ `etc`의 ACTION_PLAN을 빠뜨리면 기타 업종 사장님이 `"Dog 메뉴 제거"`·`"플레이스 사진 교체"`를 받는다.
+
+---
+
 ## 최근 수정 이력 (2026-09-08) — micro 2차 낭비 필드 제거 (60초 초과 해결 2순위)
 
 **1순위(`_SYSTEM_MICRO_1`) 배포 후 Vercel 로그 실측으로 병목이 2차임이 확정됐다.**
