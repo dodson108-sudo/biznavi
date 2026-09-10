@@ -8,7 +8,15 @@ const INDUSTRY_KEYS = [
   'local_service', 'restaurant', 'wholesale', 'construction',
   'knowledge_it', 'mfg_parts', 'food_mfg', 'medical',
   'finance', 'education', 'fashion', 'media',
-  'logistics', 'energy', 'agri_food', 'export_sme'
+  'logistics', 'energy', 'agri_food', 'export_sme',
+  /* facility_service — 2026-09-10 신설.
+     local_service 하나에 미용실과 FM·경비·청소대행이 섞여 있어 후자가
+     beauty 그룹의 "시술·예약 밀도" 문구를 받고 있었다.
+     원가 구조가 결정적으로 다르다 — FM·경비·청소는 인건비가 원가의 대부분이고,
+     그것이 이 업종의 핵심 진단 축인데 어느 기존 그룹으로도 잡히지 않는다.
+     'etc' — INDUSTRY_MAP의 '기타'이자 업종 미판별 폴백. AI가 판별에 실패하면
+     여기로 보낸다(과거에는 local_service로 보내 경비업체가 미용 문항을 받았다). */
+  'facility_service', 'etc'
 ];
 
 module.exports = async function handler(req, res) {
@@ -49,7 +57,7 @@ ${isStartup ? '⚠️ 창업 초기 기업 (개업 1년 미만): diagnosis_note�
 
 [반환 JSON]
 {
-  "industry_key": "(아래 16개 중 정확히 하나 — 분류 기준 숙지 후 선택)",
+  "industry_key": "(아래 18개 중 정확히 하나 — 분류 기준 숙지 후 선택)",
   "industry_label": "(한국어 업종명 — 예: 사업시설 유지관리 서비스업)",
   "business_description": "(이 사업체가 실제로 무엇을 하는 곳인지 핵심 1~2문장. 예: 'B2B 고객사의 건물·시설을 위탁받아 청소·설비점검·보안 등 통합 유지관리 서비스 제공 — 장기계약 갱신율과 인력 운용 효율이 수익성 핵심')",
   "biz_scale": "(micro 또는 sme — 직원 5명 이하·매출 10억 미만이면 micro, 아니면 sme)",
@@ -62,13 +70,17 @@ ${isStartup ? '⚠️ 창업 초기 기업 (개업 1년 미만): diagnosis_note�
 [industry_key 분류 기준 — 반드시 이 목록에서만 선택, 아래 구체 예시 기준 엄수]
 
 ★ 분류 주의사항 (자주 혼동되는 업종):
-- FM(시설관리)·사업시설유지·보안경비·청소대행·빌딩관리 → local_service  (B2B여도 서비스업)
+- FM(시설관리)·사업시설유지·보안경비·청소대행·빌딩관리·방역소독 → facility_service  (정기 도급 계약 서비스)
+- 헤어·네일·피부샵·세탁소·수선집·반려동물샵·필라테스 → local_service  (개인 고객 대면 서비스)
+- 주유소·석유판매 → wholesale  (불특정 고객 대상 현장 판매·재고 회전 구조)
 - 실제 공사·시공·신축·리모델링·전기배선 현장작업 → construction  (용역서비스 X)
 - 인력파견·아웃소싱·HR컨설팅 → knowledge_it
 - 물류창고관리만(운송 없음) → wholesale
 
-[16개 분류]
-- local_service : 헤어·네일·피부샵, 세탁소, 수선집, 반려동물샵, 필라테스·요가, 주유소, 사업시설유지관리(FM)·빌딩관리·경비·청소대행·방역·소독 등 생활밀착·B2B 위탁서비스
+[18개 분류]
+- local_service : 헤어·네일·피부샵, 세탁소, 수선집, 반려동물샵, 필라테스·요가 등 개인 고객을 직접 대면하는 생활밀착 서비스 (접수 → 작업 → 인도 구조)
+- facility_service : 사업시설유지관리(FM), 빌딩·시설 종합관리, 보안경비, 청소대행, 방역·소독 등 정기 도급 계약 기반 위탁관리 서비스 (인건비가 원가의 대부분)
+- etc          : 위 어느 분류에도 명확히 들어가지 않는 경우에만 선택. 억지로 끼워 맞추지 말 것
 - restaurant    : 음식점, 카페, 베이커리, 배달전문점, 분식점, 주점
 - wholesale     : 도소매, 유통, 무역상사(국내 위주), 대리점, 총판
 - construction  : 건설현장 시공, 인테리어 공사, 리모델링 공사, 전기·소방·설비 공사 (완공된 건물의 일상 관리는 local_service)
@@ -110,9 +122,13 @@ ${isStartup ? '⚠️ 창업 초기 기업 (개업 1년 미만): diagnosis_note�
     const result = JSON.parse(jsonMatch[0]);
 
     // industry_key 유효성 검증
+    /* ⚠ 폴백을 local_service에서 etc로 바꿨다(2026-09-10).
+       local_service는 "생활서비스"이자 "AI 판별 실패 시 기본값"을 겸하고 있었다.
+       그 탓에 판별에 실패한 사용자가 beauty 그룹(시술·예약 밀도) 문항을 받았다.
+       etc는 INDUSTRY_WORDING이 비어 있어 업종 중립 문항이 나간다. */
     if (!INDUSTRY_KEYS.includes(result.industry_key)) {
-      result.industry_key = 'local_service';
-      result.industry_label = result.industry_label || '서비스업';
+      result.industry_key = 'etc';
+      result.industry_label = result.industry_label || '기타';
     }
 
     return res.status(200).json({ status: 'success', ...result });

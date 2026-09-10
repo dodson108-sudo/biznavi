@@ -19,6 +19,7 @@ const Wizard = (() => {
     '제조업':           'mfg_parts',
     '식품/음료':        'food_mfg',
     '서비스업':         'local_service',
+    '시설관리·경비':     'facility_service',
     '유통/물류':        'wholesale',
     '외식 및 휴게음식업': 'restaurant',
     'IT/소프트웨어':    'knowledge_it',
@@ -55,6 +56,7 @@ const Wizard = (() => {
     'mfg_parts':     ['mfg_dist', 'b2b_solution', 'service'],
     'food_mfg':      ['mfg_dist', 'b2c_commerce', 'b2c_sub', 'franchise'],
     'local_service': ['service', 'franchise', 'b2c_sub'],
+    'facility_service': ['b2b_solution', 'service', 'usage_based'],
     'wholesale':     ['mfg_dist', 'b2c_commerce', 'platform'],
     'restaurant':    ['service', 'franchise', 'b2c_commerce'],
     'knowledge_it':  ['b2b_saas', 'b2b_solution', 'service', 'usage_based'],
@@ -1409,7 +1411,11 @@ const Wizard = (() => {
     // AI 분석 결과 key 우선 → hidden input(aiIndustryKey) → 드롭다운(레거시) → 기본값
     const industry    = document.getElementById('industry')?.value || '';
     const aiKey       = document.getElementById('aiIndustryKey')?.value || '';
-    const industryKey = forceIndustryKey || aiKey || INDUSTRY_MAP[industry] || 'local_service';
+    /* ⚠ 폴백은 'local_service'가 아니라 'etc'다(2026-09-10).
+       local_service가 폴백을 겸한 탓에 업종 미판별 사용자가 미용(beauty) 문항을 받았다.
+       ⚠ etc는 industryVarMap에 없으므로 업종 특화 탭이 표시되지 않는다(진행률 35).
+          업종을 모르는데 특정 업종 16문항을 주는 것보다 낫다는 판단이다. */
+    const industryKey = forceIndustryKey || aiKey || INDUSTRY_MAP[industry] || 'etc';
     const bizModelKey = _inferredBmKey || 'etc';
 
     // bizScale 감지 — 소상공인 전용 진단 분기
@@ -1505,6 +1511,9 @@ const Wizard = (() => {
       'logistics':     typeof INDUSTRY_LOGISTICS    !== 'undefined' ? INDUSTRY_LOGISTICS    : null,
       'energy':        typeof INDUSTRY_ENERGY       !== 'undefined' ? INDUSTRY_ENERGY       : null,
       'agri_food':     typeof INDUSTRY_AGRI_FOOD    !== 'undefined' ? INDUSTRY_AGRI_FOOD    : null,
+      /* ⚠ 'facility_service'는 전용 업종 진단 모듈이 없다. 업종 탭이 표시되지 않고
+            DiagMicro 35문항만 나간다(진행률 35). 모듈 신설 여부는 5-3에서 판단한다.
+         ⚠ 'etc'도 같다 — 업종을 모르는데 특정 업종 16문항을 주지 않는다는 의도적 결정. */
       'social_enterprise': typeof INDUSTRY_SOCIAL_ENTERPRISE !== 'undefined' ? INDUSTRY_SOCIAL_ENTERPRISE : null,
       // ⚠ 'social_venture'는 전용 진단 모듈(DiagVenture)로 대체되어 업종 매핑에서 제외한다.
       //    js/diagnosis/industry/social_venture.js 파일은 삭제하지 않고 남겨 둔다
@@ -3472,6 +3481,7 @@ const Wizard = (() => {
 
   /* ── 업종별 외부 리스크 placeholder 동적 업데이트 ── */
   const _RISK_PLACEHOLDER = {
+    facility_service: '예: 최저임금 인상으로 인건비 부담 급증 (원가의 대부분이 인건비). 주요 계약처의 관리비 절감 압박으로 단가 인하 요구. 현장 인력 이직으로 결원 발생.',
     local_service: '예: 임대료 계약 만료 임박 (집주인 인상 요구). 최저임금 인상으로 알바 인건비 부담. 근처에 동종 프랜차이즈 새로 입점. 매출의 대부분이 단골 3~5명에 집중',
     restaurant:    '예: 식재료 원가 급등 (채소·육류 30% 이상 상승). 배달 플랫폼 수수료 인상 (15%→20%). 주변 신규 음식점 대거 오픈. 건물 임대료 계약 만료 예정',
     wholesale:     '예: 주요 납품처 1~2곳에 매출 집중 (거래 중단 시 위기). 유통 플랫폼 수수료 인상. 중국산 저가 경쟁 제품 유입. 환율 변동으로 수입 원가 상승',
@@ -3507,6 +3517,11 @@ const Wizard = (() => {
       products:        '예: HMR 간편식·냉동 만두, OEM 소스·양념류, 냉장 반찬 패키지',
       coreStrength:    '예: HACCP 인증 공장, 자체 레시피 30종 보유, 대형마트·급식업체 납품 이력 5년',
       customerProblem: '예: 원물 가격 급등 시 마진이 급감하고, 유통기한 관리·반품 처리가 어렵습니다'
+    },
+    facility_service: {
+      products:        '예: 건물 종합관리(청소·경비·설비), 상주 보안경비, 정기 방역·소독',
+      coreStrength:    '예: 24시간 대응 체계, 결원 시 즉시 대체 인력 투입, 10년 무사고 실적',
+      customerProblem: '예: 관리 품질이 담당자에 따라 들쭉날쭉하고, 결원이 생기면 며칠씩 공백이 발생합니다'
     },
     local_service: {
       products:        '예: 세탁·수선 당일 처리, 반려동물 미용·호텔링, 홈클리닝·이사 청소',

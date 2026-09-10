@@ -111,7 +111,8 @@ const App = (() => {
 
   /* biz-context 확인 → 진단 시작 */
   function startDiagnosis() {
-    const industryKey = document.getElementById('aiIndustryKey')?.value || 'local_service';
+    // ⚠ 폴백은 'etc'다 — local_service가 폴백을 겸해 미판별 사용자가 미용 문항을 받았다(2026-09-10)
+    const industryKey = document.getElementById('aiIndustryKey')?.value || 'etc';
     const bizDesc     = document.getElementById('aiBusinessDesc')?.value || '';
 
     // 추가 진단 요청 사항 저장 (hidden input에 보존)
