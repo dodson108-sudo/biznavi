@@ -86,6 +86,10 @@ const FundingRules = (() => {
      자동 판정이 아니라 '확인 유도'용이다. */
   const INDUSTRY_WATCH = {
     local_service: ['9612중', '96992', '96999중', '75330중'],
+    /* ⚠ 빌딩관리(FM)는 부동산관리업(6821)과 겹칠 수 있으나 68의 예외 조항에
+       부동산관리업이 명시돼 있어 신청 가능하다. 경비업은 흥신소(탐정·조사)나
+       추심대행을 겸하면 제외 대상이 되므로 확인이 필요하다. */
+    facility_service: ['68', '75330중', '75993'],
     restaurant:    ['56211', '56212', '91291'],
     medical:       ['86', '47811중', '731'],
     finance:       ['64', '65', '66', '63992'],
@@ -114,6 +118,7 @@ const FundingRules = (() => {
   const KOSMES_NON_MFG_INDUSTRIES = {
     restaurant:    '외식 및 휴게음식업',
     local_service: '서비스업',
+    facility_service: '시설관리·경비',
     wholesale:     '유통/물류',
     medical:       '의료/헬스케어',
     finance:       '금융/핀테크',

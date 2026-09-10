@@ -36,6 +36,9 @@ const INDUSTRY_TO_KSIC = {
   wholesale:     'G',  // 도매·소매업
   knowledge_it:  'J',  // 정보통신업
   local_service: 'S',  // 기타개인서비스
+  // 실제 KSIC는 N(사업시설관리·사업지원)이나 FALLBACK 테이블에 N이 없어 S로 근사.
+  // ⚠ 통계 확보 시 N으로 교체할 것 (energy: 'C' // 제조업 근사 와 같은 방식)
+  facility_service: 'S',  // 기타개인서비스 근사
   medical:       'Q',  // 보건·사회복지
   education:     'P',  // 교육서비스업
   fashion:       'G',  // 도매·소매업(의류)

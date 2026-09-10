@@ -1873,7 +1873,8 @@ const Dashboard = (() => {
   /* ── 업종 한글 레이블 ──────────────────────────────────────── */
   const _INDUSTRY_KR = {
     mfg_parts:'뿌리제조·부품가공', food_mfg:'식품제조·가공',
-    local_service:'생활밀착형서비스', wholesale:'전문유통·도소매',
+    local_service:'생활밀착형서비스', facility_service:'시설관리·경비',
+    wholesale:'전문유통·도소매',
     restaurant:'외식·휴게음식', knowledge_it:'지식서비스·IT개발',
     construction:'소규모건설·인테리어', medical:'의료·보건',
     education:'교육·학원', fashion:'패션·의류',
@@ -1936,7 +1937,10 @@ const Dashboard = (() => {
     const fd = _lastFd;
     const today = new Date();
     const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
-    const industryKr = _INDUSTRY_KR[fd.industry] || fd.industry || '—';
+    /* ⚠ fd.industry는 #industry select 제거(2026-04-17) 이후 항상 ''이라
+       이 조회가 죽어 있었다(전 업종 '—' 표시). industryKey를 먼저 본다 */
+    const industryKr = _INDUSTRY_KR[fd.industryKey] || _INDUSTRY_KR[fd.industry]
+      || fd.industryKey || fd.industry || '—';
     const scaleKr    = fd.bizScale === 'micro' ? '소상공인' : '소기업·중소기업';
     const ctKr       = _CT_KR[fd.consultingType] || fd.consultingType || '—';
 

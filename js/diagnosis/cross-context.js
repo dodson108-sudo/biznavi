@@ -563,6 +563,7 @@ const CrossContext = (() => {
       '뿌리 제조 및 부품가공업': 'mfg_parts',
       '식품 제조 및 가공업': 'food_mfg',
       '생활밀착형 서비스업': 'local_service',
+      '시설관리·경비': 'facility_service',
       '전문 유통 및 도소매업': 'wholesale',
       '소규모 건설 및 인테리어': 'construction',
       '의료 및 헬스케어': 'medical',
