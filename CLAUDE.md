@@ -243,6 +243,7 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   **`CLAUDE.md`는 현재 구조·규칙·남은 이슈가 바뀔 때만 수정한다.**
   ⚠ **이력을 `CLAUDE.md`에 쌓지 마라** — 파일이 커지면 매 세션 읽는 비용이 늘어난다(6,410줄 / 456KB까지 커져 2026-09-16에 분리했다).
   ⚠ 이력 중에도 **재발 방지 근거**("이 패턴은 세 번 터졌다")와 **설계 판단 근거**는 `CLAUDE.md`의 작업 규칙·주의사항으로 **요약해 흡수**시킨다.
+- **`HISTORY.md`는 통째로 읽지 마라. 파일이 크다(6,298줄).** 특정 결정의 배경을 확인할 때는 **grep이나 검색으로 해당 섹션만 찾아** 읽어라. 전체를 읽으면 분리한 의미가 없어진다.
 - **`collectAllScores()`는 평면 숫자 맵이다 — 메모는 담기지 않는다.** `DiagMicro.calcScores`·`CrossContext.buildScoreMap`이 이 계약에 의존하므로 바꾸지 말 것. 메모가 필요하면 `buildPromptSummary(scores, group, memos)`처럼 **별도 인자**로 넘긴다
 - **증상을 그룹에서 찾기 전에 어느 진단 모듈이 렌더링되는지부터 확인할 것.** micro는 `DiagMicro`, sme는 `DiagCommon`이 나온다. 2026-09-07에 "제조업에 플랫폼 리뷰가 나온다"는 보고를 `manufacturing` 그룹에서 찾다가, 실제 출처가 `DiagCommon`(sme 경로)임을 렌더링으로 확인한 전례가 있다
 - **`DiagCommon`에는 업종 그룹 오버라이드 구조가 없다.** `DiagMicro`처럼 "기본 + food 보존"을 쓸 수 없으므로, 문항을 중립으로 직접 쓰고 **`guide` 한 문장에 여러 업종 예시를 함께 담아** 구체성을 보완한다. `guide`에는 `POS`·`식재료` 같은 업종어가 의도적으로 들어가므로 **전용어 검사는 `label`·`question`·`scale`만 대상으로 할 것**
