@@ -10,12 +10,15 @@ const DiagMicro = (() => {
 
   const DOMAINS = [
     { id:'1', key:'mgmt_profit',  label:'경영진단·손익분석',    icon:'📊', desc:'판매 데이터와 원가를 바탕으로 실제로 남는 구조인지 진단합니다.',             weight:0.18 },
-    { id:'2', key:'place_seo',    label:'점포환경·네이버 플레이스',  icon:'📍', desc:'매장 전면(파사드) 시선 주목도와 네이버 플레이스 연동 최적화를 진단합니다.',             weight:0.15 },
+    /* ⚠ D2 label은 DOMAIN_LABEL_BY_GROUP이 그룹별로 덮는다. 여기 값은 그룹 미전달 시의 공통 폴백이다.
+       (건설·제조·물류·시설관리에 '네이버 플레이스'는 성립하지 않는다 — 2026-09-16) */
+    { id:'2', key:'place_seo',    label:'점포환경·온라인 노출',  icon:'📍', desc:'매장 전면(파사드) 시선 주목도와 네이버 플레이스 연동 최적화를 진단합니다.',             weight:0.15 },
     { id:'3', key:'multichannel', label:'다채널 판로',          icon:'🛒', desc:'오프라인·배달·이커머스 판로 확장과 수수료 방어력을 진단합니다.',       weight:0.14 },
     { id:'4', key:'smart_dx',     label:'스마트DX',             icon:'🤖', desc:'스마트 기기 도입 효율과 오퍼레이션 자동화 수준을 진단합니다.',         weight:0.14 },
     { id:'5', key:'funds_esg',    label:'운영자금·ESG보증',     icon:'💰', desc:'현금흐름 관리, ESG 실천, 정책보증 연계 역량을 진단합니다.',           weight:0.13 },
     { id:'6', key:'exit_tax',     label:'사업정리·폐업세무',    icon:'⚖️', desc:'비즈니스 생존주기 인식과 폐업 세무 리스크 통제력을 진단합니다.',       weight:0.12 },
-    { id:'7', key:'sns_ai',       label:'SNS·생성형AI',         icon:'✨', desc:'AI 도구 활용 마케팅 자립도와 플레이스 CTR 최적화를 진단합니다.',      weight:0.14 },
+    /* ⚠ D7은 전 그룹 공통이다 — 7_1~7_5가 그룹별로 갈릴 내용이 없다. */
+    { id:'7', key:'sns_ai',       label:'온라인 홍보·AI 활용',  icon:'✨', desc:'AI 도구 활용 마케팅 자립도와 플레이스 노출 대비 반응률 관리를 진단합니다.',      weight:0.14 },
   ];
 
   /* 소상공인 industryKey → 업종 그룹 매핑 */
@@ -549,26 +552,48 @@ const DiagMicro = (() => {
   /* ── 업종 그룹별 label·question 오버라이드 맵 ──
      food 그룹은 기본값(ITEMS) 그대로 사용.
      key 값(D1_1~D7_5)은 절대 변경하지 않음. */
+  /* ── D2 영역 제목(label)의 업종별 분기 ──
+     D2만 분기한다. D1·D3~D7은 업종과 무관하므로 공통 label을 쓴다.
+
+     ⚠ label은 표시 전용이며 키로 쓰이지 않는다(2026-09-16 전수 추적 확인).
+        따라서 그룹 분기가 안전하다. 단 label 소스가 4곳이므로 한 곳만 고치면
+        진단 화면과 레이더차트가 서로 다른 이름을 표시한다:
+          A getSchema (아래)  B calcScores (아래)
+          C wizard.js _calcMicroDomainScores  D wizard.js MICRO_DOMAIN_EXPLAIN
+        C는 A에서 파생시켰고 D는 그룹 분기 맵을 따로 둔다.
+     ⚠ key·weight·id는 여전히 절대 분기하지 않는다. */
+  const DOMAIN_LABEL_BY_GROUP = {
+    food:             { '2': '점포환경·온라인 노출' },
+    beauty:           { '2': '점포환경·온라인 노출' },
+    retail:           { '2': '매장·온라인 노출' },
+    edu_service:      { '2': '강의 환경·온라인 노출' },
+    pro_service:      { '2': '전문성 노출' },
+    manufacturing:    { '2': '기업 신뢰도 노출' },
+    construction:     { '2': '시공 실적·발주처 신뢰' },
+    trade_logistics:  { '2': '거래처 신뢰도 노출' },
+    facility_service: { '2': '관리 실적·현장 운영' },
+    etc:              { '2': '온라인 노출' },
+  };
+
   /* 영역 설명(desc)의 업종별 분기.
-     ⚠ label은 절대 분기하지 않는다 — calcScores가 반환값에 domain.label을 실어
-        레이더차트·대시보드로 흘려보내므로 바꾸면 표시가 어긋난다. desc만 덮는다.
+     ⚠ desc만 덮는다. label은 DOMAIN_LABEL_BY_GROUP이 따로 관리한다.
      ⚠ food는 기본값(DOMAINS)을 그대로 쓴다 (외식업 회귀 방지) */
   const DOMAIN_DESC_BY_GROUP = {
     beauty: {
-      '2': '간판 시선 주목도와 로컬 SEO 연동 최적화를 진단합니다.',
+      '2': '매장 전면 시선 주목도와 온라인 등록 정보·지역 검색 노출을 진단합니다.',
       '3': '현장 시술·예약 앱·제품 판매 판로 확장과 수수료 방어력을 진단합니다.',
     },
     retail: {
-      '2': '매장 전면(파사드) 시선 주목도와 네이버 플레이스 연동 최적화를 진단합니다.',
+      '2': '첫 접점에서의 상품 인지성과 온라인 등록 정보·지역 검색 노출을 진단합니다.',
       '3': '매장·오픈마켓·B2B 도매 판로 확장과 수수료 방어력을 진단합니다.',
     },
     edu_service: {
-      '2': '학원 인지성과 로컬 SEO 연동 최적화를 진단합니다.',
+      '2': '첫 접점 인지성과 온라인 등록 정보·지역 검색 노출을 진단합니다.',
       '3': '현장 수업·온라인 강의·B2B 교육 판로 확장과 수수료 방어력을 진단합니다.',
     },
     pro_service: {
       '1': '수임 데이터와 업무 원가를 바탕으로 실제로 남는 구조인지 진단합니다.',
-      '2': '사무소 전문성 노출과 로컬 SEO 연동 최적화를 진단합니다.',
+      '2': '전문성 노출과 온라인 등록 정보·지역 검색 노출을 진단합니다.',
       '3': '직접 수임·온라인 플랫폼·B2B 자문 판로 확장과 수수료 방어력을 진단합니다.',
       '4': '전자문서·CRM 도입 효율과 업무 자동화 수준을 진단합니다.',
     },
@@ -577,6 +602,8 @@ const DiagMicro = (() => {
       '2': '자재 입고부터 완제품 보관까지의 공정 동선과 온라인 기업 정보 노출을 진단합니다.',
       '3': '거래처 다변화와 B2B 수주 파이프라인, 납품 단가 방어력을 진단합니다.',
       '4': '원자재·재공품·완제품 3단계 재고 관리와 설비·공정 자동화 수준을 진단합니다.',
+      /* 기본 desc가 '플레이스'를 전제한다 — B2B 제조에 성립하지 않는다 */
+      '7': '회사 소개 자료 작성과 거래처 문의 전환, AI 도구 활용 수준을 진단합니다.',
     },
     /* ⚠ label·key·weight·id는 절대 분기하지 않는다 — calcScores가 domain.label을
        반환값에 실어 레이더차트·대시보드로 흘려보내므로 바꾸면 표시가 어긋난다.
@@ -586,12 +613,14 @@ const DiagMicro = (() => {
       '2': '현장 공정·자재 반입 동선과 온라인 기업 정보·시공 실적 노출을 진단합니다.',
       '3': '원청·시행사 거래 다변화와 견적 대비 수주율, 공종별 단가 방어력을 진단합니다.',
       '4': '현장 공정률·자재 수불 관리와 서류·정산 자동화 수준을 진단합니다.',
+      '7': '시공 사례 자료 작성과 견적 문의 전환, AI 도구 활용 수준을 진단합니다.',
     },
     trade_logistics: {
       '1': '운송·수출 원가(유류비·인건비·물류비·관세)를 바탕으로 남는 구조인지 진단합니다.',
       '2': '차량·창고 등 거점 운영 동선과 온라인 기업 정보 노출을 진단합니다.',
       '3': '화주·바이어 다변화와 거래처 의존도, 운임·단가 방어력을 진단합니다.',
       '4': '배차·재고·통관 서류 관리와 운영 자동화 수준을 진단합니다.',
+      '7': '회사 소개 자료 작성과 거래처·바이어 문의 전환, AI 도구 활용 수준을 진단합니다.',
     },
     /* ⚠ 5-2에서 '2'·'5'·'7'을 조정했다.
        '2'는 5-1에서 근태·점검(실제로는 D4 내용)을 서술하고 있어 문항과 어긋났고,
@@ -611,6 +640,7 @@ const DiagMicro = (() => {
       '2': '사업장 운영 동선과 온라인에 등록된 사업장 정보의 정확성을 진단합니다.',
       '3': '거래처·판로 다변화와 채널별 수수료 방어력을 진단합니다.',
       '4': '재고·업무 데이터 관리와 자동화 도구 도입 효율을 진단합니다.',
+      '7': '홍보 문구 작성과 노출 대비 반응률 관리, AI 도구 활용 수준을 진단합니다.',
     },
   };
 
@@ -3981,9 +4011,27 @@ const DiagMicro = (() => {
     return domainMap[group] || null;
   }
 
-  function calcScores(scores) {
+  /* 그룹별 DOMAINS — label(D2)과 desc만 덮는다. key·weight·id·icon은 불변.
+     ⚠ getSchema·calcScores·wizard의 레이더차트가 전부 이 함수를 거쳐야
+        네 곳이 같은 이름을 표시한다. 그룹 미전달이면 공통 DOMAINS로 폴백한다. */
+  function _domainsFor(industryGroup) {
+    var labelMap = DOMAIN_LABEL_BY_GROUP[industryGroup] || {};
+    var descMap  = DOMAIN_DESC_BY_GROUP[industryGroup] || {};
+    if (Object.keys(labelMap).length === 0 && Object.keys(descMap).length === 0) return DOMAINS;
+    return DOMAINS.map(function(d) {
+      if (!labelMap[d.id] && !descMap[d.id]) return d;
+      var o = Object.assign({}, d);
+      if (labelMap[d.id]) o.label = labelMap[d.id];
+      if (descMap[d.id])  o.desc  = descMap[d.id];
+      return o;
+    });
+  }
+
+  /* ⚠ industryGroup을 넘기지 않으면 공통 label로 폴백한다(undefined가 아니다).
+     PPT·AI 프롬프트가 이 label을 그대로 표시하므로 호출부는 그룹을 넘길 것. */
+  function calcScores(scores, industryGroup) {
     const domainScores = {};
-    DOMAINS.forEach(domain => {
+    _domainsFor(industryGroup).forEach(domain => {
       const keys = Object.keys(ITEMS).filter(k => k.startsWith(`${domain.id}_`));
       const vals = keys.map(k => scores[`diag-micro-container_${k}`]).filter(v => v !== undefined && v !== null && v !== '');
       const avg = vals.length > 0 ? vals.reduce((a, b) => a + Number(b), 0) / vals.length : 0;
@@ -4111,11 +4159,11 @@ const DiagMicro = (() => {
   function buildPromptSummary(scores, industryGroup, memos) {
     const group = industryGroup || 'food';
     const groupLabel = GROUP_LABELS[group] || '외식업';
-    const result = calcScores(scores);
+    const result = calcScores(scores, group);
     const warnings = detectCrossWarnings(scores, group);
     const items = getSchema(group).items;
     const PRE = 'diag-micro-container_';
-    const domainLines = DOMAINS.map(d => {
+    const domainLines = _domainsFor(group).map(d => {
       const ds = result.domains[d.key];
       const level = ds.pct >= 80 ? '우수' : ds.pct >= 60 ? '보통' : ds.pct >= 40 ? '취약' : '위험';
       return `  - ${ds.label}: ${ds.pct}점 (${level})`;
@@ -4123,7 +4171,7 @@ const DiagMicro = (() => {
     const warnLines = warnings.length > 0
       ? warnings.map(w => `  ⚠ [${w.level}] ${w.msg}`).join('\n')
       : '  - 복합 경고 없음';
-    const weakAreaIds = DOMAINS.filter(d => result.domains[d.key].pct < 60).map(d => d.id);
+    const weakAreaIds = _domainsFor(group).filter(d => result.domains[d.key].pct < 60).map(d => d.id);
     const actionLines = [];
     weakAreaIds.forEach(function(areaId) {
       var actionKey = DOMAIN_TO_ACTION_KEY[areaId];
@@ -4407,16 +4455,12 @@ ${recommendedActions || '  - 전 영역 양호. 고도화 단계 진입 권장.'
         finalItems[key] = merged;
       });
     }
-    // 영역 설명만 그룹별로 덮는다 (label·key·weight·id는 불변)
-    var descMap = DOMAIN_DESC_BY_GROUP[group] || {};
-    var finalDomains = Object.keys(descMap).length === 0 ? DOMAINS
-      : DOMAINS.map(function(d) {
-          return descMap[d.id] ? Object.assign({}, d, { desc: descMap[d.id] }) : d;
-        });
+    // 영역 설명(desc)과 D2 제목(label)을 그룹별로 덮는다 (key·weight·id는 불변)
+    var finalDomains = _domainsFor(group);
     return { id: 'micro', label: '소상공인 7대 분야 융합 진단', version: '2.0', bizScale: 'micro', industryGroup: group, domains: finalDomains, items: finalItems, actionPlan: ACTION_PLAN_7DAY };
   }
 
-  return { getSchema, getGroup, getActionPlan, calcScores, detectCrossWarnings, buildPromptSummary, ACTION_PLAN_7DAY, ACTION_PLAN_7DAY_BY_GROUP, DOMAINS, ITEMS, INDUSTRY_GROUP_MAP, GROUP_LABELS };
+  return { getSchema, getGroup, getActionPlan, calcScores, detectCrossWarnings, buildPromptSummary, getDomains: _domainsFor, ACTION_PLAN_7DAY, ACTION_PLAN_7DAY_BY_GROUP, DOMAINS, ITEMS, INDUSTRY_GROUP_MAP, GROUP_LABELS };
 })();
 
 if (typeof window !== 'undefined') window.DiagMicro = DiagMicro;

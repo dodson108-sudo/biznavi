@@ -2278,31 +2278,38 @@ const Wizard = (() => {
     }
   };
 
+  /* ── micro 7대 영역 해설 (D1~D7) ──
+     ⚠ 본문은 쉬운 말로 쓴다. 약자를 쓸 때는 풀네임과 정의를 함께 적는다.
+        해설 카드는 guide가 없는 자리이고 점수 바로 아래 바로 보인다.
+        (2026-09-07 전문용어 정리 당시 wizard.js가 검사 범위에 없어
+         ACM·프라임코스트·로컬SEO·D2C가 그대로 남아 있었다 — 2026-09-16 정리) */
   const MICRO_DOMAIN_EXPLAIN = {
     d1: {
-      icon: '📊', what: '매출 현황·원가 구조·손익분기점(BEP)·현금흐름 관리 수준을 진단한 결과입니다.',
-      high: '경영 수치 파악이 잘 되어 있습니다. ACM 관리와 프라임코스트 최적화를 계속 강화하세요.',
-      low:  '손익 데이터 파악이 부족합니다. BEP 계산과 일별 매출·지출 기록부터 시작하세요.'
+      icon: '📊', what: '매출 현황·원가 구조·손익분기점(BEP, 적자와 흑자가 갈리는 매출액)·현금흐름 관리 수준을 진단한 결과입니다.',
+      high: '경영 수치 파악이 잘 되어 있습니다. 손이 가는 만큼 남는지 계산하는 습관과 재료비·인건비 비율 관리를 계속 강화하세요.',
+      low:  '손익 데이터 파악이 부족합니다. 손익분기점 계산과 일별 매출·지출 기록부터 시작하세요.'
     },
+    /* d2는 그룹별로 갈린다 — MICRO_D2_EXPLAIN_BY_GROUP 참조.
+       여기 값은 그룹 미전달 시의 공통 폴백이다. */
     d2: {
-      icon: '📍', what: '점포 환경·네이버 플레이스·로컬SEO 최적화 수준을 진단한 결과입니다.',
-      high: '온·오프라인 상권 노출이 잘 되어 있습니다. 리뷰 관리와 사진 품질을 지속 유지하세요.',
-      low:  '네이버 플레이스 최적화가 미흡합니다. 사진·영업시간·메뉴 업데이트가 즉시 필요합니다.'
+      icon: '📍', what: '사업장 환경과 온라인 노출·등록 정보 정확성을 진단한 결과입니다.',
+      high: '온·오프라인 노출이 잘 되어 있습니다. 후기 관리와 사진 품질을 지속 유지하세요.',
+      low:  '온라인 노출과 등록 정보 정비가 미흡합니다. 사진·영업시간·취급 내용 갱신이 즉시 필요합니다.'
     },
     d3: {
-      icon: '🛒', what: '오프라인·배달앱·SNS 등 다채널 판로 운영 현황을 진단한 결과입니다.',
-      high: '다채널 판로가 잘 구축되어 있습니다. 채널별 수익성 분석으로 집중 채널을 선택하세요.',
-      low:  '단일 채널 의존도가 높습니다. 배달앱 1개라도 추가 등록하여 매출 위험을 분산하세요.'
+      icon: '🛒', what: '판로 구조와 직접 거래 전환을 진단한 결과입니다.',
+      high: '판로가 여러 갈래로 나뉘어 있습니다. 채널별 수수료를 뺀 실수익을 비교해 집중할 곳을 고르세요.',
+      low:  '한 곳에 대한 의존도가 높습니다. 판로를 하나라도 더 확보해 매출 위험을 분산하세요.'
     },
     d4: {
-      icon: '💻', what: '키오스크·POS·업무 자동화 등 디지털 전환(DX) 도입 수준을 측정한 결과입니다.',
-      high: '디지털 도구 활용이 앞서 있습니다. 데이터 기반 의사결정으로 경쟁 우위를 확대하세요.',
-      low:  '수작업 위주의 운영이 비효율을 만들고 있습니다. 무료 POS·예약 앱부터 도입해보세요.'
+      icon: '💻', what: '업무 자동화와 데이터 관리 등 디지털 전환(DX, 수작업을 디지털 도구로 바꾸는 것) 수준을 측정한 결과입니다.',
+      high: '디지털 도구 활용이 앞서 있습니다. 쌓인 데이터를 근거로 판단해 경쟁 우위를 넓히세요.',
+      low:  '수작업 위주의 운영이 비효율을 만들고 있습니다. 무료 도구부터 하나 도입해보세요.'
     },
     d5: {
-      icon: '💰', what: '운영자금 관리·정책금융 활용·ESG 보증 연계 수준을 진단한 결과입니다.',
-      high: '자금 관리와 지원사업 활용이 양호합니다. ESG·녹색보증 등 추가 지원 채널을 탐색하세요.',
-      low:  '자금 위기 가능성이 있습니다. 소진공 정책자금·지역신용보증재단 방문이 시급합니다.'
+      icon: '💰', what: '운영자금 관리·정책자금 활용·보증 연계 수준을 진단한 결과입니다.',
+      high: '자금 관리와 지원사업 활용이 양호합니다. 환경·사회 분야 보증 등 추가 지원 채널을 탐색하세요.',
+      low:  '자금 위기 가능성이 있습니다. 소상공인시장진흥공단 정책자금·지역신용보증재단 방문이 시급합니다.'
     },
     d6: {
       icon: '⚖️', what: '사업 지속성·폐업 세무 절차·권리금 회수 준비 수준을 진단한 결과입니다.',
@@ -2310,38 +2317,107 @@ const Wizard = (() => {
       low:  '사업 지속 리스크가 있습니다. 폐업 지원금·세금 감면 혜택 확인을 통해 선택지를 넓히세요.'
     },
     d7: {
-      icon: '📱', what: 'SNS 운영·생성형AI 활용·콘텐츠 마케팅 수준을 진단한 결과입니다.',
-      high: '디지털 마케팅을 잘 활용하고 있습니다. AI 도구로 콘텐츠 생산 속도를 더욱 높이세요.',
-      low:  'SNS 활용이 미흡합니다. ChatGPT·클로바X로 주 2회 메뉴 사진+글 올리기를 시작해보세요.'
+      icon: '📱', what: '온라인 홍보 운영과 생성형 AI 활용, 콘텐츠 제작 수준을 진단한 결과입니다.',
+      high: '온라인 홍보를 잘 활용하고 있습니다. AI 도구로 콘텐츠 만드는 속도를 더 높이세요.',
+      low:  '온라인 홍보가 미흡합니다. ChatGPT(대화형 AI)·클로바X로 주 2회 사진과 글 올리기를 시작해보세요.'
     }
   };
 
-  /* ── micro 7대 영역 점수 계산 ── */
-  function _calcMicroDomainScores(scores) {
-    var MICRO_DOMAINS = [
-      { key: 'd1', label: 'D1. 경영진단·손익분析', color: '#4ADE80' },
-      { key: 'd2', label: 'D2. 점포환경·네이버 플레이스', color: '#60A5FA' },
-      { key: 'd3', label: 'D3. 다채널 판로',        color: '#C084FC' },
-      { key: 'd4', label: 'D4. 스마트DX',           color: '#FB923C' },
-      { key: 'd5', label: 'D5. 운영자금·ESG보증',   color: '#F5C030' },
-      { key: 'd6', label: 'D6. 사업정리·폐업세무',  color: '#F87171' },
-      { key: 'd7', label: 'D7. SNS·생성형AI',       color: '#34D399' },
-    ];
+  /* D2 해설의 업종 그룹별 분기.
+     ⚠ D2는 그룹마다 재는 것이 아예 다르다 — 매장 파사드가 있는 그룹과
+        발주처 신뢰(실적·면허·인증)를 보는 그룹이 섞여 있다.
+        label(DiagMicro.DOMAIN_LABEL_BY_GROUP)과 반드시 맞춰서 쓴다. */
+  const MICRO_D2_EXPLAIN_BY_GROUP = {
+    food: {
+      icon: '📍', what: '매장 전면의 눈에 띄는 정도와 온라인 등록 정보 정확성, 홀 동선과 조리 시간 편차를 진단한 결과입니다.',
+      high: '매장 노출과 홀 운영이 잘 잡혀 있습니다. 후기 관리와 대표 사진 품질을 지속 유지하세요.',
+      low:  '매장 전면과 온라인 등록 정보 정비가 미흡합니다. 사진·영업시간·메뉴 갱신부터 즉시 처리하세요.'
+    },
+    beauty: {
+      icon: '📍', what: '매장 전면의 눈에 띄는 정도와 온라인 등록 정보 정확성, 대기·작업 공간 동선과 작업 시간 편차를 진단한 결과입니다.',
+      high: '매장 노출과 작업 동선이 잘 잡혀 있습니다. 후기 관리와 작업 전·후 사진 품질을 유지하세요.',
+      low:  '매장 전면과 온라인 등록 정보 정비가 미흡합니다. 사진·영업시간·취급 내용 갱신부터 처리하세요.'
+    },
+    retail: {
+      icon: '📍', what: '첫 접점에서 무엇을 파는 곳인지 드러나는 정도와 온라인 등록 정보 정확성, 창고·출고·정산 동선을 진단한 결과입니다.',
+      high: '상품 인지성과 출고 동선이 잘 잡혀 있습니다. 온라인 채널 정보 일치와 상품 보관 상태를 유지하세요.',
+      low:  '무엇을 파는 곳인지 첫 접점에서 드러나지 않습니다. 주력 상품 노출과 온라인 등록 정보 정비부터 처리하세요.'
+    },
+    edu_service: {
+      icon: '📍', what: '첫 접점에서 무엇을 가르치는 곳인지 드러나는 정도와 온라인 등록 정보 정확성, 강의 공간·대기 동선과 수업 진행 편차를 진단한 결과입니다.',
+      high: '강의 환경과 온라인 노출이 잘 잡혀 있습니다. 강좌 소개와 강사 정보 최신 상태를 유지하세요.',
+      low:  '강좌 소개와 온라인 등록 정보 정비가 미흡합니다. 개설 강좌·시간표·강사 정보 갱신부터 처리하세요.'
+    },
+    pro_service: {
+      icon: '📍', what: '전문성이 첫 접점에서 드러나는 정도와 온라인 등록 정보 정확성, 대기·접수 동선과 처리 시간 편차를 진단한 결과입니다.',
+      high: '전문성 노출과 접수 동선이 잘 잡혀 있습니다. 실적·자격 정보를 최신 상태로 유지하세요.',
+      low:  '전문 분야와 실적이 밖에서 보이지 않습니다. 취급 분야·자격·처리 실적을 온라인에 정리하세요.'
+    },
+    manufacturing: {
+      icon: '📍', what: '거래처가 보는 기업 정보와 보유 설비·인증 노출, 자재부터 완제품까지의 공정 동선과 로트별 품질 편차를 진단한 결과입니다.',
+      high: '기업 신뢰도 노출과 공정 동선이 잘 잡혀 있습니다. 설비·인증 정보와 시험성적서를 최신 상태로 유지하세요.',
+      low:  '거래처가 우리 설비와 인증을 확인할 방법이 없습니다. 보유 설비 목록과 인증 유효기간부터 정리하세요.'
+    },
+    construction: {
+      icon: '📍', what: '발주처가 보는 시공 실적·보유 면허 노출과 현장 출입·자재 반입 동선, 마감 품질 편차를 진단한 결과입니다.',
+      high: '시공 실적과 현장 관리가 잘 드러나 있습니다. 완공 사진과 면허·보험 유효기간을 계속 갱신하세요.',
+      low:  '발주처가 우리 시공 실적과 면허를 확인할 방법이 없습니다. 완공 사진 정리와 면허 유효기간 점검부터 하세요.'
+    },
+    trade_logistics: {
+      icon: '📍', what: '거래처가 처음 검토할 때 보는 보유 자원·처리 실적과 거점 내 처리 동선, 처리 시간 편차를 진단한 결과입니다.',
+      high: '거래처 신뢰도 자료와 거점 운영이 잘 잡혀 있습니다. 처리 실적과 면허·보험 정보를 최신으로 유지하세요.',
+      low:  '거래처가 우리 처리 능력을 확인할 자료가 없습니다. 보유 차량·거점·처리 실적을 한 장으로 정리하세요.'
+    },
+    facility_service: {
+      icon: '📍', what: '발주처가 확인하는 관리 실적·인력 자격과 허가·인증 일치, 현장 출입·안전 관리와 작업 품질 편차를 진단한 결과입니다.',
+      high: '관리 실적과 현장 운영이 잘 잡혀 있습니다. 자격 보유 현황과 허가 유효기간을 정기적으로 점검하세요.',
+      low:  '발주처가 우리 관리 실적과 인력 자격을 확인할 방법이 없습니다. 현장별 관리 실적과 허가·보험 보장 범위부터 정리하세요.'
+    },
+    etc: {
+      icon: '📍', what: '첫 접점에서 무엇을 하는 곳인지 드러나는 정도와 온라인 등록 정보 정확성, 고객 이용 동선을 진단한 결과입니다.',
+      high: '첫 접점 인지성과 온라인 정보가 잘 정리되어 있습니다. 채널 간 정보 일치를 계속 유지하세요.',
+      low:  '무엇을 하는 곳인지 첫 접점에서 드러나지 않습니다. 상호·취급 내용·연락처가 채널마다 같은지부터 확인하세요.'
+    },
+  };
+
+  /* 그룹별 micro 해설 맵 — d2만 갈아끼운다. 그룹을 모르면 공통 해설로 폴백한다 */
+  function _microExplain(industryGroup) {
+    var d2 = MICRO_D2_EXPLAIN_BY_GROUP[industryGroup];
+    if (!d2) return MICRO_DOMAIN_EXPLAIN;
+    return Object.assign({}, MICRO_DOMAIN_EXPLAIN, { d2: d2 });
+  }
+
+  /* 레이더차트 7축 색상 — 영역 순서대로 적용. color는 UI 속성이므로 wizard가 보유한다 */
+  var MICRO_DOMAIN_COLORS = ['#4ADE80', '#60A5FA', '#C084FC', '#FB923C',
+                             '#F5C030', '#F87171', '#34D399'];
+
+  /* ── micro 7대 영역 점수 계산 ──
+     ⚠ label을 여기 하드코딩하지 않는다. DiagMicro.getDomains(group)에서 파생시켜야
+        진단 화면(getSchema)·레이더차트(여기)·PPT(calcScores)·AI 프롬프트가 같은 이름을 쓴다.
+        (과거 하드코딩 탓에 D2가 진단 화면과 레이더차트에서 갈릴 수 있었고,
+         'D1. 경영진단·손익분析'처럼 한자가 섞인 오타도 이 배열에만 남아 있었다) */
+  function _calcMicroDomainScores(scores, industryGroup) {
+    var base = (typeof DiagMicro !== 'undefined' && DiagMicro.getDomains)
+      ? DiagMicro.getDomains(industryGroup) : [];
+    var MICRO_DOMAINS = base.map(function(d, i) {
+      return { id: d.id, key: 'd' + d.id, label: 'D' + d.id + '. ' + d.label,
+               color: MICRO_DOMAIN_COLORS[i % MICRO_DOMAIN_COLORS.length] };
+    });
     var buckets = {};
-    MICRO_DOMAINS.forEach(function(d, i) {
-      buckets[i + 1] = { key: d.key, label: d.label, color: d.color, scores: [] }; // 1-indexed: key _1_~_7_ 와 일치
+    MICRO_DOMAINS.forEach(function(d) {
+      // 점수 키 diag-micro-container_{id}_* 의 id로 직접 버킷을 만든다 (배열 순서에 의존하지 않는다)
+      buckets[d.id] = { key: d.key, label: d.label, color: d.color, scores: [] };
     });
     Object.entries(scores || {}).forEach(function(entry) {
       var key = entry[0], val = entry[1];
       if (!val || !val.score) return;
       var m = key.match(/^diag-micro-container_(\d)_/);
       if (!m) return;
-      var idx = parseInt(m[1], 10);
-      if (buckets[idx]) buckets[idx].scores.push(val.score);
+      if (buckets[m[1]]) buckets[m[1]].scores.push(val.score);
     });
     var result = {};
-    MICRO_DOMAINS.forEach(function(_, i) {
-      var b = buckets[i + 1]; // 1-indexed
+    MICRO_DOMAINS.forEach(function(d) {
+      var b = buckets[d.id];
       var avg = b.scores.length > 0
         ? b.scores.reduce(function(a, v) { return a + v; }, 0) / b.scores.length : 0;
       result[b.key] = { label: b.label, avg: Math.round(avg * 10) / 10, color: b.color };
@@ -2545,14 +2621,18 @@ const Wizard = (() => {
     const orgMod    = _path.orgMod;
     const isSocial  = _path.isSocial;
     const isMicro   = _path.isMicro;
+    /* ⚠ 영역 제목(label)과 해설은 업종 그룹에 따라 갈린다.
+       레이더차트와 진단 화면이 같은 이름을 표시하려면 여기서도 그룹을 넘겨야 한다. */
+    const microGroup = (isMicro && typeof DiagMicro !== 'undefined')
+      ? DiagMicro.getGroup(data.industryKey || '') : '';
     const domainScores = isSocial
       ? _calcOrgDomainScores(scores, orgMod)
       : isMicro
-        ? _calcMicroDomainScores(scores)
+        ? _calcMicroDomainScores(scores, microGroup)
         : calcDomainScores(scores, isStartup);
     const explainMap = isSocial
       ? (ORG_DOMAIN_EXPLAIN[data.orgType] || SOCIAL_DOMAIN_EXPLAIN)
-      : isMicro ? MICRO_DOMAIN_EXPLAIN
+      : isMicro ? _microExplain(microGroup)
       : (isStartup ? STARTUP_DOMAIN_EXPLAIN : DOMAIN_EXPLAIN);
 
     let primary, secondary, pType, sType;
@@ -2604,15 +2684,18 @@ const Wizard = (() => {
     } else if (isMicro) {
       primary = 'micro_diag'; secondary = '';
       pType = {
+        /* ⚠ 이 카드는 영역 제목 바로 아래 같은 화면에 뜬다.
+           D2는 그룹마다 재는 것이 다르므로 label을 그대로 끌어다 쓴다
+           (여기만 '네이버 플레이스'로 두면 건설·제조 사장님이 같은 화면에서 모순된 두 이름을 본다). */
         icon: '🏪', label: '소상공인 7대 영역 진단',
-        desc: '경영·점포·판로·DX·자금·사업정리·SNS 7대 영역을 종합 진단했습니다. 취약 영역 처방을 우선 실행하세요.',
+        desc: '경영·점포·판로·디지털·자금·사업정리·온라인 홍보 7대 영역을 종합 진단했습니다. 취약 영역 처방을 우선 실행하세요.',
         preview: [
-          'D1 경영진단·손익 개선 — BEP·ACM 관리',
-          'D2 네이버 플레이스·상권 SEO 최적화',
-          'D3 배달앱·SNS 다채널 판로 확장',
-          'D4 무료 DX 도구 단계적 도입',
-          'D5 소진공 정책자금·보증 연계',
-          'D7 생성형AI 콘텐츠 마케팅 시작'
+          'D1 경영진단·손익 개선 — 손익분기점과 실제로 남는 금액 관리',
+          'D2 ' + ((domainScores.d2 && domainScores.d2.label) || 'D2. 온라인 노출').replace(/^D2\.\s*/, '') + ' 개선',
+          'D3 판로 다변화와 직접 거래 전환',
+          'D4 무료 자동화 도구 단계적 도입',
+          'D5 소상공인시장진흥공단 정책자금·보증 연계',
+          'D7 생성형 AI 콘텐츠 제작 시작'
         ]
       };
       sType = { icon: '', label: '', desc: '' };
@@ -3216,7 +3299,8 @@ const Wizard = (() => {
          지어내 AI에 보낸다 — 사용자가 답한 적 없는 내용이다.
          DiagSme가 이미 같은 이유로 접두어 가드를 쓰고 있다(아래 분기). */
       const microGroup = DiagMicro.getGroup(data.industryKey || '');
-      scaleScores = DiagMicro.calcScores(allScores);
+      // ⚠ group을 넘겨야 PPT·대시보드가 진단 화면과 같은 D2 제목을 표시한다
+      scaleScores = DiagMicro.calcScores(allScores, microGroup);
       data.microWarnings = DiagMicro.detectCrossWarnings(allScores, microGroup);
       data.microPrompt = DiagMicro.buildPromptSummary(allScores, microGroup, allMemos);
     } else if (bizScale === 'sme' && window.DiagSme &&
