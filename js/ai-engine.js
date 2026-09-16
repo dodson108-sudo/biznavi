@@ -163,6 +163,7 @@ const AIEngine = (() => {
       'energy':       typeof INDUSTRY_ENERGY        !== 'undefined' ? INDUSTRY_ENERGY        : null,
       'agri_food':    typeof INDUSTRY_AGRI_FOOD     !== 'undefined' ? INDUSTRY_AGRI_FOOD     : null,
       'export_sme':   typeof INDUSTRY_EXPORT_SME    !== 'undefined' ? INDUSTRY_EXPORT_SME    : null,
+      'facility_service': typeof INDUSTRY_FACILITY_SERVICE !== 'undefined' ? INDUSTRY_FACILITY_SERVICE : null,
     };
 
     const bizModelVarMap = {

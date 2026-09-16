@@ -1511,9 +1511,9 @@ const Wizard = (() => {
       'logistics':     typeof INDUSTRY_LOGISTICS    !== 'undefined' ? INDUSTRY_LOGISTICS    : null,
       'energy':        typeof INDUSTRY_ENERGY       !== 'undefined' ? INDUSTRY_ENERGY       : null,
       'agri_food':     typeof INDUSTRY_AGRI_FOOD    !== 'undefined' ? INDUSTRY_AGRI_FOOD    : null,
-      /* ⚠ 'facility_service'는 전용 업종 진단 모듈이 없다. 업종 탭이 표시되지 않고
-            DiagMicro 35문항만 나간다(진행률 35). 모듈 신설 여부는 5-3에서 판단한다.
-         ⚠ 'etc'도 같다 — 업종을 모르는데 특정 업종 16문항을 주지 않는다는 의도적 결정. */
+      'facility_service': typeof INDUSTRY_FACILITY_SERVICE !== 'undefined' ? INDUSTRY_FACILITY_SERVICE : null,
+      /* ⚠ 'etc'는 업종 특화 모듈을 두지 않는다 — 업종을 모르는데 특정 업종 16문항을
+            주지 않는다는 의도적 결정이다. 업종 탭이 숨겨지고 진행률은 35가 된다. */
       'social_enterprise': typeof INDUSTRY_SOCIAL_ENTERPRISE !== 'undefined' ? INDUSTRY_SOCIAL_ENTERPRISE : null,
       // ⚠ 'social_venture'는 전용 진단 모듈(DiagVenture)로 대체되어 업종 매핑에서 제외한다.
       //    js/diagnosis/industry/social_venture.js 파일은 삭제하지 않고 남겨 둔다
