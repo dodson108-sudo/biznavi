@@ -9,7 +9,7 @@
 - **GitHub**: `https://github.com/dodson108-sudo/biznavi.git`
 - **Vercel**: GitHub 연동 자동 배포 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1), **Pro 플랜**
 - **브랜치**: `main` (단일 브랜치 운영)
-- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260917b`
+- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260917c`
 
 ---
 
