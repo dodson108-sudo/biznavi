@@ -1367,9 +1367,33 @@ ${d.bizScale === 'micro' ? `[1차 호출 절대 규칙] 너는 지금 소상공�
 1차 output 8,964토큰 / 92초(Vercel Hobby 60초 초과)의 원인이었다.` : `이번 응답에는 executiveSummary, swot, stp, fourP, keyStrategies, specializedAnalysis 6개 필드만 포함하세요.
 kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2차 호출에서 별도로 더 깊이 작성합니다)`}`;
 
+    /* 공통 경영 진단(sme 경로) 요약 주입.
+       ⚠ 두 가지를 지켜야 한다. 2026-09-17까지 둘 다 지켜지지 않고 있었다.
+
+       ① 평면 숫자 맵으로 넘긴다.
+          d.diagScores는 {key: {score, memo}} 객체 맵인데 buildPromptSummary는
+          Number(v)를 하므로 객체를 그대로 넘기면 전부 NaN이 된다.
+          → 종합 NaN점 / 5영역 전부 "NaN점 (위험)" / 경고 0건 / 취약 항목 0건.
+          중소기업 사장님이 20문항을 답해도 AI에 아무것도 전달되지 않았다.
+
+       ② DiagCommon 문항에 실제 응답이 있을 때만 붙인다.
+          경로 가드가 없어 micro·창업초기 사용자도 이 블록을 받고 있었다.
+          그쪽은 키 접두어가 달라(diag-micro-container_ / _s1_1) 전 항목이 0점으로
+          잡히고, 그 0점이 CRITICAL 2건을 포함한 경고 5건과 "20문항 전부 0점"을
+          만들어 AI로 나갔다 — 사용자가 답한 적 없는 내용이다.
+          2026-09-08에 collect()의 micro 분기에서 고친 것과 같은 유형이며
+          여기만 남아 있었다. 허위 요약보다 없는 편이 낫다. */
     if (typeof window !== 'undefined' && window.DiagCommon && d.diagScores) {
-      const commonSummary = DiagCommon.buildPromptSummary(d.diagScores);
-      prompt += '\n\n' + commonSummary;
+      const PRE = 'diag-common-container_';
+      const flat = {};
+      Object.keys(DiagCommon.ITEMS).forEach(k => {
+        const v = d.diagScores[PRE + k];
+        const n = Number(v && typeof v === 'object' ? v.score : v) || 0;
+        if (n > 0) flat[PRE + k] = n;
+      });
+      if (Object.keys(flat).length > 0) {
+        prompt += '\n\n' + DiagCommon.buildPromptSummary(flat);
+      }
     }
     /* ⚠ 사회적경제 조직(isSocialOrg)은 이 경로로 오지 않는다.
        App.runAnalysis()가 callClaude() 대신 callSocialPlan()으로 분기하므로,
