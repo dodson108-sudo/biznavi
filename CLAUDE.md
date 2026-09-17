@@ -9,7 +9,7 @@
 - **GitHub**: `https://github.com/dodson108-sudo/biznavi.git`
 - **Vercel**: GitHub 연동 자동 배포 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1), **Pro 플랜**
 - **브랜치**: `main` (단일 브랜치 운영)
-- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260916d`
+- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260917b`
 
 ---
 
@@ -246,7 +246,21 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
 - **`HISTORY.md`는 통째로 읽지 마라. 파일이 크다(6,298줄).** 특정 결정의 배경을 확인할 때는 **grep이나 검색으로 해당 섹션만 찾아** 읽어라. 전체를 읽으면 분리한 의미가 없어진다.
 - **`collectAllScores()`는 평면 숫자 맵이다 — 메모는 담기지 않는다.** `DiagMicro.calcScores`·`CrossContext.buildScoreMap`이 이 계약에 의존하므로 바꾸지 말 것. 메모가 필요하면 `buildPromptSummary(scores, group, memos)`처럼 **별도 인자**로 넘긴다
 - **증상을 그룹에서 찾기 전에 어느 진단 모듈이 렌더링되는지부터 확인할 것.** micro는 `DiagMicro`, sme는 `DiagCommon`이 나온다. 2026-09-07에 "제조업에 플랫폼 리뷰가 나온다"는 보고를 `manufacturing` 그룹에서 찾다가, 실제 출처가 `DiagCommon`(sme 경로)임을 렌더링으로 확인한 전례가 있다
-- **`DiagCommon`에는 업종 그룹 오버라이드 구조가 없다.** `DiagMicro`처럼 "기본 + food 보존"을 쓸 수 없으므로, 문항을 중립으로 직접 쓰고 **`guide` 한 문장에 여러 업종 예시를 함께 담아** 구체성을 보완한다. `guide`에는 `POS`·`식재료` 같은 업종어가 의도적으로 들어가므로 **전용어 검사는 `label`·`question`·`scale`만 대상으로 할 것**
+- **`DiagCommon`의 업종 분기는 `getSchema(industryKey)` 한 곳에서만 한다 — 그룹을 계산해 넘기지 마라.**
+  **왜**: DiagCommon은 **17업종 → 4그룹**(`manufacturing`·`field_service`·`trade_retail`·`service`)이고
+  DiagMicro는 **17업종 → 10그룹**이라 **같은 업종이 다른 그룹으로 간다** — `logistics`는 DiagCommon에서
+  `field_service`, DiagMicro에서 `trade_logistics`다. 호출부가 구분하는 순간 실수가 난다.
+  업종→그룹 변환은 `GROUP_MAP`·`getGroup()`으로 모듈 안에 가둔다. 미전달·빈 문자열·`null`·미등록
+  오타는 전부 기준 그룹 `service`로 폴백한다(예외를 내지 않는다).
+  ⚠ 오버라이드는 **`label`·`question`·`guide`·`scale` 네 필드를 함께** 덮을 것. 일부만 덮으면 나머지가
+  기본 `ITEMS`에서 상속돼 **질문과 척도가 서로 다른 것을 말한다**(2026-09-17에 실제로 그 상태였다).
+  ⚠ `key`·`weight`·`id`·`ai_trigger`는 분기 금지 — 점수 계산과 교차 경고가 의존한다.
+  ⚠ `guide`에는 `POS`·`식재료` 같은 업종어가 의도적으로 들어가므로 **전용어 검사는 `label`·`question`·`scale`만 대상으로 할 것**
+- **진단 데이터 객체를 가공할 때 키를 골라 담지(화이트리스트) 마라. `Object.assign({}, data, {바꿀 것})`으로 통과시켜라.**
+  **왜**: 구 `COMMON_DIAGNOSIS`는 `{title, description, insights}`, 현 `DiagCommon`은 `{id, label, icon}`이다.
+  화이트리스트로 다시 담으면 **스키마가 바뀐 순간 새 키가 조용히 탈락**한다. `renderDiagModule`의
+  `data.label || data.title`이 빈 문자열이 되어 **영역 제목이 통째로 사라지는데 예외가 나지 않는다.**
+  `_applyIndustryWording`과 `_injectDxDetect`가 둘 다 이 패턴이었다(2026-09-17 제거·수정)
 - **DiagMicro는 "기본 ITEMS는 업종 중립 · INDUSTRY_WORDING이 그룹별로 덮어쓰기" 구조다.** 새 문항을 기본 ITEMS에 외식업 기준으로 쓰지 말 것 — 오버라이드가 없는 그룹은 그 문구를 그대로 받는다. 그리고 **label/question만 덮고 scale을 빠뜨리면 5단계 서술이 외식 문구로 남는다**(D1·D2에서 실제로 그랬다). `guide`(업종별 예시)까지 5그룹 전부 채울 것
 - **DiagMicro에서 `ITEMS`를 직접 참조하면 그룹 오버라이드가 무시된다.** 화면은 미용실인데 AI 프롬프트·경고 문구는 외식으로 나가는 사고가 `buildPromptSummary`·`detectCrossWarnings` 두 곳에서 실제로 있었다. 문항 내용(label·question·scale)이 필요하면 반드시 **`getSchema(group).items`**를 쓸 것. 키만 필요한 경우(`calcScores`)는 `ITEMS`로 충분하다.
 - **`DiagMicro`의 `DOMAINS.label`은 표시 전용이며 키로 쓰이지 않는다(2026-09-16 전수 추적 확인). 따라서 그룹별 분기가 가능하다.**
@@ -364,8 +378,10 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
 ## 남은 이슈
 
 ### 진단 문항·표시
-- ⚠ **`DiagCommon`(sme 경로)에는 업종 그룹 오버라이드 구조가 없다.** 남은 18문항 중
-  `4_1`(인스타그램)·`5_4`(플랫폼)에 B2C 흔적이 있다. 그룹 구조 이식은 별도 작업 규모다
+- ⚠ **`DiagCommon` 4그룹 배선은 깔렸으나 `INDUSTRY_WORDING`이 비어 있다(오버라이드 0건).**
+  `GROUP_MAP`·`getGroup()`·`getSchema(industryKey)`는 동작하며, 비어 있는 동안 기본 `ITEMS`를
+  동일 참조로 반환한다. 남은 18문항 중 `4_1`(인스타그램)·`5_4`(플랫폼)에 B2C 흔적이 있다.
+  **33개 오버라이드 집필이 남은 작업이다** — `label`·`question`·`guide`·`scale` 네 필드를 함께 덮을 것
 - ⚠ **`DOMAIN_TO_ACTION_KEY`에 D5·D6이 없어** 모든 그룹이 그 두 도메인은 base를 쓴다.
   두 title이 중립이라 지금 문제는 없다
 - ⚠ **업종 수동 정정 UI가 경영진단 경로에 없다.** `loadDiagnosisUI(forceIndustryKey)` 인자는 있으나

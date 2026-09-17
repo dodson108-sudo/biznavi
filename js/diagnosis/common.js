@@ -78,9 +78,46 @@ const DiagCommon = (() => {
     return `[공통 경영 진단 결과 — common.js v2.0]\n종합 점수: ${result.total}점 / 100점\n\n[영역별 점수]\n${domainLines}\n\n[복합 경고 신호]\n${warnLines}\n\n[즉각 처방 필요 항목 (2점 이하)]\n${criticalItems.length > 0 ? criticalItems.map(i => `  - ${i}`).join('\n') : '  - 없음'}`.trim();
   }
 
-  function getSchema() { return { id:'common', label:'공통 경영 진단', version:'2.0', domains:DOMAINS, items:ITEMS }; }
+  /* ── 업종 → 문구 그룹 (17업종 → 4그룹) ────────────────────────────────
+     ⚠ DiagMicro의 10그룹 매핑과 다르다 — logistics는 여기서 field_service,
+       DiagMicro에서는 trade_logistics다. 그래서 호출부가 그룹을 계산해서는 안 되고
+       반드시 업종 키를 넘겨야 한다: getSchema(industryKey).
+     ⚠ 미전달·빈 문자열·undefined·미등록 오타는 전부 기준 그룹 'service'로 폴백한다. */
+  const GROUP_MAP = {
+    mfg_parts:    'manufacturing', food_mfg:     'manufacturing', agri_food: 'manufacturing',
+    construction: 'field_service',  energy:      'field_service',
+    logistics:    'field_service',  facility_service: 'field_service',
+    wholesale:    'trade_retail',   fashion:     'trade_retail',  export_sme: 'trade_retail',
+    restaurant:   'service', local_service: 'service', medical: 'service', education: 'service',
+    knowledge_it: 'service', finance:      'service', media:   'service',
+    etc:          'service',
+  };
 
-  return { getSchema, calcScores, detectCrossWarnings, buildPromptSummary, DOMAINS, ITEMS };
+  function getGroup(industryKey) { return GROUP_MAP[industryKey] || 'service'; }
+
+  /* ── 업종 그룹별 문항 문구 오버라이드 ─────────────────────────────────
+     구조는 DiagMicro.INDUSTRY_WORDING과 같다:
+       { <group>: { '<itemId>': { label?, question?, guide?, scale? } } }
+     ⚠ label·question·guide·scale 네 필드를 함께 덮을 것. 일부만 덮으면 나머지가
+       기본 ITEMS에서 상속돼 질문과 척도가 서로 다른 것을 말하게 된다
+       (COMMON_WORDING_MAP이 정확히 그 상태였다 — HISTORY.md 2026-09-17 참조).
+     ⚠ key·weight·id·ai_trigger는 분기 금지 — 점수 계산과 교차 경고가 의존한다.
+     현재 오버라이드 0건 — 집필은 후속 작업이며, 비어 있는 동안 getSchema는
+     수정 전과 완전히 동일한 객체를 반환한다. */
+  const INDUSTRY_WORDING = {};
+
+  function getSchema(industryKey) {
+    const base = { id:'common', label:'공통 경영 진단', version:'2.0', domains:DOMAINS, items:ITEMS };
+    const ov = INDUSTRY_WORDING[getGroup(industryKey)];
+    if (!ov) return base;
+    const items = {};
+    Object.keys(ITEMS).forEach(key => {
+      items[key] = ov[key] ? Object.assign({}, ITEMS[key], ov[key]) : ITEMS[key];
+    });
+    return Object.assign({}, base, { items });
+  }
+
+  return { getSchema, getGroup, calcScores, detectCrossWarnings, buildPromptSummary, DOMAINS, ITEMS };
 })();
 
 if (typeof window !== 'undefined') window.DiagCommon = DiagCommon;

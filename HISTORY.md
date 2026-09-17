@@ -9,6 +9,113 @@
 
 ---
 
+## 작업 이력 (2026-09-17) — 결함 1: COMMON_WORDING_MAP 제거 + DiagCommon 4그룹 배선 (2-1 단계)
+
+**당초 지시는 "wizard.js의 COMMON_WORDING_MAP을 DiagCommon의 INDUSTRY_WORDING으로 흡수"였으나,
+조사 결과 흡수할 유효 내용이 한 건도 없어 제거 + 배선으로 방향을 바꿨다.**
+
+### ① 왜 흡수가 불가능했나 — 맵이 겨냥한 스키마가 이미 삭제돼 있었다
+
+`COMMON_WORDING_MAP` 11개 업종 문구는 **구 `COMMON_DIAGNOSIS` 스키마를 겨냥한 것**으로,
+`08d6dad`(진단 모듈 v2.0)가 **id를 재사용한 채 문항을 전면 교체**하면서 무효화됐다.
+
+| id | 구 COMMON_DIAGNOSIS (맵이 겨냥) | 현 DiagCommon v2.0 (실제로 덮인 것) |
+|---|---|---|
+| `1_1` | 매출성장률 (`numeric`) | 재료비+인건비 통제력 (bars) |
+| `1_2` | 영업이익률 (`numeric`) | 돈이 묶여 있는 기간 (bars) |
+| `1_3` | 재구매·재방문율 (`numeric`) | 손익분기점(BEP) 인지 (bars) |
+| `3_2` | 차별화 요소 (`mixed`) | 역할·책임 명료화 (bars) |
+
+**id는 맞고 내용이 안 맞는다 — 그래서 조용했다.** id가 어긋났다면 오버라이드가 발동조차 안 해
+버그가 없었을 것이다. 맵의 `benchRef: '제조업 매출성장률 평균'`이 구 `1_1`에 정확히 대응하는 것이
+겨냥 대상을 확정하는 근거다.
+
+전수 감사 결과 **오버라이드 필드 86개 중 75개가 무효, 11개만 실효**했고,
+그 11개(`1_3.anchors`)도 구 재구매율 문항용이라 현 문항과 대상이 다르다.
+무효 사유는 현 DiagCommon 20문항의 `type`이 **전부 `null`**이라 `numeric`·`mixed` 분기에
+진입하지 않기 때문이다. `NUMERIC_BENCH_REF_DEFAULT`도 같은 이유로 100% 무효였다.
+
+```
+무효 75 : text 11 · inputLabel 11 · placeholder 11 · benchRef 20 · choices 11 · noneValue 11
+실효 11 : 1_3.anchors × 11개 업종
+```
+
+⚠ **원문(11개 업종 재발주율·재방문율 척도와 출처 표기 벤치마크 수치)은 `1c4c259` 시점
+`js/wizard.js`에 있다.** 2-2에서 재구매율 문항을 되살릴 경우 원재료로 쓸 것 —
+`git show 1c4c259:js/wizard.js`.
+
+### ② 그 사이 사용자에게 실제로 보이던 결함 2개
+
+둘 다 `_applyIndustryWording`이 **구 스키마 키를 화이트리스트로 다시 담는** 방식이라 생겼다.
+
+**버그 A — 영역 제목이 전부 빈 문자열 (sme 경로 17개 업종 전부).**
+함수가 `{title, description, insights}` / 영역 `{id, title, description, items}`만 골라 담는데
+`_diagCommonToAreas`는 `{id, label, icon, ...}`를 만든다. `label`·`icon`이 탈락해
+`renderDiagModule`의 `area.label || area.title`이 빈 문자열이 됐다. 예외가 안 나서 조용했다.
+
+**버그 B — 질문과 5단계 척도가 서로 다른 것을 말함 (11개 업종).**
+두 렌더 함수의 우선순위가 반대였다 — `_renderItemHtml`은 `item.question` 우선이라 원본 질문이 이기고,
+`_renderBars`는 `item.anchors` 우선이라 오버라이드 척도가 이긴다. `Object.assign`이 둘 다 남겨서
+**BEP를 묻고 재발주율로 채점**했다. 이 점수는 `detectCrossWarnings`의 `intuition_mgmt`
+(원가·BEP·목표 동시 저점) 판정에 그대로 들어갔다.
+
+⚠ **`_injectDxDetect`도 같은 화이트리스트 결함을 갖고 있었다.** `_applyIndustryWording`만 제거하면
+영역 `<h4>`는 살아나지만(`concat`이 객체를 그대로 통과시킨다) 모듈 `<h3>`은 여전히 비었다 —
+`_injectDxDetect`가 `label`을 떨어뜨리기 때문이다. `Object.assign({}, diagData, {areas})`로 바꿔
+**원본을 통째로 복사한 뒤 areas만 교체**하도록 고쳤다. 화이트리스트로 다시 담는 패턴 자체가 원인이므로
+같은 패턴을 남겨두면 스키마가 또 바뀔 때 동일 사고가 재발한다.
+
+### ③ 채택하지 않은 대안
+
+- **기계적 흡수(당초 지시)** — 옮길 유효 내용이 없다. 옮기면 질문·척도 불일치만 `common.js`로 따라간다.
+- **11개를 현 20문항에 맞춰 재집필** — 2-2에서 4그룹 33개 오버라이드를 설계·집필할 예정이라
+  지금 11개를 따로 쓰면 그때 다시 손봐야 한다. 게다가 살릴 수 있는 11개가 전부 재구매율 문항용인데
+  현 DiagCommon에 재구매율 문항 자체가 없어 붙일 자리가 없다.
+- **배선 없이 삭제만** — 2-2가 배선부터 시작하게 된다. 4그룹 매핑이 이미 확정됐으므로
+  지금 까는 것은 투기가 아니고, `INDUSTRY_WORDING = {}`이면 동작이 동일해 검증으로 증명된다.
+
+### ④ 배선 스캐폴드 — 내용은 한 건도 쓰지 않았다
+
+`common.js`에 `GROUP_MAP`(17업종 → 4그룹) · `getGroup()` · `getSchema(industryKey)` 병합 로직 ·
+`INDUSTRY_WORDING = {}`만 추가했다. 오버라이드 0건이므로 `getSchema`는 기본 `ITEMS`를
+**동일 참조로** 반환한다(사본조차 만들지 않는다) — 수정 전과 완전히 같다.
+
+⚠ **`getSchema`는 그룹이 아니라 업종 키를 받는다.** DiagCommon의 4그룹 매핑이 DiagMicro의 10그룹과
+달라서(`logistics` → DiagCommon `field_service` / DiagMicro `trade_logistics`) **호출부가 그룹을
+계산하는 순간 실수가 난다.** 업종→그룹 변환은 DiagCommon의 지식으로 가둔다.
+미전달·빈 문자열·`null`·미등록 오타는 전부 기준 그룹 `service`로 폴백한다.
+
+⚠ 2-2에서 오버라이드를 쓸 때 **`label`·`question`·`guide`·`scale` 네 필드를 함께 덮을 것.**
+일부만 덮으면 나머지가 기본 `ITEMS`에서 상속돼 이번 버그 B와 같은 상태가 된다.
+`key`·`weight`·`id`·`ai_trigger`는 분기 금지 — 점수 계산과 교차 경고가 의존한다.
+
+### ⑤ 변경 파일
+
+- `js/wizard.js` — `COMMON_WORDING_MAP`·`NUMERIC_BENCH_REF_DEFAULT`·`_applyIndustryWording`
+  제거(**-299줄**), `_injectDxDetect` 통과 방식으로 수정, `_diagCommonToAreas(diagCommon, industryKey)`
+- `js/diagnosis/common.js` — `GROUP_MAP`·`getGroup()`·`INDUSTRY_WORDING`·`getSchema(industryKey)` 추가
+- `index.html` — 로컬 `?v=` 53곳 `20260917a` → `20260917b`
+
+### ⑥ 검증 (18개 단언 전부 통과)
+
+수정 전(`git show HEAD:`)과 수정 후 코드를 같은 프로세스에 각각 로드해 렌더 파이프라인을 재현했다.
+
+1. `INDUSTRY_WORDING={}`에서 `getSchema` 반환값이 수정 전과 **직렬화 동일** — 22개 입력
+   (17업종 + etc + 미전달·빈문자열·null·오타). `items`가 기본 `ITEMS`와 **동일 참조**
+2. 버그 A 해소 — 수정 전 `<h3>`·`<h4>` 모두 `""` 재현 → 수정 후 `"공통 경영 진단"` /
+   `"💰 재무·원가 건전성"`. 17업종 × 5영역 = **85개 영역 제목**이 `DOMAINS`와 일치
+3. 버그 B 해소 — mfg_parts `1_3` 척도가 `재발주 30% 미만` → `BEP 모름`.
+   17업종 전 문항에 오버라이드 `anchors` 잔존 **0건**
+4. 17업종 → 4그룹 변환 18건 전부 일치, 폴백 4종 정상, `logistics` → `field_service` 확인
+5. `calcScores`·`detectCrossWarnings`·`buildPromptSummary` 직렬화 **전부 동일**
+6. `_injectDxDetect` 정상 — 6영역(진단 5 + DX 1), `_signalOnly` 유지,
+   점수 대상 문항 수 **20 불변**
+
+제어문자 검사(0x00~0x1F, 개행·탭 제외) 0건 — 줄 범위 splice에 앵커 assert를 걸어
+잘못된 위치를 지우는 것을 막았다(실제로 앵커가 2회 불일치해 오삭제를 사전 차단했다).
+
+---
+
 ## 작업 이력 (2026-09-17) — ⚠ 공통 진단 결과가 AI에 전달되지 않던 문제 (0-1 단독 수정)
 
 **중소기업(sme) 사장님이 공통 진단 20문항을 답해도 AI 보고서에 반영되지 않고 있었다.**
