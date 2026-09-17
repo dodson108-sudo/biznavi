@@ -57,20 +57,65 @@ const DiagCommon = (() => {
     return { domains: domainScores, total: Math.round(totalPct) };
   }
 
-  function detectCrossWarnings(scores) {
+  /* 교차 경고 문구의 업종 그룹별 분기.
+     ⚠ 어절 토큰(cost·subj 같은 조각)이 아니라 **완성된 문장**으로 저장한다.
+       어절만 갈아끼우면 받침이 바뀌는 순간 한국어 조사(은/는·이/가·을/를)가 어긋난다
+       — DiagMicro에서 2026-09-04에 실제로 겪은 사고다(HISTORY.md 참조).
+     ⚠ level·code는 분기 금지 — 소비처가 코드로 식별한다. msg만 덮는다.
+     ⚠ service는 기준 그룹이다. 폴백도 여기로 온다.
+       기존 원문에 박혀 있던 '로컬 검색 노출'(digital_blind)·'하도급법'(legal_risk)은
+       각각 지역 상권 업종·제조 하도급 구조를 전제하므로 service 기준값에서 걷어냈다
+       — service에는 knowledge_it·finance·media가 함께 들어 있다. */
+  const WARN_WORDING = {
+    service: {
+      intuition_mgmt:      '원가·손익분기점·목표가 모두 감에만 의존하는 직감 경영 상태입니다. 데이터 기반 경영 체계 구축이 생존 조건입니다.',
+      digital_blind:       '고객이 우리를 찾을 온라인 접점이 정리되지 않았고 AI 활용도 최하위입니다. 경쟁사에 디지털 시장을 빼앗기고 있는 상태입니다.',
+      owner_dependency:    '대표가 없으면 사업이 멈추는 구조입니다. 시스템화 없이는 확장도 승계도 불가능합니다.',
+      legal_risk:          '근로기준법 위반 리스크와 거래처·위탁기관 상대의 불공정 거래 대응 공백이 동시에 높습니다. 즉각 법적 점검이 필요합니다.',
+      policy_fund_blocked: '자금 투명성과 ESG 기준 미달로 정부 지원사업 우대 수혜 자격이 차단된 상태입니다.',
+    },
+    manufacturing: {
+      intuition_mgmt:      '제조원가·손익분기점·생산 목표가 모두 감에만 의존하는 직감 경영 상태입니다. 데이터 기반 경영 체계 구축이 생존 조건입니다.',
+      digital_blind:       '거래처가 우리를 확인할 온라인 기업 정보가 정리되지 않았고 AI 활용도 최하위입니다. 경쟁사에 디지털 시장을 빼앗기고 있는 상태입니다.',
+      owner_dependency:    '대표가 없으면 생산과 납품이 멈추는 구조입니다. 시스템화 없이는 확장도 승계도 불가능합니다.',
+      legal_risk:          '근로기준법·하도급법 위반 리스크가 동시에 높습니다. 즉각 법적 점검이 필요합니다.',
+      policy_fund_blocked: '자금 투명성과 ESG 기준 미달로 공급망 실사 대응과 정부 지원사업 우대 수혜 자격이 함께 차단된 상태입니다.',
+    },
+    field_service: {
+      intuition_mgmt:      '현장 원가·손익분기점·수주 목표가 모두 감에만 의존하는 직감 경영 상태입니다. 데이터 기반 경영 체계 구축이 생존 조건입니다.',
+      digital_blind:       '발주처가 우리를 확인할 온라인 기업 정보와 실적이 정리되지 않았고 AI 활용도 최하위입니다. 경쟁사에 디지털 시장을 빼앗기고 있는 상태입니다.',
+      owner_dependency:    '대표가 없으면 현장이 멈추는 구조입니다. 시스템화 없이는 확장도 승계도 불가능합니다.',
+      legal_risk:          '근로기준법·하도급법 위반 리스크가 동시에 높습니다. 현장 안전 관리와 정산 서류까지 함께 즉각 점검이 필요합니다.',
+      policy_fund_blocked: '자금 투명성과 ESG 기준 미달로 공공 입찰 가점과 정부 지원사업 우대 수혜 자격이 함께 차단된 상태입니다.',
+    },
+    trade_retail: {
+      intuition_mgmt:      '매입원가·손익분기점·판매 목표가 모두 감에만 의존하는 직감 경영 상태입니다. 데이터 기반 경영 체계 구축이 생존 조건입니다.',
+      digital_blind:       '구매처와 고객이 우리를 확인할 온라인 상품·기업 정보가 정리되지 않았고 AI 활용도 최하위입니다. 경쟁사에 디지털 시장을 빼앗기고 있는 상태입니다.',
+      owner_dependency:    '대표가 없으면 매입과 출고가 멈추는 구조입니다. 시스템화 없이는 확장도 승계도 불가능합니다.',
+      legal_risk:          '근로기준법 위반 리스크와 입점 플랫폼·바이어 상대의 불공정 거래 대응 공백이 동시에 높습니다. 즉각 법적 점검이 필요합니다.',
+      policy_fund_blocked: '자금 투명성과 ESG 기준 미달로 정부 지원사업 우대 수혜 자격과 대기업·해외 바이어 거래 자격이 함께 차단된 상태입니다.',
+    },
+  };
+
+  /* ⚠ 인자는 **업종 키**다(그룹이 아니다) — 업종→그룹 변환은 이 모듈의 지식이다.
+        미전달·빈 문자열·undefined·오타는 getGroup()이 전부 'service'로 폴백한다. */
+  function detectCrossWarnings(scores, industryKey) {
     const warnings = [];
+    const w = WARN_WORDING[getGroup(industryKey)] || WARN_WORDING.service;
     const get = key => Number(scores[`diag-common-container_${key}`] || 0);
-    if (get('1_1') <= 2 && get('1_3') <= 2 && get('3_1') <= 2) warnings.push({ level:'CRITICAL', code:'intuition_mgmt', msg:'원가·BEP·목표 모두 감에만 의존하는 직감 경영 상태입니다. 데이터 기반 경영 체계 구축이 생존 조건입니다.' });
-    if (get('2_1') <= 2 && get('4_1') <= 2 && get('4_3') <= 2) warnings.push({ level:'HIGH', code:'digital_blind', msg:'로컬 검색 노출도 AI 활용도 모두 최하위입니다. 경쟁사에 디지털 시장을 빼앗기고 있는 상태입니다.' });
-    if (get('3_2') <= 2 && get('3_3') <= 2 && get('3_4') <= 2) warnings.push({ level:'HIGH', code:'owner_dependency', msg:'대표가 없으면 사업이 멈추는 구조입니다. 시스템화 없이는 확장도 승계도 불가능합니다.' });
-    if (get('5_3') <= 2 && get('5_4') <= 2) warnings.push({ level:'CRITICAL', code:'legal_risk', msg:'근로기준법·하도급법 위반 리스크가 동시에 높습니다. 즉각 법적 점검이 필요합니다.' });
-    if (get('1_4') <= 2 && get('5_3') <= 2 && get('5_4') <= 2) warnings.push({ level:'MEDIUM', code:'policy_fund_blocked', msg:'자금 투명성과 ESG 기준 미달로 정부 지원사업 우대 수혜 자격이 차단된 상태입니다.' });
+    if (get('1_1') <= 2 && get('1_3') <= 2 && get('3_1') <= 2) warnings.push({ level:'CRITICAL', code:'intuition_mgmt', msg:w.intuition_mgmt });
+    if (get('2_1') <= 2 && get('4_1') <= 2 && get('4_3') <= 2) warnings.push({ level:'HIGH', code:'digital_blind', msg:w.digital_blind });
+    if (get('3_2') <= 2 && get('3_3') <= 2 && get('3_4') <= 2) warnings.push({ level:'HIGH', code:'owner_dependency', msg:w.owner_dependency });
+    if (get('5_3') <= 2 && get('5_4') <= 2) warnings.push({ level:'CRITICAL', code:'legal_risk', msg:w.legal_risk });
+    if (get('1_4') <= 2 && get('5_3') <= 2 && get('5_4') <= 2) warnings.push({ level:'MEDIUM', code:'policy_fund_blocked', msg:w.policy_fund_blocked });
     return warnings;
   }
 
-  function buildPromptSummary(scores) {
+  /* ⚠ 여기서도 인자는 업종 키다. calcScores는 label을 분기하지 않으므로
+        (DOMAIN_DESC_BY_GROUP은 desc만 덮는다) 그룹을 넘기지 않는다 — 시그니처 불변. */
+  function buildPromptSummary(scores, industryKey) {
     const result = calcScores(scores);
-    const warnings = detectCrossWarnings(scores);
+    const warnings = detectCrossWarnings(scores, industryKey);
     const domainLines = DOMAINS.map(d => { const ds = result.domains[d.key]; const level = ds.pct >= 80 ? '우수' : ds.pct >= 60 ? '보통' : ds.pct >= 40 ? '취약' : '위험'; return `  - ${ds.label}: ${ds.pct}점 (${level})`; }).join('\n');
     const warnLines = warnings.length > 0 ? warnings.map(w => `  ⚠ [${w.level}] ${w.msg}`).join('\n') : '  - 복합 경고 없음';
     const criticalItems = [];
@@ -83,17 +128,52 @@ const DiagCommon = (() => {
        DiagMicro에서는 trade_logistics다. 그래서 호출부가 그룹을 계산해서는 안 되고
        반드시 업종 키를 넘겨야 한다: getSchema(industryKey).
      ⚠ 미전달·빈 문자열·undefined·미등록 오타는 전부 기준 그룹 'service'로 폴백한다. */
-  const GROUP_MAP = {
+  const INDUSTRY_GROUP_MAP = {
     mfg_parts:    'manufacturing', food_mfg:     'manufacturing', agri_food: 'manufacturing',
     construction: 'field_service',  energy:      'field_service',
     logistics:    'field_service',  facility_service: 'field_service',
     wholesale:    'trade_retail',   fashion:     'trade_retail',  export_sme: 'trade_retail',
     restaurant:   'service', local_service: 'service', medical: 'service', education: 'service',
     knowledge_it: 'service', finance:      'service', media:   'service',
+    /* etc는 '업종을 특정할 수 없음'이다. DiagMicro와 달리 여기서는 전용 그룹을 두지 않고
+       기준 그룹 service로 명시적으로 보낸다 — 기본 ITEMS가 이미 업종 중립이기 때문이다. */
     etc:          'service',
   };
 
-  function getGroup(industryKey) { return GROUP_MAP[industryKey] || 'service'; }
+  function getGroup(industryKey) { return INDUSTRY_GROUP_MAP[industryKey] || 'service'; }
+
+  /* ── 영역 설명(desc)의 그룹별 분기 ───────────────────────────────────
+     ⚠ desc만 덮는다. label·key·weight·id·icon은 절대 분기 금지 —
+       calcScores가 domain.label을 반환값에 실어 레이더차트·PPT·대시보드로 흘려보낸다.
+     ⚠ D1·D2만 분기한다. D3(시스템화)·D4(AI·DX)·D5(ESG)의 기본 desc는 이미 업종 중립이다.
+     ⚠ service(기준 그룹)는 항목이 없다 — 기본 DOMAINS를 그대로 쓴다.
+       따라서 service·etc·미전달·오타에서는 _domainsFor가 DOMAINS 원본을 그대로 반환한다. */
+  const DOMAIN_DESC_BY_GROUP = {
+    manufacturing: {
+      1: '재료비·노무비 등 제조원가의 통제력과 납품 대금 회수까지의 현금흐름 투명성을 진단합니다.',
+      2: '거래처가 우리를 확인하는 온라인 접점(홈페이지·기업정보·제품 자료)의 정확성·최신성·평판 수준을 진단합니다.',
+    },
+    field_service: {
+      1: '현장에 투입되는 노무비·외주비·유류비의 통제력과 대금 회수까지의 현금흐름 투명성을 진단합니다.',
+      2: '발주처가 우리를 확인하는 온라인 접점(기업정보·시공 실적·보유 역량)의 정확성·최신성·평판 수준을 진단합니다.',
+    },
+    trade_retail: {
+      1: '상품 매입원가와 재고에 묶이는 자금의 통제력, 판매 대금 회수까지의 현금흐름 투명성을 진단합니다.',
+      2: '구매처·고객이 우리를 확인하는 온라인 접점(상품 정보·거래 조건·평판)의 정확성·최신성을 진단합니다.',
+    },
+  };
+
+  /* 내부 헬퍼는 그룹을 받고, 공개 API(getDomains)는 업종 키를 받는다.
+     ⚠ DiagMicro.getDomains는 **그룹**을 받는다 — 인자 의미가 다르다.
+       DiagCommon은 호출부가 그룹을 계산하지 못하게 막는 것이 설계 목적이므로
+       공개 API는 업종 키만 받는다. */
+  function _domainsFor(group) {
+    const descMap = DOMAIN_DESC_BY_GROUP[group];
+    if (!descMap) return DOMAINS;
+    return DOMAINS.map(d => descMap[d.id] ? Object.assign({}, d, { desc: descMap[d.id] }) : d);
+  }
+
+  function getDomains(industryKey) { return _domainsFor(getGroup(industryKey)); }
 
   /* ── 업종 그룹별 문항 문구 오버라이드 ─────────────────────────────────
      구조는 DiagMicro.INDUSTRY_WORDING과 같다:
@@ -106,9 +186,13 @@ const DiagCommon = (() => {
      수정 전과 완전히 동일한 객체를 반환한다. */
   const INDUSTRY_WORDING = {};
 
+  /* ⚠ domains는 DOMAIN_DESC_BY_GROUP을, items는 INDUSTRY_WORDING을 각각 반영한다.
+        둘 다 비는 그룹(service·etc·미전달·오타)에서는 DOMAINS·ITEMS 원본 참조를
+        그대로 돌려주므로 반환값이 수정 전과 완전히 동일하다. */
   function getSchema(industryKey) {
-    const base = { id:'common', label:'공통 경영 진단', version:'2.0', domains:DOMAINS, items:ITEMS };
-    const ov = INDUSTRY_WORDING[getGroup(industryKey)];
+    const group = getGroup(industryKey);
+    const base = { id:'common', label:'공통 경영 진단', version:'2.0', domains:_domainsFor(group), items:ITEMS };
+    const ov = INDUSTRY_WORDING[group];
     if (!ov) return base;
     const items = {};
     Object.keys(ITEMS).forEach(key => {
@@ -117,7 +201,10 @@ const DiagCommon = (() => {
     return Object.assign({}, base, { items });
   }
 
-  return { getSchema, getGroup, calcScores, detectCrossWarnings, buildPromptSummary, DOMAINS, ITEMS };
+  return { getSchema, getGroup, getDomains, calcScores, detectCrossWarnings, buildPromptSummary,
+           DOMAINS, ITEMS, INDUSTRY_GROUP_MAP, WARN_WORDING, DOMAIN_DESC_BY_GROUP };
 })();
 
 if (typeof window !== 'undefined') window.DiagCommon = DiagCommon;
+/* Node 검증 하네스용 — 브라우저에서는 window 할당만 쓴다 */
+if (typeof module !== 'undefined') module.exports = DiagCommon;

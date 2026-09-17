@@ -1427,7 +1427,9 @@ const Wizard = (() => {
   }
 
   /* ⚠ industryKey를 그대로 넘긴다 — 업종→그룹 변환은 DiagCommon의 지식이다.
-        미전달·빈 문자열·미등록 키는 getSchema 내부에서 기준 그룹으로 폴백한다. */
+        미전달·빈 문자열·미등록 키는 getSchema 내부에서 기준 그룹으로 폴백한다.
+     ⚠ schema.domains는 DOMAIN_DESC_BY_GROUP이 반영된 사본이다(desc만 갈린다).
+        DOMAINS 원본을 직접 읽으면 그룹 분기가 통째로 무시되므로 반드시 schema를 경유할 것. */
   function _diagCommonToAreas(diagCommon, industryKey) {
     const schema = diagCommon.getSchema(industryKey);
     const areas = schema.domains.map(domain => {

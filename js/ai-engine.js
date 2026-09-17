@@ -1392,7 +1392,10 @@ kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2�
         if (n > 0) flat[PRE + k] = n;
       });
       if (Object.keys(flat).length > 0) {
-        prompt += '\n\n' + DiagCommon.buildPromptSummary(flat);
+        /* ⚠ 업종 키를 그대로 넘긴다 — 업종→그룹 변환은 DiagCommon의 지식이다.
+           교차 경고 문구가 그룹별로 갈린다(WARN_WORDING). 미전달·오타는 내부에서
+           기준 그룹 service로 폴백하므로 호출부가 판단하지 않는다. */
+        prompt += '\n\n' + DiagCommon.buildPromptSummary(flat, d.industryKey || d.industry || '');
       }
     }
     /* ⚠ 사회적경제 조직(isSocialOrg)은 이 경로로 오지 않는다.

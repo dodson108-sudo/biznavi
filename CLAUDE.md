@@ -250,8 +250,17 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   **왜**: DiagCommon은 **17업종 → 4그룹**(`manufacturing`·`field_service`·`trade_retail`·`service`)이고
   DiagMicro는 **17업종 → 10그룹**이라 **같은 업종이 다른 그룹으로 간다** — `logistics`는 DiagCommon에서
   `field_service`, DiagMicro에서 `trade_logistics`다. 호출부가 구분하는 순간 실수가 난다.
-  업종→그룹 변환은 `GROUP_MAP`·`getGroup()`으로 모듈 안에 가둔다. 미전달·빈 문자열·`null`·미등록
+  업종→그룹 변환은 `INDUSTRY_GROUP_MAP`·`getGroup()`으로 모듈 안에 가둔다. 미전달·빈 문자열·`null`·미등록
   오타는 전부 기준 그룹 `service`로 폴백한다(예외를 내지 않는다).
+  ⚠ **`DiagCommon.INDUSTRY_GROUP_MAP`과 `DiagMicro.INDUSTRY_GROUP_MAP`은 이름만 같고 내용이 다르다.**
+  그래서 공개 API(`getSchema`·`getDomains`·`detectCrossWarnings`·`buildPromptSummary`)는 전부
+  **업종 키**만 받는다 — 그룹을 받는 인자는 두지 않는다. `DiagCommon.getDomains(industryKey)`와
+  `DiagMicro.getDomains(group)`은 **인자 의미가 다르니** 복사해 쓰지 말 것.
+  ⚠ 영역 설명은 `DOMAIN_DESC_BY_GROUP`(D1·D2 × 3그룹, `service`는 기본값)이 `desc`만 덮는다.
+  `label`·`key`·`weight`·`id`·`icon`은 분기 금지 — `calcScores`가 `label`을 레이더차트·PPT로 흘려보낸다.
+  ⚠ 교차 경고 문구는 `WARN_WORDING`(5규칙 × 4그룹)이 **완성된 문장 통째로** 관리한다.
+  DiagMicro식 어절 토큰을 쓰지 마라 — 받침이 바뀌며 조사가 파손된다(주의사항 ②).
+  `level`·`code`는 분기 금지, `msg`만 덮는다.
   ⚠ 오버라이드는 **`label`·`question`·`guide`·`scale` 네 필드를 함께** 덮을 것. 일부만 덮으면 나머지가
   기본 `ITEMS`에서 상속돼 **질문과 척도가 서로 다른 것을 말한다**(2026-09-17에 실제로 그 상태였다).
   ⚠ `key`·`weight`·`id`·`ai_trigger`는 분기 금지 — 점수 계산과 교차 경고가 의존한다.
@@ -395,10 +404,12 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
 ## 남은 이슈
 
 ### 진단 문항·표시
-- ⚠ **`DiagCommon` 4그룹 배선은 깔렸으나 `INDUSTRY_WORDING`이 비어 있다(오버라이드 0건).**
-  `GROUP_MAP`·`getGroup()`·`getSchema(industryKey)`는 동작하며, 비어 있는 동안 기본 `ITEMS`를
-  동일 참조로 반환한다. 남은 18문항 중 `4_1`(인스타그램)·`5_4`(플랫폼)에 B2C 흔적이 있다.
-  **33개 오버라이드 집필이 남은 작업이다** — `label`·`question`·`guide`·`scale` 네 필드를 함께 덮을 것
+- ⚠ **`DiagCommon` 4그룹 골격은 완성됐으나 `INDUSTRY_WORDING`이 비어 있다(문항 오버라이드 0건).**
+  `INDUSTRY_GROUP_MAP`·`getGroup()`·`getSchema(industryKey)`·`getDomains()`·`DOMAIN_DESC_BY_GROUP`·
+  `WARN_WORDING`은 전부 동작한다. `INDUSTRY_WORDING`이 비어 있는 동안 `getSchema`는 기본 `ITEMS`를
+  **동일 참조로** 반환한다(2026-09-17 2-1에서 1,328건 검증). 남은 18문항 중
+  `4_1`(인스타그램)·`5_4`(플랫폼)에 B2C 흔적이 있다.
+  **33개 문항 오버라이드 집필(2-2)이 남은 작업이다** — `label`·`question`·`guide`·`scale` 네 필드를 함께 덮을 것
 - ⚠ **`DOMAIN_TO_ACTION_KEY`에 D5·D6이 없어** 모든 그룹이 그 두 도메인은 base를 쓴다.
   두 title이 중립이라 지금 문제는 없다
 - ⚠ **업종 수동 정정 UI가 경영진단 경로에 없다.** `loadDiagnosisUI(forceIndustryKey)` 인자는 있으나
