@@ -102,6 +102,17 @@ DiagMicro에서 기본 ITEMS를 외식업 기준으로 써서 오버라이드 �
 - `js/diagnosis/common.js` — ITEMS 15문항(본문 2 + guide 13) · `DOMAINS.desc` 2건
 - `index.html` — 로컬 `?v=` 53곳 `20260917b` → `20260917c`
 
+### ⑦ ⚠ 2-2 착수 시 반드시 처리할 것 — `1_1` label 그룹 오버라이드
+
+**`1_1`의 label `매출 대비 재료비+인건비 통제력`은 1단계에서 의도적으로 남겨 뒀다.**
+재료비가 없는 업종(건설·물류·시설관리·IT·전문서비스)에는 맞지 않지만,
+**기본 label을 바꾸면 외식·제조가 손해를 본다** — 그쪽은 재료비가 실제로 핵심 지표다.
+guide에 "재료비가 없는 업종은 그 자리에 해당 비용을 넣어 계산한다"를 넣어 임시로 막아 뒀다.
+
+→ 2-2에서 **`field_service`·`service` 그룹 오버라이드로 처리**한다.
+`manufacturing`·`trade_retail`은 기본 label이 정확하므로 오버라이드하지 않는다.
+⚠ label을 바꾸면 `question`·`guide`·`scale`도 함께 봐야 한다(네 필드 규칙).
+
 ---
 
 ## 작업 이력 (2026-09-17) — 결함 1: COMMON_WORDING_MAP 제거 + DiagCommon 4그룹 배선 (2-1 단계)
