@@ -261,10 +261,18 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   ⚠ 교차 경고 문구는 `WARN_WORDING`(5규칙 × 4그룹)이 **완성된 문장 통째로** 관리한다.
   DiagMicro식 어절 토큰을 쓰지 마라 — 받침이 바뀌며 조사가 파손된다(주의사항 ②).
   `level`·`code`는 분기 금지, `msg`만 덮는다.
-  ⚠ 오버라이드는 **`label`·`question`·`guide`·`scale` 네 필드를 함께** 덮을 것. 일부만 덮으면 나머지가
-  기본 `ITEMS`에서 상속돼 **질문과 척도가 서로 다른 것을 말한다**(2026-09-17에 실제로 그 상태였다).
+  ⚠ 문항 오버라이드(`INDUSTRY_WORDING`)는 **"네 필드 전부 or 아예 없음"**이다.
+  본문을 고치는 문항은 `label`·`question`·`guide`·`scale`을 전부 다시 쓰고, 고칠 이유가 없으면
+  **오버라이드를 만들지 않는다**(기본과 같은 값을 넣으면 죽은 오버라이드다 — 주의사항 ⑧).
+  일부만 덮으면 나머지가 기본 `ITEMS`에서 상속돼 **질문과 척도가 서로 다른 것을 말한다**.
+  예외는 `guide` 하나만 다른 `3_1`·`3_4`·`4_3`뿐이며, 그 경우에도 **상속되는 본문이 업종 중립인지
+  확인**해야 한다 — 상속 필드를 안 보는 것이 주의사항 ③의 실제 사고다.
+  ⚠ 현재 3그룹 × 14건 = **42개 오버라이드가 집필돼 있다**(2026-09-18). `service`는 기준 그룹이라
+  비어 있고, `1_3`·`1_4`·`4_1`·`4_2`·`4_4`·`5_3` 6문항은 기본이 이미 중립이라 어느 그룹도 덮지 않는다.
   ⚠ `key`·`weight`·`id`·`ai_trigger`는 분기 금지 — 점수 계산과 교차 경고가 의존한다.
   ⚠ `guide`에는 `POS`·`식재료` 같은 업종어가 의도적으로 들어가므로 **전용어 검사는 `label`·`question`·`scale`만 대상으로 할 것**
+  ⚠ 본문(`label`·`question`·`scale`)에 **영어 약자를 쓰지 않는다.** 풀네임과 정의는 `guide`에 둔다
+  (`생산관리시스템(MES, …)`·`창고관리시스템(WMS, …)`). `AI`만 예외로 본문에 쓴다.
 - **진단 데이터 객체를 가공할 때 키를 골라 담지(화이트리스트) 마라. `Object.assign({}, data, {바꿀 것})`으로 통과시켜라.**
   **왜**: 구 `COMMON_DIAGNOSIS`는 `{title, description, insights}`, 현 `DiagCommon`은 `{id, label, icon}`이다.
   화이트리스트로 다시 담으면 **스키마가 바뀐 순간 새 키가 조용히 탈락**한다. `renderDiagModule`의
@@ -409,12 +417,11 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
 ## 남은 이슈
 
 ### 진단 문항·표시
-- ⚠ **`DiagCommon` 4그룹 골격은 완성됐으나 `INDUSTRY_WORDING`이 비어 있다(문항 오버라이드 0건).**
-  `INDUSTRY_GROUP_MAP`·`getGroup()`·`getSchema(industryKey)`·`getDomains()`·`DOMAIN_DESC_BY_GROUP`·
-  `WARN_WORDING`은 전부 동작한다. `INDUSTRY_WORDING`이 비어 있는 동안 `getSchema`는 기본 `ITEMS`를
-  **동일 참조로** 반환한다(2026-09-17 2-1에서 1,328건 검증). 남은 18문항 중
-  `4_1`(인스타그램)·`5_4`(플랫폼)에 B2C 흔적이 있다.
-  **33개 문항 오버라이드 집필(2-2)이 남은 작업이다** — `label`·`question`·`guide`·`scale` 네 필드를 함께 덮을 것
+- ⚠ **`service`(기준 그룹)에만 출처 없는 수치·영어 약자가 남아 있다.** 3그룹은
+  오버라이드가 덮었으므로 이제 이것들을 보는 것은 `service` 경로뿐이다:
+  기본 `1_1` guide의 `외식 60% / 제조 75% / IT 30% / 유통 80% 이하`(출처 없음),
+  기본 `2_1` scale의 `API 기반`·`구조화 데이터(Schema)`, `1_3` label의 `BEP`.
+  **A 유형 정리 대상** — 대체 수치를 정하거나 수치를 걷어내는 판단이 선행되어야 한다
 - ⚠ **`DOMAIN_TO_ACTION_KEY`에 D5·D6이 없어** 모든 그룹이 그 두 도메인은 base를 쓴다.
   두 title이 중립이라 지금 문제는 없다
 - ⚠ **업종 수동 정정 UI가 경영진단 경로에 없다.** `loadDiagnosisUI(forceIndustryKey)` 인자는 있으나
