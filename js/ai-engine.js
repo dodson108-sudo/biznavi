@@ -1384,18 +1384,31 @@ kpi, roadmap, sixSystems, plan90days, leanCanvas는 포함하지 마세요. (2�
           2026-09-08에 collect()의 micro 분기에서 고친 것과 같은 유형이며
           여기만 남아 있었다. 허위 요약보다 없는 편이 낫다. */
     if (typeof window !== 'undefined' && window.DiagCommon && d.diagScores) {
-      const PRE = 'diag-common-container_';
+      const PRE = DiagCommon.KEY_PREFIX || 'diag-common-container_';
       const flat = {};
+      /* 응답자 메모 — 점수만으로는 알 수 없는 현장 맥락.
+         ⚠ flat(평면 숫자 맵)에 섞지 않고 별도 맵으로 넘긴다. flat은 Number()로 소비되므로
+            메모를 같이 담으면 전 항목 NaN이 된다(2026-09-17 사고와 같은 형태).
+         ⚠ 점수 0(미응답)이어도 메모는 담는다 — setMemo()가 점수 없이 메모만 남길 수 있고
+            그때가 오히려 "왜 답을 못 했는지"가 적혀 있는 경우다.
+         ⚠ 빈 메모는 담지 않는다. 하나도 없으면 undefined를 넘겨 블록 자체가 생략된다. */
+      const memos = {};
       Object.keys(DiagCommon.ITEMS).forEach(k => {
         const v = d.diagScores[PRE + k];
         const n = Number(v && typeof v === 'object' ? v.score : v) || 0;
         if (n > 0) flat[PRE + k] = n;
+        const memo = String((v && typeof v === 'object' && v.memo) || '').trim();
+        if (memo) memos[PRE + k] = memo;
       });
       if (Object.keys(flat).length > 0) {
         /* ⚠ 업종 키를 그대로 넘긴다 — 업종→그룹 변환은 DiagCommon의 지식이다.
            교차 경고 문구가 그룹별로 갈린다(WARN_WORDING). 미전달·오타는 내부에서
            기준 그룹 service로 폴백하므로 호출부가 판단하지 않는다. */
-        prompt += '\n\n' + DiagCommon.buildPromptSummary(flat, d.industryKey || d.industry || '');
+        prompt += '\n\n' + DiagCommon.buildPromptSummary(
+          flat,
+          d.industryKey || d.industry || '',
+          Object.keys(memos).length ? memos : undefined
+        );
       }
     }
     /* ⚠ 사회적경제 조직(isSocialOrg)은 이 경로로 오지 않는다.

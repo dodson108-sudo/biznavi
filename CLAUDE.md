@@ -9,7 +9,7 @@
 - **GitHub**: `https://github.com/dodson108-sudo/biznavi.git`
 - **Vercel**: GitHub 연동 자동 배포 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1), **Pro 플랜**
 - **브랜치**: `main` (단일 브랜치 운영)
-- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260917d`
+- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260918g`
 
 ---
 
@@ -245,6 +245,12 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   ⚠ 이력 중에도 **재발 방지 근거**("이 패턴은 세 번 터졌다")와 **설계 판단 근거**는 `CLAUDE.md`의 작업 규칙·주의사항으로 **요약해 흡수**시킨다.
 - **`HISTORY.md`는 통째로 읽지 마라. 파일이 크다(6,298줄).** 특정 결정의 배경을 확인할 때는 **grep이나 검색으로 해당 섹션만 찾아** 읽어라. 전체를 읽으면 분리한 의미가 없어진다.
 - **`collectAllScores()`는 평면 숫자 맵이다 — 메모는 담기지 않는다.** `DiagMicro.calcScores`·`CrossContext.buildScoreMap`이 이 계약에 의존하므로 바꾸지 말 것. 메모가 필요하면 `buildPromptSummary(scores, group, memos)`처럼 **별도 인자**로 넘긴다
+  ⚠ 메모를 평면 맵에 섞으면 `Number()` 소비처에서 **전 항목 `NaN`**이 된다(2026-09-17 실제 사고).
+  ⚠ 현재 메모 인자를 받는 모듈: `DiagMicro`(3번째) · `DiagSocial`·`DiagVenture`·`DiagCoop`(2번째) ·
+    `DiagCommon`(3번째, 2번째는 **업종 키**다 — 그룹이 아니다).
+- **AI에 넘기는 요약에서 응답자 메모는 맨 앞에 둔다.** 요약 앞부분만 잘라 쓰는 후속 호출 경로가 있어
+  (`microPrompt.substring(0, 500)`) 뒤에 두면 통째로 사라진다. **"메모를 우선하라"는 지시문도
+  메모 블록 안에 둔다** — 밖에 두면 메모가 없는 사용자에게도 나가 모델이 없는 메모를 근거로 서술한다
 - **증상을 그룹에서 찾기 전에 어느 진단 모듈이 렌더링되는지부터 확인할 것.** micro는 `DiagMicro`, sme는 `DiagCommon`이 나온다. 2026-09-07에 "제조업에 플랫폼 리뷰가 나온다"는 보고를 `manufacturing` 그룹에서 찾다가, 실제 출처가 `DiagCommon`(sme 경로)임을 렌더링으로 확인한 전례가 있다
 - **`DiagCommon`의 업종 분기는 `getSchema(industryKey)` 한 곳에서만 한다 — 그룹을 계산해 넘기지 마라.**
   **왜**: DiagCommon은 **17업종 → 4그룹**(`manufacturing`·`field_service`·`trade_retail`·`service`)이고
@@ -485,8 +491,13 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
   네 번째 경로 판정 사고를 막으려면 결국 전부 이 함수를 거쳐야 한다
 - ⚠ **2·3차 호출이 `microPrompt`를 `substring(0, 500)`으로 자른다.** 도입은 `ab0dbb3`이며
   **왜 500인지 근거 기록이 없다.** 현재 1,300~1,600자 중 대부분이 버려진다
-- ⚠ **`buildPromptSummary`가 4벌로 복제돼 있다**(Micro/Social/Venture/Coop).
-  `_memoBlock`·`_scoreDistBlock`까지 4벌이다. 공용 모듈 신설 + 로드 순서 조정이 필요하다
+- ⚠ **`buildPromptSummary`가 5벌로 복제돼 있다**(Micro/Social/Venture/Coop/**Common**).
+  `_memoBlock`·`_scoreDistBlock`까지 5벌이다(2026-09-18 Common 추가). 공용 모듈 신설 +
+  로드 순서 조정이 필요하다. ⚠ 통합 시 **label 소스가 모듈마다 다른 것**에 주의 —
+  `DiagCommon`·`DiagMicro`는 `getSchema(...).items`(그룹 오버라이드), 나머지 3개는 `ITEMS`다
+- ⚠ **sme 2차 호출(`buildPrompt2`)은 진단 요약을 아예 싣지 않는다.** micro처럼 500자로
+  자르는 것이 아니라 없다 — `DiagCommon` 요약은 1차 호출에만 들어간다. 2차의 KPI·6시스템·
+  90일플랜이 진단 점수와 무관하게 작성될 수 있다. **넣을지 여부 판단이 선행되어야 한다**
 - ⚠ **구 필드 `socialPrompt`/`socialWarnings` 제거 대기.** `orgPrompt`/`orgWarnings`로 대체됐고
   회귀 방지를 위해 병행 유지 중이다. **새 코드에서는 `orgPrompt`/`orgWarnings`만 쓸 것**
 - ⚠ **잔존 `diagScores`가 AI로 전달될 수 있다.** 경로가 바뀌는데 `reset()`을 거치지 않는 흐름이 있다

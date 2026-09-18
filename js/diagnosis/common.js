@@ -117,16 +117,108 @@ const DiagCommon = (() => {
     return warnings;
   }
 
-  /* ⚠ 여기서도 인자는 업종 키다. calcScores는 label을 분기하지 않으므로
-        (DOMAIN_DESC_BY_GROUP은 desc만 덮는다) 그룹을 넘기지 않는다 — 시그니처 불변. */
-  function buildPromptSummary(scores, industryKey) {
-    const result = calcScores(scores);
+  /* ── 응답자 메모 · 점수 분포 블록 ──────────────────────────────────────
+     DiagSocial·DiagVenture·DiagCoop·DiagMicro에 같은 구조의 코드가 있다
+     (CLAUDE.md 남은 이슈 — "buildPromptSummary가 4벌로 복제돼 있다").
+     5벌째를 감수하는 이유: 4개 모듈이 독립 IIFE이고 시그니처·label 소스가 서로 달라
+     공용 모듈 신설 + index.html 로드 순서 조정이 선행되어야 하는데, 그 작업 범위가
+     이번 변경보다 크다. 공용화는 별도 작업으로 남긴다.
+
+     ⚠ 이 모듈만의 차이 — label을 ITEMS에서 직접 읽지 않는다.
+       DiagCommon은 INDUSTRY_WORDING이 그룹별로 label을 덮으므로 ITEMS를 직접 읽으면
+       화면은 제조업 문구인데 AI 프롬프트는 기본(service) 문구로 나간다.
+       DiagMicro의 buildPromptSummary에서 실제로 터진 사고와 같은 유형이다
+       (미용실 진단인데 프롬프트에 외식 문구가 나갔다 — HISTORY.md 2026-09-16).
+       그래서 두 블록 모두 getSchema(industryKey).items를 인자로 받는다. */
+  const KEY_PREFIX     = 'diag-common-container_';
+  const MEMO_ITEM_MAX  = 200;   // 문항 1건당 메모 길이 상한
+  const MEMO_TOTAL_MAX = 400;   // 메모 블록 총량 상한
+  const WEAK_MAX       = 12;    // 취약(2점 이하) 항목 개별 노출 상한
+
+  /* 메모는 요약의 **맨 앞**에 둔다 — 요약 앞부분만 잘라 쓰는 후속 호출 경로가 있어
+     (micro 2·3차의 substring(0, 500)) 뒤에 두면 통째로 사라진다.
+     ⚠ 메모가 하나도 없으면 빈 문자열을 반환해 블록 자체가 생략된다 —
+       "메모 없음" 같은 줄을 남기면 모델이 그것을 근거로 서술하려 든다. */
+  function _memoBlock(memos, scores, items) {
+    if (!memos) return '';
+    const src = scores || {};
+    const rows = [];
+    Object.keys(items).forEach(function (k) {
+      const raw = String(memos[KEY_PREFIX + k] || memos[k] || '').trim();
+      if (!raw) return;
+      rows.push({
+        label: items[k].label,
+        score: Number(src[KEY_PREFIX + k] || 0),
+        text:  raw.length > MEMO_ITEM_MAX ? raw.slice(0, MEMO_ITEM_MAX) + '…' : raw,
+      });
+    });
+    if (rows.length === 0) return '';
+    /* ⚠ 낮은 점수 문항의 메모를 우선한다 — 취약할수록 현장 맥락이 중요하다.
+       미응답(0점)은 점수 근거가 없으므로 9로 취급해 맨 뒤로 보낸다. */
+    rows.sort(function (a, b) { return (a.score || 9) - (b.score || 9); });
+    const out = []; let used = 0, skipped = 0;
+    rows.forEach(function (r) {
+      const line = '  - ' + r.label + (r.score ? '(' + r.score + '점)' : '(미응답)') + ': "' + r.text + '"';
+      // 첫 줄은 상한을 넘더라도 반드시 넣는다 — 헤더만 남은 블록을 만들지 않는다
+      if (out.length > 0 && used + line.length > MEMO_TOTAL_MAX) { skipped++; return; }
+      out.push(line); used += line.length;
+    });
+    let s = '[응답자 메모 — 응답자가 직접 적어 넣은 현장 맥락]\n' + out.join('\n');
+    if (skipped > 0) s += '\n  ※ 외 ' + skipped + '건 생략(낮은 점수 문항 우선 수록)';
+    s += '\n  ⚠ 응답자 메모는 점수로 알 수 없는 현장 맥락이다. 보고서에 반드시 반영하고,'
+       + '\n    메모와 점수가 어긋나면 메모를 우선하라. 인용 시 응답자가 쓴 표현을 그대로 살려라.';
+    return s + '\n\n';
+  }
+
+  /* 취약(1~2점)·우수(5점)는 전 항목을 그대로 넘기고 중간(3~4점)은 개수만 넘긴다.
+     ⚠ 미응답(0점)을 취약으로 세지 않는다 — 답한 적 없는 항목으로 CRITICAL 경고를
+       지어내 보내던 사고가 있었다(HISTORY.md 2026-09-08). */
+  function _scoreDistBlock(scores, items) {
+    const src = scores || {};
+    const weak = [], strong = []; let mid = 0;
+    Object.keys(items).forEach(function (k) {
+      const v = Number(src[KEY_PREFIX + k] || 0);
+      if (v <= 0) return;
+      if (v <= 2) weak.push({ label: items[k].label, score: v });
+      else if (v === 5) strong.push(items[k].label);
+      else mid++;
+    });
+    weak.sort(function (a, b) { return a.score - b.score; });
+    const shown = weak.slice(0, WEAK_MAX), rest = weak.length - shown.length;
+    let s = '[즉각 처방 필요 항목 (2점 이하)]\n';
+    s += shown.length > 0
+      ? shown.map(function (w) { return '  - ' + w.label + ' (' + w.score + '점)'; }).join('\n')
+      : '  - 없음';
+    if (rest > 0) s += '\n  ※ 외 ' + rest + '개 — 취약 항목은 총 ' + weak.length + '개';
+    s += '\n\n[이미 잘하고 있는 항목 (5점) — 강점으로 유지·활용]\n';
+    s += strong.length > 0 ? strong.map(function (x) { return '  - ' + x; }).join('\n') : '  - 없음';
+    if (mid > 0) s += '\n  ※ 3~4점 보통 항목 ' + mid + '건은 개별 언급 생략';
+    return s;
+  }
+
+  /* ⚠ 두 번째 인자는 업종 키다(그룹이 아니다). calcScores는 label을 분기하지 않으므로
+        (DOMAIN_DESC_BY_GROUP은 desc만 덮는다) 그룹을 넘기지 않는다 — 시그니처 불변.
+     ⚠ memos는 **별도 인자**다. collectAllScores()의 "평면 숫자 맵" 계약을 건드리면
+        DiagMicro.calcScores·CrossContext.buildScoreMap이 깨진다(CLAUDE.md 작업 규칙).
+        키는 diagScores와 같은 전체 키('diag-common-container_1_1')를 기본으로 하되
+        접두어 없는 키('1_1')도 받는다. 없으면 undefined를 넘기면 된다. */
+  function buildPromptSummary(scores, industryKey, memos) {
+    const result   = calcScores(scores);
     const warnings = detectCrossWarnings(scores, industryKey);
+    // ⚠ ITEMS 직접 참조 금지 — 그룹 오버라이드(INDUSTRY_WORDING)가 무시된다
+    const items    = getSchema(industryKey).items;
     const domainLines = DOMAINS.map(d => { const ds = result.domains[d.key]; const level = ds.pct >= 80 ? '우수' : ds.pct >= 60 ? '보통' : ds.pct >= 40 ? '취약' : '위험'; return `  - ${ds.label}: ${ds.pct}점 (${level})`; }).join('\n');
     const warnLines = warnings.length > 0 ? warnings.map(w => `  ⚠ [${w.level}] ${w.msg}`).join('\n') : '  - 복합 경고 없음';
-    const criticalItems = [];
-    Object.entries(ITEMS).forEach(([key, item]) => { const val = Number(scores[`diag-common-container_${key}`] || 0); if (val <= 2) criticalItems.push(`${item.label}(${val}점)`); });
-    return `[공통 경영 진단 결과 — common.js v2.0]\n종합 점수: ${result.total}점 / 100점\n\n[영역별 점수]\n${domainLines}\n\n[복합 경고 신호]\n${warnLines}\n\n[즉각 처방 필요 항목 (2점 이하)]\n${criticalItems.length > 0 ? criticalItems.map(i => `  - ${i}`).join('\n') : '  - 없음'}`.trim();
+    return `${_memoBlock(memos, scores, items)}[공통 경영 진단 결과 — common.js v2.0]
+종합 점수: ${result.total}점 / 100점
+
+[영역별 점수]
+${domainLines}
+
+[복합 경고 신호]
+${warnLines}
+
+${_scoreDistBlock(scores, items)}`.trim();
   }
 
   /* ── 업종 → 문구 그룹 (17업종 → 4그룹) ────────────────────────────────
@@ -480,7 +572,7 @@ const DiagCommon = (() => {
   }
 
   return { getSchema, getGroup, getDomains, calcScores, detectCrossWarnings, buildPromptSummary,
-           DOMAINS, ITEMS, INDUSTRY_GROUP_MAP, INDUSTRY_WORDING, WARN_WORDING, DOMAIN_DESC_BY_GROUP };
+           DOMAINS, ITEMS, KEY_PREFIX, INDUSTRY_GROUP_MAP, INDUSTRY_WORDING, WARN_WORDING, DOMAIN_DESC_BY_GROUP };
 })();
 
 if (typeof window !== 'undefined') window.DiagCommon = DiagCommon;
