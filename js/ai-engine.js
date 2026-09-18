@@ -202,6 +202,23 @@ const AIEngine = (() => {
     return insightText;
   }
 
+  /* ── sme 1차 전용 시스템 프롬프트 ──────────────────────────────────────
+     ⚠ 소비처는 sme 1차 한 곳뿐이다(callClaude의 `_isMicro ? _SYSTEM_MICRO_1 : SYSTEM`).
+       micro는 2026-09-08부터 _SYSTEM_MICRO_1을 쓴다 — 그쪽을 건드리지 마라.
+
+     ⚠ 2026-09-18: kpi·leanCanvas·roadmap JSON 템플릿 3,142자(≈1,964토큰)를 제거했다.
+       micro 92초 사고와 **같은 원인**이 sme에 그대로 남아 있었다:
+         유저 프롬프트(buildPrompt1)는 "kpi·roadmap·sixSystems·plan90days·leanCanvas는
+         포함하지 마세요"라고 말하는데, 이 상수에는 kpi 10개·roadmap 3단계×6태스크·
+         leanCanvas 9블록 템플릿이 남아 있었다. 한 요청에 상반된 두 명세가 들어가면
+         모델은 큰 쪽을 따라간다 — 만들어도 FIRST_PASS_KEYS에 없어 2차가 덮어쓰므로
+         **전부 버려진다.** 즉 만들고 버리는 데 시간을 쓰고 있었다.
+       2026-09-08 당시 주석이 "SYSTEM은 건드리지 마라"라고 한 것은 micro 작업 중
+       회귀를 막으려던 것이지, sme 쪽 명세가 옳다는 뜻이 아니었다.
+
+     ⚠ 실행플랜 5필드의 명세는 _SYSTEM_EXEC **한 곳에만** 둔다. 여기 다시 넣지 마라.
+     ⚠ 필드를 없앤 것이 아니다 — 2차가 같은 5필드를 그대로 만들어 화면에 공급한다.
+       최종 병합 결과의 필드 구성은 이 변경 전후가 동일하다. */
   const SYSTEM = `[절대 규칙]
 - 응답은 반드시 순수 JSON만 출력한다. 코드블록(\`\`\`) 사용 금지.
 - 첫 글자는 반드시 { 이어야 한다.
@@ -316,9 +333,9 @@ const AIEngine = (() => {
 [사업 규모별 모드 분기]
 
 - bizScale = "micro" (소상공인): 1차는 lifecycleStage·swot·stp·tam·sam·som 최소 필드만 작성. 상세 처방(sixSystems·plan90days)은 2차·3차에서 별도 작성.
-- bizScale = "sme" (소기업·중소기업): SWOT·STP·4P·keyStrategies·KPI·roadmap 풍부하게 작성.
+- bizScale = "sme" (소기업·중소기업): 1차는 SWOT·STP·4P·keyStrategies·specializedAnalysis를 풍부하게 작성. 실행플랜(kpi·roadmap·sixSystems·plan90days·leanCanvas)은 2차에서 별도 작성하므로 여기서 출력하지 않는다.
 
-반드시 다음 JSON 구조로만 응답 (마크다운 코드블록 없이 순수 JSON):
+반드시 다음 JSON 구조로만 응답 (마크다운 코드블록 없이 순수 JSON, 아래 6개 필드만):
 {
   "executiveSummary": "경영진 요약. 반드시 포함: ①기업명+업종+핵심강점 ②인과사슬 3축 진단 — 단골비율(재방문율) 측정 여부·광고투자 측정 행태·경쟁자 인식 수준 한 문장씩 명시, 측정값 부재 시 '운영 데이터 부재 구간 확인됨 — [해당 축]' 삽입 ③현재 가장 큰 문제와 근본 원인 ④헤지호그 컨셉(열정·최고·수익 교집합) ⑤TAM/SAM/SOM 기반 시장 기회 규모 ⑥12개월 핵심 목표와 우선순위 전략 3가지. 5~7문장, 수치 포함 필수.",
   "swot": {
@@ -345,34 +362,6 @@ const AIEngine = (() => {
     {"title": "전략4", "description": "[진단] [방침] [행동: 3가지]", "priority": "medium", "owner": "담당", "timeline": "기간"},
     {"title": "전략5", "description": "[진단] [방침] [행동: 3가지]", "priority": "medium", "owner": "담당", "timeline": "기간"},
     {"title": "전략6(6시스템 취약 보완)", "description": "[진단] [방침] [행동: 3가지]", "priority": "low", "owner": "담당", "timeline": "기간"}
-  ],
-  "kpi": [
-    {"metric": "지표명 (OKR 핵심결과 형태)", "current": "현재 수치", "target": "목표 수치 (SAM/SOM 기반)", "timeline": "X개월 (Q1/Q2 체크포인트)", "progress": 20, "method": "측정 도구·방법", "owner": "담당자"},
-    {"metric": "재방문율(단골비율) — 인과사슬 1축", "current": "현재값 또는 미측정", "target": "목표값", "timeline": "기간", "progress": 15, "method": "POS·CRM·예약시스템 기준", "owner": "담당"},
-    {"metric": "ROAS(광고비 대비 매출) — 인과사슬 2축", "current": "현재값 또는 미측정", "target": "목표값", "timeline": "기간", "progress": 10, "method": "광고 플랫폼 대시보드 기준", "owner": "담당"},
-    {"metric": "지표4", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 35, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표5", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 50, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표6", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 25, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표7", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 40, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표8", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 5, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표9", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 30, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표10 (업종 벤치마크 기준)", "current": "현재값", "target": "업종 평균 대비 목표", "timeline": "기간", "progress": 20, "method": "측정방법", "owner": "담당"}
-  ],
-  "leanCanvas": {
-    "problem": "고객이 겪는 핵심 문제 2~3가지 (customerProblem 입력값 반드시 반영, 구체적 서술)",
-    "customerSegments": "타겟 고객 세그먼트: 규모·업종·지역·구매 특성 명시 (targetCustomer 반영)",
-    "uniqueValueProposition": "단 1문장의 핵심 가치 제안 — [고객이 원하는 것]을 [우리만의 방법]으로 해결합니다",
-    "solution": "3대 핵심 해결책 — 각 솔루션이 어떤 문제를 어떻게 해결하는지 구체 서술",
-    "channels": "주력 고객 획득·전달 채널 (온라인·오프라인·파트너 비중 % 포함)",
-    "revenueStreams": "수익 흐름 구조 (주수익·부수익 구분, 가격 정책 포함)",
-    "costStructure": "주요 비용 항목과 비중 (인건비·마케팅·운영비 등)",
-    "keyMetrics": "비즈니스 건강 지표 3가지 — 현재값·목표값·측정 주기. 반드시 재방문율(인과사슬 1축)과 ROAS(인과사슬 2축) 포함",
-    "unfairAdvantage": "모방 불가한 경쟁 우위 (unfairAdvantage 입력값 반드시 반영 + 강화 방안)"
-  },
-  "roadmap": [
-    {"phase": "1단계: MVP 검증·기반 구축", "period": "1~3개월", "budget": "예상 예산", "framework": "린 스타트업 — Build → Measure → Learn 사이클", "tasks": ["현금 런웨이 4축 점검: 통장 순잔고·카드 매출 비중·매출채권 회수일·배달 순마진 즉시 확인 후 런웨이 개월 수 산출", "린 스타트업 MVP: [핵심 가설과 실행 방법]", "6시스템 취약 보완: [진단 최저점 시스템 즉각 개선 액션]", "정부지원사업 신청 — 1순위: 소진공 / 2순위: 신보 / 3순위: 지자체 신청 기한 확인 및 서류 준비", "인과사슬 3축 데이터 수집 체계 구축: 재방문율·ROAS·경쟁사 채널 파악 즉시 착수", "플라이휠 1번 바퀴: [초기 성공 사례 1개 — 구체 방법]"]},
-    {"phase": "2단계: 성장 가속·채널 확장", "period": "4~8개월", "budget": "예상 예산", "framework": "플라이휠 가속 — 1단계 성공을 레버리지로 성장 구조 구축", "tasks": ["StoryBrand 마케팅: [핵심 메시지 기반 캠페인 실행]", "SAM 점유 확대: [SOM 목표 달성 구체 전략]", "블루오션 시장 진입: [ERRC로 발굴한 새 시장 파일럿]", "파트너십·채널 구축: [2단계 핵심 파트너 확보]", "6시스템 마케팅·판매 고도화", "플라이휠 가속: [1단계 성공 레버리지로 확장]"]},
-    {"phase": "3단계: 도약·시장 지배력 확보", "period": "9~12개월", "budget": "예상 예산", "framework": "6대 시스템 완성 — 리더십·마케팅·판매·제품·운영·재무 취약순 강화", "tasks": ["SOM 목표 달성: [연말 시장점유율 목표와 달성 전략]", "헤지호그 완성: [열정·최고·수익 교집합 비즈니스 모델 고도화]", "6시스템 운영·재무 최적화", "차별화 방어막 구축: [경쟁사 모방 불가 진입장벽]", "글로벌·확장 준비: [다음 성장 단계 준비]", "플라이휠 완성: [자생적 성장 구조 완성]"]}
   ],
   "specializedAnalysis": {
     "type": "consultingType 키 값",
@@ -488,6 +477,23 @@ const AIEngine = (() => {
 ④ 90일플랜: 이번 주 당장 실행 가능한 액션 중심, 각 달 정부지원사업 1개 포함
 ⑤ leanCanvas: 1차 전략과 일관된 비즈니스 모델 캔버스
 
+[★ 필드별 역할 분리 — 같은 내용을 두 번 쓰지 마라 ★]
+
+plan90days · roadmap · sixSystems는 **서로 다른 것을 쓰는 필드다.**
+같은 실행 항목을 세 필드에 반복하면 대표가 같은 결론을 세 번 읽게 된다. 절대 금지.
+
+- plan90days = **90일 안에서 무엇을 언제 할 것인가.** 주 단위 실행이 단위다.
+  ("이번 주 ○○", "2주차 ○○", "3~4주차 ○○")
+- roadmap 1단계 = **90일 이후로 넘어가는 마일스톤만.** 90일 안의 주 단위 실행은
+  plan90days가 이미 다뤘으므로 **여기 다시 쓰지 마라.** 1단계는 "90일 플랜이 끝난 시점에
+  무엇이 완성되어 있어야 2단계로 갈 수 있는가"를 쓴다. 검증 완료 기준·의사결정 분기점 중심.
+- sixSystems = **체질 진단과 그 시스템에만 해당하는 고유 액션.**
+  각 시스템이 지금 왜 이 상태인지(issue)가 핵심이고, actions는 그 시스템을 고치는
+  고유한 수단만 쓴다. plan90days에 이미 쓴 액션을 옮겨 적지 마라.
+
+⚠ 앞 필드에서 이미 쓴 항목이 떠오르면 **반복하지 말고 다른 관점으로 바꿔 써라.**
+   같은 액션이 두 필드에 나오면 뒤에 오는 필드가 실패한 것이다.
+
 반드시 다음 JSON 구조로만 응답 (kpi, roadmap, sixSystems, plan90days, leanCanvas 5개만):
 {
   "kpi": [
@@ -498,24 +504,19 @@ const AIEngine = (() => {
     {"metric": "지표5", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 50, "method": "측정방법", "owner": "담당"},
     {"metric": "지표6", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 25, "method": "측정방법", "owner": "담당"},
     {"metric": "지표7", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 40, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표8", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 5, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표9", "current": "현재값", "target": "목표값", "timeline": "기간", "progress": 30, "method": "측정방법", "owner": "담당"},
-    {"metric": "지표10 (업종 벤치마크 기준)", "current": "현재값", "target": "업종 평균 대비 목표", "timeline": "기간", "progress": 20, "method": "측정방법", "owner": "담당"}
+    {"metric": "지표8 (업종 벤치마크 기준)", "current": "현재값", "target": "업종 평균 대비 목표", "timeline": "기간", "progress": 20, "method": "측정방법", "owner": "담당"}
   ],
 
   "roadmap": [
     {
-      "phase": "1단계: MVP 검증·기반 구축",
+      "phase": "1단계: 검증 완료·2단계 진입 조건",
       "period": "1~3개월",
       "budget": "예상 예산 (구체 금액 또는 범위)",
       "framework": "🔬 린 스타트업 — Build(구축) → Measure(측정) → Learn(학습)",
       "tasks": [
-        "린 스타트업 MVP: [가장 빠르게 검증할 핵심 가설과 실행 방법]",
-        "6시스템 취약 보완: [진단 최저점 시스템 즉각 개선 액션]",
-        "정부지원사업 신청: [매칭 지원사업명 + 신청 기한]",
-        "경쟁사 약점 공략: [즉시 실행 가능한 차별화]",
-        "OKR 설정: [팀 전체 Q1 목표와 핵심결과 수립]",
-        "플라이휠 1번 바퀴: [초기 성공 사례 1개 만들기 구체 방법]"
+        "검증 완료 기준: [MVP 가설이 참인지 거짓인지 판정하는 숫자 — 이 값이 나와야 2단계로 간다]",
+        "의사결정 분기점: [이 결과면 확대 / 저 결과면 방향 전환 — 두 갈래를 모두 명시]",
+        "2단계 진입 준비: [90일 종료 시점에 갖춰져 있어야 할 자원·계약·인력 1가지]"
       ]
     },
     {
@@ -634,7 +635,7 @@ const AIEngine = (() => {
     "channels": "주력 고객 획득·전달 채널 (온라인·오프라인·파트너 비중 % 포함)",
     "revenueStreams": "수익 흐름 구조 (주수익·부수익 구분, 가격 정책 포함)",
     "costStructure": "주요 비용 항목과 비중 (인건비·마케팅·운영비 등)",
-    "keyMetrics": "비즈니스 건강 지표 3가지 — 반드시 재방문율(인과사슬 1축)과 ROAS(광고비 대비 매출, 인과사슬 2축) 포함. 현재값·목표값·측정 주기 명시",
+    "keyMetrics": "이 사업모델이 성립하는지 보는 단위경제 지표 2~3가지 (예: 고객 1명당 수익, 손익분기 고객 수, 재구매 1회당 마진). ⚠ 위 kpi 필드에 쓴 지표를 반복하지 마라 — kpi는 '무엇을 추적할 것인가', 여기는 '이 모델이 수익을 내는 구조인가'다",
     "unfairAdvantage": "모방 불가 경쟁 우위 (unfairAdvantage 입력값 반드시 반영)"
   }
 }`;
@@ -1513,11 +1514,17 @@ ${sv.name || '해당 업종'} — 3년 생존율 ${sv.y3}% (${sv.risk ? sv.risk.
 
 ${_ctGuidance(d.consultingType)}
 [실행플랜 작성 지침]
-- KPI 10개: 위 핵심전략 각각과 직접 연결된 OKR 형태, 현실적 목표 수치, 업종 벤치마크 기준
+- KPI 8개: 위 핵심전략 각각과 직접 연결된 OKR 형태, 현실적 목표 수치, 업종 벤치마크 기준
 - 6시스템: ${d.companyName}의 실제 상황으로 각 시스템 문제 구체 서술 (일반론 절대 금지)
 - 90일플랜: ${d.bizScale === 'micro' ? '소상공인 특화 — 이번 주 당장 실행 가능한 구체 액션 중심, 무료/저비용 도구 우선' : '성장 단계별 구체 실행, 팀 역할 분담 명시'}
 - 로드맵: 핵심전략 실행 순서에 맞춰 1→2→3단계 일관성 유지
 - leanCanvas: 1차 분석(SWOT·STP·4P)과 일관된 비즈니스 모델 캔버스
+
+⚠ 필드 간 중복 금지 (시스템 프롬프트의 [필드별 역할 분리] 준수)
+- plan90days = 90일 안의 주 단위 실행 / roadmap 1단계 = 90일 이후로 넘어가는 마일스톤만
+- sixSystems = 체질 진단과 그 시스템 고유 액션 (plan90days 액션을 옮겨 적지 마라)
+- leanCanvas.keyMetrics = 단위경제 (kpi에 쓴 지표를 반복하지 마라)
+- 앞 필드에서 이미 쓴 항목은 반복하지 말고 다른 관점으로 바꿔 써라
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 웹 검색 활용 지침 (실행플랜 보강)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1629,8 +1636,23 @@ web_search 도구로 다음을 검색하여 90일플랜·로드맵의 govSupport
       });
     }
 
-    // ── non-micro 병합: 1차 전략 + 2차 실행플랜
-    return Object.assign({}, result1, r2Clean);
+    /* ── non-micro(sme) 병합: 1차 전략 + 2차 실행플랜
+       ⚠ 2026-09-18 — kpi·roadmap·leanCanvas는 2차가 만드는 필드이므로 2차 값을 쓴다.
+         2차 응답이 파싱은 됐는데 이 셋 중 일부가 빠진 경우에만 1차 값으로 되돌린다.
+         예전에는 SYSTEM에 이 셋의 템플릿이 남아 있어 1차가 만들어 두는 바람에
+         **우연히** 폴백이 되고 있었다(1차 유저 프롬프트는 만들지 말라고 지시하는데도).
+         그 템플릿을 걷어냈으므로 폴백을 명시적으로 적는다 — 없는 값을 덮어쓰지 않는
+         것이 목적이며, 둘 다 없으면 undefined로 남아 화면 렌더 함수가 알아서 숨긴다. */
+    const merged = Object.assign({}, result1, r2Clean);
+    /* ⚠ undefined만 보면 부족하다 — 2차가 "kpi": null 이나 [] 를 주면 Object.assign이
+       1차 값을 그것으로 덮어쓴다. 내용이 실제로 있는지를 기준으로 판정한다. */
+    const _hasContent = v =>
+      v !== undefined && v !== null &&
+      (Array.isArray(v) ? v.length > 0 : (typeof v === 'object' ? Object.keys(v).length > 0 : true));
+    ['kpi', 'roadmap', 'leanCanvas'].forEach(k => {
+      if (!_hasContent(merged[k]) && _hasContent(result1[k])) merged[k] = result1[k];
+    });
+    return merged;
   }
 
   function _fakeByConsultingType(d, co, ind, bm, comp, tl, cs) {
