@@ -342,13 +342,13 @@
   .nice-opinion-text  { font-size: 8.5pt !important; line-height: 1.65 !important; padding: 7pt 10pt !important; background: #fff !important; }
   .nice-improve-list  { font-size: 8.5pt !important; line-height: 1.65 !important; padding: 7pt 10pt !important; background: #fff !important; }
 
-  /* ── 페이지 구분 ─────────────────────────────────────────────── */
+  /* ── 페이지 구분 ───────────────────────────────────────────────
+     ⚠ 최상위 섹션 카드에만 건다. sec-strategy·sec-kpi·sec-roadmap은 2026-09-18부터
+        카드 안의 하위 블록이라 여기에 page break를 걸면 통합 카드가 한가운데서 쪼개진다 */
   #sec-swot        { break-before: page !important; page-break-before: always !important; }
   #sec-stp         { break-before: page !important; page-break-before: always !important; }
-  #sec-strategy    { break-before: page !important; page-break-before: always !important; }
-  #sec-kpi         { break-before: page !important; page-break-before: always !important; }
-  #sec-roadmap     { break-before: page !important; page-break-before: always !important; }
   #sec-six-systems { break-before: page !important; page-break-before: always !important; }
+  #sec-plan90      { break-before: page !important; page-break-before: always !important; }
 
   /* ════════════════════════════════════════════════════════════
      재무분석 리포트 (#finance-report)

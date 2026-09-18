@@ -19,10 +19,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20260918g" />
-  <link rel="stylesheet" href="css/landing.css?v=20260918g" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20260918g" />
-  <link rel="stylesheet" href="css/print.css?v=20260918g" />
+  <link rel="stylesheet" href="css/style.css?v=20260918h" />
+  <link rel="stylesheet" href="css/landing.css?v=20260918h" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20260918h" />
+  <link rel="stylesheet" href="css/print.css?v=20260918h" />
 </head>
 <body>
 
@@ -1670,9 +1670,9 @@
       <!-- 우측 리포트 콘텐츠 -->
       <div class="report-content">
 
-        <!-- Executive Summary -->
+        <!-- ① 한눈에 보기 (sme) / Executive Summary (micro) -->
         <div class="section-card reveal" id="sec-summary">
-          <div class="sec-title"><h3 class="serif">Executive Summary</h3><span class="badge">요약</span></div>
+          <div class="sec-title"><h3 class="serif" id="summarySecTitle">Executive Summary</h3><span class="badge">요약</span></div>
           <div class="exec" id="execSummary"></div>
         </div>
 
@@ -1694,9 +1694,11 @@
           <div id="marketMicroContent" class="market-micro-content"></div>
         </div>
 
-        <!-- 경영 진단 분석 -->
+        <!-- ② 우리 회사 지금 상태 — 경영 진단 + 유형별 특화 분석(sme만)
+             ⚠ sme 8섹션 통합: 같은 "지금 상태"를 두 섹션으로 나눠 읽히던 것을 한 카드로 합쳤다.
+                sec-consulting은 최상위 섹션이 아니라 이 카드 안의 하위 블록이다 -->
         <div class="section-card reveal" id="sec-diag" style="display:none">
-          <div class="sec-title"><h3 class="serif">경영 진단 분석</h3><span class="badge">역량 진단</span></div>
+          <div class="sec-title"><h3 class="serif" id="diagSecTitle">경영 진단 분석</h3><span class="badge" id="diagSecBadge">역량 진단</span></div>
           <div class="diag-dash-wrap">
             <div class="diag-radar-wrap">
               <canvas id="radarChartDash"></canvas>
@@ -1705,21 +1707,16 @@
               <div id="weakBanner"></div>
             </div>
           </div>
-        </div>
-
-        <!-- 컨설팅 유형별 특화 분석 -->
-        <div class="section-card reveal" id="sec-consulting" style="display:none">
-          <div class="sec-title">
-            <h3 class="serif">컨설팅 유형별 특화 분석</h3>
-            <span class="badge" id="specFrameworkBadge">특화 분석</span>
+          <div class="sub-block" id="sec-consulting" style="display:none">
+            <div class="sub-title"><h4 class="serif">유형별 특화 분석</h4><span class="badge" id="specFrameworkBadge">특화 분석</span></div>
+            <div id="specSummary" class="spec-summary"></div>
+            <div id="specBlocks" class="spec-blocks"></div>
           </div>
-          <div id="specSummary" class="spec-summary"></div>
-          <div id="specBlocks" class="spec-blocks"></div>
         </div>
 
-        <!-- SWOT -->
+        <!-- ③ 강점과 약점 (SWOT) -->
         <div class="section-card reveal" id="sec-swot">
-          <div class="sec-title"><h3 class="serif">SWOT 분석</h3><span class="badge">전략 환경</span></div>
+          <div class="sec-title"><h3 class="serif">강점과 약점</h3><span class="badge">전략 환경</span></div>
           <div class="swot-grid">
             <div class="swot-q s"><h4>Strengths · 강점</h4><ul class="swot-ul" id="swotS"></ul></div>
             <div class="swot-q w"><h4>Weaknesses · 약점</h4><ul class="swot-ul" id="swotW"></ul></div>
@@ -1728,19 +1725,28 @@
           </div>
         </div>
 
-        <!-- STP -->
+        <!-- ④ 누구에게 무엇을 팔 것인가 — STP + 린 캔버스
+             ⚠ 린 캔버스는 최상위 섹션에서 제거하고 여기에 흡수했다(고객·가치 제안이 STP와 같은 질문) -->
         <div class="section-card reveal" id="sec-stp">
-          <div class="sec-title"><h3 class="serif">STP 분석</h3><span class="badge">시장 전략</span></div>
-          <div class="stp-grid">
-            <div class="stp-card"><div class="stp-big">S</div><div class="stp-label">Segmentation · 세분화</div><div class="stp-txt" id="stpS"></div></div>
-            <div class="stp-card"><div class="stp-big">T</div><div class="stp-label">Targeting · 타겟팅</div><div class="stp-txt" id="stpT"></div></div>
-            <div class="stp-card"><div class="stp-big">P</div><div class="stp-label">Positioning · 포지셔닝</div><div class="stp-txt" id="stpP"></div></div>
+          <div class="sec-title"><h3 class="serif">누구에게 무엇을 팔 것인가</h3><span class="badge">시장 전략</span></div>
+          <div class="sub-block">
+            <div class="sub-title"><h4 class="serif">고객 세분화 · 타겟 · 포지셔닝</h4></div>
+            <div class="stp-grid">
+              <div class="stp-card"><div class="stp-big">S</div><div class="stp-label">Segmentation · 세분화</div><div class="stp-txt" id="stpS"></div></div>
+              <div class="stp-card"><div class="stp-big">T</div><div class="stp-label">Targeting · 타겟팅</div><div class="stp-txt" id="stpT"></div></div>
+              <div class="stp-card"><div class="stp-big">P</div><div class="stp-label">Positioning · 포지셔닝</div><div class="stp-txt" id="stpP"></div></div>
+            </div>
+          </div>
+          <div class="sub-block" id="sec-lean-canvas" style="display:none">
+            <div class="sub-title"><h4 class="serif">사업 모델 한 장 요약 (린 캔버스)</h4></div>
+            <p class="lc-intro">고객 문제·해결책·가치 제안·수익 구조를 한눈에 파악할 수 있는 비즈니스 모델 요약입니다.</p>
+            <div class="lc-grid" id="leanCanvasGrid"></div>
           </div>
         </div>
 
-        <!-- 4P -->
+        <!-- ⑤ 어떻게 알릴 것인가 (4P) -->
         <div class="section-card reveal" id="sec-4p">
-          <div class="sec-title"><h3 class="serif">4P 마케팅 믹스</h3><span class="badge">마케팅 전략</span></div>
+          <div class="sec-title"><h3 class="serif">어떻게 알릴 것인가</h3><span class="badge">마케팅 전략</span></div>
           <div class="fourp-grid">
             <div class="fourp-card"><div class="fourp-lbl">Product</div><div class="fourp-title">제품 전략</div><div class="fourp-txt" id="fpProduct"></div></div>
             <div class="fourp-card"><div class="fourp-lbl">Price</div><div class="fourp-title">가격 전략</div><div class="fourp-txt" id="fpPrice"></div></div>
@@ -1749,52 +1755,45 @@
           </div>
         </div>
 
-        <!-- Key Strategies -->
-        <div class="section-card reveal" id="sec-strategy">
-          <div class="sec-title"><h3 class="serif">핵심 전략 6가지</h3><span class="badge">전략 방향</span></div>
-          <div class="strat-list" id="strategies"></div>
-        </div>
-
-        <!-- KPI -->
-        <div class="section-card reveal" id="sec-kpi">
-          <div class="sec-title"><h3 class="serif">KPI 지표</h3><span class="badge">성과 관리</span></div>
-          <div class="kpi-grid" id="kpiGrid"></div>
-        </div>
-
-        <!-- Roadmap -->
-        <div class="section-card reveal" id="sec-roadmap">
-          <div class="sec-title"><h3 class="serif">실행 로드맵</h3><span class="badge">액션 플랜</span></div>
-          <div class="roadmap" id="roadmap"></div>
-        </div>
-
-        <!-- 린 캔버스 시각화 -->
-        <div class="section-card reveal" id="sec-lean-canvas" style="display:none">
-          <div class="sec-title">
-            <h3 class="serif">린 캔버스 (Lean Canvas)</h3>
-            <span class="badge">비즈니스 모델</span>
-          </div>
-          <p class="lc-intro">고객 문제·해결책·가치 제안·수익 구조를 한눈에 파악할 수 있는 비즈니스 모델 요약입니다.</p>
-          <div class="lc-grid" id="leanCanvasGrid"></div>
-        </div>
-
-        <!-- 도널드 밀러 6가지 비즈니스 시스템 (소상공인 모드) -->
+        <!-- ⑥ 무엇부터 할 것인가 — 핵심 전략 + 6가지 시스템(sme) / 7대 영역 처방(micro)
+             ⚠ 카드 id는 micro 목차(sec-six-systems)가 이미 쓰므로 바꾸지 않는다.
+                sec-strategy는 이 카드 안의 하위 블록이 되었고 micro에서는 숨는다 -->
         <div class="section-card reveal" id="sec-six-systems" style="display:none">
           <div class="sec-title">
-            <h3 class="serif">도널드 밀러 6가지 비즈니스 시스템</h3>
-            <span class="badge">사업 체질 개선</span>
+            <h3 class="serif" id="sixSysSecTitle">무엇부터 할 것인가</h3>
+            <span class="badge" id="sixSysSecBadge">실행 우선순위</span>
           </div>
-          <p class="six-sys-intro">건강한 사업체는 6가지 핵심 시스템이 유기적으로 작동합니다. 각 시스템의 현재 상태를 진단하고, 즉시 실행 가능한 개선 액션을 제시합니다.</p>
-          <div class="six-sys-grid" id="sixSysGrid"></div>
+          <div class="sub-block" id="sec-strategy">
+            <div class="sub-title"><h4 class="serif">핵심 전략 6가지</h4></div>
+            <div class="strat-list" id="strategies"></div>
+          </div>
+          <div class="sub-block" id="blk-six-sys">
+            <div class="sub-title" id="blkSixSysTitle"><h4 class="serif">사업 체질 — 6가지 비즈니스 시스템</h4></div>
+            <p class="six-sys-intro">건강한 사업체는 6가지 핵심 시스템이 유기적으로 작동합니다. 각 시스템의 현재 상태를 진단하고, 즉시 실행 가능한 개선 액션을 제시합니다.</p>
+            <div class="six-sys-grid" id="sixSysGrid"></div>
+          </div>
         </div>
 
-        <!-- 90일 즉시 실행 플랜 (소상공인 모드) -->
+        <!-- ⑦ 90일 실행 계획 — KPI + 실행 로드맵 + 90일 플랜
+             ⚠ 카드 id는 micro 목차(sec-plan90)가 이미 쓰므로 바꾸지 않는다 -->
         <div class="section-card reveal" id="sec-plan90" style="display:none">
           <div class="sec-title">
-            <h3 class="serif">90일 즉시 실행 플랜</h3>
+            <h3 class="serif" id="plan90SecTitle">90일 실행 계획</h3>
             <span class="badge">액션 플랜</span>
           </div>
-          <p class="plan90-intro">지금 당장 실행에 옮길 수 있는 3개월 단계별 실행 계획입니다. 각 월별 핵심 과제와 기대 성과를 구체적으로 제시합니다.</p>
-          <div class="plan90-timeline" id="plan90Timeline"></div>
+          <div class="sub-block" id="sec-kpi">
+            <div class="sub-title"><h4 class="serif">무엇을 숫자로 볼 것인가 (KPI)</h4></div>
+            <div class="kpi-grid" id="kpiGrid"></div>
+          </div>
+          <div class="sub-block" id="sec-roadmap">
+            <div class="sub-title"><h4 class="serif">단계별 실행 로드맵</h4></div>
+            <div class="roadmap" id="roadmap"></div>
+          </div>
+          <div class="sub-block" id="blk-plan90">
+            <div class="sub-title" id="blkPlan90Title"><h4 class="serif">90일 즉시 실행 플랜</h4></div>
+            <p class="plan90-intro">지금 당장 실행에 옮길 수 있는 3개월 단계별 실행 계획입니다. 각 월별 핵심 과제와 기대 성과를 구체적으로 제시합니다.</p>
+            <div class="plan90-timeline" id="plan90Timeline"></div>
+          </div>
         </div>
 
         <!-- ═══ 정책자금 진단 전용 (purpose='funding'에서만 표시) ═══
@@ -1879,62 +1878,62 @@
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/gov-support.js?v=20260918g"></script>
+<script src="js/gov-support.js?v=20260918h"></script>
 <script src="js/industry-trends.js"></script>
-<script src="js/reference-db.js?v=20260918g"></script>
-<script src="js/ai-engine.js?v=20260918g"></script>
-<script src="js/dashboard.js?v=20260918g"></script>
+<script src="js/reference-db.js?v=20260918h"></script>
+<script src="js/ai-engine.js?v=20260918h"></script>
+<script src="js/dashboard.js?v=20260918h"></script>
 <!-- PPT 내보내기 — CDN 실패해도 페이지가 깨지지 않도록 defer + 버튼 비활성화로 방어 -->
 <script defer src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-<script defer src="js/ppt-export.js?v=20260918g"></script>
-<script src="js/wizard.js?v=20260918g"></script>
+<script defer src="js/ppt-export.js?v=20260918h"></script>
+<script src="js/wizard.js?v=20260918h"></script>
 <script src="js/diagnosis/cross-context.js"></script>
-<script src="js/diagnosis/funding-rules.js?v=20260918g"></script>
-<script src="js/diagnosis/common.js?v=20260918g"></script>
+<script src="js/diagnosis/funding-rules.js?v=20260918h"></script>
+<script src="js/diagnosis/common.js?v=20260918h"></script>
 <script src="js/diagnosis/diagnosis-micro.js"></script>
 <script src="js/diagnosis/diagnosis-sme.js"></script>
-<script src="js/diagnosis/diagnosis-social.js?v=20260918g"></script>
-<script src="js/diagnosis/diagnosis-venture.js?v=20260918g"></script>
-<script src="js/diagnosis/diagnosis-coop.js?v=20260918g"></script>
+<script src="js/diagnosis/diagnosis-social.js?v=20260918h"></script>
+<script src="js/diagnosis/diagnosis-venture.js?v=20260918h"></script>
+<script src="js/diagnosis/diagnosis-coop.js?v=20260918h"></script>
 <script src="js/diagnosis/startup.js"></script>
-<script src="js/diagnosis/industry/mfg_parts.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/food_mfg.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/local_service.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/wholesale.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/restaurant.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/knowledge_it.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/construction.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/medical.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/finance.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/education.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/fashion.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/media.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/export_sme.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/logistics.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/energy.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/agri_food.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/facility_service.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/social_enterprise.js?v=20260918g"></script>
-<script src="js/diagnosis/industry/social_venture.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/platform.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/franchise.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/service.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/etc.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/usage_based.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/advertising.js?v=20260918g"></script>
-<script src="js/diagnosis/bizmodel/deeptech.js?v=20260918g"></script>
-<script src="js/app.js?v=20260918g"></script>
-<script src="js/history-tracker.js?v=20260918g"></script>
-<script src="js/pattern-db.js?v=20260918g"></script>
-<script src="js/bep-simulator.js?v=20260918g"></script>
-<script src="js/finance-wizard.js?v=20260918g"></script>
+<script src="js/diagnosis/industry/mfg_parts.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/food_mfg.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/local_service.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/wholesale.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/restaurant.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/knowledge_it.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/construction.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/medical.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/finance.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/education.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/fashion.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/media.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/export_sme.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/logistics.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/energy.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/agri_food.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/facility_service.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/social_enterprise.js?v=20260918h"></script>
+<script src="js/diagnosis/industry/social_venture.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/platform.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/franchise.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/service.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/etc.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/usage_based.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/advertising.js?v=20260918h"></script>
+<script src="js/diagnosis/bizmodel/deeptech.js?v=20260918h"></script>
+<script src="js/app.js?v=20260918h"></script>
+<script src="js/history-tracker.js?v=20260918h"></script>
+<script src="js/pattern-db.js?v=20260918h"></script>
+<script src="js/bep-simulator.js?v=20260918h"></script>
+<script src="js/finance-wizard.js?v=20260918h"></script>
 <script src="js/ticker.js"></script>
-<script src="js/hero-canvas.js?v=20260918g"></script>
-<script src="js/hero-bg.js?v=20260918g"></script>
+<script src="js/hero-canvas.js?v=20260918h"></script>
+<script src="js/hero-bg.js?v=20260918h"></script>
 </body>
 </html>

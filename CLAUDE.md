@@ -9,7 +9,7 @@
 - **GitHub**: `https://github.com/dodson108-sudo/biznavi.git`
 - **Vercel**: GitHub 연동 자동 배포 (main 브랜치 push 시 자동 빌드), 서울 리전(icn1), **Pro 플랜**
 - **브랜치**: `main` (단일 브랜치 운영)
-- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260918g`
+- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260918h`
 
 ---
 
@@ -299,6 +299,10 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
 - **진단 문항을 만들 때는 그 결과가 리포트 어느 섹션에서 다뤄지는지 함께 설계할 것.** 묻고 안 쓰는 문항은 응답자의 시간을 낭비시킨다. (사회적기업 S5·S7·S8 15문항이 리포트에서 누락돼 있던 전례)
 - **진단 모듈을 추가할 때는 문항뿐 아니라 결과 화면까지 함께 확인할 것** — 레이더차트·도메인 해설·진단유형 카드·정부지원사업 매칭·동종업계 비교 5곳이다. **점수 키 접두어가 다르면 결과 화면이 조용히 비어버린다**(에러가 나지 않아 발견이 늦다). 도메인 점수 함수의 반환 키와 `*_DOMAIN_EXPLAIN`의 키는 반드시 일치해야 한다 — `explainMap[key]` 조회 방식이다
 - **`gov-support`의 `orgType`과 `orgAffinity`는 역할이 다르다.** `orgType` = **자격 제한**(해당 조직 형태만 신청 가능, `match()` 게이트에서 제외 판정) / `orgAffinity` = **적합도 가점**(자격은 열려 있으나 특정 형태에 더 적합, 게이트에 관여하지 않음). TIPS는 기술창업 전반이 대상이므로 `orgType`이 아니라 `orgAffinity`가 맞다 — `orgType:'venture'`를 붙이면 **일반 기업 결과에서 사라진다**
+- **통합 카드 안의 하위 블록(`.sub-block`) 렌더 함수는 카드를 숨기면 안 된다 — 자기 블록만 토글하고 내용 유무를 반환한다.** 카드 표시 여부는 `render()`가 블록 결과를 OR로 합쳐 **한 곳에서** 정한다.
+  **왜**: sme 8섹션(2026-09-18)에서 한 카드가 여러 블록을 담는다 — `sec-diag`(진단+유형별특화) · `sec-stp`(STP+린캔버스) · `sec-six-systems`(핵심전략+6시스템) · `sec-plan90`(KPI+로드맵+90일). 블록 함수가 카드를 숨기면 **옆 블록의 내용까지 통째로 사라지는데 예외가 나지 않는다.**
+  ⚠ 흡수된 5개(`sec-consulting`·`sec-lean-canvas`·`sec-strategy`·`sec-kpi`·`sec-roadmap`)는 **최상위 섹션이 아니라 하위 블록**이다. 목차 href·스크롤 스파이(`allSecIds`)·`print.css`의 `break-before: page`에 넣지 말 것 — 통합 카드가 한가운데서 쪼개진다.
+  ⚠ **카드 id는 micro가 목차 href로 쓰는 쪽을 남겼다**(`sec-six-systems`·`sec-plan90`). 반대로 합치면 micro 목차 링크가 죽는다.
 - **리포트 출력물(PDF·PPT)을 만들 때 유형 판별 분기를 새로 만들지 말 것.** `Dashboard.reportKind()`·`getReportContext()`가 기존 `_isSocialFd()`·`_orgKind()`·`bizScale`·`purpose` 판정과 섹션 라벨·영역 매핑을 그대로 넘겨준다. **AI 결과는 `render()`가 DOM에 밀어넣고 버리므로** `_lastData`에 보관된 것을 쓰고, 유형 전환 시 초기화되는지 반드시 확인할 것 — 이전 회사 데이터가 출력물에 섞이는 것이 최악이다
 - **조직 형태별 진단 모듈은 `_orgDiagModule(orgType)` 한 곳에서만 고른다.** 컨테이너 id·점수 키 접두어·영역 목록은 전부 모듈의 `KEY_PREFIX`·`DOMAINS`에서 파생시킨다 — 정규식이나 문자열을 하드코딩하면 모듈이 늘어날 때 매칭이 하나도 안 돼 **레이더차트가 조용히 비고 진행률이 틀린다**(사회적기업·소셜벤처 때 각각 겪음). dashboard는 `fd.orgDiagKeyPrefix`를 쓴다
 - **진단 결과 필드는 `orgPrompt`/`orgWarnings`를 쓴다.** `socialPrompt`/`socialWarnings`는 구 필드로 병행 유지 중이며 협동조합 작업 후 제거 예정 — 새 코드에서 쓰지 말 것
@@ -488,6 +492,11 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
 - ⚠ **주유소가 실제로 어떤 키로 분류되는지 미확인.** 5-1에서 분류 기준 문구를 `local_service` →
   `wholesale`로 옮겼으나 **AI가 반환하는 키를 실측하지 않았다.** `local_service`를 반환하면
   `beauty` 그룹(시술·예약) 문구를 그대로 받는다
+
+### sme 리포트 8섹션 — B단계 미완료
+- ⚠ **AI는 아직 13섹션분을 생성하고 화면은 8개만 쓴다**(2026-09-18 A단계 = 화면 구조만).
+  출력 스펙 정리는 B단계다. ⚠ **필드를 빼기 전에 소비처를 전수 확인할 것**(주의사항 ⑨) —
+  `leanCanvas`·`keyStrategies`·`kpi`·`roadmap`은 하위 블록으로 내려갔을 뿐 **여전히 렌더링된다.**
 
 ### 미연결·무효 코드
 - ⚠ **`bizmodel/` 12개 모듈 192문항이 전혀 렌더링되지 않는다.** CROSS_RULES 34개 중 21개가

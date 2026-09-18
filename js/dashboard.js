@@ -110,14 +110,16 @@ const Dashboard = (() => {
       </div>`).join('');
   }
 
+  /* ⚠ #sec-consulting은 2026-09-18부터 #sec-diag 카드 안의 하위 블록이다(최상위 섹션이 아니다).
+     반환값 = 이 블록에 내용이 있는가 — render()가 카드 표시 여부를 정하는 데 쓴다 */
   function renderSpecializedSection(data, fd) {
     const section = document.getElementById('sec-consulting');
-    if (!section) return;
+    if (!section) return false;
 
     const spec = data.specializedAnalysis;
     if (!spec || !spec.blocks || spec.blocks.length === 0) {
       section.style.display = 'none';
-      return;
+      return false;
     }
     section.style.display = '';
 
@@ -157,6 +159,7 @@ const Dashboard = (() => {
           <div class="spec-block-content">${(b.content || '').replace(/\n/g, '<br>')}</div>
         </div>`).join('');
     }
+    return true;
   }
 
   // ── 생애주기 진단 렌더링 (micro 전용) ────────────────────────
@@ -1273,18 +1276,17 @@ const Dashboard = (() => {
       { href: 'sec-plan90',        label: '90일 실행 계획' },
       { href: 'sec-gov',           label: '정부지원사업' },
     ] : [
-      { href: 'sec-summary',      label: 'Executive Summary' },
-      { href: 'sec-diag',         label: '경영 진단' },
-      { href: 'sec-consulting',   label: '유형별 특화 분석' },
-      { href: 'sec-swot',         label: 'SWOT 분석' },
-      { href: 'sec-stp',          label: 'STP 분석' },
-      { href: 'sec-4p',           label: '4P 마케팅' },
-      { href: 'sec-strategy',     label: '핵심 전략' },
-      { href: 'sec-kpi',          label: 'KPI 지표' },
-      { href: 'sec-roadmap',      label: '실행 로드맵' },
-      { href: 'sec-lean-canvas',  label: '린 캔버스' },
-      { href: 'sec-six-systems',  label: '6가지 시스템' },
-      { href: 'sec-plan90',       label: '90일 플랜' },
+      /* sme 8섹션 (2026-09-18) — 13섹션에서 통합.
+         라벨에 프레임워크 이름(SWOT·STP·4P·KPI)을 쓰지 않는다. 사장님이 읽는 질문으로 쓴다.
+         흡수 관계: 유형별 특화→sec-diag / 린캔버스→sec-stp / 6시스템→sec-six-systems(핵심전략과 합침)
+                    KPI·로드맵→sec-plan90 */
+      { href: 'sec-summary',      label: '한눈에 보기' },
+      { href: 'sec-diag',         label: '우리 회사 지금 상태' },
+      { href: 'sec-swot',         label: '강점과 약점' },
+      { href: 'sec-stp',          label: '누구에게 무엇을 팔 것인가' },
+      { href: 'sec-4p',           label: '어떻게 알릴 것인가' },
+      { href: 'sec-six-systems',  label: '무엇부터 할 것인가' },
+      { href: 'sec-plan90',       label: '90일 실행 계획' },
       { href: 'sec-gov',          label: '정부지원사업' },
     ];
 
@@ -1304,14 +1306,18 @@ const Dashboard = (() => {
   }
 
   // ── 6가지 시스템 섹션 렌더링 ─────────────────────────────────
+  /* ⚠ 2026-09-18 — 카드(#sec-six-systems) 전체가 아니라 하위 블록(#blk-six-sys)만 토글한다.
+     sme에서는 같은 카드 안에 핵심 전략(#sec-strategy)이 함께 들어 있어, 여기서 카드를 숨기면
+     6시스템이 없을 때 핵심 전략까지 통째로 사라진다. 카드 표시 여부는 render()가 정한다.
+     반환값 = 이 블록에 내용이 있는가 */
   function renderSixSystems(data) {
-    const section = document.getElementById('sec-six-systems');
-    const grid    = document.getElementById('sixSysGrid');
-    if (!section || !grid) return;
+    const block = document.getElementById('blk-six-sys');
+    const grid  = document.getElementById('sixSysGrid');
+    if (!block || !grid) return false;
 
     const systems = data.sixSystems;
-    if (!systems || systems.length === 0) { section.style.display = 'none'; return; }
-    section.style.display = '';
+    if (!systems || systems.length === 0) { block.style.display = 'none'; return false; }
+    block.style.display = '';
 
     const statusCls = s =>
       s === '강점' ? 'sys-status-strong' :
@@ -1333,17 +1339,20 @@ const Dashboard = (() => {
         </ol>
         ${sys.resource ? `<div class="sys-resource">📌 ${sys.resource}</div>` : ''}
       </div>`).join('');
+    return true;
   }
 
   // ── 90일 실행 플랜 섹션 렌더링 ───────────────────────────────
+  /* ⚠ renderSixSystems와 같은 이유로 하위 블록(#blk-plan90)만 토글한다.
+     sme 카드에는 KPI(#sec-kpi)·로드맵(#sec-roadmap)이 함께 들어 있다 */
   function renderPlan90(data) {
-    const section  = document.getElementById('sec-plan90');
+    const block    = document.getElementById('blk-plan90');
     const timeline = document.getElementById('plan90Timeline');
-    if (!section || !timeline) return;
+    if (!block || !timeline) return false;
 
     const plan = data.plan90days;
-    if (!plan || plan.length === 0) { section.style.display = 'none'; return; }
-    section.style.display = '';
+    if (!plan || plan.length === 0) { block.style.display = 'none'; return false; }
+    block.style.display = '';
 
     timeline.innerHTML = plan.map((month, i) => `
       <div class="plan90-month">
@@ -1366,6 +1375,7 @@ const Dashboard = (() => {
           </div>
         </div>
       </div>`).join('');
+    return true;
   }
 
   function renderGovSection(fd) {
@@ -1395,18 +1405,23 @@ const Dashboard = (() => {
       </div>`).join('');
   }
 
+  /* ⚠ 2026-09-18 — 카드(#sec-diag) 전체가 아니라 레이더 블록(.diag-dash-wrap)만 토글한다.
+     sme에서는 같은 카드 안에 유형별 특화 분석(#sec-consulting)이 함께 들어 있다.
+     카드 표시 여부는 render()가 두 블록 결과를 합쳐 정한다. 반환값 = 레이더에 내용이 있는가 */
   function renderDiagSection(fd) {
     const section = document.getElementById('sec-diag');
-    if (!section) return;
+    if (!section) return false;
+    const wrap = section.querySelector('.diag-dash-wrap');
     const diagScores = fd && fd.diagScores;
     const hasScores = diagScores && Object.keys(diagScores).filter(k => diagScores[k].score > 0).length > 0;
-    if (!hasScores) { section.style.display = 'none'; return; }
-    section.style.display = '';
+    if (!hasScores) { if (wrap) wrap.style.display = 'none'; return false; }
+    if (wrap) wrap.style.display = '';
 
     const scores = AIEngine.calcDiagScores(diagScores);
-    if (!scores) return;
+    if (!scores) return false;
     renderRadar(scores);
     renderWeakAreas(scores);
+    return true;
   }
 
   function renderRadar(scores) {
@@ -1607,6 +1622,11 @@ const Dashboard = (() => {
       if (el) el.style.display = isMicro ? 'none' : '';
     });
 
+    /* 요약 카드 복구 — renderSocial/renderFunding이 keep 화이트리스트로 전부 숨기므로
+       사회적경제·정책자금을 본 뒤 경영진단으로 돌아오면 이 카드가 숨은 채로 남는다 */
+    const sumCard = document.getElementById('sec-summary');
+    if (sumCard) sumCard.style.display = '';
+
     // micro 전용 섹션 — SME 모드에서 숨김 (렌더 함수가 세부 표시 제어)
     ['sec-lifecycle', 'sec-market-micro'].forEach(id => {
       const el = document.getElementById(id);
@@ -1625,11 +1645,20 @@ const Dashboard = (() => {
       if (el) el.style.display = 'none';
     });
 
-    // sec-six-systems 제목 micro vs SME
-    const sixSysTitle = document.querySelector('#sec-six-systems .sec-title h3');
-    if (sixSysTitle) sixSysTitle.textContent = isMicro ? '7대 영역 처방 (D1~D7)' : '도널드 밀러 6가지 비즈니스 시스템';
-    const sixSysBadge = document.querySelector('#sec-six-systems .badge');
-    if (sixSysBadge) sixSysBadge.textContent = isMicro ? '소상공인 7대 처방' : '사업 체질 개선';
+    /* 카드 제목 — sme는 8섹션 확정 라벨(목차와 같은 말), micro는 기존 문구 그대로 유지한다.
+       ⚠ micro 목차·화면은 불변이어야 하므로 micro 쪽 값은 전부 종전 문자열이다 */
+    const setTxt = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+    setTxt('summarySecTitle', isMicro ? 'Executive Summary' : '한눈에 보기');
+    setTxt('diagSecTitle',    isMicro ? '경영 진단 분석'    : '우리 회사 지금 상태');
+    setTxt('diagSecBadge',    isMicro ? '역량 진단'         : '진단 결과');
+    setTxt('sixSysSecTitle',  isMicro ? '7대 영역 처방 (D1~D7)' : '무엇부터 할 것인가');
+    setTxt('sixSysSecBadge',  isMicro ? '소상공인 7대 처방'     : '실행 우선순위');
+    setTxt('plan90SecTitle',  isMicro ? '90일 즉시 실행 플랜'   : '90일 실행 계획');
+    /* 통합 카드 안의 소제목은 sme에서만 보인다 — micro는 카드에 블록이 하나뿐이라 제목이 겹친다 */
+    ['blkSixSysTitle', 'blkPlan90Title'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isMicro ? 'none' : '';
+    });
     const sixSysIntro = document.querySelector('#sec-six-systems .six-sys-intro');
     if (sixSysIntro) sixSysIntro.textContent = isMicro
       ? '소상공인 7대 영역(D1~D7) 진단 결과에 따른 맞춤 처방입니다. 각 영역별 현재 상태와 즉시 실행 가능한 개선 액션을 제시합니다.'
@@ -1734,8 +1763,16 @@ const Dashboard = (() => {
         </div>`).join('');
     }
 
-    // 진단 분석 섹션 (레이더 차트 + 취약 배너)
-    renderDiagSection(fd);
+    /* ══ 통합 카드 3개의 표시 판정 ══
+       하위 블록 렌더 함수는 자기 블록만 토글하고 "내용이 있는가"를 돌려준다.
+       카드는 블록이 하나라도 살아 있을 때만 보인다 — 빈 카드도, 내용 있는 카드가
+       사라지는 일도 없게 하려는 것이다(2026-09-18 sme 13→8섹션 통합) */
+
+    // ② 우리 회사 지금 상태 = 경영 진단(레이더) + 유형별 특화 분석(sme)
+    const hasDiag = renderDiagSection(fd);
+    const hasSpec = !isMicro && renderSpecializedSection(data, fd);
+    const diagCard = document.getElementById('sec-diag');
+    if (diagCard) diagCard.style.display = (hasDiag || hasSpec) ? '' : 'none';
 
     // micro 전용 — 생애주기 진단 + 상권 STP/TAM/SAM/SOM
     if (isMicro) {
@@ -1743,17 +1780,27 @@ const Dashboard = (() => {
       renderMarketMicro(data);
     }
 
-    // 컨설팅 유형별 특화 분석 섹션 (소기업 모드)
-    if (!isMicro) renderSpecializedSection(data, fd);
-
-    // 린 캔버스 시각화 섹션 (소기업 모드 — micro에서는 AI가 생성하지 않음)
+    // ④ 린 캔버스는 sec-stp 카드 안의 하위 블록 (micro에서는 AI가 생성하지 않음)
     if (!isMicro) renderLeanCanvas(data, fd);
 
-    // 6가지 시스템 섹션 (양쪽 모드 모두)
-    renderSixSystems(data);
+    // ⑥ 무엇부터 할 것인가 = 핵심 전략(sme) + 6가지 시스템 / micro는 7대 영역 처방 단독
+    const hasSix   = renderSixSystems(data);
+    const hasStrat = !isMicro && !!(data.keyStrategies && data.keyStrategies.length);
+    const stratBlk = document.getElementById('sec-strategy');
+    if (stratBlk && !isMicro) stratBlk.style.display = hasStrat ? '' : 'none';
+    const sixCard = document.getElementById('sec-six-systems');
+    if (sixCard) sixCard.style.display = (hasSix || hasStrat) ? '' : 'none';
 
-    // 90일 실행 플랜 섹션 (양쪽 모드 모두)
-    renderPlan90(data);
+    // ⑦ 90일 실행 계획 = KPI + 실행 로드맵(sme) + 90일 플랜
+    const hasPlan = renderPlan90(data);
+    const hasKpi  = !isMicro && !!(data.kpi && data.kpi.length);
+    const hasRoad = !isMicro && !!(data.roadmap && data.roadmap.length);
+    const kpiBlk  = document.getElementById('sec-kpi');
+    const roadBlk = document.getElementById('sec-roadmap');
+    if (kpiBlk  && !isMicro) kpiBlk.style.display  = hasKpi  ? '' : 'none';
+    if (roadBlk && !isMicro) roadBlk.style.display = hasRoad ? '' : 'none';
+    const planCard = document.getElementById('sec-plan90');
+    if (planCard) planCard.style.display = (hasPlan || hasKpi || hasRoad) ? '' : 'none';
 
     // 정부지원사업 매칭 섹션
     renderGovSection(fd);
@@ -1796,7 +1843,9 @@ const Dashboard = (() => {
     // ③ 목차 클릭은 buildNav()에서 이미 처리됨
 
     // ④ 스크롤 스파이 — 이전 리스너 제거 후 재등록 (표시된 섹션만)
-    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-consulting','sec-swot','sec-stp','sec-4p','sec-strategy','sec-kpi','sec-roadmap','sec-lean-canvas','sec-six-systems','sec-plan90','sec-social-summary','sec-social-status','sec-social-mission','sec-social-revenue','sec-social-profit','sec-social-org','sec-social-system','sec-social-action','sec-gov','sec-funding-summary','sec-funding-agency','sec-funding-roadmap','sec-funding-docs'];
+    /* ⚠ 최상위 섹션 카드만 넣는다. sec-consulting·sec-strategy·sec-kpi·sec-roadmap·sec-lean-canvas는
+       2026-09-18부터 카드 안의 하위 블록이라 스크롤 스파이 대상이 아니다(목차에 대응 링크가 없다) */
+    const allSecIds = ['sec-summary','sec-lifecycle','sec-market-micro','sec-diag','sec-swot','sec-stp','sec-4p','sec-six-systems','sec-plan90','sec-social-summary','sec-social-status','sec-social-mission','sec-social-revenue','sec-social-profit','sec-social-org','sec-social-system','sec-social-action','sec-gov','sec-funding-summary','sec-funding-agency','sec-funding-roadmap','sec-funding-docs'];
     const secIds = allSecIds.filter(id => {
       const el = document.getElementById(id);
       return el && el.style.display !== 'none';

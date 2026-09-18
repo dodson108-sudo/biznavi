@@ -98,6 +98,15 @@
   border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:.5px;
 }
 
+/* ===== 통합 카드 안의 하위 블록 =====
+   sme 리포트를 13섹션 → 8섹션으로 합치면서 생긴 구조(2026-09-18).
+   카드(.section-card) 안에 블록을 중첩하되 카드-속-카드로 보이지 않게 배경 없이 구분선만 쓴다 */
+.sub-block{margin-top:26px;padding-top:22px;border-top:1px solid rgba(255,255,255,.07)}
+/* 카드 제목 바로 다음 블록은 구분선이 겹치므로 뺀다 (.sec-title에 이미 아래 테두리가 있다) */
+.sec-title + .sub-block{margin-top:0;padding-top:0;border-top:0}
+.sub-title{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sub-title h4{font-size:14.5px;font-weight:700;color:var(--gold);margin:0}
+
 /* ===== Executive Summary ===== */
 .exec{font-size:14px;line-height:1.95;color:var(--txt2)}
 .exec strong{color:var(--txt)}
@@ -745,7 +754,8 @@
   .reveal{opacity:1!important;transform:none!important}
   *{animation:none!important;transition:none!important}
   /* 자연스러운 페이지 나눔 */
-  #sec-diag,#sec-swot,#sec-stp,#sec-strategy{page-break-before:always;padding-top:12px!important}
+  /* ⚠ 최상위 섹션 카드만 — sec-strategy는 하위 블록이 되어 제외했다(2026-09-18) */
+  #sec-diag,#sec-swot,#sec-stp,#sec-4p{page-break-before:always;padding-top:12px!important}
   .diag-radar-wrap{display:none!important}
 }
 
