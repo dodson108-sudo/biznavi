@@ -2745,14 +2745,31 @@ const Wizard = (() => {
     });
   }
 
+  /* 이번 경로에서 유효한 점수 키인지 — 활성 컨테이너 접두어 기준.
+     진행률 분자(_countDoneScores)와 같은 기준을 쓴다. 기준이 갈리면
+     "100% 응답인데 AI에는 일부만 가는" 어긋남이 생긴다.
+     ⚠ 활성 목록이 비어 있으면(loadDiagnosisUI 미실행) 좁힐 근거가 없으므로 전부 통과시킨다
+        — 여기서 {}를 반환하면 점수가 통째로 사라진다 */
+  function _isActiveScoreKey(k) {
+    if (!_activeContainers.length) return true;
+    return _activeContainers.some(c => k.indexOf(c + '_') === 0);
+  }
+
   /* 전체 진단 점수를 { 'diag-xxx-container_1_2': 3, ... } 평면 숫자 맵으로 수집.
      ⚠ 점수는 DOM이 아니라 diagScores 객체에만 존재한다.
         querySelectorAll('[id^="diag-"]') 방식은 값을 가진 요소가 없어 항상 빈 객체를 반환하므로 금지.
      DiagMicro.calcScores / DiagSme.calcScores / CrossContext.buildScoreMap 모두
-     Number(val) 평면값을 기대하므로 {score, memo} 객체가 아닌 숫자만 담는다. */
+     Number(val) 평면값을 기대하므로 {score, memo} 객체가 아닌 숫자만 담는다.
+     ⚠ 활성 컨테이너 접두어로 한정한다 — 경로가 바뀌어도 reset()을 거치지 않는 흐름이
+        있어(step1에서 직원 수 수정 → analyzeBiz() 재실행) diagScores에 이전 경로 점수가
+        남는다. CrossContext는 접두어 무관으로 전 키를 훑으므로 교차 경고가 오발동한다.
+        diagScores 자체는 지우지 않는다(응답 손실 위험) — 읽는 쪽에서 좁힌다.
+     ⚠ 주 진단 + 업종 특화(diag-industry-container_) 두 컨테이너가 활성이다.
+        keyPrefix 하나로 필터하면 업종 특화 16문항이 AI에 가지 않는다. */
   function collectAllScores() {
     const all = {};
     Object.keys(diagScores || {}).forEach(k => {
+      if (!_isActiveScoreKey(k)) return;
       const s = Number(diagScores[k]?.score || 0);
       if (s > 0) all[k] = s;
     });
@@ -2979,10 +2996,13 @@ const Wizard = (() => {
     /* 응답자 메모 — 점수만으로 알 수 없는 현장 맥락.
        ⚠ collectAllScores()의 평면 숫자 계약을 건드리지 않기 위해 별도 맵으로 넘긴다
           (DiagMicro.calcScores·CrossContext.buildScoreMap이 숫자만 기대한다).
-       ⚠ 빈 메모는 담지 않는다. 하나도 없으면 undefined를 넘겨 블록 자체가 생략된다. */
+       ⚠ 빈 메모는 담지 않는다. 하나도 없으면 undefined를 넘겨 블록 자체가 생략된다.
+       ⚠ 점수와 같은 활성 컨테이너 기준으로 한정한다 — 이전 경로의 메모가 남아 있으면
+          응답한 적 없는 문항의 메모가 AI 프롬프트에 섞인다. */
     const allMemos = (function () {
       const m = {};
       Object.keys(diagScores || {}).forEach(function (k) {
+        if (!_isActiveScoreKey(k)) return;
         const t = String((diagScores[k] && diagScores[k].memo) || diagMemos[k] || '').trim();
         if (t) m[k] = t;
       });

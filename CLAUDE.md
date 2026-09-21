@@ -12,7 +12,7 @@
   잘못 적혀 있었다). **"300초까지 여유 있다"고 오판하지 마라** — AI 호출 소요 시간을 늘리는
   변경은 전부 이 60초에 걸린다. 과거 92초·141초 초과 사고가 모두 이 상한이었다.
 - **브랜치**: `main` (단일 브랜치 운영)
-- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260918i`
+- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20260921a`
 
 ---
 
@@ -257,6 +257,11 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   ⚠ 메모를 평면 맵에 섞으면 `Number()` 소비처에서 **전 항목 `NaN`**이 된다(2026-09-17 실제 사고).
   ⚠ 현재 메모 인자를 받는 모듈: `DiagMicro`(3번째) · `DiagSocial`·`DiagVenture`·`DiagCoop`(2번째) ·
     `DiagCommon`(3번째, 2번째는 **업종 키**다 — 그룹이 아니다).
+  ⚠ **`collectAllScores()`는 `_activeContainers` 접두어로 한정된다**(2026-09-21). `reset()`을 거치지
+    않는 재진단 흐름의 잔존 점수를 막기 위한 것이며, **주 진단 + `diag-industry-container_` 두
+    컨테이너가 활성**이다 — `keyPrefix` 하나로 좁히면 업종 특화 16문항이 AI에 가지 않는다.
+    판정은 `_isActiveScoreKey()` 한 곳이고 메모 수집도 같은 판정을 쓴다.
+    활성 목록이 비면 좁히지 않는다(전부 통과) — `{}`를 반환하면 점수가 통째로 사라진다.
 - **AI에 넘기는 요약에서 응답자 메모는 맨 앞에 둔다.** 요약 앞부분만 잘라 쓰는 후속 호출 경로가 있어
   (`microPrompt.substring(0, 500)`) 뒤에 두면 통째로 사라진다. **"메모를 우선하라"는 지시문도
   메모 블록 안에 둔다** — 밖에 두면 메모가 없는 사용자에게도 나가 모델이 없는 메모를 근거로 서술한다
@@ -550,9 +555,10 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
   90일플랜이 진단 점수와 무관하게 작성될 수 있다. **넣을지 여부 판단이 선행되어야 한다**
 - ⚠ **구 필드 `socialPrompt`/`socialWarnings` 제거 대기.** `orgPrompt`/`orgWarnings`로 대체됐고
   회귀 방지를 위해 병행 유지 중이다. **새 코드에서는 `orgPrompt`/`orgWarnings`만 쓸 것**
-- ⚠ **잔존 `diagScores`가 AI로 전달될 수 있다.** 경로가 바뀌는데 `reset()`을 거치지 않는 흐름이 있다
-  (step1에서 직원 수 수정 → `analyzeBiz()` 재실행). `CrossContext`는 접두어 무관으로 전 키를 훑으므로
-  교차 경고가 오발동할 수 있다. **삭제하지 말고 `collectAllScores()`가 활성 접두어만 반환하도록 좁힐 것**
+- ⚠ **`dashboard.js`가 `diagScores`를 자체적으로 평면 맵으로 만든다** — `collectAllScores()`를
+  쓰지 않으므로 **잔존 키 노출 경로가 여기에 남아 있다**(2026-09-21에 wizard 쪽만 좁혔다).
+  `_isActiveScoreKey`는 wizard 내부 상태(`_activeContainers`)에 의존하므로, 공유하려면
+  `collect()`가 활성 컨테이너 목록을 `data`에 실어 보내는 편이 맞다
 - ⚠ **PDF 빈 페이지 재현 조건 미확보.** `#sec-six-systems`의 `break-before: page`,
   `.print-cover`의 `break-after`와 연속 페이지 나눔이 후보다. **어느 리포트 유형의 몇 번째 페이지가
   비는지 확인한 뒤 진행할 것** — 추정으로 고치면 오진이 기록에 남는다

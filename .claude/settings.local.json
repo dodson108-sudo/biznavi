@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node verify-common-memo.js \"C:/Users/user/OneDrive/Desktop/경영지도사/biznavi\")",
+      "Bash(node -e ' *)",
+      "Bash(node --check js/dashboard.js)"
     ]
   }
 }
