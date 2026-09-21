@@ -18,9 +18,22 @@
 
 const PptExport = (() => {
 
-  /* ── 밝은 테마 팔레트 ── */
-  const FONT   = '맑은 고딕';
-  const C = {
+  /* ══════════════════ 색 체계 ══════════════════
+     ⚠ 색은 팔레트 객체에만 정의한다. 슬라이드 코드에 16진 색상을 직접 쓰지 마라.
+        팔레트를 바꿨는데 일부 슬라이드만 옛 색으로 남는 것을 막기 위한 것이다.
+
+     ⚠ 팔레트가 둘인 이유 — 유형별 전환 중이기 때문이다.
+        `LEGACY`는 micro·사회적경제·정책자금이 쓰던 기존 색이고 출력이 바뀌면 안 된다.
+        `THEME`은 새 색 체계이며 **현재 sme 경로만** 쓴다(2026-09-21, 1단계).
+        2·3단계에서 나머지 유형을 THEME으로 옮기면 LEGACY는 삭제한다.
+
+     ⚠ 슬라이드 헬퍼는 전부 활성 팔레트 `TH`만 참조한다 — `LEGACY`/`THEME`을
+        직접 참조하지 마라. 헬퍼가 한쪽을 직접 붙잡으면 유형 전환이 그 헬퍼에서만
+        일어나지 않아 한 장만 색이 다른 슬라이드가 나온다. */
+  const FONT = '맑은 고딕';
+
+  /* 기존 팔레트 — micro·사회적경제·정책자금 (출력 불변) */
+  const LEGACY = {
     bg:      'FFFFFF',
     title:   '1A2340',   // 진한 남색
     body:    '333333',   // 진한 회색
@@ -32,8 +45,48 @@ const PptExport = (() => {
     medium:  '7F8C8D',   // 회색
     ok:      '27AE60',
     panel:   'F5F6F8',
+    band:    false,      // 본문 슬라이드 상단 남색 띠 사용 여부
   };
-  const LEVEL_COLOR = { CRITICAL: C.critical, HIGH: C.high, MEDIUM: C.medium };
+
+  /* 새 색 체계 — 주색(남색) · 보조색(금색) · 신호색(빨강·주황·초록) · 흰 배경
+     ⚠ 신뢰감이 목적이다. 채도 높은 원색을 쓰지 않는다 —
+        빨강은 벽돌색, 주황은 황토색, 초록은 짙은 녹색으로 낮춰 잡았다.
+     ⚠ 금색이 둘이다. 흰 배경 위(`accent`)와 남색 위(`gold`)는 같은 색을 쓸 수 없다 —
+        하나로 통일하면 한쪽에서 반드시 읽히지 않는다. */
+  const THEME = {
+    /* 주색 — 제목·표지 배경·상단 띠 */
+    navy:      '16233F',
+    navyMid:   '24365C',   // 표지 점수 패널 등 남색 위의 한 단계 밝은 면
+    onNavy:    'FFFFFF',   // 남색 위 본문
+    onNavyDim: 'AEB9D2',   // 남색 위 보조 텍스트
+    gold:      'E0BC5E',   // 남색 위 금색 — 핵심 숫자·강조
+
+    /* 공통 키 — LEGACY와 키 이름이 같아야 헬퍼가 그대로 동작한다 */
+    bg:      'FFFFFF',
+    title:   '16233F',   // 주색(남색)
+    body:    '2E3440',
+    muted:   '6B7280',
+    rule:    'D9DEE8',
+    accent:  'A8801F',   // 흰 배경 위 금색 — 핵심 숫자·강조
+    critical:'B03A2E',   // 신호 — 위험(빨강)
+    high:    'C0781F',   // 신호 — 취약(주황)
+    medium:  '7A8290',   // 신호 — 중립(회색)
+    ok:      '1E8449',   // 신호 — 양호(초록)
+    panel:   'F4F6FA',
+    band:    true,
+  };
+
+  /* 활성 팔레트 — download()가 유형에 따라 갈아끼운다 */
+  let TH = LEGACY;
+  function _useTheme(p) { TH = p; }
+
+  /* ⚠ 상수가 아니라 함수다. 상수로 두면 모듈 로드 시점의 팔레트가 박혀
+        나중에 팔레트를 바꿔도 경고 배지만 옛 색으로 남는다 */
+  function _levelColor(lv) {
+    return lv === 'CRITICAL' ? TH.critical
+         : lv === 'HIGH'     ? TH.high
+         : lv === 'MEDIUM'   ? TH.medium : TH.medium;
+  }
 
   /* 슬라이드 좌표 (16:9, 10 x 5.63 inch) */
   const M = { x: 0.55, w: 8.9, titleY: 0.42, bodyY: 1.15 };
@@ -81,22 +134,45 @@ const PptExport = (() => {
     return null;
   }
 
-  /* ══════════════════ 슬라이드 헬퍼 ══════════════════ */
+  /* ══════════════════ 슬라이드 헬퍼 ══════════════════
+     ⚠ 본문 상단 처리는 팔레트의 `band` 하나로만 갈린다. 빌더에서 유형을 보고
+        띠를 그리지 마라 — 새 슬라이드를 추가할 때 띠를 빠뜨린 장이 섞인다. */
   function _newSlide(pptx, title, badge) {
     _clippedInSlide = false;
     const s = pptx.addSlide();
-    s.background = { color: C.bg };
+    s.background = { color: TH.bg };
+
+    if (TH.band) {
+      /* 상단 남색 띠 + 금색 밑줄. 띠는 슬라이드 폭을 꽉 채운다(여백 M.x를 무시).
+         ⚠ 좌표는 슬라이드 원점 기준이다 — LAYOUT_16x9는 10 x 5.63 inch */
+      const bh = badge ? 0.94 : 0.80;
+      s.addShape('rect', { x: 0, y: 0, w: 10, h: bh, fill: { color: TH.navy } });
+      s.addShape('rect', { x: 0, y: bh, w: 10, h: 0.05, fill: { color: TH.gold } });
+      s.addText(_clip(title, LIMIT.title), {
+        x: M.x, y: badge ? 0.14 : 0.19, w: M.w, h: 0.44,
+        fontFace: FONT, fontSize: 21, bold: true, color: TH.onNavy,
+      });
+      if (badge) {
+        s.addText(_clip(badge, 30), {
+          x: M.x, y: 0.58, w: M.w, h: 0.26,
+          fontFace: FONT, fontSize: 10, color: TH.onNavyDim,
+        });
+      }
+      s._bodyTop = bh + 0.30;
+      return s;
+    }
+
     s.addText(_clip(title, LIMIT.title), {
       x: M.x, y: M.titleY, w: M.w, h: 0.45,
-      fontFace: FONT, fontSize: 22, bold: true, color: C.title,
+      fontFace: FONT, fontSize: 22, bold: true, color: TH.title,
     });
     if (badge) {
       s.addText(_clip(badge, 30), {
         x: M.x, y: 0.9, w: M.w, h: 0.24,
-        fontFace: FONT, fontSize: 10, color: C.muted,
+        fontFace: FONT, fontSize: 10, color: TH.muted,
       });
     }
-    s.addShape('rect', { x: M.x, y: badge ? 1.18 : 0.92, w: M.w, h: 0.02, fill: { color: C.rule } });
+    s.addShape('rect', { x: M.x, y: badge ? 1.18 : 0.92, w: M.w, h: 0.02, fill: { color: TH.rule } });
     s._bodyTop = badge ? 1.36 : 1.10;
     return s;
   }
@@ -109,7 +185,7 @@ const PptExport = (() => {
     if (!parts.length) return;
     s.addText('※ ' + parts.join(' · ') + ' — 상세는 전체 리포트를 참조하십시오', {
       x: M.x, y: 5.05, w: M.w, h: 0.28,
-      fontFace: FONT, fontSize: 9, color: C.muted, italic: true,
+      fontFace: FONT, fontSize: 9, color: TH.muted, italic: true,
     });
   }
 
@@ -124,16 +200,16 @@ const PptExport = (() => {
       const y = top + i * h;
       s.addShape('ellipse', {
         x: M.x, y: y + 0.08, w: 0.13, h: 0.13,
-        fill: { color: it.color || C.accent },
+        fill: { color: it.color || TH.accent },
       });
       s.addText(_clip(it.t, LIMIT.line), {
         x: M.x + 0.28, y: y, w: M.w - 0.28, h: 0.3,
-        fontFace: FONT, fontSize: 13, bold: true, color: C.title,
+        fontFace: FONT, fontSize: 13, bold: true, color: TH.title,
       });
       if (it.sub) {
         s.addText(_clip(it.sub, LIMIT.para), {
           x: M.x + 0.28, y: y + 0.3, w: M.w - 0.28, h: 0.36,
-          fontFace: FONT, fontSize: 11, color: C.body,
+          fontFace: FONT, fontSize: 11, color: TH.body,
         });
       }
     });
@@ -144,30 +220,30 @@ const PptExport = (() => {
   function _scoreTable(s, rows, opt) {
     const o = opt || {};
     const body = rows.slice(0, o.max || 8).map(r => ([
-      { text: _clip(r[0], 34), options: { fontFace: FONT, fontSize: 11, color: C.body } },
-      { text: r[1], options: { fontFace: FONT, fontSize: 11, bold: true, color: r[3] || C.title, align: 'center' } },
-      { text: r[2], options: { fontFace: FONT, fontSize: 10, color: C.muted, align: 'center' } },
+      { text: _clip(r[0], 34), options: { fontFace: FONT, fontSize: 11, color: TH.body } },
+      { text: r[1], options: { fontFace: FONT, fontSize: 11, bold: true, color: r[3] || TH.title, align: 'center' } },
+      { text: r[2], options: { fontFace: FONT, fontSize: 10, color: TH.muted, align: 'center' } },
     ]));
     s.addTable(
       [[
-        { text: '영역',  options: { fontFace: FONT, fontSize: 10, bold: true, color: C.title } },
-        { text: '점수',  options: { fontFace: FONT, fontSize: 10, bold: true, color: C.title, align: 'center' } },
-        { text: '수준',  options: { fontFace: FONT, fontSize: 10, bold: true, color: C.title, align: 'center' } },
+        { text: '영역',  options: { fontFace: FONT, fontSize: 10, bold: true, color: TH.title } },
+        { text: '점수',  options: { fontFace: FONT, fontSize: 10, bold: true, color: TH.title, align: 'center' } },
+        { text: '수준',  options: { fontFace: FONT, fontSize: 10, bold: true, color: TH.title, align: 'center' } },
       ]].concat(body),
       {
         x: o.x != null ? o.x : M.x, y: o.y != null ? o.y : s._bodyTop,
         w: o.w != null ? o.w : M.w,
         colW: o.colW || [(o.w || M.w) - 2.0, 1.0, 1.0],
-        border: { pt: 0.5, color: C.rule },
-        fill: { color: C.bg },
+        border: { pt: 0.5, color: TH.rule },
+        fill: { color: TH.bg },
         rowH: 0.28,
       }
     );
   }
 
   function _levelOf(avg) {
-    return avg >= 4 ? ['강점', C.ok] : avg >= 3 ? ['보통', C.title]
-         : avg >= 2 ? ['취약', C.high] : avg > 0 ? ['위험', C.critical] : ['미입력', C.muted];
+    return avg >= 4 ? ['강점', TH.ok] : avg >= 3 ? ['보통', TH.title]
+         : avg >= 2 ? ['취약', TH.high] : avg > 0 ? ['위험', TH.critical] : ['미입력', TH.muted];
   }
 
   /* Executive Summary — [레이블] 단락 분해 */
@@ -181,30 +257,134 @@ const PptExport = (() => {
     }).filter(x => x && x.sub);
   }
 
+  /* 핵심 결론 한 줄 — executiveSummary의 첫 문장.
+     ⚠ `[레이블]` 머리표는 지운다. 표지에 '[진단 요약]'이 그대로 나오면 안 된다.
+     ⚠ 한국어 문장은 '다.'로 끝나는 경우가 대부분이라 마침표를 경계로 잡는다.
+        소수점(3.4)·약자(Q.C.)가 걸리지 않도록 마침표 뒤에 공백이나 문자열 끝을
+        전방탐색으로 요구한다 — 한글 뒤에서는 `\b`가 절대 매치되지 않는다(주의사항 ①) */
+  function _firstSentence(raw, max) {
+    const t = _plain(raw).replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!t) return '';
+    const m = t.match(/^[\s\S]*?[.!?](?=\s|$)/);
+    return _clip(m ? m[0] : t, max || 120);
+  }
+
+  /* 표지 종합 점수 — sme
+     ⚠ 새로 계산하지 않는다. 화면이 쓰는 값(`fd.domainScores`의 5대 역량 avg)을
+        그대로 평균한다. 이 값은 진단 결과 화면의 막대(#drScoreList)·레이더차트·
+        대시보드 점수 pill이 표시하는 것과 같은 숫자다.
+     ⚠ **5점 만점으로 표시한다.** sme 화면에는 100점 만점 종합 점수가 없다 —
+        `fd.scaleScores`는 sme에서 항상 비어 있다(DiagSme가 렌더링되지 않아
+        wizard의 접두어 가드에 걸린다). 100점으로 환산하면 화면 어디에도 없는
+        숫자가 표지에 대문짝만하게 실린다.
+     ⚠ 0점(미응답) 영역은 평균에서 뺀다 — `classifyConsultingType`이 쓰는 규칙과
+        같게 맞춘 것이다. 다르게 잡으면 표지 점수와 컨설팅 유형이 서로 다른
+        모집단을 근거로 하게 된다. */
+  function _smeOverall(fd) {
+    const ds = (fd && fd.domainScores) || {};
+    const vals = Object.keys(ds)
+      .map(k => Number((ds[k] && ds[k].avg) || 0))
+      .filter(v => v > 0);
+    if (!vals.length) return null;
+    return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+  }
+
+  /* ── sme 표지 ──
+     남색 블록(상단 3.85in) 안에 회사명·유형·진단일·종합 점수·핵심 결론을 모두 담고,
+     아래 흰 영역에는 면책 문구만 둔다. */
+  function _smeCover(pptx, ctx) {
+    const fd = ctx.fd || {}, d = ctx.data || {};
+    _clippedInSlide = false;
+    const s = pptx.addSlide();
+    s.background = { color: TH.bg };
+
+    const BH = 3.85;
+    s.addShape('rect', { x: 0, y: 0, w: 10, h: BH, fill: { color: TH.navy } });
+    s.addShape('rect', { x: 0, y: BH, w: 10, h: 0.06, fill: { color: TH.gold } });
+
+    s.addText('BizNavi AI', {
+      x: M.x, y: 0.42, w: 4.5, h: 0.3,
+      fontFace: FONT, fontSize: 12, bold: true, color: TH.gold, charSpacing: 3,
+    });
+    s.addText(_clip(fd.companyName || 'BizNavi', 26), {
+      x: M.x, y: 0.86, w: 5.6, h: 0.8,
+      fontFace: FONT, fontSize: 36, bold: true, color: TH.onNavy, valign: 'top',
+    });
+    s.addText('경영전략 분석 보고서   ·   소기업·중소기업', {
+      x: M.x, y: 1.72, w: 5.6, h: 0.3,
+      fontFace: FONT, fontSize: 13, color: TH.onNavyDim,
+    });
+    s.addText('진단일  ' + _dateKr(), {
+      x: M.x, y: 2.04, w: 5.6, h: 0.28,
+      fontFace: FONT, fontSize: 11, color: TH.onNavyDim,
+    });
+
+    /* 종합 점수 패널 — 점수가 없으면 숫자 대신 미입력 안내를 둔다.
+       ⚠ 0.0을 크게 띄우면 '진단 결과가 0점'으로 읽힌다 */
+    const score = _smeOverall(fd);
+    const PX = 6.35, PW = 3.1;
+    s.addShape('rect', { x: PX, y: 0.72, w: PW, h: 1.95, fill: { color: TH.navyMid } });
+    if (score != null) {
+      s.addText(score.toFixed(1), {
+        x: PX, y: 0.92, w: PW, h: 0.9,
+        fontFace: FONT, fontSize: 52, bold: true, color: TH.gold, align: 'center',
+      });
+      s.addText('/ 5.0', {
+        x: PX, y: 1.85, w: PW, h: 0.3,
+        fontFace: FONT, fontSize: 14, color: TH.onNavyDim, align: 'center',
+      });
+      s.addText('5대 역량 종합 (5점 만점)', {
+        x: PX, y: 2.22, w: PW, h: 0.3,
+        fontFace: FONT, fontSize: 10, color: TH.onNavyDim, align: 'center',
+      });
+    } else {
+      s.addText('진단 점수\n미입력', {
+        x: PX, y: 1.25, w: PW, h: 0.9,
+        fontFace: FONT, fontSize: 18, bold: true, color: TH.onNavyDim, align: 'center',
+      });
+    }
+
+    /* 핵심 결론 한 줄 — 없으면 영역 자체를 비운다(빈 따옴표만 남기지 않는다) */
+    const lead = _firstSentence(d.executiveSummary, 110);
+    if (lead) {
+      s.addShape('rect', { x: M.x, y: 2.86, w: 0.05, h: 0.62, fill: { color: TH.gold } });
+      s.addText(lead, {
+        x: M.x + 0.22, y: 2.84, w: M.w - 0.22, h: 0.66,
+        fontFace: FONT, fontSize: 14, color: TH.onNavy, valign: 'top',
+      });
+    }
+
+    s.addText('본 자료는 진단 응답을 기반으로 자동 생성되었습니다. 최종 판단은 전문가 상담을 거치시기 바랍니다.', {
+      x: M.x, y: 4.95, w: M.w, h: 0.3,
+      fontFace: FONT, fontSize: 9, color: TH.muted, italic: true,
+    });
+    return s;
+  }
+
   /* ══════════════════ 공통 슬라이드 ══════════════════ */
   function _cover(pptx, title, org, sub) {
     const s = pptx.addSlide();
-    s.background = { color: C.bg };
+    s.background = { color: TH.bg };
     s.addText('BizNavi AI', {
       x: M.x, y: 1.5, w: M.w, h: 0.36,
-      fontFace: FONT, fontSize: 14, bold: true, color: C.accent, charSpacing: 2,
+      fontFace: FONT, fontSize: 14, bold: true, color: TH.accent, charSpacing: 2,
     });
-    s.addShape('rect', { x: M.x, y: 1.95, w: 2.2, h: 0.03, fill: { color: C.accent } });
+    s.addShape('rect', { x: M.x, y: 1.95, w: 2.2, h: 0.03, fill: { color: TH.accent } });
     s.addText(_clip(title, 40), {
       x: M.x, y: 2.2, w: M.w, h: 0.7,
-      fontFace: FONT, fontSize: 32, bold: true, color: C.title,
+      fontFace: FONT, fontSize: 32, bold: true, color: TH.title,
     });
     s.addText(_clip(org || 'BizNavi', 40), {
       x: M.x, y: 3.0, w: M.w, h: 0.45,
-      fontFace: FONT, fontSize: 18, color: C.body,
+      fontFace: FONT, fontSize: 18, color: TH.body,
     });
     s.addText(_clip(sub, 60), {
       x: M.x, y: 3.5, w: M.w, h: 0.3,
-      fontFace: FONT, fontSize: 12, color: C.muted,
+      fontFace: FONT, fontSize: 12, color: TH.muted,
     });
     s.addText('본 자료는 진단 응답을 기반으로 자동 생성되었습니다. 최종 판단은 전문가 상담을 거치시기 바랍니다.', {
       x: M.x, y: 4.9, w: M.w, h: 0.3,
-      fontFace: FONT, fontSize: 9, color: C.muted, italic: true,
+      fontFace: FONT, fontSize: 9, color: TH.muted, italic: true,
     });
     return s;
   }
@@ -237,7 +417,7 @@ const PptExport = (() => {
       sub: '[' + _plain(p.org) + '] ' + _plain(p.supportType || p.amount || ''),
     })), { max: 5, rowH: 0.66 });
     s.addText('※ 지원 규모·마감일은 매년 변경됩니다. 신청 전 주관기관 공고를 확인하십시오.', {
-      x: M.x, y: 4.75, w: M.w, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted, italic: true,
+      x: M.x, y: 4.75, w: M.w, h: 0.3, fontFace: FONT, fontSize: 9, color: TH.muted, italic: true,
     });
     return s;
   }
@@ -263,7 +443,7 @@ const PptExport = (() => {
       const s = _newSlide(pptx, '우리 가게 지금 단계', '생애주기 진단');
       s.addText(_clip(_plain(d.lifecycleStage), LIMIT.para * 2), {
         x: M.x, y: s._bodyTop, w: M.w, h: 2.0,
-        fontFace: FONT, fontSize: 14, color: C.body, valign: 'top',
+        fontFace: FONT, fontSize: 14, color: TH.body, valign: 'top',
       });
       _footNote(s);
     }
@@ -306,21 +486,21 @@ const PptExport = (() => {
     const colW = M.w / 3;
     rows.forEach(function (m, i) {
       const x = M.x + i * colW;
-      s.addShape('rect', { x: x, y: s._bodyTop, w: colW - 0.15, h: 0.44, fill: { color: C.panel } });
+      s.addShape('rect', { x: x, y: s._bodyTop, w: colW - 0.15, h: 0.44, fill: { color: TH.panel } });
       s.addText(_clip((m.month || (i + 1)) + '개월차', 12), {
         x: x + 0.12, y: s._bodyTop + 0.06, w: colW - 0.35, h: 0.32,
-        fontFace: FONT, fontSize: 12, bold: true, color: C.title });
+        fontFace: FONT, fontSize: 12, bold: true, color: TH.title });
       s.addText(_clip(_plain(m.focus || m.goal || ''), 44), {
         x: x, y: s._bodyTop + 0.58, w: colW - 0.15, h: 0.5,
-        fontFace: FONT, fontSize: 11, bold: true, color: C.accent, valign: 'top' });
+        fontFace: FONT, fontSize: 11, bold: true, color: TH.accent, valign: 'top' });
       const tasks = (m.actions || m.tasks || []).slice(0, 4)
         .map(function (t) { return '· ' + _clip(_plain(t.action || t.task || t), 36); }).join('\n');
       s.addText(tasks || '—', { x: x, y: s._bodyTop + 1.12, w: colW - 0.15, h: 2.0,
-        fontFace: FONT, fontSize: 10, color: C.body, valign: 'top' });
+        fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
       if (m.support || m.govSupport) {
         s.addText('지원: ' + _clip(_plain(m.support || m.govSupport), 30), {
           x: x, y: s._bodyTop + 3.2, w: colW - 0.15, h: 0.3,
-          fontFace: FONT, fontSize: 9, color: C.muted });
+          fontFace: FONT, fontSize: 9, color: TH.muted });
       }
     });
     _footNote(s, (plan || []).length > 3 ? '전체 ' + plan.length + '개월 중 3개월만 표시' : '');
@@ -330,7 +510,7 @@ const PptExport = (() => {
   /* ── 중소기업 (sme) — 12장 ── */
   function _buildSme(pptx, ctx) {
     const fd = ctx.fd, d = ctx.data || {};
-    _cover(pptx, '경영전략 분석 보고서', fd.companyName, _dateKr() + ' · 소기업·중소기업');
+    _smeCover(pptx, ctx);
 
     const ex = _execBlocks(d.executiveSummary);
     if (ex.length) {
@@ -344,8 +524,8 @@ const PptExport = (() => {
 
     if (d.swot) {
       const s = _newSlide(pptx, 'SWOT 분석', '각 3개 · 상세는 리포트 참조');
-      const q = [['강점 (S)', d.swot.strengths, C.ok], ['약점 (W)', d.swot.weaknesses, C.critical],
-                 ['기회 (O)', d.swot.opportunities, C.title], ['위협 (T)', d.swot.threats, C.high]];
+      const q = [['강점 (S)', d.swot.strengths, TH.ok], ['약점 (W)', d.swot.weaknesses, TH.critical],
+                 ['기회 (O)', d.swot.opportunities, TH.title], ['위협 (T)', d.swot.threats, TH.high]];
       q.forEach((qq, i) => {
         const col = i % 2, row = Math.floor(i / 2);
         const x = M.x + col * (M.w / 2), y = s._bodyTop + row * 1.85;
@@ -353,7 +533,7 @@ const PptExport = (() => {
           fontFace: FONT, fontSize: 12, bold: true, color: qq[2] });
         const arr = (qq[1] || []).slice(0, 3).map(v => '· ' + _clip(_swotText(v), 46)).join('\n');
         s.addText(arr || '—', { x: x, y: y + 0.3, w: M.w / 2 - 0.2, h: 1.4,
-          fontFace: FONT, fontSize: 10, color: C.body, valign: 'top' });
+          fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
       });
       _footNote(s);
     }
@@ -406,13 +586,13 @@ const PptExport = (() => {
       const colW = M.w / Math.min(rm.length, 3);
       rm.slice(0, 3).forEach((p, i) => {
         const x = M.x + i * colW;
-        s.addShape('rect', { x: x, y: s._bodyTop, w: colW - 0.15, h: 0.42, fill: { color: C.panel } });
+        s.addShape('rect', { x: x, y: s._bodyTop, w: colW - 0.15, h: 0.42, fill: { color: TH.panel } });
         s.addText(_clip(_plain(p.phase || p.title || ('' + (i + 1) + '단계')), 24), {
           x: x + 0.1, y: s._bodyTop + 0.04, w: colW - 0.35, h: 0.34,
-          fontFace: FONT, fontSize: 12, bold: true, color: C.title });
+          fontFace: FONT, fontSize: 12, bold: true, color: TH.title });
         const tasks = (p.tasks || p.items || []).slice(0, 4).map(t => '· ' + _clip(_plain(t.task || t), 40)).join('\n');
         s.addText(tasks || '—', { x: x + 0.1, y: s._bodyTop + 0.55, w: colW - 0.35, h: 2.4,
-          fontFace: FONT, fontSize: 10, color: C.body, valign: 'top' });
+          fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
       });
       _footNote(s);
     }
@@ -425,25 +605,25 @@ const PptExport = (() => {
       if (sys.length) {
         const weak = sys.slice().sort((a, b) => _sysRank(a) - _sysRank(b)).slice(0, 3);
         s.addText('취약 시스템', { x: M.x, y: s._bodyTop, w: M.w, h: 0.26,
-          fontFace: FONT, fontSize: 12, bold: true, color: C.accent });
+          fontFace: FONT, fontSize: 12, bold: true, color: TH.accent });
         s.addText(weak.map(x => '· ' + _clip(_plain(x.name || x.system || '') + ' — ' +
           _plain((x.actions && x.actions[0]) || x.issue || ''), 92)).join('\n'), {
           x: M.x, y: s._bodyTop + 0.3, w: M.w, h: 1.1,
-          fontFace: FONT, fontSize: 11, color: C.body, valign: 'top' });
+          fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
       }
       if (p90.length) {
         const top = s._bodyTop + (sys.length ? 1.55 : 0);
         s.addText('90일 실행 계획', { x: M.x, y: top, w: M.w, h: 0.26,
-          fontFace: FONT, fontSize: 12, bold: true, color: C.accent });
+          fontFace: FONT, fontSize: 12, bold: true, color: TH.accent });
         const colW = M.w / 3;
         p90.slice(0, 3).forEach((m, i) => {
           const x = M.x + i * colW;
           s.addText(_clip((m.month || (i + 1)) + '개월차 · ' + _plain(m.focus || m.goal || ''), 28), {
             x: x, y: top + 0.32, w: colW - 0.15, h: 0.3,
-            fontFace: FONT, fontSize: 11, bold: true, color: C.title });
+            fontFace: FONT, fontSize: 11, bold: true, color: TH.title });
           const tasks = (m.actions || m.tasks || []).slice(0, 3).map(t => '· ' + _clip(_plain(t), 34)).join('\n');
           s.addText(tasks || '—', { x: x, y: top + 0.62, w: colW - 0.15, h: 1.2,
-            fontFace: FONT, fontSize: 10, color: C.body, valign: 'top' });
+            fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
         });
       }
       _footNote(s);
@@ -460,10 +640,10 @@ const PptExport = (() => {
       const s = _newSlide(pptx, '리포트에서 확인할 내용', '이 발표자료에 포함되지 않은 항목');
       s.addText(omitted.map(x => '· ' + x).join('\n'), {
         x: M.x, y: s._bodyTop, w: M.w, h: 1.2,
-        fontFace: FONT, fontSize: 14, color: C.body, valign: 'top' });
+        fontFace: FONT, fontSize: 14, color: TH.body, valign: 'top' });
       s.addText('위 항목은 분량이 많아 발표자료에서 제외했습니다. 전체 리포트(PDF)에서 확인하실 수 있습니다.', {
         x: M.x, y: s._bodyTop + 1.4, w: M.w, h: 0.5,
-        fontFace: FONT, fontSize: 11, color: C.muted, valign: 'top' });
+        fontFace: FONT, fontSize: 11, color: TH.muted, valign: 'top' });
     }
   }
 
@@ -482,30 +662,30 @@ const PptExport = (() => {
     /* 2장 — 한눈에 보기 */
     {
       const s = _newSlide(pptx, '한눈에 보기', '총점 · 취약 영역 · 즉시 확인 사항');
-      s.addShape('rect', { x: M.x, y: s._bodyTop, w: 2.1, h: 1.25, fill: { color: C.panel } });
+      s.addShape('rect', { x: M.x, y: s._bodyTop, w: 2.1, h: 1.25, fill: { color: TH.panel } });
       s.addText(String(ctx.orgTotal || 0), { x: M.x, y: s._bodyTop + 0.16, w: 2.1, h: 0.6,
-        fontFace: FONT, fontSize: 34, bold: true, color: C.title, align: 'center' });
+        fontFace: FONT, fontSize: 34, bold: true, color: TH.title, align: 'center' });
       s.addText('/ 100점 (8영역 균등)', { x: M.x, y: s._bodyTop + 0.8, w: 2.1, h: 0.3,
-        fontFace: FONT, fontSize: 10, color: C.muted, align: 'center' });
+        fontFace: FONT, fontSize: 10, color: TH.muted, align: 'center' });
       s.addText('먼저 손봐야 할 영역', { x: M.x + 2.35, y: s._bodyTop, w: M.w - 2.35, h: 0.26,
-        fontFace: FONT, fontSize: 12, bold: true, color: C.accent });
+        fontFace: FONT, fontSize: 12, bold: true, color: TH.accent });
       s.addText(weak3.length
         ? weak3.map((d, i) => (i + 1) + '. ' + _clip(d.id.toUpperCase() + '. ' + d.label + '  (' + d.avg.toFixed(1) + '점)', 46)).join('\n')
         : '진단 점수가 입력되지 않았습니다.', {
         x: M.x + 2.35, y: s._bodyTop + 0.3, w: M.w - 2.35, h: 0.95,
-        fontFace: FONT, fontSize: 12, color: C.body, valign: 'top' });
+        fontFace: FONT, fontSize: 12, color: TH.body, valign: 'top' });
 
       const wy = s._bodyTop + 1.5;
       s.addText(urgent.length ? '지금 확인해야 할 사항 ' + urgent.length + '건' : '즉시 조치가 필요한 경고는 없습니다', {
         x: M.x, y: wy, w: M.w, h: 0.26,
-        fontFace: FONT, fontSize: 12, bold: true, color: urgent.length ? C.critical : C.ok });
+        fontFace: FONT, fontSize: 12, bold: true, color: urgent.length ? TH.critical : TH.ok });
       if (urgent.length) {
         urgent.slice(0, 4).forEach((w, i) => {
           const y = wy + 0.32 + i * 0.62;
           s.addText(w.level, { x: M.x, y: y, w: 0.85, h: 0.24,
-            fontFace: FONT, fontSize: 9, bold: true, color: LEVEL_COLOR[w.level] || C.medium });
+            fontFace: FONT, fontSize: 9, bold: true, color: _levelColor(w.level) });
           s.addText(_clip(w.msg, 150), { x: M.x + 0.9, y: y, w: M.w - 0.9, h: 0.56,
-            fontFace: FONT, fontSize: 10, color: C.body, valign: 'top' });
+            fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
         });
       }
       _footNote(s, urgent.length > 4 ? '경고 ' + (urgent.length - 4) + '건 생략' : '');
@@ -534,20 +714,20 @@ const PptExport = (() => {
       const ty = s._bodyTop + 0.9;
       s.addText(weakItems.length ? '우선 손볼 항목 (2점 이하)' : '2점 이하 항목이 없습니다', {
         x: M.x, y: ty, w: M.w, h: 0.26,
-        fontFace: FONT, fontSize: 12, bold: true, color: weakItems.length ? C.high : C.ok });
+        fontFace: FONT, fontSize: 12, bold: true, color: weakItems.length ? TH.high : TH.ok });
       if (weakItems.length) {
         s.addText(weakItems.map(x => '· ' + _clip(x, 88)).join('\n'), {
           x: M.x, y: ty + 0.3, w: M.w, h: 1.1,
-          fontFace: FONT, fontSize: 11, color: C.body, valign: 'top' });
+          fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
       }
       const ws = (ctx.orgWarnings || []).filter(w => _warnSection(w.code) === key).slice(0, 2);
       if (ws.length) {
         const wy2 = ty + (weakItems.length ? 1.5 : 0.35);
         ws.forEach((w, i) => {
           s.addText(w.level, { x: M.x, y: wy2 + i * 0.58, w: 0.85, h: 0.24,
-            fontFace: FONT, fontSize: 9, bold: true, color: LEVEL_COLOR[w.level] || C.medium });
+            fontFace: FONT, fontSize: 9, bold: true, color: _levelColor(w.level) });
           s.addText(_clip(w.msg, 140), { x: M.x + 0.9, y: wy2 + i * 0.58, w: M.w - 0.9, h: 0.52,
-            fontFace: FONT, fontSize: 10, color: C.body, valign: 'top' });
+            fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
         });
       }
       /* ⚠ AI 계획 슬라이드가 생략되면 제도(system) 영역이 출력에서 통째로 사라진다.
@@ -563,25 +743,25 @@ const PptExport = (() => {
       const pri = (p.priority || []).slice(0, 3);
       if (pri.length) {
         s.addText('먼저 해야 할 일', { x: M.x, y: s._bodyTop, w: M.w, h: 0.26,
-          fontFace: FONT, fontSize: 12, bold: true, color: C.accent });
+          fontFace: FONT, fontSize: 12, bold: true, color: TH.accent });
         s.addText(pri.map((x, i) => (x.order || i + 1) + '. ' + _clip(_plain(x.action), 88)).join('\n'), {
           x: M.x, y: s._bodyTop + 0.3, w: M.w, h: 1.0,
-          fontFace: FONT, fontSize: 11, color: C.body, valign: 'top' });
+          fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
       }
       const plan = (p.plan90 || []).slice(0, 3);
       if (plan.length) {
         const top = s._bodyTop + (pri.length ? 1.45 : 0);
         s.addText('90일 실행 계획', { x: M.x, y: top, w: M.w, h: 0.26,
-          fontFace: FONT, fontSize: 12, bold: true, color: C.accent });
+          fontFace: FONT, fontSize: 12, bold: true, color: TH.accent });
         const colW = M.w / 3;
         plan.forEach((m, i) => {
           const x = M.x + i * colW;
           s.addText(_clip((m.month || i + 1) + '개월차 · ' + _plain(m.focus), 28), {
             x: x, y: top + 0.32, w: colW - 0.15, h: 0.3,
-            fontFace: FONT, fontSize: 11, bold: true, color: C.title });
+            fontFace: FONT, fontSize: 11, bold: true, color: TH.title });
           s.addText((m.tasks || []).slice(0, 3).map(t => '· ' + _clip(_plain(t), 34)).join('\n') || '—', {
             x: x, y: top + 0.62, w: colW - 0.15, h: 1.1,
-            fontFace: FONT, fontSize: 10, color: C.body, valign: 'top' });
+            fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
         });
       }
       _appendSystemNote(s, ctx, 4.35);
@@ -600,11 +780,11 @@ const PptExport = (() => {
     const y = atY != null ? atY : 4.35;
     s.addText(spec.t + '  ' + (dom.avg > 0 ? dom.avg.toFixed(1) + '점' : '미입력'), {
       x: M.x, y: y, w: M.w, h: 0.24,
-      fontFace: FONT, fontSize: 11, bold: true, color: C.accent });
+      fontFace: FONT, fontSize: 11, bold: true, color: TH.accent });
     const weak = _weakItems(ctx, ids, 2);
     s.addText(weak.length ? weak.map(x => '· ' + _clip(x, 84)).join('   ') : '2점 이하 항목이 없습니다', {
       x: M.x, y: y + 0.26, w: M.w, h: 0.32,
-      fontFace: FONT, fontSize: 10, color: C.body });
+      fontFace: FONT, fontSize: 10, color: TH.body });
   }
 
   /* ── 정책자금 — 7장 (레이더차트 슬라이드 없음) ── */
@@ -617,7 +797,7 @@ const PptExport = (() => {
     {
       const s = _newSlide(pptx, '판정 요약', '기관별 점검 결과');
       const VLABEL = { blocked: '결격 사유 있음', review: '확인 필요', clear: '결격 없음' };
-      const VCOLOR = { blocked: C.critical, review: C.high, clear: C.ok };
+      const VCOLOR = { blocked: TH.critical, review: TH.high, clear: TH.ok };
       _bullets(s, agencies.map(a => {
         const fx = (a.findings || []).filter(f => f.kind !== 'reference');
         const clear = fx.filter(f => f.status === 'clear').length;
@@ -626,12 +806,12 @@ const PptExport = (() => {
         return {
           t: _plain(a.name || a.agency || ''),
           sub: vl + '   ·   점검 ' + fx.length + '개 · 통과 ' + clear + ' · 확인 필요 ' + need,
-          color: a.eligible === false ? C.medium : (VCOLOR[a.verdict] || C.medium),
+          color: a.eligible === false ? TH.medium : (VCOLOR[a.verdict] || TH.medium),
         };
       }), { max: 4, rowH: 0.86 });
       if ((v.unknownItems || []).length) {
         s.addText('확인이 필요한 항목 ' + v.unknownItems.length + '건 — 응답하지 않았거나 앱에서 판정할 수 없는 항목입니다.', {
-          x: M.x, y: 4.5, w: M.w, h: 0.3, fontFace: FONT, fontSize: 10, color: C.high });
+          x: M.x, y: 4.5, w: M.w, h: 0.3, fontFace: FONT, fontSize: 10, color: TH.high });
       }
       _footNote(s);
     }
@@ -640,24 +820,24 @@ const PptExport = (() => {
       const s = _newSlide(pptx, _plain(a.name || a.agency || '기관'), '결격 요건 점검');
       if (a.eligible === false) {
         s.addText('신청 대상이 아닙니다', { x: M.x, y: s._bodyTop, w: M.w, h: 0.3,
-          fontFace: FONT, fontSize: 14, bold: true, color: C.medium });
+          fontFace: FONT, fontSize: 14, bold: true, color: TH.medium });
         s.addText(_clip(_plain(a.notEligibleReason || ''), LIMIT.para * 2), {
           x: M.x, y: s._bodyTop + 0.4, w: M.w, h: 2.2,
-          fontFace: FONT, fontSize: 11, color: C.body, valign: 'top' });
+          fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
       } else {
         const fx = (a.findings || []).filter(f => f.kind !== 'reference' && f.status !== 'clear');
         if (a.warning) {
           s.addText('⚠ ' + _clip(_plain(a.warning), 160), { x: M.x, y: s._bodyTop, w: M.w, h: 0.5,
-            fontFace: FONT, fontSize: 11, bold: true, color: C.high, valign: 'top' });
+            fontFace: FONT, fontSize: 11, bold: true, color: TH.high, valign: 'top' });
         }
         _bullets(s, fx.slice(0, 4).map(f => ({
           t: _plain(f.label || f.title || ''),
           sub: _plain(f.message || '') + (f.source ? '   [' + _plain(f.source) + ']' : ''),
-          color: f.severity === 'high' ? C.critical : f.severity === 'medium' ? C.high : C.medium,
+          color: f.severity === 'high' ? TH.critical : f.severity === 'medium' ? TH.high : TH.medium,
         })), { y: s._bodyTop + (a.warning ? 0.6 : 0), max: 4, rowH: 0.82 });
         if (!fx.length) {
           s.addText('확인이 필요한 항목이 없습니다.', { x: M.x, y: s._bodyTop + 0.6, w: M.w, h: 0.3,
-            fontFace: FONT, fontSize: 12, color: C.ok });
+            fontFace: FONT, fontSize: 12, color: TH.ok });
         }
         _footNote(s, fx.length > 4 ? '점검 항목 ' + (fx.length - 4) + '건 생략' : '');
       }
@@ -680,14 +860,14 @@ const PptExport = (() => {
         const s = _newSlide(pptx, '준비 서류', '신청 전 확인');
         s.addText(docs.slice(0, 10).map(x => '· ' + _clip(x, 44)).join('\n'), {
           x: M.x, y: s._bodyTop, w: M.w / 2, h: 3.2,
-          fontFace: FONT, fontSize: 11, color: C.body, valign: 'top' });
+          fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
         if (docs.length > 10) {
           s.addText(docs.slice(10, 20).map(x => '· ' + _clip(x, 44)).join('\n'), {
             x: M.x + M.w / 2, y: s._bodyTop, w: M.w / 2, h: 3.2,
-            fontFace: FONT, fontSize: 11, color: C.body, valign: 'top' });
+            fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
         }
         s.addText('※ 기관·사업별로 추가 서류가 요구될 수 있습니다. 신청 전 주관기관 공고를 확인하십시오.', {
-          x: M.x, y: 4.75, w: M.w, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted, italic: true });
+          x: M.x, y: 4.75, w: M.w, h: 0.3, fontFace: FONT, fontSize: 9, color: TH.muted, italic: true });
       }
     }
 
@@ -774,6 +954,16 @@ const PptExport = (() => {
     pptx.author = 'BizNavi AI';
     pptx.company = 'BizNavi';
     pptx.title = (ctx.fd.companyName || 'BizNavi') + ' 진단 보고서';
+
+    /* ⚠ 팔레트는 유형 분기 **직전에** 한 곳에서 정한다. 빌더 안에서 갈아끼우면
+          모듈 변수라 다음 다운로드에 이전 유형의 팔레트가 그대로 남는다.
+       ⚠ 조건을 `kind === 'sme'`로 쓰지 않는다 — _buildSme는 else 폴백이라
+          예상 못한 kind도 받는다. 팔레트와 빌더가 갈라지면 남색 띠가 있는
+          표지에 흰 배경 본문이 붙는 식으로 한 문서 안에서 색 체계가 섞인다.
+          현재 THEME을 쓰는 것은 sme 경로뿐이고 나머지는 LEGACY로 출력이 불변이다. */
+    const _legacyKind = ctx.kind === 'funding' || ctx.kind === 'micro'
+      || ['social', 'venture', 'coop'].indexOf(ctx.kind) >= 0;
+    _useTheme(_legacyKind ? LEGACY : THEME);
 
     try {
       if (ctx.kind === 'funding')                              _buildFunding(pptx, ctx);
