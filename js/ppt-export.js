@@ -46,6 +46,11 @@ const PptExport = (() => {
     ok:      '27AE60',
     panel:   'F5F6F8',
     band:    false,      // 본문 슬라이드 상단 남색 띠 사용 여부
+    /* 신호색 옅은 면 — THEME과 키를 맞추기 위한 것. LEGACY 빌더는 참조하지 않는다 */
+    okBg:      'EEF7F1',
+    criticalBg:'FBEFED',
+    highBg:    'FCF4EA',
+    titleBg:   'EEF1F7',
   };
 
   /* 새 색 체계 — 주색(남색) · 보조색(금색) · 신호색(빨강·주황·초록) · 흰 배경
@@ -74,6 +79,11 @@ const PptExport = (() => {
     ok:      '1E8449',   // 신호 — 양호(초록)
     panel:   'F4F6FA',
     band:    true,
+    /* 신호색 옅은 면 — SWOT 매트릭스 칸 배경. 글자는 올리되 신호색 머리띠와 구분되게 연하게 잡았다 */
+    okBg:      'EAF4EE',
+    criticalBg:'F8ECEA',
+    highBg:    'FAF1E6',
+    titleBg:   'EAEEF5',
   };
 
   /* 활성 팔레트 — download()가 유형에 따라 갈아끼운다 */
@@ -361,6 +371,189 @@ const PptExport = (() => {
     return s;
   }
 
+  /* ══════════════════ sme 시각화 (2단계) ══════════════════
+     ⚠ 아래 함수는 sme 경로(THEME)에서만 호출된다. `navy`·`onNavy` 등 THEME 전용 키를 쓴다. */
+
+  /* ── 5대 역량 — 네이티브 레이더 + 막대 ──
+     ⚠ 캔버스 이미지(_radarDataUrl)를 쓰지 않는다. 흐리고, 받은 사람이 숫자·색을 고칠 수 없다.
+        PptxGenJS addChart는 PowerPoint 차트 객체(chart XML)로 들어가 '데이터 편집'이 된다.
+     ⚠ 값은 fd.domainScores의 avg 그대로다 — 화면 막대·레이더·표지 점수와 같은 숫자.
+        새로 계산하거나 반올림을 다시 하지 마라.
+     ⚠ 미입력(0) 영역은 차트에서 뺀다. 0을 그리면 '0점'으로 읽힌다. 빠진 영역은 하단에 명시한다.
+     ⚠ 레이더는 축이 3개 미만이면 모양이 성립하지 않는다 — 그때는 막대만 그린다.
+        점수가 하나도 없으면 슬라이드를 만들지 않는다(표지가 이미 '미입력'을 보여 준다). */
+  function _smeCompetencySlide(pptx, fd) {
+    const doms = _smeDomains(fd);
+    const scored = doms.filter(d => d.avg > 0);
+    if (!scored.length) return null;
+
+    const s = _newSlide(pptx, '5대 역량 진단', '역량 프로파일 · 5점 만점');
+    const top = s._bodyTop, chartH = 4.62 - top - 0.3;
+    const CT = pptx.ChartType || {};
+    const axisBase = {
+      valAxisMinVal: 0, valAxisMaxVal: 5, valAxisMajorUnit: 1,
+      valAxisLabelFontFace: FONT, valAxisLabelFontSize: 8, valAxisLabelColor: TH.muted,
+      catAxisLabelFontFace: FONT, catAxisLabelFontSize: 10, catAxisLabelColor: TH.body,
+      valGridLine: { color: TH.rule, size: 0.5 },
+      showLegend: false, showTitle: false,
+    };
+
+    const withRadar = scored.length >= 3;
+    const barX = withRadar ? M.x + 4.55 : M.x;
+    const barW = withRadar ? M.w - 4.55 : M.w;
+
+    if (withRadar) {
+      s.addText('역량 프로파일', { x: M.x, y: top, w: 4.3, h: 0.26,
+        fontFace: FONT, fontSize: 11, bold: true, color: TH.title });
+      /* ⚠ 레이더 축 라벨은 PowerPoint가 폭을 좁게 잡아 긴 이름을 낱말 중간에서 자른다
+            ('차별화·경쟁우 / 위역량'). 가운뎃점이 있으면 그 뒤에서, 없으면 7자 이상일 때
+            '역량' 앞에서 직접 줄을 바꾼다.
+            플롯 영역(layout)을 줄이는 방법은 맨 위 라벨이 잘려 버렸고, 9pt로 줄여도 한 글자가 넘어갔다.
+            막대 차트는 라벨 폭이 충분하므로 원래 이름을 그대로 쓴다 */
+      const radarLabel = t => t.indexOf('·') > 0 ? t.replace('·', '·\n')
+        : (t.length >= 7 && /역량$/.test(t)) ? t.slice(0, -2) + '\n역량' : t;
+      s.addChart(CT.radar || 'radar', [{
+        name: '역량 점수', labels: scored.map(d => radarLabel(d.label)), values: scored.map(d => d.avg),
+      }], Object.assign({}, axisBase, {
+        x: M.x, y: top + 0.3, w: 4.3, h: chartH,
+        radarStyle: 'marker', chartColors: [TH.navy],
+        lineSize: 2, lineDataSymbol: 'circle', lineDataSymbolSize: 7,
+      }));
+    }
+
+    /* 가로 막대는 첫 항목을 맨 아래에 그린다 — 화면 순서(위→아래)와 맞추려고 뒤집는다 */
+    const rev = scored.slice().reverse();
+    s.addText('역량별 점수', { x: barX, y: top, w: barW, h: 0.26,
+      fontFace: FONT, fontSize: 11, bold: true, color: TH.title });
+    s.addChart(CT.bar || 'bar', [{
+      name: '역량 점수', labels: rev.map(d => d.label), values: rev.map(d => d.avg),
+    }], Object.assign({}, axisBase, {
+      x: barX, y: top + 0.3, w: barW, h: chartH,
+      barDir: 'bar', barGapWidthPct: 70,
+      chartColors: rev.map(d => _levelOf(d.avg)[1]),   // 막대마다 수준 신호색
+      showValue: true, dataLabelFormatCode: '0.0', dataLabelPosition: 'outEnd',
+      dataLabelFontFace: FONT, dataLabelFontSize: 10, dataLabelColor: TH.body,
+    }));
+
+    /* 수준 범례 — 막대 색의 의미 (_levelOf 기준과 동일) */
+    s.addText([
+      { text: '■ 강점 4.0 이상   ', options: { color: TH.ok } },
+      { text: '■ 보통 3.0 이상   ', options: { color: TH.title } },
+      { text: '■ 취약 2.0 이상   ', options: { color: TH.high } },
+      { text: '■ 위험 2.0 미만',     options: { color: TH.critical } },
+    ], { x: barX, y: 4.66, w: barW, h: 0.26, fontFace: FONT, fontSize: 9, align: 'right' });
+
+    const missing = doms.filter(d => !(d.avg > 0)).map(d => d.label);
+    _footNote(s, missing.length ? '미입력 영역(차트 제외): ' + missing.join(', ') : '');
+    return s;
+  }
+
+  /* ── 강점·약점·기회·위협 — 2×2 매트릭스 ──
+     ⚠ 네 칸 모두 비면 슬라이드를 만들지 않는다. 일부만 비면 매트릭스 구조를 유지하고
+        그 칸에 '항목 없음'을 적는다 — 칸을 빼면 2×2가 무너져 어느 칸이 무엇인지 읽히지 않는다. */
+  function _smeSwotSlide(pptx, swot) {
+    if (!swot) return null;
+    const Q = [
+      ['강점 (S)', swot.strengths,     TH.ok,       TH.okBg],
+      ['약점 (W)', swot.weaknesses,    TH.critical, TH.criticalBg],
+      ['기회 (O)', swot.opportunities, TH.title,    TH.titleBg],
+      ['위협 (T)', swot.threats,       TH.high,     TH.highBg],
+    ].map(q => [q[0], (q[1] || []).map(_swotText).filter(Boolean), q[2], q[3]]);
+    if (!Q.some(q => q[1].length)) return null;
+
+    const s = _newSlide(pptx, '강점·약점·기회·위협', 'SWOT 매트릭스 · 칸별 3개');
+    const gap = 0.16, top = s._bodyTop;
+    const cw = (M.w - gap) / 2, ch = (4.98 - top - gap) / 2, hh = 0.34;
+    Q.forEach((q, i) => {
+      const x = M.x + (i % 2) * (cw + gap), y = top + Math.floor(i / 2) * (ch + gap);
+      s.addShape('rect', { x: x, y: y, w: cw, h: ch, fill: { color: q[3] } });
+      s.addShape('rect', { x: x, y: y, w: cw, h: hh, fill: { color: q[2] } });
+      s.addText(q[0], { x: x + 0.14, y: y, w: cw - 0.28, h: hh,
+        fontFace: FONT, fontSize: 12, bold: true, color: TH.bg, valign: 'middle' });
+      if (q[1].length) {
+        s.addText(q[1].slice(0, 3).map(v => '· ' + _clip(v, 50)).join('\n'), {
+          x: x + 0.14, y: y + hh + 0.08, w: cw - 0.28, h: ch - hh - 0.14,
+          fontFace: FONT, fontSize: 10.5, color: TH.body, valign: 'top' });
+      } else {
+        s.addText('분석 결과에 항목이 없습니다', {
+          x: x + 0.14, y: y + hh + 0.08, w: cw - 0.28, h: 0.3,
+          fontFace: FONT, fontSize: 10, color: TH.muted, italic: true });
+      }
+    });
+    _footNote(s);
+    return s;
+  }
+
+  /* ── KPI — 카드 (지표명 / 현재값 → 목표값) ──
+     ⚠ 필드는 화면(#kpiGrid)과 같은 `metric`·`current`·`target`·`timeline`이다.
+     ⚠ 지표명이 없거나, 현재값·목표값이 둘 다 없는 항목은 카드를 만들지 않는다 — 이름만 있는 빈 카드가 된다.
+        한쪽만 있으면 있는 쪽만 적는다. 남는 카드가 없으면 슬라이드를 만들지 않는다. */
+  function _smeKpiSlide(pptx, list) {
+    const all = (list || []).filter(k => k && _plain(k.metric || k.name || k.indicator)
+      && (_plain(k.current) || _plain(k.target)));
+    if (!all.length) return null;
+    const cards = all.slice(0, 5);
+
+    const s = _newSlide(pptx, 'KPI 지표', '현재 → 목표');
+    const gap = 0.2, cw = (M.w - gap * 2) / 3, ch = 1.62, top = s._bodyTop;
+    cards.forEach((k, i) => {
+      const x = M.x + (i % 3) * (cw + gap), y = top + Math.floor(i / 3) * (ch + gap);
+      s.addShape('rect', { x: x, y: y, w: cw, h: ch, fill: { color: TH.panel } });
+      s.addShape('rect', { x: x, y: y, w: 0.06, h: ch, fill: { color: TH.accent } });
+      s.addText(_clip(_plain(k.metric || k.name || k.indicator), 30), {
+        x: x + 0.18, y: y + 0.1, w: cw - 0.3, h: 0.5,
+        fontFace: FONT, fontSize: 12, bold: true, color: TH.title, valign: 'top' });
+
+      const cur = _plain(k.current), tgt = _plain(k.target);
+      const runs = [];
+      if (cur) runs.push({ text: _clip(cur, 22), options: { fontSize: 12, color: TH.body } });
+      if (cur && tgt) runs.push({ text: '  →  ', options: { fontSize: 12, color: TH.muted } });
+      if (tgt) runs.push({ text: (cur ? '' : '목표 ') + _clip(tgt, 22),
+        options: { fontSize: 13, bold: true, color: TH.accent } });
+      s.addText(runs, { x: x + 0.18, y: y + 0.64, w: cw - 0.3, h: 0.6,
+        fontFace: FONT, valign: 'top' });
+
+      if (_plain(k.timeline)) {
+        s.addText(_clip(_plain(k.timeline), 30), { x: x + 0.18, y: y + 1.26, w: cw - 0.3, h: 0.26,
+          fontFace: FONT, fontSize: 9, color: TH.muted });
+      }
+    });
+    _footNote(s, all.length > 5 ? '전체 ' + all.length + '개 중 5개만 표시' : '');
+    return s;
+  }
+
+  /* ── 90일 실행 계획 — 가로 타임라인 (1·2·3개월차) ──
+     슬라이드를 새로 만들지 않고 받은 슬라이드의 top 아래에 그린다(6가지 시스템과 한 장).
+     ⚠ 달 수가 3보다 적어도 칸 폭은 3등분을 유지한다 — 타임라인의 시간 축 눈금이 달라지면 안 된다. */
+  function _smeTimeline(s, p90, top, bodyH) {
+    const rows = p90.slice(0, 3);
+    const colW = M.w / 3;
+    s.addText('90일 실행 계획', { x: M.x, y: top, w: M.w, h: 0.26,
+      fontFace: FONT, fontSize: 12, bold: true, color: TH.accent });
+    rows.forEach((m, i) => {
+      const x = M.x + i * colW;
+      s.addShape(i === 0 ? 'homePlate' : 'chevron', {
+        x: x, y: top + 0.34, w: colW - 0.04, h: 0.42,
+        fill: { color: i === 1 ? TH.navyMid : TH.navy },
+      });
+      s.addText((m.month || (i + 1)) + '개월차', {
+        x: x + (i === 0 ? 0.1 : 0.3), y: top + 0.34, w: colW - 0.6, h: 0.42,
+        fontFace: FONT, fontSize: 12, bold: true, color: TH.onNavy, valign: 'middle' });
+      const focus = _plain(m.focus || m.goal || '');
+      if (focus) {
+        s.addText(_clip(focus, 30), { x: x, y: top + 0.84, w: colW - 0.15, h: 0.3,
+          fontFace: FONT, fontSize: 11, bold: true, color: TH.title });
+      }
+      const tasks = (m.actions || m.tasks || [])
+        .map(t => _plain(t && typeof t === 'object' ? (t.action || t.task || '') : t))
+        .filter(Boolean).slice(0, 3).map(t => '· ' + _clip(t, 34)).join('\n');
+      if (tasks) {
+        s.addText(tasks, { x: x, y: top + (focus ? 1.14 : 0.84), w: colW - 0.15, h: bodyH,
+          fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
+      }
+    });
+  }
+
   /* ══════════════════ 공통 슬라이드 ══════════════════ */
   function _cover(pptx, title, org, sub) {
     const s = pptx.addSlide();
@@ -519,24 +712,8 @@ const PptExport = (() => {
       _footNote(s, ex.length > 4 ? '요약 ' + (ex.length - 4) + '개 항목 생략' : '');
     }
 
-    const rows = _smeRows(fd);
-    if (rows.length) _radarSlide(pptx, '5대 역량 진단', '역량 프로파일 · 5점 만점', rows);
-
-    if (d.swot) {
-      const s = _newSlide(pptx, 'SWOT 분석', '각 3개 · 상세는 리포트 참조');
-      const q = [['강점 (S)', d.swot.strengths, TH.ok], ['약점 (W)', d.swot.weaknesses, TH.critical],
-                 ['기회 (O)', d.swot.opportunities, TH.title], ['위협 (T)', d.swot.threats, TH.high]];
-      q.forEach((qq, i) => {
-        const col = i % 2, row = Math.floor(i / 2);
-        const x = M.x + col * (M.w / 2), y = s._bodyTop + row * 1.85;
-        s.addText(qq[0], { x: x, y: y, w: M.w / 2 - 0.2, h: 0.28,
-          fontFace: FONT, fontSize: 12, bold: true, color: qq[2] });
-        const arr = (qq[1] || []).slice(0, 3).map(v => '· ' + _clip(_swotText(v), 46)).join('\n');
-        s.addText(arr || '—', { x: x, y: y + 0.3, w: M.w / 2 - 0.2, h: 1.4,
-          fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
-      });
-      _footNote(s);
-    }
+    _smeCompetencySlide(pptx, fd);
+    _smeSwotSlide(pptx, d.swot);
 
     if (d.stp) {
       const s = _newSlide(pptx, 'STP 분석', '세분화 · 타겟 · 포지셔닝');
@@ -569,16 +746,7 @@ const PptExport = (() => {
       _footNote(s, ks.length > 4 ? '전체 ' + ks.length + '개 중 4개만 표시' : '');
     }
 
-    const kpi = (d.kpi || []).filter(Boolean);
-    if (kpi.length) {
-      const s = _newSlide(pptx, 'KPI 지표', '상위 5개');
-      _scoreTable(s, kpi.slice(0, 5).map(k => [
-        _plain(k.name || k.metric || k.indicator || ''),
-        _plain(k.target || k.goal || '—'),
-        _plain(k.current || k.owner || ''),
-      ]), { y: s._bodyTop });
-      _footNote(s, kpi.length > 5 ? '전체 ' + kpi.length + '개 중 5개만 표시' : '');
-    }
+    _smeKpiSlide(pptx, d.kpi);
 
     const rm = (d.roadmap || []).filter(Boolean);
     if (rm.length) {
@@ -612,21 +780,9 @@ const PptExport = (() => {
           fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
       }
       if (p90.length) {
-        const top = s._bodyTop + (sys.length ? 1.55 : 0);
-        s.addText('90일 실행 계획', { x: M.x, y: top, w: M.w, h: 0.26,
-          fontFace: FONT, fontSize: 12, bold: true, color: TH.accent });
-        const colW = M.w / 3;
-        p90.slice(0, 3).forEach((m, i) => {
-          const x = M.x + i * colW;
-          s.addText(_clip((m.month || (i + 1)) + '개월차 · ' + _plain(m.focus || m.goal || ''), 28), {
-            x: x, y: top + 0.32, w: colW - 0.15, h: 0.3,
-            fontFace: FONT, fontSize: 11, bold: true, color: TH.title });
-          const tasks = (m.actions || m.tasks || []).slice(0, 3).map(t => '· ' + _clip(_plain(t), 34)).join('\n');
-          s.addText(tasks || '—', { x: x, y: top + 0.62, w: colW - 0.15, h: 1.2,
-            fontFace: FONT, fontSize: 10, color: TH.body, valign: 'top' });
-        });
+        _smeTimeline(s, p90, s._bodyTop + (sys.length ? 1.55 : 0), sys.length ? 0.9 : 2.2);
       }
-      _footNote(s);
+      _footNote(s, p90.length > 3 ? '전체 ' + p90.length + '개월 중 3개월만 표시' : '');
     }
 
     _govSlide(pptx, fd);
@@ -910,13 +1066,18 @@ const PptExport = (() => {
       return [_plain(d.label), (d.avg || 0) > 0 ? Number(d.avg).toFixed(1) : '—', lv[0], lv[1]];
     });
   }
-  function _smeRows(fd) {
+  /* sme 5대 역량 — 라벨은 화면(wizard calcDomainScores)이 fd.domainScores에 실어 보낸 것을 쓴다.
+     ⚠ 1단계까지는 PPT가 '재무건전성'·'조직·인력'을 하드코딩해 화면('경영재무역량'·'인적자원역량')과
+        이름이 달랐다. 창업초기 라벨('자금·사업계획' 등)도 여기서 자동으로 따라간다.
+        KR은 label이 빠진 과거 데이터용 폴백일 뿐이다 */
+  function _smeDomains(fd) {
     const ds = (fd && fd.domainScores) || {};
-    const KR = { finance: '재무건전성', hr: '조직·인력', bm: '사업모델', future: '미래역량', differentiation: '차별화·경쟁력' };
-    return Object.keys(ds).map(k => {
-      const avg = Number((ds[k] && ds[k].avg) || 0), lv = _levelOf(avg);
-      return [KR[k] || k, avg > 0 ? avg.toFixed(1) : '—', lv[0], lv[1]];
-    });
+    const KR = { finance: '경영재무역량', hr: '인적자원역량', bm: 'BM역량', future: '미래기술대응역량', differentiation: '차별화·경쟁우위역량' };
+    return Object.keys(ds).map(k => ({
+      key: k,
+      label: _plain((ds[k] && ds[k].label) || KR[k] || k),
+      avg: Number((ds[k] && ds[k].avg) || 0),
+    }));
   }
   function _fundingDocs(fd) {
     const base = ['사업자등록증 사본', '최근 3개년 재무제표', '부가가치세 과세표준증명원',
