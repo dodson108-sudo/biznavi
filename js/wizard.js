@@ -930,6 +930,36 @@ const Wizard = (() => {
     // 조직 형태 선택을 노출하지 않는다 (중복 질문 방지)
     const orgBlock = document.getElementById('orgTypeBlock');
     if (orgBlock) orgBlock.style.display = (_purpose === 'funding') ? 'none' : '';
+
+    /* 규모 판정 불일치 — AI 판정과 직원 수 기반 판정이 다를 때만 선택지를 노출한다.
+       같으면 아무것도 묻지 않고 화면에 나타나지도 않는다(2026-10-02).
+       ⚠ 정책자금 경로는 제외다 — FundingRules가 bizScale로 중진공 소상공인 제외를 판정하므로
+          그 경로의 판정에 사용자 선택을 끼워넣지 않는다.
+       ⚠ 매 렌더마다 먼저 초기화한다 — 직원 수를 고치고 재분석하는 흐름에서 이전 선택이 남으면
+          불일치가 해소됐는데도 옛 기준으로 진단이 나간다. */
+    _resetScaleConflict();
+    const aiScale  = (data.biz_scale === 'micro' || data.biz_scale === 'sme') ? data.biz_scale : '';
+    const empVal   = document.getElementById('employees')?.value || '';
+    const empScale = _empScaleOf(empVal);
+    if (_purpose !== 'funding' && aiScale && empScale && aiScale !== empScale) {
+      const box = document.getElementById('scaleConflictBlock');
+      const msg = document.getElementById('scaleConflictMsg');
+      const aiRadio  = document.getElementById('scaleChoiceAi');
+      const empRadio = document.getElementById('scaleChoiceEmp');
+      const aiLabel  = document.getElementById('scaleChoiceAiLabel');
+      const empLabel = document.getElementById('scaleChoiceEmpLabel');
+      if (box && msg && aiRadio && empRadio && aiLabel && empLabel) {
+        // 직원 수 선택지는 모두 '명'으로 끝나 받침이 있다 → '이지만'이 항상 맞다
+        msg.textContent = `입력하신 직원 수는 ${empVal}이지만, 업종과 매출 규모로 보면 `
+                        + `${_SCALE_NOUN[aiScale]}에 해당합니다. 어느 기준으로 진단할까요?`;
+        aiRadio.value  = aiScale;
+        empRadio.value = empScale;
+        aiLabel.textContent  = `${_SCALE_DIAG_LABEL[aiScale]} (AI 판정 · 권장)`;
+        empLabel.textContent = `${_SCALE_DIAG_LABEL[empScale]} (직원 수 ${empVal} 기준)`;
+        aiRadio.checked = true;                   // 기본값은 AI 판정
+        box.classList.remove('hidden');
+      }
+    }
   }
 
   /* 모든 wizard 카드 숨기기 */
@@ -1123,7 +1153,11 @@ const Wizard = (() => {
     // bizScale 감지 — 소상공인 전용 진단 분기
     const empVal = document.getElementById('employees')?.value || '';
     const explicitScale = document.getElementById('bizScale')?.value || document.getElementById('bizScaleSelect')?.value || '';
-    const currentBizScale = explicitScale || ((!empVal || empVal === '1~5명') ? 'micro' : 'sme');
+    /* ⚠ 사용자가 불일치 확인(biz-context)에서 고른 기준이 가장 앞이다(2026-10-02).
+       선택지는 AI 판정과 직원 수 기반 판정이 어긋날 때만 노출되고, 고르지 않으면 ''이라
+       아래 기존 우선순위(explicitScale → 직원 수)가 그대로 흐른다. 산출 로직은 바뀌지 않았다. */
+    const currentBizScale = _scaleOverride() || explicitScale
+                            || ((!empVal || empVal === '1~5명') ? 'micro' : 'sme');
 
     /* 창업 초기(개업 1년 미만) 여부를 먼저 구한다.
        ⚠ 과거에는 이 검사가 마지막 else 안에만 있어 micro 경로가 STARTUP을 영영 타지 못했다.
@@ -1449,6 +1483,38 @@ const Wizard = (() => {
     if (emp !== '1~5명') return 'team';          // 노출 조건이 아니면 무조건 기존 동작
     const sel = document.querySelector('input[name="soloScale"]:checked');
     return (sel && sel.value) || 'team';
+  }
+
+  /* ── 규모 판정 불일치 확인 (biz-context) ────────────────────────────
+     AI 판정(biz_scale)과 직원 수 기반 판정이 어긋날 때만 사용자에게 묻는다.
+     ⚠ bizScale 산출 로직은 그대로다 — 우선순위 맨 앞에 "사용자가 고른 기준" 하나가 붙을 뿐이다.
+     ⚠ 기본값은 AI 판정이다. 소상공인 기준은 업종별로 다르고(제조·광업·건설·운수 10명 미만,
+        그 외 5명 미만) AI가 그 기준을 반영했을 수 있어 AI를 신뢰하는 편이 맞다.
+     ⚠ 고르지 않거나 블록이 숨어 있으면 ''을 반환한다 — 기존 우선순위가 그대로 흐른다.
+     ⚠ 소비처는 loadDiagnosisUI(화면 경로)와 collect(fd.bizScale) 둘이다. 한쪽만 반영하면
+        화면은 중소기업 진단인데 리포트는 소상공인으로 렌더링된다. */
+  const _SCALE_DIAG_LABEL = { micro: '소상공인 진단', sme: '중소기업 진단' };
+  const _SCALE_NOUN       = { micro: '소상공인', sme: '소기업·중소기업' };
+
+  function _empScaleOf(emp) {
+    if (!emp) return '';                          // 미입력 — 직원 수 기반 판정 자체가 없다
+    return emp === '1~5명' ? 'micro' : 'sme';     // loadDiagnosisUI·collect의 기존 기준과 동일
+  }
+
+  function _scaleOverride() {
+    const box = document.getElementById('scaleConflictBlock');
+    if (!box || box.classList.contains('hidden')) return '';   // 묻지 않았으면 선택도 없다
+    const sel = document.querySelector('input[name="scaleChoice"]:checked');
+    return (sel && sel.value) || '';
+  }
+
+  /* 선택지를 감추고 값까지 비운다 — 숨긴 채 값이 남으면 _scaleOverride가 살아난다 */
+  function _resetScaleConflict() {
+    const box = document.getElementById('scaleConflictBlock');
+    if (box) box.classList.add('hidden');
+    document.querySelectorAll('input[name="scaleChoice"]').forEach(r => {
+      r.value = ''; r.checked = false;
+    });
   }
 
   function updateSoloScaleUI() {
@@ -2869,6 +2935,11 @@ const Wizard = (() => {
       aiBusinessDesc:  g('aiBusinessDesc'),  // AI 분석 사업 설명
       industry:        g('industry'),
       bizScale:        (function() {
+        /* ⚠ 불일치 확인에서 고른 기준이 가장 앞이다 — loadDiagnosisUI와 같은 우선순위여야 한다.
+           한쪽만 반영하면 화면은 중소기업 진단인데 리포트·PPT는 소상공인으로 렌더링된다.
+           정책자금 경로에서는 선택지를 노출하지 않으므로 항상 ''이고 FundingRules 판정은 불변이다. */
+        const chosen = _scaleOverride();
+        if (chosen) return chosen;
         const explicit = g('bizScale') || g('bizScaleSelect');
         if (explicit) return explicit;
         const emp = g('employees');
@@ -3150,6 +3221,8 @@ const Wizard = (() => {
     const soloTeam = document.querySelector('input[name="soloScale"][value="team"]');
     if (soloTeam) soloTeam.checked = true;
     updateSoloScaleUI();
+    // 규모 판정 불일치 선택도 초기화 — 숨긴 채 값이 남으면 _scaleOverride가 살아난다
+    _resetScaleConflict();
     const typeBanner = document.getElementById('diag-type-banner');
     if (typeBanner) { typeBanner.innerHTML = ''; typeBanner.classList.add('hidden'); }
     Object.keys(diagScores).forEach(k => delete diagScores[k]);

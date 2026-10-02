@@ -233,6 +233,14 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   ③ 2026-09-03 `e7c4056` — `loadDiagnosisUI`의 `isMicro`에만 `!isStartupMode`를 넣고 `showDiagReveal`은 그대로 둠. 개업 1년 미만 소상공인이 STARTUP을 다 풀고도 D1~D7로 읽혀 전 영역 0 → **"D1 미입력"으로 최종 보고서 진입 자체가 막혔다.** 그 커밋의 검증 항목은 문항 수·진행률·탭 라벨·활성 컨테이너뿐이고 **결과 화면이 빠져 있었다**
   ⚠ `isSocial`이 맨 앞이어야 한다 — 사회적경제도 `bizScale`은 `micro`라 순서가 바뀌면 영원히 micro로 빠진다. `isStartup`은 `isMicro`보다 앞이다 — 개업 1년 미만은 실적 기반 35문항을 답할 수 없다.
   ⚠ **`dashboard.js`·`ppt-export.js`는 아직 이 함수를 쓰지 않는다**(각자 `fd.bizScale`로 판정). 네 번째 사고를 막으려면 결국 전부 거쳐야 한다.
+- **`bizScale` 우선순위는 `_scaleOverride() → #bizScale(AI) → #bizScaleSelect → 직원 수`이며 `loadDiagnosisUI()`와 `collect()` 두 곳이 같아야 한다.**
+  `_scaleOverride()`는 biz-context의 `#scaleConflictBlock`(AI 판정 ≠ 직원 수 판정일 때만 노출, 기본값 AI)에서
+  사용자가 고른 기준이고, 숨김·미선택이면 `''`이라 기존 순위가 그대로 흐른다(2026-10-02).
+  **왜**: 한쪽만 반영하면 화면은 중소기업 진단인데 `dashboard.js`·`ppt-export.js`가 `fd.bizScale`로
+  자체 판정해 **리포트만 소상공인으로 렌더링된다.**
+  ⚠ 정책자금 경로는 노출하지 않는다 — `FundingRules`의 중진공 소상공인 제외 판정에 끼어들면 안 된다.
+  ⚠ `showBizContext()`는 매 렌더 먼저 `_resetScaleConflict()`한다 — 직원 수를 고쳐 `analyzeBiz()`를
+    재실행하는 흐름은 `reset()`을 거치지 않아 이전 선택이 남는다.
 - **AI 프롬프트의 출력 명세(JSON 구조)를 두 곳에 두지 않는다.** 시스템 프롬프트에 두든 유저 프롬프트에 두든 **한 곳만** 둔다.
   **왜**: 한 요청 안에 상반된 두 명세가 들어가면 **모델은 큰 쪽을 따라간다.** 작은 쪽을 적어 둬도 소용이 없다.
   **언제 터졌나**: 2026-09-08 — micro 1차가 sme용 `SYSTEM`(7,464토큰, 그중 sme JSON 템플릿 4,453토큰)을 그대로 받고 있었다. 그 템플릿은 SWOT 4분면 × 6개 `{item,evidence}` 24객체 + `kpi` 10개 + `roadmap` + `keyStrategies` + `leanCanvas` + `specializedAnalysis` + `fourP`를 요구하는데, `buildPrompt1`의 micro 분기는 "7개 필드만, 각 1개"라고 말했다. 결과는 output **8,964토큰 / 92초** — **Vercel Hobby 60초 상한 초과의 직접 원인**이었다. `_SYSTEM_MICRO_1`로 명세를 한 곳에 모아 47초가 됐다.

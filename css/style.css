@@ -1932,6 +1932,25 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 .biz-ctx-orgtype label { color: #9FC0FF; }
 .biz-ctx-orgtype .hint { margin: 6px 0 0; }
 
+/* 규모 판정 불일치 확인 (biz-context) — AI 판정과 직원 수 기반 판정이 다를 때만 노출 */
+.biz-ctx-scale {
+  margin-top: 18px; padding: 16px;
+  background: rgba(245,192,48,.07);
+  border: 1px solid rgba(245,192,48,.3);
+  border-left: 4px solid rgba(245,192,48,.65);
+  border-radius: 10px;
+}
+.biz-ctx-scale-title {
+  font-weight: 700; font-size: 0.92rem; color: #FFD966; margin-bottom: 6px;
+}
+.biz-ctx-scale .hint { margin: 0 0 8px; }
+.biz-ctx-scale .hint:last-child { margin: 8px 0 0; }
+.scale-conflict-opt {
+  display: flex !important; align-items: center; gap: 8px; padding: 6px 0;
+  font-size: 13.5px; color: rgba(255,255,255,.85); cursor: pointer;
+}
+.scale-conflict-opt input { width: auto; margin: 0; accent-color: #F5C030; cursor: pointer; }
+
 /* 진단 유형 배너 (step2 상단) — 조직 형태 전용 진단 적용 시 표시 */
 .diag-type-banner {
   background: rgba(122,162,247,.08);
