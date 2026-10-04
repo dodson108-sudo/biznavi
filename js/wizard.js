@@ -2097,12 +2097,21 @@ const Wizard = (() => {
       future:          { label: '미래기술대응역량', scores: [], color: '#FB923C' },
       differentiation: { label: '차별화·경쟁우위역량', scores: [], color: '#F5C030' }
     };
-    /* BM 진단(diag-bizmodel-container_*)에 실제 응답이 있으면 3_2 프록시를 끈다.
+    /* BM 진단(diag-bizmodel-container_*)에 실제 응답이 있으면 **BM역량을 순수 BM 축으로** 만든다.
+       공통에서 끌어오던 두 소스를 모두 끊는다:
+         ① 3_2 프록시(차별화 점수 중복 투입)
+         ② 공통 3_3·3_4 (원래 매핑이지만 BM 16문항과 섞이면 축의 의미가 흐려진다)
+       2026-10-04 결정 ②. 복원 직후에는 공통 2 + BM 16 = 16:2로 BM이 지배하면서도
+       공통 문항이 섞여 있어, 레이더의 BM역량이 '사업모델 진단'도 '공통 진단'도 아닌
+       값이었다. 축 하나는 소스 하나를 뜻해야 한다.
        ⚠ 이 함수는 sme·창업초기 경로만 탄다(사회적경제는 _calcOrgDomainScores,
-          소상공인은 _calcMicroDomainScores). 소상공인은 아직 BM 실점수가 없으므로
-          조건이 false로 남아 프록시가 그대로 유지된다 — 일부러 그렇게 둔 것이다.
-       ⚠ bizScale로 분기하지 않는다. BM 모듈이 없거나 추론이 실패한 sme도
-          프록시가 필요하므로, 기준은 '실점수가 있는가'여야 한다. */
+          소상공인은 _calcMicroDomainScores). 창업초기는 별도 isStartup 분기라 불변이다.
+       ⚠ bizScale로 분기하지 않는다. BM 모듈이 없거나 추론이 실패한 sme도 공통 폴백이
+          필요하므로, 기준은 '실점수가 있는가'여야 한다.
+       ⚠ **무조건 빼면 안 된다.** BM 실점수가 없는 경로에서 bm.scores가 비면 avg 0이 되어
+          레이더 축이 조용히 사라진다(에러가 나지 않아 발견이 늦다 — 반복된 사고 패턴).
+       ⚠ 3_3·3_4는 레이더에서만 빠진다. 진단 화면·AI 프롬프트(DiagCommon.buildPromptSummary)·
+          취약영역 배너(AIEngine.calcDiagScores 공통 4영역)에는 그대로 쓰인다. */
     const hasBmScores = Object.keys(scores || {}).some(k =>
       k.indexOf('diag-bizmodel-container_') === 0 && scores[k] && scores[k].score > 0);
     Object.entries(scores || {}).forEach(([key, val]) => {
@@ -2136,10 +2145,11 @@ const Wizard = (() => {
           domains.hr.scores.push(s);
         } else if (key === 'diag-common-container_3_2' || key.startsWith('diag-common-container_5_')) {
           domains.differentiation.scores.push(s);
-          // 3_2 차별화 점수를 BM역량 proxy로 공유 — BM 실점수가 있으면 평균이 오염되므로 끈다
+          // ① 3_2 프록시 — BM 실점수가 있으면 끈다(차별화 점수의 중복 투입이었다)
           if (!hasBmScores) domains.bm.scores.push(s);
         } else if (key.startsWith('diag-common-container_3_')) {
-          domains.bm.scores.push(s);
+          // ② 공통 3_3·3_4 — BM 실점수가 있으면 BM역량에서 뺀다(순수 BM 축)
+          if (!hasBmScores) domains.bm.scores.push(s);
         } else if (key.startsWith('diag-industry-container_')) {
           domains.future.scores.push(s);
         } else if (key.startsWith('diag-bizmodel-container_')) {
