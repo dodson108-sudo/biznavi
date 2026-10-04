@@ -112,6 +112,94 @@ const Dashboard = (() => {
 
   /* ⚠ #sec-consulting은 2026-09-18부터 #sec-diag 카드 안의 하위 블록이다(최상위 섹션이 아니다).
      반환값 = 이 블록에 내용이 있는가 — render()가 카드 표시 여부를 정하는 데 쓴다 */
+  /* ── 사업모델 진단 4영역 (sec-diag 카드 안의 하위 블록) ──────────────
+     ⚠ 점수·라벨·아이콘은 wizard collect()가 실어 보낸 fd.bmDomainScores를 그대로 쓴다.
+        재계산하면 진단 화면과 다른 영역 이름·점수가 나온다(label 소스 분기 금지).
+     ⚠ 하위 블록이므로 **카드(sec-diag)를 숨기지 않는다.** 자기 블록만 토글하고
+        내용 유무를 반환한다 — 카드 표시는 render()가 블록 결과를 OR로 합쳐 정한다.
+        (블록이 카드를 숨기면 옆의 '유형별 특화 분석'까지 통째로 사라진다) */
+  function renderBizModelSection(fd) {
+    const block = document.getElementById('sec-bizmodel');
+    if (!block) return false;
+
+    const doms = (fd && fd.bmDomainScores) || [];
+    const answered = doms.filter(d => d.count > 0);
+    // 응답이 하나도 없으면 블록을 만들지 않는다 — 빈 막대만 있는 블록은 오해를 만든다
+    if (!answered.length) { block.style.display = 'none'; return false; }
+    block.style.display = '';
+
+    const badge = document.getElementById('bmSecBadge');
+    if (badge) badge.textContent = fd.bizModelLabel || '사업모델';
+
+    const list = document.getElementById('bmDomainList');
+    if (list) {
+      list.innerHTML = answered.map(d => {
+        const pct = Math.round((d.avg / 5) * 100);
+        const cls = d.avg >= 4 ? 'high' : d.avg >= 3 ? 'mid' : d.avg >= 2 ? 'low' : 'risk';
+        return `<div class="bm-domain-row">
+            <div class="bm-domain-head">
+              <span class="bm-domain-label">${d.icon ? d.icon + ' ' : ''}${d.label}</span>
+              <span class="bm-domain-score ${cls}">${d.avg.toFixed(1)} / 5.0</span>
+            </div>
+            <div class="bm-domain-bar"><div class="bm-domain-fill ${cls}" style="width:${pct}%"></div></div>
+          </div>`;
+      }).join('');
+    }
+
+    /* 미응답 영역은 차트에서 빼고 하단에 명시한다 — 0점으로 그리면 '취약'으로 읽힌다.
+       sme PPT에서 이미 같은 기준을 쓴다(0점 영역 차트 제외 후 하단 명시). */
+    const note = document.getElementById('bmDomainNote');
+    if (note) {
+      const missing = doms.filter(d => d.count === 0).map(d => d.label);
+      const partial = answered.filter(d => d.count < d.total);
+      const parts = [];
+      if (fd.bizModelFullName) parts.push(`진단 기준: ${fd.bizModelFullName}`);
+      if (missing.length) parts.push(`미응답 영역(점수 산출 제외): ${missing.join(' · ')}`);
+      if (partial.length) {
+        parts.push('일부 응답: ' + partial.map(d => `${d.label} ${d.count}/${d.total}`).join(' · '));
+      }
+      note.textContent = parts.join(' | ');
+      note.style.display = parts.length ? '' : 'none';
+    }
+    return true;
+  }
+
+  /* ── 업종 × 사업모델 교차 경고 (sec-swot 카드 안의 하위 블록) ────────
+     ⚠ 경고가 없으면 블록을 숨긴다. "복합 위험 없음" 같은 문장을 만들지 않는다 —
+        교차 진단을 수행하지 못한 경우(BM 미선택)와 구분되지 않기 때문이다. */
+  function renderCrossSection(fd) {
+    const block = document.getElementById('sec-cross');
+    if (!block) return false;
+
+    const warns = (fd && fd.crossWarnings) || [];
+    if (!warns.length) { block.style.display = 'none'; return false; }
+    block.style.display = '';
+
+    const badge = document.getElementById('crossSecBadge');
+    if (badge) badge.textContent = `교차 진단 · ${warns.length}건`;
+
+    const lead = document.getElementById('crossLead');
+    if (lead) {
+      const ind = fd.industryLabel || fd.industry || '업종';
+      lead.textContent = `${ind}와 ${fd.bizModelLabel || '사업모델'} 진단을 겹쳐 봤을 때 `
+                       + `드러나는 복합 위험 ${warns.length}건입니다. 각 항목은 두 진단에서 모두 `
+                       + `낮은 점수가 나왔을 때만 표시됩니다.`;
+    }
+
+    const LV = { CRITICAL: ['critical', '즉시'], HIGH: ['high', '우선'], MEDIUM: ['medium', '점검'] };
+    const list = document.getElementById('crossList');
+    if (list) {
+      list.innerHTML = warns.map(w => {
+        const [cls, tag] = LV[w.level] || ['medium', '점검'];
+        return `<li class="cross-item ${cls}">
+            <span class="cross-level ${cls}">${tag}</span>
+            <span class="cross-msg">${w.msg || ''}</span>
+          </li>`;
+      }).join('');
+    }
+    return true;
+  }
+
   function renderSpecializedSection(data, fd) {
     const section = document.getElementById('sec-consulting');
     if (!section) return false;
@@ -1768,11 +1856,21 @@ const Dashboard = (() => {
        카드는 블록이 하나라도 살아 있을 때만 보인다 — 빈 카드도, 내용 있는 카드가
        사라지는 일도 없게 하려는 것이다(2026-09-18 sme 13→8섹션 통합) */
 
-    // ② 우리 회사 지금 상태 = 경영 진단(레이더) + 유형별 특화 분석(sme)
+    /* ② 우리 회사 지금 상태 = 경영 진단(레이더) + 사업모델 4영역 + 유형별 특화 분석(sme)
+       ⚠ 세 블록 결과를 OR로 합쳐 카드 표시를 여기 한 곳에서만 정한다.
+          블록 함수가 카드를 숨기면 옆 블록 내용까지 사라진다(예외는 나지 않는다) */
     const hasDiag = renderDiagSection(fd);
+    /* ⚠ `!isMicro &&`로 호출 자체를 건너뛰지 않는다 — 건너뛰면 이전 렌더의 블록이
+       그대로 남아 소상공인 리포트에 직전 중소기업 결과가 보인다(이전 회사 데이터가
+       출력물에 섞이는 것이 최악이다). 빈 객체를 넘겨 블록을 확실히 비운다. */
+    const hasBm   = renderBizModelSection(isMicro ? {} : fd);
     const hasSpec = !isMicro && renderSpecializedSection(data, fd);
     const diagCard = document.getElementById('sec-diag');
-    if (diagCard) diagCard.style.display = (hasDiag || hasSpec) ? '' : 'none';
+    if (diagCard) diagCard.style.display = (hasDiag || hasBm || hasSpec) ? '' : 'none';
+
+    /* ③ 강점과 약점 카드 안의 교차 경고 블록. sec-swot 카드는 항상 표시되므로
+       여기서는 블록만 토글한다(카드 display에 관여하지 않는다) */
+    renderCrossSection(isMicro ? {} : fd);
 
     // micro 전용 — 생애주기 진단 + 상권 STP/TAM/SAM/SOM
     if (isMicro) {

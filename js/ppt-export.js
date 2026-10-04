@@ -859,6 +859,87 @@ const PptExport = (() => {
     _smeCards(pptx, _smeHead(spec.summary, '유형별 특화 분석', '우리 회사 지금 상태 · ' + fw), cards, { cols: 2 });
   }
 
+  /* ② 우리 회사 지금 상태 — 사업모델 특화 진단 4영역 (2026-10-04)
+     ⚠ 점수·라벨은 wizard collect()가 실어 보낸 fd.bmDomainScores를 그대로 쓴다 — 재계산 금지.
+        화면(dashboard renderBizModelSection)과 같은 소스를 읽어야 이름·점수가 어긋나지 않는다.
+     ⚠ 5대 역량 슬라이드와 같은 네이티브 차트(addChart)다 — 캔버스 이미지로 만들지 마라.
+     ⚠ 색은 활성 팔레트 TH만 참조한다. 수준 색은 상수가 아니라 _levelOf()로 받는다
+        (상수는 모듈 로드 시점의 팔레트를 박아버린다).
+     ⚠ 제목은 섹션 이름 그대로다 — 이 섹션에는 AI 결론 필드가 없다. 문장을 지어내지 않는다. */
+  function _smeBizModelSlide(pptx, fd) {
+    const doms = (fd && fd.bmDomainScores) || [];
+    const scored = doms.filter(d => Number(d.avg) > 0);
+    if (!scored.length) return null;   // 응답 전무 → 슬라이드를 만들지 않는다
+
+    const bmName = _plain((fd && fd.bizModelLabel) || '');
+    const s = _newSlide(pptx, '사업모델 진단', bmName
+      ? bmName + ' · 4영역 · 5점 만점' : '4영역 · 5점 만점');
+    const top = s._bodyTop, chartH = 4.62 - top - 0.3;
+    const CT = pptx.ChartType || {};
+
+    /* 가로 막대는 첫 항목을 맨 아래에 그린다 — 화면 순서(위→아래)와 맞추려고 뒤집는다
+       (5대 역량 슬라이드와 같은 규칙이다) */
+    const rev = scored.slice().reverse();
+    s.addChart(CT.bar || 'bar', [{
+      name: '영역 점수', labels: rev.map(d => _plain(d.label)), values: rev.map(d => Number(d.avg)),
+    }], {
+      x: M.x, y: top + 0.3, w: M.w, h: chartH,
+      barDir: 'bar', barGapWidthPct: 70,
+      valAxisMinVal: 0, valAxisMaxVal: 5, valAxisMajorUnit: 1,
+      valAxisLabelFontFace: FONT, valAxisLabelFontSize: 8, valAxisLabelColor: TH.muted,
+      catAxisLabelFontFace: FONT, catAxisLabelFontSize: 10, catAxisLabelColor: TH.body,
+      valGridLine: { color: TH.rule, size: 0.5 },
+      showLegend: false, showTitle: false,
+      chartColors: rev.map(d => _levelOf(Number(d.avg))[1]),
+      showValue: true, dataLabelFormatCode: '0.0', dataLabelPosition: 'outEnd',
+      dataLabelFontFace: FONT, dataLabelFontSize: 10, dataLabelColor: TH.body,
+    });
+    s.addText('영역별 점수', { x: M.x, y: top, w: M.w, h: 0.26,
+      fontFace: FONT, fontSize: 11, bold: true, color: TH.title });
+
+    s.addText([
+      { text: '■ 강점 4.0 이상   ', options: { color: TH.ok } },
+      { text: '■ 보통 3.0 이상   ', options: { color: TH.title } },
+      { text: '■ 취약 2.0 이상   ', options: { color: TH.high } },
+      { text: '■ 위험 2.0 미만',     options: { color: TH.critical } },
+    ], { x: M.x, y: 4.66, w: M.w, h: 0.26, fontFace: FONT, fontSize: 9, align: 'right' });
+
+    // 0점 영역은 차트에서 빼고 하단에 명시한다 — 0으로 그리면 '위험'으로 읽힌다
+    const notes = [];
+    const missing = doms.filter(d => !(Number(d.avg) > 0)).map(d => _plain(d.label));
+    if (missing.length) notes.push('미입력 영역(차트 제외): ' + missing.join(', '));
+    if (fd && fd.bizModelFullName) notes.push('진단 기준: ' + _plain(fd.bizModelFullName));
+    _footNote(s, notes.join(' · '));
+    return s;
+  }
+
+  /* ③ 강점과 약점 — 업종 × 사업모델 교차 경고 (2026-10-04)
+     ⚠ 경고가 없으면 슬라이드를 만들지 않는다. '복합 위험 없음' 문장을 쓰지 않는다 —
+        교차 진단을 수행하지 못한 경우(BM 미선택)와 구분되지 않는다. */
+  function _smeCrossSlide(pptx, fd) {
+    const warns = ((fd && fd.crossWarnings) || []).filter(w => w && _txt(w.msg));
+    if (!warns.length) return 0;
+
+    const LV = { CRITICAL: '즉시 대응', HIGH: '우선 대응', MEDIUM: '점검' };
+    const ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2 };
+    const sorted = warns.slice().sort((a, b) =>
+      (ORDER[a.level] === undefined ? 3 : ORDER[a.level]) -
+      (ORDER[b.level] === undefined ? 3 : ORDER[b.level]));
+
+    const cards = sorted.map((w, i) => ({
+      tag: { t: LV[w.level] || '점검', color: _levelColor(w.level) },
+      title: (i + 1) + '. ' + (LV[w.level] || '점검'),
+      paras: _paras(w.msg),
+      accent: _levelColor(w.level),
+    }));
+    const ind = _plain((fd && (fd.industryLabel || fd.industry)) || '업종');
+    const bm  = _plain((fd && fd.bizModelLabel) || '사업모델');
+    return _smeCards(pptx,
+      { title: '업종 × 사업모델 복합 위험', badge: '교차 진단 · ' + warns.length + '건' },
+      cards,
+      { cols: 2, note: ind + ' 진단과 ' + bm + ' 진단에서 모두 낮은 점수가 나온 항목만 표시됩니다' });
+  }
+
   /* ③ 강점과 약점 — SWOT 2×2. 항목과 근거(evidence)를 모두 싣는다 */
   function _smeSwot(pptx, swot) {
     if (!swot) return;
@@ -1218,8 +1299,10 @@ const PptExport = (() => {
     _smeCover(pptx, ctx);
     _smeExec(pptx, fd, d);                       // ① 한눈에 보기
     _smeCompetencySlide(pptx, fd);               // ② 지금 상태 — 5대 역량(2단계 차트, 불변)
+    _smeBizModelSlide(pptx, fd);                 // ② 지금 상태 — 사업모델 4영역
     _smeSpec(pptx, d.specializedAnalysis);       // ② 지금 상태 — 유형별 특화 분석
     _smeSwot(pptx, d.swot);                      // ③ 강점과 약점
+    _smeCrossSlide(pptx, fd);                    // ③ 강점과 약점 — 업종×BM 교차 경고
     _smeStp(pptx, d.stp);                        // ④ STP
     _smeLean(pptx, d.leanCanvas);                // ④ 린 캔버스
     _smeFourP(pptx, d.fourP);                    // ⑤ 4P

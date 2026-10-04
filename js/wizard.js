@@ -93,10 +93,55 @@ const Wizard = (() => {
     'etc':          '기타'
   };
 
+  /* BM 키 → 사용자에게 보여줄 전체 설명.
+     ⚠ 2026-10-04에 populateBmConfirm 내부 지역 const에서 모듈 스코프로 올렸다.
+        biz-context의 사업모델 정정 select(_refreshBmSelect)가 같은 문장을 쓴다 —
+        설명문을 두 벌로 복제하면 한쪽만 고쳐져 화면마다 다른 설명이 나온다. */
+  const BM_FULL_DESC = {
+    'b2b_saas':     { name: 'B2B SaaS (기업 대상 구독 소프트웨어)', icon: '☁️',
+      desc: '기업 고객에게 클라우드 소프트웨어를 월정액으로 제공합니다. 한번 도입하면 지속적으로 과금되어 안정적인 반복 수익(MRR)이 생깁니다.',
+      fit:  '지식 서비스·IT개발, 금융·핀테크, 의료·헬스케어, 교육 업종에 가장 많이 나타납니다.' },
+    'b2c_sub':      { name: 'B2C 구독 (소비자 대상 정기 구독)', icon: '🔄',
+      desc: '개인 소비자에게 콘텐츠·제품·서비스를 월정액으로 제공합니다. 고객이 취소하기 전까지 매달 자동 결제됩니다.',
+      fit:  '교육, 미디어·엔터, 패션·뷰티, 식품 구독박스 업종에서 많이 사용됩니다.' },
+    'b2b_solution': { name: 'B2B 솔루션 (기업 맞춤 시스템 공급)', icon: '🏗️',
+      desc: '기업 고객의 요구에 맞는 시스템·소프트웨어를 구축하고 납품합니다. 프로젝트 단위로 수주하거나 유지보수 계약을 맺습니다.',
+      fit:  '건설·인테리어, 지식 서비스·IT, 수출 중소기업, 환경·에너지 업종에 적합합니다.' },
+    'b2c_commerce': { name: 'B2C 커머스 (소비자 직접 판매)', icon: '🛒',
+      desc: '온라인·오프라인을 통해 소비자에게 직접 제품을 판매합니다. 스마트스토어, 쿠팡, 자사몰 등이 대표적입니다.',
+      fit:  '식품 제조·가공, 패션·뷰티, 농림·식품원료, 수출 중소기업 업종에 많습니다.' },
+    'platform':     { name: '플랫폼·마켓플레이스 (중개 수수료)', icon: '🔗',
+      desc: '공급자와 소비자를 연결하고 거래가 발생할 때 수수료를 받습니다. 양면 시장을 키울수록 네트워크 효과로 경쟁우위가 강화됩니다.',
+      fit:  '전문 유통·도소매, 금융·핀테크, 교육, 물류·운송 업종에서 나타납니다.' },
+    'franchise':    { name: '프랜차이즈 (가맹 시스템)', icon: '🏪',
+      desc: '검증된 브랜드와 운영 시스템을 가맹점에 제공하고 가맹비·로열티를 받습니다. 직접 운영 없이 빠른 확산이 가능합니다.',
+      fit:  '외식·음식업, 생활밀착형 서비스, 식품 제조·가공 업종에 주로 나타납니다.' },
+    'mfg_dist':     { name: '제조·유통 (생산 후 도·소매 판매)', icon: '🏭',
+      desc: '직접 제품을 생산하거나 소싱하여 도매·소매 채널을 통해 유통합니다. 마진은 원가와 판매가 차이에서 발생합니다.',
+      fit:  '뿌리 제조·부품가공, 식품 제조, 농림·식품원료, 수출 중소기업 업종의 기본 모델입니다.' },
+    'service':      { name: '서비스업 (전문 용역·서비스 제공)', icon: '🤝',
+      desc: '전문 지식이나 인력을 투입해 고객 문제를 해결하고 건당·시간당·월정액으로 수익을 올립니다.',
+      fit:  '생활밀착형 서비스, 건설·인테리어, 외식, 물류·운송 업종의 가장 일반적인 모델입니다.' },
+    'usage_based':  { name: '종량제·사용량기반 (쓴 만큼 과금)', icon: '📊',
+      desc: '고객이 실제 사용한 만큼만 요금을 냅니다. 초기 진입 장벽이 낮아 고객 확보가 쉽고, 사용량이 늘수록 수익도 증가합니다.',
+      fit:  '지식 서비스·IT, 금융·핀테크, 환경·에너지, 물류·운송 업종에서 나타납니다.' },
+    'advertising':  { name: '광고기반 (콘텐츠·트래픽 수익화)', icon: '📣',
+      desc: '사용자에게 무료로 콘텐츠를 제공하고 광고주로부터 수익을 올립니다. 트래픽(방문자)이 많을수록 광고 단가와 수익이 높아집니다.',
+      fit:  '미디어·엔터테인먼트 업종의 핵심 모델입니다.' },
+    'deeptech':     { name: '딥테크·바이오 (기술 사업화·라이선싱)', icon: '🔬',
+      desc: '원천기술·특허를 개발한 후 라이선싱, 기술이전, 또는 직접 제품화로 수익을 올립니다. 개발 기간이 길지만 성공 시 강력한 진입장벽이 생깁니다.',
+      fit:  '의료·헬스케어, 환경·에너지, 지식 서비스·IT 중 R&D 중심 기업에 해당합니다.' },
+    'etc':          { name: '기타 (복합 수익 구조)', icon: '📋',
+      desc: '위 유형이 명확히 해당되지 않거나, 여러 모델을 혼합한 복합적 수익 구조입니다.',
+      fit:  '업종과 수익 구조를 구체적으로 설명해주시면 AI가 맞춤 분석을 제공합니다.' }
+  };
+
   // 저장된 추론 결과
   let _inferredBmKey = '';
 
-  // 탭 순서 정의
+  /* 탭 순서 정의 — bizmodel은 실제로 렌더링됐을 때만 _tabOrder()가 끼워 넣는다.
+     ⚠ 상수에 'bizmodel'을 고정으로 넣지 마라. 소상공인·사회적경제·창업초기는
+        BM 진단을 받지 않으므로(2026-10-04 1차 적용 범위 = sme), 빈 탭이 생긴다. */
   const TAB_ORDER = ['common', 'industry'];
 
   /* 조직 유형 — 'general' | 'social_enterprise' | 'cooperative' | 'social_venture'
@@ -183,8 +228,11 @@ const Wizard = (() => {
   function _onOrgTypeChange(e) {
     const sel = e?.target || document.getElementById('orgTypeSelect');
     if (!sel) return;
+    /* 조직 형태가 사회적경제로 바뀌면 BM 진단 적용 경로에서 빠진다 — select를 다시 판정한다.
+       ⚠ 아래 confirm 분기보다 앞에 둘 수 없다(취소 시 general로 되돌리므로). 끝에서 호출한다. */
+    const _refresh = () => { try { _refreshBmSelect(); } catch (err) { /* biz-context 미표시 */ } };
     const pending = ORG_TYPE_PENDING[sel.value];
-    if (!pending) return;
+    if (!pending) { _refresh(); return; }
     const ok = confirm(
       pending + ' 전용 진단은 준비 중입니다.\n' +
       '사회적기업 진단으로 진행하시겠습니까? (공통 항목이 많습니다)'
@@ -192,6 +240,7 @@ const Wizard = (() => {
     // 취소 시 일반 기업으로 되돌린다. 확인 시 선택값(cooperative 등)을 그대로 유지해
     // 전용 모듈이 생기면 자동으로 전환되게 한다
     if (!ok) sel.value = 'general';
+    _refresh();
   }
 
   /* 조직 형태 판별 — 사용자 선택(#orgTypeSelect) 우선.
@@ -258,8 +307,14 @@ const Wizard = (() => {
      (사회적기업도 업종은 별개로 존재하므로 업종 특화 5문항이 유효하다.
       과거 'industryKey === social_enterprise' 시절에는 업종 탭이 S1~S8과
       내용이 중복되는 모듈을 렌더링해 숨겼으나, orgType 분리로 그 중복이 사라졌다) */
+  /* ⚠ 'bizmodel'은 이번 경로에서 실제로 렌더링됐을 때만 끼워 넣는다.
+        _activeContainers를 유일한 근거로 삼는다 — loadDiagnosisUI가 렌더링한 결과이므로
+        "탭은 있는데 내용이 없다"/"내용은 있는데 탭이 없다"가 원리적으로 생기지 않는다.
+        (조건식을 복제해 각자 판정하면 어긋난다 — 경로 판정 사고 3회의 교훈과 같다) */
   function _tabOrder() {
-    return TAB_ORDER;
+    return (_activeContainers.indexOf(BM_CONTAINER_ID) >= 0)
+      ? TAB_ORDER.concat(['bizmodel'])
+      : TAB_ORDER;
   }
 
   // DX 탐지 질문 — 점수 미반영, 전략 시그널 수집 전용
@@ -335,6 +390,121 @@ const Wizard = (() => {
 
     const sorted = candidates.slice().sort((a, b) => (scores[b] || 0) - (scores[a] || 0));
     return { primary: sorted[0], candidates: sorted.slice(0, Math.min(3, sorted.length)) };
+  }
+
+  /* ══ 사업모델 특화 진단 모듈 단일 진입점 (2026-10-04 복원) ══
+     ⚠ 전역명은 `BIZMODEL_*`가 아니라 `BM_*`다. 2026-05 v2.0 재작성 때 바뀌었고,
+        제거 커밋(deb9005)을 그대로 revert하면 12개 전부 undefined가 되어 탭이 빈다.
+     ⚠ 조직 형태 모듈처럼 여기 한 곳에서만 고른다 — 호출부에 varMap을 복제하지 마라. */
+  function _bmDiagModule(bmKey) {
+    const G = (typeof window !== 'undefined') ? window : {};
+    const MAP = {
+      'b2b_saas':     'BM_B2B_SAAS',     'b2c_sub':      'BM_B2C_SUB',
+      'b2b_solution': 'BM_B2B_SOLUTION', 'b2c_commerce': 'BM_B2C_COMMERCE',
+      'platform':     'BM_PLATFORM',     'franchise':    'BM_FRANCHISE',
+      'mfg_dist':     'BM_MFG_DIST',     'service':      'BM_SERVICE',
+      'usage_based':  'BM_USAGE_BASED',  'advertising':  'BM_ADVERTISING',
+      'deeptech':     'BM_DEEPTECH',     'etc':          'BM_ETC',
+    };
+    const name = MAP[bmKey];
+    return name ? (G[name] || null) : null;
+  }
+
+  const BM_CONTAINER_ID = 'diag-bizmodel-container';
+
+  /* BM 진단 적용 경로 — 현재 **중소기업(sme)만**이다.
+     ⚠ 소상공인·사회적경제·창업초기는 제외다. 적용 범위를 넓히려면 레이더차트·도메인 해설·
+        종합 점수·리포트 섹션 4곳을 그 경로에도 함께 만들어야 한다(CLAUDE.md 작업 규칙).
+        게이트를 여기 한 곳에만 두어, loadDiagnosisUI와 _tabOrder가 어긋나지 않게 한다.
+     ⚠ 정책자금 경로는 BM 진단을 하지 않는다 — FundingRules 판정에 끼어들지 않는다. */
+  function _bmApplies(path) {
+    if (_purpose === 'funding') return false;
+    const p = path || {};
+    return !p.isSocial && !p.isMicro && !p.isStartup;
+  }
+
+  /* biz-context 화면에서 쓸 '현재까지 판정된 규모'.
+     ⚠ loadDiagnosisUI의 최종 판정과 식이 같아야 한다 — 다르면 select를 보여줬는데
+        탭이 안 나오거나, 반대로 탭은 나왔는데 BM을 고를 기회가 없었던 상태가 된다. */
+  function _ctxScale(aiScale) {
+    const empVal = document.getElementById('employees')?.value || '';
+    const explicit = document.getElementById('bizScale')?.value
+                  || document.getElementById('bizScaleSelect')?.value || '';
+    return _scaleOverride() || explicit || aiScale
+           || ((!empVal || empVal === '1~5명') ? 'micro' : 'sme');
+  }
+
+  /* biz-context의 사업모델 정정 select 갱신.
+     자동 추론(inferBizModel) 결과를 기본 선택으로 두고, 사용자가 12개 중에서 고칠 수 있게 한다.
+     ⚠ #bm-confirm 별도 화면은 복원하지 않는다 — 단계를 하나 더 늘리지 않고 확인 화면에 합쳤다.
+     ⚠ AI 업종분석은 사업모델을 반환하지 않는다. 추론 키워드가 안 맞으면 업종 1순위로 떨어지므로
+        정정 UI가 없으면 바로잡을 방법이 전혀 없다(업종 수동 정정 UI 부재와 같은 문제). */
+  function _refreshBmSelect(industryKeyArg, aiScaleArg) {
+    const block = document.getElementById('bmSelectBlock');
+    const sel   = document.getElementById('bmSelect');
+    if (!block || !sel) return;
+
+    const industryKey = industryKeyArg
+      || document.getElementById('aiIndustryKey')?.value || 'etc';
+    const isStartup = document.getElementById('aiIsStartup')?.value === 'true';
+    const orgType   = _detectOrgType(industryKey);
+    const scale     = _ctxScale(aiScaleArg || '');
+    const path      = _diagPathOf({ bizScale: scale, isStartup, orgType });
+
+    // 적용 경로가 아니면 숨기고 값까지 비운다 — 숨긴 채 값이 남으면 BM이 프롬프트에 섞인다
+    if (!_bmApplies(path)) {
+      block.classList.add('hidden');
+      sel.innerHTML = '';
+      setBmKey('');
+      return;
+    }
+
+    const formData = {
+      products:        document.getElementById('products')?.value        || '',
+      coreStrength:    document.getElementById('coreStrength')?.value    || '',
+      customerProblem: document.getElementById('customerProblem')?.value || '',
+      unfairAdvantage: document.getElementById('unfairAdvantage')?.value || ''
+    };
+    const inferred  = inferBizModel(industryKey, formData);
+    const recommend = inferred.primary;
+    // 업종 후보를 앞에, 나머지를 뒤에 — 자격 제한이 아니라 추천 순서다(고르는 것은 자유)
+    const cands = INDUSTRY_BM_MAP[industryKey] || INDUSTRY_BM_MAP['etc'] || [];
+    const ordered = cands.concat(Object.keys(BM_FULL_DESC).filter(k => cands.indexOf(k) < 0));
+
+    // 이미 사용자가 고른 값이 있으면 유지한다 (재렌더로 선택이 되돌아가지 않게)
+    const keep = (_inferredBmKey && ordered.indexOf(_inferredBmKey) >= 0) ? _inferredBmKey : recommend;
+    sel.innerHTML = ordered.map(k => {
+      const info = BM_FULL_DESC[k] || BM_FULL_DESC['etc'];
+      const tag  = (k === recommend) ? ' — 추천' : '';
+      return `<option value="${k}"${k === keep ? ' selected' : ''}>${info.icon} ${info.name}${tag}</option>`;
+    }).join('');
+
+    setBmKey(keep);
+    _renderBmSelectDesc(keep);
+    block.classList.remove('hidden');
+  }
+
+  function _renderBmSelectDesc(bmKey) {
+    const el = document.getElementById('bmSelectDesc');
+    if (!el) return;
+    const info = BM_FULL_DESC[bmKey];
+    if (!info) { el.innerHTML = ''; return; }
+    el.innerHTML = `<span class="bm-sel-desc-text">${info.desc}</span>`
+                 + `<span class="bm-sel-desc-fit">✔ ${info.fit}</span>`;
+  }
+
+  /* select 변경 — 사업모델 특화 16문항과 업종×BM 교차 진단이 이 값으로 갈린다 */
+  function onBmSelectChange(value) {
+    const key = value || document.getElementById('bmSelect')?.value || '';
+    setBmKey(key);
+    _renderBmSelectDesc(key);
+  }
+
+  /* 규모 판정 선택이 바뀌면 BM 적용 여부가 뒤집힌다 — select를 다시 판정한다.
+     ⚠ 이 연결이 없으면 '직원 수 기준(소상공인)'을 골라도 BM select가 남아 있고,
+        반대로 '중소기업'을 골라도 select가 나타나지 않는다. */
+  function onScaleChoiceChange() {
+    _refreshBmSelect();
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -960,6 +1130,11 @@ const Wizard = (() => {
         box.classList.remove('hidden');
       }
     }
+
+    /* 사업모델 정정 select — 중소기업 경로에서만 나타난다.
+       ⚠ _resetScaleConflict()/위 블록보다 뒤에 있어야 한다. _ctxScale()이
+          _scaleOverride()를 읽으므로, 라디오 상태가 확정된 뒤에 판정해야 한다. */
+    _refreshBmSelect(data.industry_key || '', data.biz_scale || '');
   }
 
   /* 모든 wizard 카드 숨기기 */
@@ -1148,7 +1323,11 @@ const Wizard = (() => {
        ⚠ etc는 industryVarMap에 없으므로 업종 특화 탭이 표시되지 않는다(진행률 35).
           업종을 모르는데 특정 업종 16문항을 주는 것보다 낫다는 판단이다. */
     const industryKey = forceIndustryKey || aiKey || INDUSTRY_MAP[industry] || 'etc';
-    const bizModelKey = _inferredBmKey || 'etc';
+    /* ⚠ 'etc'로 폴백하지 않는다(2026-10-04). biz-context의 select가 항상 값을 넣어 주므로
+          여기가 비어 있다는 것은 "BM 적용 경로가 아니다"는 뜻이다. etc로 메우면
+          소상공인·사회적경제 사용자가 BM_ETC 16문항을 받는다 — 업종 폴백이 local_service를
+          겸해 미용 문항이 나갔던 사고와 같은 형태다. */
+    const bizModelKey = _inferredBmKey || '';
 
     // bizScale 감지 — 소상공인 전용 진단 분기
     const empVal = document.getElementById('employees')?.value || '';
@@ -1269,6 +1448,18 @@ const Wizard = (() => {
     const tabIndustryBtn = document.getElementById('diagTabBtn-industry');
     if (tabIndustryBtn) tabIndustryBtn.style.display = industryData ? '' : 'none';
 
+    /* 사업모델 특화 모듈 렌더링 (2026-10-04 복원 — 중소기업 경로만)
+       ⚠ 적용 여부는 _bmApplies() 한 곳이 정한다. 여기서 조건을 다시 쓰면
+          _tabOrder()와 어긋나 탭과 내용이 따로 논다.
+       ⚠ 모듈 전역명은 BM_* 다 (_bmDiagModule 참조) — BIZMODEL_*가 아니다. */
+    const bmData = _bmApplies(_path) ? _bmDiagModule(bizModelKey) : null;
+    if (bmData) {
+      renderDiagModule(BM_CONTAINER_ID, bmData);
+      _activeContainers.push(BM_CONTAINER_ID);
+    }
+    const tabBmBtn = document.getElementById('diagTabBtn-bizmodel');
+    if (tabBmBtn) tabBmBtn.style.display = bmData ? '' : 'none';
+
     // 이번 경로에서 쓰지 않는 컨테이너 정리 — 라벨·진행률 계산 전에 반드시 수행
     _clearInactiveContainers();
 
@@ -1276,6 +1467,7 @@ const Wizard = (() => {
                                            'diag-social-container', 'diag-venture-container',
                                            'diag-coop-container']);
     const industryCount = _countDiagItems(['diag-industry-container']);
+    const bmCount       = _countDiagItems([BM_CONTAINER_ID]);
 
     // 탭 버튼 레이블 동적 업데이트 (업종 반영)
     const aiLabel = document.getElementById('aiIndustryKey') ? (() => {
@@ -1287,6 +1479,12 @@ const Wizard = (() => {
     const tabIndustry = document.getElementById('diagTabBtn-industry');
     // 문항 수는 실제 렌더링 결과에서 파생한다 (과거 '(5문항)' 하드코딩은 실제 16문항과 불일치했다)
     if (tabIndustry) tabIndustry.textContent = '🏭 ' + indLabel + ' 특화 진단' + _cntSuffix(industryCount);
+
+    /* 사업모델 탭 라벨 — 문항 수는 실제 렌더링 결과에서 파생한다(하드코딩 금지).
+       라벨명은 BM_LABELS(짧은 표기)를 쓴다 — BM_FULL_DESC.name은 괄호 설명까지 붙어 탭에 길다 */
+    if (tabBmBtn && bmData) {
+      tabBmBtn.textContent = '💼 ' + (BM_LABELS[bizModelKey] || '사업모델') + ' 진단' + _cntSuffix(bmCount);
+    }
 
     // 탭 레이블 — micro / 창업 초기 / 기본 경영 분기
     const tabCommon = document.getElementById('diagTabBtn-common');
@@ -3145,6 +3343,34 @@ const Wizard = (() => {
       data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, crossScores, bizScale);
     }
 
+    /* 사업모델 4영역 점수 — 리포트·PPT가 이 결과를 그대로 읽는다(2026-10-04).
+       ⚠ 소비처에서 재계산하지 마라. label·icon의 소스가 둘로 갈리면 화면과 PPT가
+          서로 다른 영역 이름을 표시한다(DiagMicro label 소스 4곳 사고와 같은 형태).
+       ⚠ 응답이 하나도 없는 영역은 avg 0 · count 0으로 남긴다 — 소비처가 "0점"과
+          "미응답"을 구분할 수 있어야 한다(빈 영역은 차트에서 빼고 하단에 명시한다). */
+    data.bmDomainScores = (() => {
+      const mod = _bmDiagModule(_inferredBmKey);
+      if (!mod || !mod.areas) return [];
+      return mod.areas.map(area => {
+        const vals = area.items
+          .map(it => Number(allScores[BM_CONTAINER_ID + '_' + it.id] || 0))
+          .filter(v => v > 0);
+        const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        return {
+          id: area.id, label: area.label, icon: area.icon || '',
+          avg: Math.round(avg * 10) / 10, count: vals.length, total: area.items.length,
+        };
+      });
+    })();
+    /* 업종 한국어 라벨 — 교차 경고 설명문이 쓴다.
+       ⚠ `data.industry`는 #industry select 제거(2026-04-17) 이후 항상 빈 문자열이다.
+          영문 키를 INDUSTRY_LABEL_BY_KEY로 역매핑해 쓴다(gov-support의 INDUSTRY_LABEL과 같은 방식). */
+    data.industryLabel = INDUSTRY_LABEL_BY_KEY[data.industryKey] || '';
+    data.bizModelLabel = BM_LABELS[_inferredBmKey] || '';
+    /* ⚠ 'bizModelName'이라는 이름은 쓰지 않는다 — 교차 진단 bmId 폴백 체인에 그 키가
+       있어(영문 키를 기대한다) 한국어 전체 설명이 들어가면 혼동을 만든다 */
+    data.bizModelFullName = (BM_FULL_DESC[_inferredBmKey] || {}).name || '';
+
     // 정책자금 진단 경로에서만 기관 선별·결격 판정 수행 (경영진단·재무분석에는 영향 없음)
     if (_purpose === 'funding' && typeof FundingRules !== 'undefined') {
       try {
@@ -3224,6 +3450,13 @@ const Wizard = (() => {
     updateSoloScaleUI();
     // 규모 판정 불일치 선택도 초기화 — 숨긴 채 값이 남으면 _scaleOverride가 살아난다
     _resetScaleConflict();
+    /* 사업모델 정정 select도 비운다 — 숨긴 채 값이 남으면 이전 회사의 BM이
+       hidden input(#bizModel·#bizModelKey)에 남아 AI 프롬프트·교차 진단에 섞인다 */
+    const bmBlock = document.getElementById('bmSelectBlock');
+    if (bmBlock) bmBlock.classList.add('hidden');
+    const bmSel = document.getElementById('bmSelect');
+    if (bmSel) bmSel.innerHTML = '';
+    setBmKey('');
     const typeBanner = document.getElementById('diag-type-banner');
     if (typeBanner) { typeBanner.innerHTML = ''; typeBanner.classList.add('hidden'); }
     Object.keys(diagScores).forEach(k => delete diagScores[k]);
@@ -3299,45 +3532,7 @@ const Wizard = (() => {
     _inferredBmKey  = result.primary;
     const candidates = INDUSTRY_BM_MAP[industryKey] || INDUSTRY_BM_MAP['etc'];
 
-    const BM_FULL_DESC = {
-      'b2b_saas':     { name: 'B2B SaaS (기업 대상 구독 소프트웨어)', icon: '☁️',
-        desc: '기업 고객에게 클라우드 소프트웨어를 월정액으로 제공합니다. 한번 도입하면 지속적으로 과금되어 안정적인 반복 수익(MRR)이 생깁니다.',
-        fit:  '지식 서비스·IT개발, 금융·핀테크, 의료·헬스케어, 교육 업종에 가장 많이 나타납니다.' },
-      'b2c_sub':      { name: 'B2C 구독 (소비자 대상 정기 구독)', icon: '🔄',
-        desc: '개인 소비자에게 콘텐츠·제품·서비스를 월정액으로 제공합니다. 고객이 취소하기 전까지 매달 자동 결제됩니다.',
-        fit:  '교육, 미디어·엔터, 패션·뷰티, 식품 구독박스 업종에서 많이 사용됩니다.' },
-      'b2b_solution': { name: 'B2B 솔루션 (기업 맞춤 시스템 공급)', icon: '🏗️',
-        desc: '기업 고객의 요구에 맞는 시스템·소프트웨어를 구축하고 납품합니다. 프로젝트 단위로 수주하거나 유지보수 계약을 맺습니다.',
-        fit:  '건설·인테리어, 지식 서비스·IT, 수출 중소기업, 환경·에너지 업종에 적합합니다.' },
-      'b2c_commerce': { name: 'B2C 커머스 (소비자 직접 판매)', icon: '🛒',
-        desc: '온라인·오프라인을 통해 소비자에게 직접 제품을 판매합니다. 스마트스토어, 쿠팡, 자사몰 등이 대표적입니다.',
-        fit:  '식품 제조·가공, 패션·뷰티, 농림·식품원료, 수출 중소기업 업종에 많습니다.' },
-      'platform':     { name: '플랫폼·마켓플레이스 (중개 수수료)', icon: '🔗',
-        desc: '공급자와 소비자를 연결하고 거래가 발생할 때 수수료를 받습니다. 양면 시장을 키울수록 네트워크 효과로 경쟁우위가 강화됩니다.',
-        fit:  '전문 유통·도소매, 금융·핀테크, 교육, 물류·운송 업종에서 나타납니다.' },
-      'franchise':    { name: '프랜차이즈 (가맹 시스템)', icon: '🏪',
-        desc: '검증된 브랜드와 운영 시스템을 가맹점에 제공하고 가맹비·로열티를 받습니다. 직접 운영 없이 빠른 확산이 가능합니다.',
-        fit:  '외식·음식업, 생활밀착형 서비스, 식품 제조·가공 업종에 주로 나타납니다.' },
-      'mfg_dist':     { name: '제조·유통 (생산 후 도·소매 판매)', icon: '🏭',
-        desc: '직접 제품을 생산하거나 소싱하여 도매·소매 채널을 통해 유통합니다. 마진은 원가와 판매가 차이에서 발생합니다.',
-        fit:  '뿌리 제조·부품가공, 식품 제조, 농림·식품원료, 수출 중소기업 업종의 기본 모델입니다.' },
-      'service':      { name: '서비스업 (전문 용역·서비스 제공)', icon: '🤝',
-        desc: '전문 지식이나 인력을 투입해 고객 문제를 해결하고 건당·시간당·월정액으로 수익을 올립니다.',
-        fit:  '생활밀착형 서비스, 건설·인테리어, 외식, 물류·운송 업종의 가장 일반적인 모델입니다.' },
-      'usage_based':  { name: '종량제·사용량기반 (쓴 만큼 과금)', icon: '📊',
-        desc: '고객이 실제 사용한 만큼만 요금을 냅니다. 초기 진입 장벽이 낮아 고객 확보가 쉽고, 사용량이 늘수록 수익도 증가합니다.',
-        fit:  '지식 서비스·IT, 금융·핀테크, 환경·에너지, 물류·운송 업종에서 나타납니다.' },
-      'advertising':  { name: '광고기반 (콘텐츠·트래픽 수익화)', icon: '📣',
-        desc: '사용자에게 무료로 콘텐츠를 제공하고 광고주로부터 수익을 올립니다. 트래픽(방문자)이 많을수록 광고 단가와 수익이 높아집니다.',
-        fit:  '미디어·엔터테인먼트 업종의 핵심 모델입니다.' },
-      'deeptech':     { name: '딥테크·바이오 (기술 사업화·라이선싱)', icon: '🔬',
-        desc: '원천기술·특허를 개발한 후 라이선싱, 기술이전, 또는 직접 제품화로 수익을 올립니다. 개발 기간이 길지만 성공 시 강력한 진입장벽이 생깁니다.',
-        fit:  '의료·헬스케어, 환경·에너지, 지식 서비스·IT 중 R&D 중심 기업에 해당합니다.' },
-      'etc':          { name: '기타 (복합 수익 구조)', icon: '📋',
-        desc: '위 유형이 명확히 해당되지 않거나, 여러 모델을 혼합한 복합적 수익 구조입니다.',
-        fit:  '업종과 수익 구조를 구체적으로 설명해주시면 AI가 맞춤 분석을 제공합니다.' }
-    };
-
+    /* ⚠ BM_FULL_DESC는 모듈 스코프로 올렸다(2026-10-04) — biz-context의 정정 select와 공유한다 */
     const container = document.getElementById('bm-confirm-content');
     if (!container) return;
 
@@ -3523,5 +3718,5 @@ const Wizard = (() => {
     if (orgSel) orgSel.addEventListener('change', _onOrgTypeChange);
   });
 
-  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, updateSoloScaleUI, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN, COOP_DOMAIN_EXPLAIN, ORG_DOMAIN_EXPLAIN };
+  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, onBmSelectChange, onScaleChoiceChange, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, updateSoloScaleUI, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN, COOP_DOMAIN_EXPLAIN, ORG_DOMAIN_EXPLAIN };
 })();

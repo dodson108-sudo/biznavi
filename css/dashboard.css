@@ -1229,3 +1229,55 @@
   .soc-prio-why, .soc-prio-how { padding-left: 0; padding-top: 22px; }
   .soc-prio-why span, .soc-prio-how span { top: 0; }
 }
+
+/* ══ 사업모델 진단 4영역 (sec-diag 하위 블록) ══════════════════════
+   공통 CSS 변수를 그대로 쓴다 — 다크테마 일관성 유지. 인라인 스타일은
+   폭(width:%)만 JS가 넣는다(값이 데이터이므로 CSS로 표현할 수 없다) */
+.bm-domain-list { display: flex; flex-direction: column; gap: 14px; }
+.bm-domain-row  { display: flex; flex-direction: column; gap: 6px; }
+.bm-domain-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.bm-domain-label { font-size: 13.5px; font-weight: 600; color: var(--txt); }
+.bm-domain-score { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bm-domain-score.high { color: #4ADE80; }
+.bm-domain-score.mid  { color: var(--gold-lt); }
+.bm-domain-score.low  { color: var(--orange); }
+.bm-domain-score.risk { color: var(--red); }
+.bm-domain-bar {
+  height: 8px; border-radius: 999px; overflow: hidden;
+  background: rgba(255,255,255,.07);
+}
+.bm-domain-fill { height: 100%; border-radius: 999px; }
+.bm-domain-fill.high { background: linear-gradient(90deg, #22C55E, #4ADE80); }
+.bm-domain-fill.mid  { background: linear-gradient(90deg, var(--gold-dk), var(--gold-lt)); }
+.bm-domain-fill.low  { background: linear-gradient(90deg, #B4651F, var(--orange)); }
+.bm-domain-fill.risk { background: linear-gradient(90deg, #A83B3B, var(--red)); }
+.bm-domain-note {
+  margin: 14px 0 0; font-size: 12px; line-height: 1.7; color: var(--txt2);
+}
+
+/* ══ 업종 × 사업모델 교차 경고 (sec-swot 하위 블록) ══════════════ */
+.cross-lead { margin: 0 0 14px; font-size: 13px; line-height: 1.75; color: var(--txt2); }
+.cross-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.cross-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: 10px;
+  background: rgba(255,255,255,.03);
+  border-left: 3px solid var(--txt3);
+}
+.cross-item.critical { border-left-color: var(--red);    background: rgba(224,85,85,.07); }
+.cross-item.high     { border-left-color: var(--orange); background: rgba(224,134,42,.07); }
+.cross-item.medium   { border-left-color: var(--gold);   background: rgba(245,192,48,.06); }
+.cross-level {
+  flex: 0 0 auto; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em;
+}
+.cross-level.critical { background: rgba(224,85,85,.18);  color: #F8A0A0; }
+.cross-level.high     { background: rgba(224,134,42,.18); color: #F3BE86; }
+.cross-level.medium   { background: rgba(245,192,48,.16); color: var(--gold-lt); }
+.cross-msg { font-size: 13px; line-height: 1.75; color: var(--txt); }
+
+@media (max-width: 768px) {
+  .bm-domain-head { flex-direction: column; gap: 3px; }
+  .cross-item { flex-direction: column; gap: 7px; }
+  .cross-level { align-self: flex-start; }
+}

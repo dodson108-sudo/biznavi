@@ -69,12 +69,32 @@ trade_logistics `거래처 신뢰도 노출` / facility_service `관리 실적·
 | 경로 | 파일 |
 |---|---|
 | 규모·조직형태별 | `common.js` · `diagnosis-micro.js` · `diagnosis-sme.js` · `diagnosis-social.js` · `diagnosis-venture.js` · `diagnosis-coop.js` · `startup.js` |
-| 교차·판정 | `cross-context.js` (CROSS_RULES 34개) · `funding-rules.js` |
+| 교차·판정 | `cross-context.js` (CROSS_RULES 34개, 그중 21개가 BM 트리거) · `funding-rules.js` |
 | 업종 특화 (19개) | `agri_food` `construction` `education` `energy` `export_sme` `facility_service` `fashion` `finance` `food_mfg` `knowledge_it` `local_service` `logistics` `media` `medical` `mfg_parts` `restaurant` `wholesale` `social_enterprise` `social_venture` |
 | 사업모델 (12개) | `advertising` `b2b_saas` `b2b_solution` `b2c_commerce` `b2c_sub` `deeptech` `etc` `franchise` `mfg_dist` `platform` `service` `usage_based` |
 
-⚠ **`bizmodel/` 12개 모듈 192문항은 전혀 렌더링되지 않는다** (`TAB_ORDER`에 bizmodel 없음).
-그 결과 CROSS_RULES 34개 중 21개가 `collect()`의 BM 프록시(공통 진단 도메인 평균 복사)로 발동한다.
+### 사업모델(BM) 진단 — 중소기업 경로만 (2026-10-04 복원)
+| | |
+|---|---|
+| 모듈 | `bizmodel/` 12개 × **4영역 16문항**. 전역명은 **`BM_*`**(`BM_B2B_SAAS` 등) — `BIZMODEL_*`가 아니다 |
+| 선택 | `inferBizModel()` 자동 추론 + biz-context의 정정 select(`#bmSelect`). `#bm-confirm` 화면은 복원하지 않았다 |
+| 적용 게이트 | **`_bmApplies(path)` 한 곳.** 정책자금·사회적경제·소상공인·창업초기 제외 |
+| 컨테이너 | `diag-bizmodel-container` / 점수 키 `diag-bizmodel-container_<bm접두어>_<영역>_<문항>` |
+| 문항 수 | sme **36 → 52** (DiagCommon 20 + 업종 16 + BM 16) |
+| 결과 표시 | 리포트 `#sec-bizmodel`(`sec-diag` 하위) · `#sec-cross`(`sec-swot` 하위) / PPT `_smeBizModelSlide`·`_smeCrossSlide` |
+
+⚠ **`_tabOrder()`는 `_activeContainers`만 본다** — 조건식을 복제하지 마라. 탭 존재가 렌더링
+결과에서 파생되므로 "탭만 있고 내용 없음"이 원리적으로 생기지 않는다. `TAB_ORDER` 상수에
+`'bizmodel'`을 고정으로 넣으면 소상공인·사회적경제에 빈 탭이 생긴다.
+⚠ **`bizModelKey`를 `'etc'`로 폴백하지 마라.** 비어 있다는 것은 "적용 경로가 아니다"는 뜻이다.
+`etc`로 메우면 소상공인이 `BM_ETC` 16문항을 받는다(업종 폴백 `local_service` 사고와 같은 형태).
+⚠ **`BM_FULL_DESC`는 모듈 스코프 단일 소스다.** `populateBmConfirm`과 `_refreshBmSelect`가 공유한다.
+⚠ **점수·라벨은 `collect()`의 `data.bmDomainScores`를 리포트·PPT가 그대로 읽는다 — 재계산 금지.**
+`count`·`total`이 함께 실려 **0점과 미응답을 구분**한다(미응답은 차트 제외 후 하단 명시).
+⚠ **소상공인·사회적경제는 아직 BM을 받지 않는다.** 레이더 축·도메인 해설·종합 점수 설계가
+선행되어야 한다 — sme는 `calcDomainScores`에 `bm` 축이 이미 있어 가능했다.
+⚠ `calcDomainScores`의 `3_2 → bm역량` 프록시는 **BM 실점수가 있을 때만 끈다**(`hasBmScores`).
+`bizScale`로 분기하지 마라 — 기준은 "실점수가 있는가"다.
 
 ### AI 호출 구조
 | 경로 | 엔드포인트 | 특징 |
@@ -126,7 +146,7 @@ biznavi/
         ├── diagnosis-social.js · diagnosis-venture.js · diagnosis-coop.js
         ├── startup.js · cross-context.js · funding-rules.js
         ├── industry/    업종 특화 진단 (19개 파일)
-        └── bizmodel/    사업모델 특화 진단 (12개 파일 — 현재 미렌더링)
+        └── bizmodel/    사업모델 특화 진단 (12개 파일 — sme 경로에서 렌더링)
 ```
 
 ### CSS 로드 순서 (index.html head)
@@ -233,6 +253,24 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   ③ 2026-09-03 `e7c4056` — `loadDiagnosisUI`의 `isMicro`에만 `!isStartupMode`를 넣고 `showDiagReveal`은 그대로 둠. 개업 1년 미만 소상공인이 STARTUP을 다 풀고도 D1~D7로 읽혀 전 영역 0 → **"D1 미입력"으로 최종 보고서 진입 자체가 막혔다.** 그 커밋의 검증 항목은 문항 수·진행률·탭 라벨·활성 컨테이너뿐이고 **결과 화면이 빠져 있었다**
   ⚠ `isSocial`이 맨 앞이어야 한다 — 사회적경제도 `bizScale`은 `micro`라 순서가 바뀌면 영원히 micro로 빠진다. `isStartup`은 `isMicro`보다 앞이다 — 개업 1년 미만은 실적 기반 35문항을 답할 수 없다.
   ⚠ **`dashboard.js`·`ppt-export.js`는 아직 이 함수를 쓰지 않는다**(각자 `fd.bizScale`로 판정). 네 번째 사고를 막으려면 결국 전부 거쳐야 한다.
+- **BM·업종 식별자는 `cross-context`·`ai-engine`에 넘길 때 반드시 영문 키를 쓴다. 한국어 라벨은 표시 전용이다.**
+  **왜**: 같은 12개 BM의 한국어 라벨이 **세 모듈에서 서로 다르게** 적혀 있다 —
+  `service`는 wizard `서비스업` / cross-context `서비스업 (일반)` / ai-engine `서비스업`,
+  `usage_based`는 `종량제·사용량기반` / `종량제` / `종량제/사용기반`,
+  `advertising`은 `광고기반` / `광고 기반` / `광고기반`, `deeptech`는 `딥테크·바이오` / 같음 / `딥테크/R&D`.
+  **언제 터졌나**: 2026-10-04까지 `collect()`가 라벨을 넘겨 `BM_ID_MAP` 조회가 실패했고,
+  bmId가 한국어로 남아 `rule.bm`(영문)과 영원히 불일치했다 — **CROSS_RULES 34개 전부 불발**
+  (bmId가 아예 빈 문자열이라 `cross-context.js`의 조기 return에 걸렸다).
+  ⚠ **라벨 테이블 3벌을 같은 문자열로 맞추는 방식으로 해결하지 마라** — 이름만 같고 내용이
+  다른 테이블이 또 하나 늘어난다(`INDUSTRY_GROUP_MAP` 2벌과 같은 함정). 영문 키가 단일 소스다.
+  ⚠ 업종 한국어 라벨이 필요하면 `INDUSTRY_LABEL_BY_KEY` 역매핑을 쓴다 — `data.industry`는 항상 `''`다.
+- **답하지 않은 문항으로 경고를 만들지 마라. 프록시로 점수를 지어내는 코드를 다시 넣지 마라.**
+  **왜**: 2026-10-04에 제거한 `collect()`의 BM 프록시는 공통 진단 도메인 평균을 복사해
+  `diag-bm-container_*` 키 160개를 만들었다. 사용자가 답한 적 없는 값이고, 게다가 접두어가
+  실제 컨테이너(`diag-bizmodel-container`)와 달라 **전량 생성 후 버려지고 있었다.**
+  ⚠ **경고·요약이 "없음"일 때 문장을 지어내지 마라.** `buildPromptSummary`가 경고 0건에
+  `'조합이 안정적입니다'`를 반환해, **교차 진단을 수행조차 하지 않은 상태의 단정**이 sme 1차
+  프롬프트에 매번 들어갔다. 빈 문자열을 반환하고 소비처가 falsy를 생략하게 한다.
 - **`bizScale` 우선순위는 `_scaleOverride() → #bizScale(AI) → #bizScaleSelect → 직원 수`이며 `loadDiagnosisUI()`와 `collect()` 두 곳이 같아야 한다.**
   `_scaleOverride()`는 biz-context의 `#scaleConflictBlock`(AI 판정 ≠ 직원 수 판정일 때만 노출, 기본값 AI)에서
   사용자가 고른 기준이고, 숨김·미선택이면 `''`이라 기존 순위가 그대로 흐른다(2026-10-02).
@@ -473,6 +511,18 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
 마지막 줄이 핵심이다 — 진짜 규칙은 "수치 금지"가 아니라 **"출처 없는 수치 금지"**였다.
 규칙을 실제보다 좁게 적어 두면 정당한 변경이 회귀로 잡힌다.
 
+### ⑭ 교차 규칙은 `triggers.every()`다 — 한쪽만 채우고 "불발"이라 결론내면 틀린다
+CROSS_RULES의 규칙은 대부분 **업종 트리거 + BM 트리거 2개**를 함께 요구한다
+(`rest_frc_double_collapse` = `rt_2_3` + `fr_4_4`). 검증에서 BM 점수만 넣고 0건이 나오자
+"복원이 안 됐다"고 판단한 거짓 실패가 났다. **짝 업종도 정확히 맞춰야 한다** —
+`service` BM의 짝은 `construction`(`cn_4_1`)이고 `local_service`(`ls_2_1`)의 짝은 `b2c_sub`다.
+
+### ⑮ BM 접두어 `bc_`는 두 모듈이 공유한다 — `bm:'*'` 규칙에 BM 트리거를 넣지 마라
+`b2c_sub`와 `b2c_commerce`가 모두 `bc_` 접두어를 쓴다. 의미는 다르다
+(`bc_3_1`: sub=월간 해지율 / commerce=3개월 재구매율). 현재는 모든 BM 트리거가
+`bm:` 핀이 박힌 규칙에만 있어 올바른 모듈이 해석되지만, **`bm:'*'` 규칙에 BM 트리거를
+넣는 순간 두 모델의 다른 문항이 같은 키로 섞인다.**
+
 ### ⑧ 죽은 오버라이드 — 기본과 글자까지 같으면 실효가 0이다
 `manufacturing 5_1` · `retail 5_1`에서 실제로 발생했다.
 → **"실효 오버라이드 개수"를 세어** 기대치와 맞는지 확인할 것.
@@ -538,9 +588,11 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
   Hobby 60초 상한에 얼마나 여유가 생겼는지가 그 수치에 달려 있다.
 
 ### 미연결·무효 코드
-- ⚠ **`bizmodel/` 12개 모듈 192문항이 전혀 렌더링되지 않는다.** CROSS_RULES 34개 중 21개가
-  BM 프록시(공통 진단 도메인 평균 복사)로 발동한다 — 사용자가 답한 적 없는 값이다.
-  **"BM 진단을 되살릴 것인가, CROSS_RULES에서 BM 축을 걷어낼 것인가" 방향 결정이 선행**되어야 한다
+- ⚠ **`ai-engine`의 `bizModelVarMap`은 전 BM에서 무효다.** `buildInsightsSummary()`가
+  `bizModelData.insights`·`.title`을 읽는데 BM v2.0 모듈은 **`ai_analysis`·`label`**이다
+  (업종 모듈과 같은 문제). BM 탭을 복원해도 **AI 요약의 BM 블록은 여전히 빈다.**
+  ⚠ 게다가 `bizModelVarMap`의 키가 **한국어 라벨**(`'종량제/사용기반'`·`'딥테크/R&D'`)이고
+  wizard `BM_LABELS`와 글자가 달라 조회 자체가 실패한다. **영문 키로 바꿔야 한다.**
 - ⚠ **`ai-engine`의 `industryVarMap`은 전 업종에서 무효다.** `buildInsightsSummary()`가
   `industryData.insights`를 읽는데 **19개 업종 모듈 중 `insights` 필드를 가진 것이 하나도 없다**
   (v2.0 재작성 때 `ai_analysis`로 바뀌면서 사라진 것으로 보인다)

@@ -1951,6 +1951,28 @@ h1,h2,h3,.serif{font-family:'Noto Serif KR',serif}
 }
 .scale-conflict-opt input { width: auto; margin: 0; accent-color: #F5C030; cursor: pointer; }
 
+/* 사업모델 정정 (biz-context) — 규모 확인 블록과 같은 톤을 쓴다.
+   보라색 계열로 구분한다: 금색은 '확인이 필요한 판정', 보라는 '선택 사항'이다 */
+.biz-ctx-bm {
+  margin-top: 18px; padding: 16px;
+  background: rgba(167,139,250,.07);
+  border: 1px solid rgba(167,139,250,.3);
+  border-left: 4px solid rgba(167,139,250,.65);
+  border-radius: 10px;
+}
+.biz-ctx-bm-title {
+  font-weight: 700; font-size: 0.92rem; color: #C4B5FD; margin-bottom: 6px;
+}
+.biz-ctx-bm .hint { margin: 0 0 10px; }
+.biz-ctx-bm .form-group { margin-bottom: 10px; }
+.biz-ctx-bm-desc:empty { display: none; }
+.biz-ctx-bm-desc {
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 13px; line-height: 1.6;
+}
+.bm-sel-desc-text { color: rgba(255,255,255,.78); }
+.bm-sel-desc-fit  { color: #C4B5FD; }
+
 /* 진단 유형 배너 (step2 상단) — 조직 형태 전용 진단 적용 시 표시 */
 .diag-type-banner {
   background: rgba(122,162,247,.08);

@@ -19,10 +19,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20261004a" />
-  <link rel="stylesheet" href="css/landing.css?v=20261004a" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261004a" />
-  <link rel="stylesheet" href="css/print.css?v=20261004a" />
+  <link rel="stylesheet" href="css/style.css?v=20261004b" />
+  <link rel="stylesheet" href="css/landing.css?v=20261004b" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261004b" />
+  <link rel="stylesheet" href="css/print.css?v=20261004b" />
 </head>
 <body>
 
@@ -913,14 +913,29 @@
         <div class="biz-ctx-scale-title">📐 진단 기준을 확인해 주세요</div>
         <p class="hint" id="scaleConflictMsg"></p>
         <label class="scale-conflict-opt">
-          <input type="radio" name="scaleChoice" id="scaleChoiceAi" value="" checked />
+          <input type="radio" name="scaleChoice" id="scaleChoiceAi" value="" checked onchange="Wizard.onScaleChoiceChange()" />
           <span id="scaleChoiceAiLabel"></span>
         </label>
         <label class="scale-conflict-opt">
-          <input type="radio" name="scaleChoice" id="scaleChoiceEmp" value="" />
+          <input type="radio" name="scaleChoice" id="scaleChoiceEmp" value="" onchange="Wizard.onScaleChoiceChange()" />
           <span id="scaleChoiceEmpLabel"></span>
         </label>
         <p class="hint">소상공인 기준은 업종별로 다릅니다 — 제조·광업·건설·운수업은 상시 근로자 10명 미만, 그 외 업종은 5명 미만입니다.</p>
+      </div>
+
+      <!-- 사업모델 정정 — AI 업종분석은 사업모델을 반환하지 않으므로 키워드 추론 결과를
+           기본값으로 두고 사용자가 고칠 수 있게 한다.
+           ⚠ 중소기업(sme) 경로에서만 JS(_refreshBmSelect)가 노출한다.
+              소상공인·사회적경제·창업초기·정책자금은 숨은 채 값까지 비워진다
+           ⚠ 선택값이 사업모델 특화 16문항과 업종×BM 교차 진단을 결정한다 -->
+      <div id="bmSelectBlock" class="biz-ctx-bm hidden">
+        <div class="biz-ctx-bm-title">💼 사업모델을 확인해 주세요</div>
+        <p class="hint">수익이 발생하는 방식입니다. 추론 결과가 실제와 다르면 바꿔 주세요 — 사업모델 특화 진단 16문항이 이 선택에 따라 달라집니다.</p>
+        <div class="form-group">
+          <label for="bmSelect">사업모델</label>
+          <select id="bmSelect" onchange="Wizard.onBmSelectChange(this.value)"></select>
+        </div>
+        <div id="bmSelectDesc" class="biz-ctx-bm-desc"></div>
       </div>
 
       <!-- 추가 진단 요청 영역 -->
@@ -962,6 +977,9 @@
       <div class="diag-tabs">
         <button id="diagTabBtn-common"   class="diag-tab active" onclick="Wizard.switchDiagTab('common', event)">📋 기본 경영 진단 (8문항)</button>
         <button id="diagTabBtn-industry" class="diag-tab" onclick="Wizard.switchDiagTab('industry', event)">🏭 업종 특화 진단 (5문항)</button>
+        <!-- 사업모델 탭 — 중소기업 경로에서만 JS(loadDiagnosisUI)가 display를 켠다.
+             문항 수·라벨도 실제 렌더링 결과에서 파생되므로 여기 글자는 초기값일 뿐이다 -->
+        <button id="diagTabBtn-bizmodel" class="diag-tab" style="display:none" onclick="Wizard.switchDiagTab('bizmodel', event)">💼 사업모델 진단</button>
       </div>
 
       <!-- 탭 컨텐츠 -->
@@ -1725,6 +1743,15 @@
               <div id="weakBanner"></div>
             </div>
           </div>
+          <!-- 사업모델 특화 진단 4영역 — 중소기업 경로만.
+               ⚠ 최상위 섹션이 아니라 sec-diag 카드 안의 하위 블록이다.
+                  목차 href·스크롤 스파이(allSecIds)·print.css의 break-before에 넣지 마라
+                  (통합 카드가 한가운데서 쪼개진다) -->
+          <div class="sub-block" id="sec-bizmodel" style="display:none">
+            <div class="sub-title"><h4 class="serif">사업모델 진단</h4><span class="badge" id="bmSecBadge">사업모델</span></div>
+            <div id="bmDomainList" class="bm-domain-list"></div>
+            <p class="bm-domain-note" id="bmDomainNote"></p>
+          </div>
           <div class="sub-block" id="sec-consulting" style="display:none">
             <div class="sub-title"><h4 class="serif">유형별 특화 분석</h4><span class="badge" id="specFrameworkBadge">특화 분석</span></div>
             <div id="specSummary" class="spec-summary"></div>
@@ -1740,6 +1767,13 @@
             <div class="swot-q w"><h4>Weaknesses · 약점</h4><ul class="swot-ul" id="swotW"></ul></div>
             <div class="swot-q o"><h4>Opportunities · 기회</h4><ul class="swot-ul" id="swotO"></ul></div>
             <div class="swot-q t"><h4>Threats · 위협</h4><ul class="swot-ul" id="swotT"></ul></div>
+          </div>
+          <!-- 업종 × 사업모델 교차 경고 — 두 진단을 겹쳐 봤을 때만 드러나는 복합 위험.
+               ⚠ 하위 블록이다. 자기 블록만 토글하고 sec-swot 카드를 숨기지 않는다 -->
+          <div class="sub-block" id="sec-cross" style="display:none">
+            <div class="sub-title"><h4 class="serif">업종 × 사업모델 복합 위험</h4><span class="badge" id="crossSecBadge">교차 진단</span></div>
+            <p class="cross-lead" id="crossLead"></p>
+            <ul class="cross-list" id="crossList"></ul>
           </div>
         </div>
 
@@ -1896,62 +1930,62 @@
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/gov-support.js?v=20261004a"></script>
+<script src="js/gov-support.js?v=20261004b"></script>
 <script src="js/industry-trends.js"></script>
-<script src="js/reference-db.js?v=20261004a"></script>
-<script src="js/ai-engine.js?v=20261004a"></script>
-<script src="js/dashboard.js?v=20261004a"></script>
+<script src="js/reference-db.js?v=20261004b"></script>
+<script src="js/ai-engine.js?v=20261004b"></script>
+<script src="js/dashboard.js?v=20261004b"></script>
 <!-- PPT 내보내기 — CDN 실패해도 페이지가 깨지지 않도록 defer + 버튼 비활성화로 방어 -->
 <script defer src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-<script defer src="js/ppt-export.js?v=20261004a"></script>
-<script src="js/wizard.js?v=20261004a"></script>
+<script defer src="js/ppt-export.js?v=20261004b"></script>
+<script src="js/wizard.js?v=20261004b"></script>
 <script src="js/diagnosis/cross-context.js"></script>
-<script src="js/diagnosis/funding-rules.js?v=20261004a"></script>
-<script src="js/diagnosis/common.js?v=20261004a"></script>
+<script src="js/diagnosis/funding-rules.js?v=20261004b"></script>
+<script src="js/diagnosis/common.js?v=20261004b"></script>
 <script src="js/diagnosis/diagnosis-micro.js"></script>
 <script src="js/diagnosis/diagnosis-sme.js"></script>
-<script src="js/diagnosis/diagnosis-social.js?v=20261004a"></script>
-<script src="js/diagnosis/diagnosis-venture.js?v=20261004a"></script>
-<script src="js/diagnosis/diagnosis-coop.js?v=20261004a"></script>
+<script src="js/diagnosis/diagnosis-social.js?v=20261004b"></script>
+<script src="js/diagnosis/diagnosis-venture.js?v=20261004b"></script>
+<script src="js/diagnosis/diagnosis-coop.js?v=20261004b"></script>
 <script src="js/diagnosis/startup.js"></script>
-<script src="js/diagnosis/industry/mfg_parts.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/food_mfg.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/local_service.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/wholesale.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/restaurant.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/knowledge_it.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/construction.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/medical.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/finance.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/education.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/fashion.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/media.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/export_sme.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/logistics.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/energy.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/agri_food.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/facility_service.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/social_enterprise.js?v=20261004a"></script>
-<script src="js/diagnosis/industry/social_venture.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/platform.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/franchise.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/service.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/etc.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/usage_based.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/advertising.js?v=20261004a"></script>
-<script src="js/diagnosis/bizmodel/deeptech.js?v=20261004a"></script>
-<script src="js/app.js?v=20261004a"></script>
-<script src="js/history-tracker.js?v=20261004a"></script>
-<script src="js/pattern-db.js?v=20261004a"></script>
-<script src="js/bep-simulator.js?v=20261004a"></script>
-<script src="js/finance-wizard.js?v=20261004a"></script>
+<script src="js/diagnosis/industry/mfg_parts.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/food_mfg.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/local_service.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/wholesale.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/restaurant.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/knowledge_it.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/construction.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/medical.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/finance.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/education.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/fashion.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/media.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/export_sme.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/logistics.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/energy.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/agri_food.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/facility_service.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/social_enterprise.js?v=20261004b"></script>
+<script src="js/diagnosis/industry/social_venture.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/platform.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/franchise.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/service.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/etc.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/usage_based.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/advertising.js?v=20261004b"></script>
+<script src="js/diagnosis/bizmodel/deeptech.js?v=20261004b"></script>
+<script src="js/app.js?v=20261004b"></script>
+<script src="js/history-tracker.js?v=20261004b"></script>
+<script src="js/pattern-db.js?v=20261004b"></script>
+<script src="js/bep-simulator.js?v=20261004b"></script>
+<script src="js/finance-wizard.js?v=20261004b"></script>
 <script src="js/ticker.js"></script>
-<script src="js/hero-canvas.js?v=20261004a"></script>
-<script src="js/hero-bg.js?v=20261004a"></script>
+<script src="js/hero-canvas.js?v=20261004b"></script>
+<script src="js/hero-bg.js?v=20261004b"></script>
 </body>
 </html>
