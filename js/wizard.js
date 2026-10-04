@@ -1899,6 +1899,14 @@ const Wizard = (() => {
       future:          { label: '미래기술대응역량', scores: [], color: '#FB923C' },
       differentiation: { label: '차별화·경쟁우위역량', scores: [], color: '#F5C030' }
     };
+    /* BM 진단(diag-bizmodel-container_*)에 실제 응답이 있으면 3_2 프록시를 끈다.
+       ⚠ 이 함수는 sme·창업초기 경로만 탄다(사회적경제는 _calcOrgDomainScores,
+          소상공인은 _calcMicroDomainScores). 소상공인은 아직 BM 실점수가 없으므로
+          조건이 false로 남아 프록시가 그대로 유지된다 — 일부러 그렇게 둔 것이다.
+       ⚠ bizScale로 분기하지 않는다. BM 모듈이 없거나 추론이 실패한 sme도
+          프록시가 필요하므로, 기준은 '실점수가 있는가'여야 한다. */
+    const hasBmScores = Object.keys(scores || {}).some(k =>
+      k.indexOf('diag-bizmodel-container_') === 0 && scores[k] && scores[k].score > 0);
     Object.entries(scores || {}).forEach(([key, val]) => {
       if (!val || !val.score) return;
       const s = val.score;
@@ -1930,7 +1938,8 @@ const Wizard = (() => {
           domains.hr.scores.push(s);
         } else if (key === 'diag-common-container_3_2' || key.startsWith('diag-common-container_5_')) {
           domains.differentiation.scores.push(s);
-          domains.bm.scores.push(s); // 3_2 차별화 점수를 BM역량 proxy로 공유 (bizmodel 탭 제거 보완)
+          // 3_2 차별화 점수를 BM역량 proxy로 공유 — BM 실점수가 있으면 평균이 오염되므로 끈다
+          if (!hasBmScores) domains.bm.scores.push(s);
         } else if (key.startsWith('diag-common-container_3_')) {
           domains.bm.scores.push(s);
         } else if (key.startsWith('diag-industry-container_')) {
@@ -3115,31 +3124,23 @@ const Wizard = (() => {
 
     if (window.CrossContext) {
       const industryId = data.industryKey || data.industry || data.industryName || '';
-      const bmId = data.bizModel || data.bm || data.bizModelName || '';
-      const crossScores = Object.assign({}, allScores);
+      /* ⚠ BM은 영문 키로 넘긴다 — 한국어 라벨로 넘기면 안 된다(2026-10-04).
+         같은 12개 BM의 한국어 라벨이 세 모듈에서 서로 다르게 적혀 있다:
+           wizard BM_LABELS        '서비스업'   '종량제·사용량기반' '광고기반'  '딥테크·바이오'
+           cross-context BM_ID_MAP '서비스업 (일반)' '종량제'      '광고 기반' '딥테크·바이오'
+           ai-engine bizModelVarMap '서비스업'  '종량제/사용기반'  '광고기반'  '딥테크/R&D'
+         라벨을 넘기면 BM_ID_MAP 조회가 실패해 bmId가 한국어로 남고
+         rule.bm(영문)과 영원히 불일치한다 — service·usage_based·advertising 3개 BM의
+         규칙 5건이 불발했다. 라벨 테이블 3벌을 맞추는 방식은 채택하지 않았다
+         (같은 이름 다른 내용 테이블이 또 하나 늘어난다). */
+      const bmId = data.bizModelKey || data.bizModel || data.bm || data.bizModelName || '';
+      const crossScores = allScores;
 
-      // BM 탭이 제거된 경우(TAB_ORDER=['common','industry']), common 점수로 BM 프록시 주입
-      const hasBmScores = Object.keys(crossScores).some(k => k.startsWith('diag-bm-container_'));
-      if (!hasBmScores) {
-        const domainAvg = {};
-        [1, 2, 3, 4, 5].forEach(d => {
-          const vals = Object.entries(crossScores)
-            .filter(([k]) => k.includes(`diag-common-container_${d}_`))
-            .map(([, v]) => v);
-          domainAvg[d] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 3;
-        });
-        // BM 영역 번호 → common 도메인 매핑: 1→3(BM역량), 2→3, 3→2(인력운영), 4→4(미래)
-        const BM_AREA_TO_DOMAIN = { 1: 3, 2: 3, 3: 2, 4: 4 };
-        ['fr', 'bs', 'bc', 'bb', 'pl', 'ub', 'adv', 'dt', 'sv', 'md'].forEach(prefix => {
-          [1, 2, 3, 4].forEach(area => {
-            [1, 2, 3, 4].forEach(item => {
-              const key = `diag-bm-container_${prefix}_${area}_${item}`;
-              crossScores[key] = domainAvg[BM_AREA_TO_DOMAIN[area] || 3];
-            });
-          });
-        });
-      }
-
+      /* ⚠ BM 점수를 common 점수로 대체하는 프록시는 2026-10-04에 제거했다.
+         사용자가 답한 적 없는 값으로 교차 경고를 발동시키는 코드였고, 접두어가
+         실제 컨테이너('diag-bizmodel-container')와 달라 실제로는 160개 키를
+         만들어 놓고 전량 버려지고 있었다. 되살리지 마라 — 답하지 않은 문항은
+         경고를 내지 않는 것이 맞다(주의사항 ⑬ 확인되지 않은 것은 넣지 않는다). */
       data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, crossScores, bizScale);
       data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, crossScores, bizScale);
     }

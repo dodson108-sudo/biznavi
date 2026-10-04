@@ -590,7 +590,10 @@ const CrossContext = (() => {
       const triggered = rule.triggers.every(trigger => {
         const keyPatterns = [
           `diag-industry-container_${trigger.key}`,
-          `diag-bm-container_${trigger.key}`,
+          /* ⚠ 접두어는 index.html의 실제 컨테이너 id에서 온다 — 'diag-bizmodel-container'다.
+             2026-10-04까지 'diag-bm-container_'로 적혀 있어 BM 문항 점수를 하나도 읽지
+             못했다(file:'bm' 트리거 21건 전부). 컨테이너 id를 바꾸면 여기도 바꿔야 한다. */
+          `diag-bizmodel-container_${trigger.key}`,
           `diag-common-container_${trigger.key}`,
           trigger.key,
         ];
@@ -623,9 +626,11 @@ const CrossContext = (() => {
    * ============================================================ */
   function buildPromptSummary(industryId, bmId, diagScores, bizScale) {
     const warnings = detectCrossWarnings(industryId, bmId, diagScores, bizScale);
-    if (warnings.length === 0) {
-      return '[업종×BM 교차 진단]\n복합 경고 없음. 업종과 BM 조합이 안정적입니다.';
-    }
+    /* ⚠ 경고가 없으면 빈 문자열을 반환한다 — 문장을 지어내지 않는다.
+       과거에는 '조합이 안정적입니다'를 반환했는데, bmId가 비어 조기 return된 경우
+       (= 교차 진단을 수행조차 하지 않은 경우)와 구분되지 않아 근거 없는 단정이
+       AI 프롬프트에 그대로 들어갔다. 소비처(ai-engine buildPrompt1)는 falsy면 생략한다. */
+    if (warnings.length === 0) return '';
 
     const lines = warnings.map(w =>
       `  ⚠ [${w.level}] ${w.msg}`
