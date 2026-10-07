@@ -9,6 +9,29 @@
 
 ---
 
+## 작업 이력 (2026-10-07) — micro BM 3/3: 리포트·PPT 표시 (교차 경고는 sec-diag)
+
+- **dashboard 게이트 2곳 해제**: `renderBizModelSection(isMicro ? {} : fd)` / `renderCrossSection(isMicro ? {} : fd)`
+  → 둘 다 `fd`. 경로 게이트는 wizard `_bmApplies` 한 곳이고 결과는 `bmDomainScores`·`crossWarnings`가
+  비었는지로 드러난다(창업초기·사회적경제는 빈 배열 → 블록 숨김). 호출 자체는 계속 매번 한다(이전 렌더 잔존 방지).
+- **교차 경고 위치(결정 ③)**: micro는 `sec-swot`을 쓰지 않고 사업모델 점수가 `sec-diag`에 있으므로
+  같은 카드로. `_placeCrossBlock(isMicro)`가 `#sec-cross` 노드 **하나를** 매 렌더 옮긴다
+  (micro: `#sec-bizmodel` 바로 뒤 / sme: `sec-swot` 끝).
+  - 채택하지 않은 대안: sec-diag에 블록 복제 — id 중복 시 `getElementById`가 앞의 것만 잡아 한쪽이 영원히 빈다.
+  - `sec-diag` 카드 표시 OR에 `isMicro && hasCross` 추가 — 레이더·BM이 없고 경고만 있는 경우 대비.
+- **PPT**: `_buildMicro`의 7대 영역 레이더 뒤에 `_smeBizModelSlide`·`_smeCrossSlide` 호출 2줄.
+  **발견**: `_smeSlide`가 `TH.band`를 보지 않고 늘 남색 띠(`TH.navy`)를 그렸다. LEGACY에는 `navy`·`gold`·
+  `onNavy*` 키가 없어 micro에서 색이 undefined가 될 뻔했다. 호출 그래프 전수 추적(28개 함수)에서
+  THEME 전용 키를 무조건 쓰는 곳은 `_smeSlide` 하나였다 → band 분기 추가(기하 `bh`·`_bodyTop`은 동일 —
+  `_smeCards` 넘침 계산 불변).
+
+**검증**: PPT를 mock pptx로 실행 — micro 3장(표지·사업모델·교차), undefined 색 0건, BM 빈 경우 장 생성 0 /
+sme `_buildSme` 출력이 HEAD와 **완전 동일**(직렬화 비교). dashboard는 jsdom에 실제 index.html 조각을 올려
+`_placeCrossBlock` 왕복(micro→micro→sme) 확인, `#sec-cross` 1개 유지, 빈 데이터 시 두 블록 숨김.
+**미검증**: 실제 브라우저에서 micro 전체 흐름(위저드→리포트→PPT 다운로드)은 돌려보지 않았다.
+
+---
+
 ## 작업 이력 (2026-10-07) — micro BM 2/3: 소상공인 사업모델 8문항 · 레이더 d8 축
 
 **결정** (사용자): ① 축 키 `d8` — `bm`이면 `classifyConsultingType`이 반응해 분류가 바뀐다.

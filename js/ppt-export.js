@@ -604,6 +604,23 @@ const PptExport = (() => {
     s.background = { color: TH.bg };
     const th = fit.lines * fit.fs * LH * PT + 2 * PAD * PT;
     const bh = 0.14 + th + (head.badge ? 0.3 : 0) + 0.1;
+    /* ⚠ 띠는 팔레트의 band 플래그로만 갈린다(_newSlide와 같은 규칙). 2026-10-07 전까지
+       이 함수는 band를 보지 않고 늘 띠를 그렸다 — sme만 호출해 드러나지 않았으나,
+       micro(LEGACY)가 교차 경고 장을 쓰면서 TH.navy가 없는 팔레트로 그리게 됐다.
+       기하(bh·_bodyTop)는 그대로 두어 _smeCards의 넘침 계산이 팔레트와 무관하게 같다. */
+    if (!TH.band) {
+      s.addText(head.title + (cont ? ' (계속)' : ''), {
+        x: M.x, y: 0.14, w: M.w, h: th, margin: PAD, valign: 'top',
+        fontFace: FONT, fontSize: fit.fs, bold: true, color: TH.title,
+      });
+      if (head.badge) {
+        s.addText(head.badge, { x: M.x, y: 0.14 + th, w: M.w, h: 0.3, margin: PAD, valign: 'top',
+          fontFace: FONT, fontSize: 10, color: TH.muted });
+      }
+      s.addShape('rect', { x: M.x, y: bh, w: M.w, h: 0.02, fill: { color: TH.rule } });
+      s._bodyTop = bh + 0.05 + 0.2;
+      return s;
+    }
     s.addShape('rect', { x: 0, y: 0, w: 10, h: bh, fill: { color: TH.navy } });
     s.addShape('rect', { x: 0, y: bh, w: 10, h: 0.05, fill: { color: TH.gold } });
     s.addText(head.title + (cont ? ' (계속)' : ''), {
@@ -1222,6 +1239,10 @@ const PptExport = (() => {
 
     const rows = _microRows(fd);
     if (rows.length) _radarSlide(pptx, '7대 영역 진단', 'D1~D7 · 5점 만점', rows);
+    /* 사업모델 8문항(4영역 · 5점 만점) + 교차 경고 — 화면 sec-diag와 같은 자리(2026-10-07).
+       둘 다 데이터가 없으면 장을 만들지 않는다(창업초기·BM 미응답). 7대 영역 점수에 합산하지 않는다. */
+    _smeBizModelSlide(pptx, fd);
+    _smeCrossSlide(pptx, fd);
 
     if (d.lifecycleStage) {
       const s = _newSlide(pptx, '우리 가게 지금 단계', '생애주기 진단');

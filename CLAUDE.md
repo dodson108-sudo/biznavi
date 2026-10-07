@@ -12,7 +12,7 @@
   잘못 적혀 있었다). **"300초까지 여유 있다"고 오판하지 마라** — AI 호출 소요 시간을 늘리는
   변경은 전부 이 60초에 걸린다. 과거 92초·141초 초과 사고가 모두 이 상한이었다.
 - **브랜치**: `main` (단일 브랜치 운영)
-- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20261007b`
+- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20261007c`
 
 ---
 
@@ -82,7 +82,7 @@ trade_logistics `거래처 신뢰도 노출` / facility_service `관리 실적·
 | 문항 집합 | **`_bmModuleFor(bmKey, path)` 한 곳** — 렌더링과 `collect()`의 `bmDomainScores`가 같이 쓴다. micro는 `MICRO_BM_PICK`(4영역×2) |
 | 컨테이너 | `diag-bizmodel-container` / 점수 키 `diag-bizmodel-container_<bm접두어>_<영역>_<문항>` |
 | 문항 수 | sme **36 → 52** (DiagCommon 20 + 업종 16 + BM 16) |
-| 결과 표시 | 리포트 `#sec-bizmodel`(`sec-diag` 하위) · `#sec-cross`(`sec-swot` 하위) / PPT `_smeBizModelSlide`·`_smeCrossSlide` |
+| 결과 표시 | 리포트 `#sec-bizmodel`(`sec-diag` 하위) · `#sec-cross`(sme `sec-swot` / **micro `sec-diag`** 하위 — `_placeCrossBlock`이 노드 하나를 옮긴다) / PPT `_smeBizModelSlide`·`_smeCrossSlide`(micro는 7대 영역 레이더 뒤) |
 
 ⚠ **`_tabOrder()`는 `_activeContainers`만 본다** — 조건식을 복제하지 마라. 탭 존재가 렌더링
 결과에서 파생되므로 "탭만 있고 내용 없음"이 원리적으로 생기지 않는다. `TAB_ORDER` 상수에
@@ -393,6 +393,9 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   ⚠ 색에 의존하는 값은 **상수가 아니라 함수**로 둔다(`_levelColor()`). 상수는 모듈 로드
     시점의 팔레트를 박아버린다.
   ⚠ 본문 상단 띠는 팔레트의 `band` 플래그로만 갈린다 — 빌더에서 유형을 보고 그리지 마라.
+    `_newSlide`·`_smeSlide` **둘 다** band를 본다(`_smeSlide`는 2026-10-07까지 안 봤다 — micro가
+    `_smeCrossSlide`를 쓰며 LEGACY에 없는 `TH.navy`로 그릴 뻔했다). `_sme*` 헬퍼를 LEGACY 경로에서
+    쓰려면 호출 그래프의 `TH.*` 키가 LEGACY에 있는지 먼저 확인할 것.
 - **리포트 출력물(PDF·PPT)을 만들 때 유형 판별 분기를 새로 만들지 말 것.** `Dashboard.reportKind()`·`getReportContext()`가 기존 `_isSocialFd()`·`_orgKind()`·`bizScale`·`purpose` 판정과 섹션 라벨·영역 매핑을 그대로 넘겨준다. **AI 결과는 `render()`가 DOM에 밀어넣고 버리므로** `_lastData`에 보관된 것을 쓰고, 유형 전환 시 초기화되는지 반드시 확인할 것 — 이전 회사 데이터가 출력물에 섞이는 것이 최악이다
 - **조직 형태별 진단 모듈은 `_orgDiagModule(orgType)` 한 곳에서만 고른다.** 컨테이너 id·점수 키 접두어·영역 목록은 전부 모듈의 `KEY_PREFIX`·`DOMAINS`에서 파생시킨다 — 정규식이나 문자열을 하드코딩하면 모듈이 늘어날 때 매칭이 하나도 안 돼 **레이더차트가 조용히 비고 진행률이 틀린다**(사회적기업·소셜벤처 때 각각 겪음). dashboard는 `fd.orgDiagKeyPrefix`를 쓴다
 - **진단 결과 필드는 `orgPrompt`/`orgWarnings`를 쓴다.** `socialPrompt`/`socialWarnings`는 구 필드로 병행 유지 중이며 협동조합 작업 후 제거 예정 — 새 코드에서 쓰지 말 것

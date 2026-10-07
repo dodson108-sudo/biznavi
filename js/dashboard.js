@@ -164,7 +164,20 @@ const Dashboard = (() => {
     return true;
   }
 
-  /* ── 업종 × 사업모델 교차 경고 (sec-swot 카드 안의 하위 블록) ────────
+  /* 교차 경고 블록의 위치 — sme: sec-swot 끝 / 소상공인: sec-diag의 사업모델 블록 바로 뒤 */
+  function _placeCrossBlock(isMicro) {
+    const block = document.getElementById('sec-cross');
+    if (!block) return;
+    if (isMicro) {
+      const bm = document.getElementById('sec-bizmodel');
+      if (bm && bm.parentNode && bm.nextSibling !== block) bm.parentNode.insertBefore(block, bm.nextSibling);
+    } else {
+      const swot = document.getElementById('sec-swot');
+      if (swot && block.parentNode !== swot) swot.appendChild(block);
+    }
+  }
+
+  /* ── 업종 × 사업모델 교차 경고 (sme: sec-swot / 소상공인: sec-diag 하위 블록) ────────
      ⚠ 경고가 없으면 블록을 숨긴다. "복합 위험 없음" 같은 문장을 만들지 않는다 —
         교차 진단을 수행하지 못한 경우(BM 미선택)와 구분되지 않기 때문이다. */
   function renderCrossSection(fd) {
@@ -1860,17 +1873,23 @@ const Dashboard = (() => {
        ⚠ 세 블록 결과를 OR로 합쳐 카드 표시를 여기 한 곳에서만 정한다.
           블록 함수가 카드를 숨기면 옆 블록 내용까지 사라진다(예외는 나지 않는다) */
     const hasDiag = renderDiagSection(fd);
-    /* ⚠ `!isMicro &&`로 호출 자체를 건너뛰지 않는다 — 건너뛰면 이전 렌더의 블록이
-       그대로 남아 소상공인 리포트에 직전 중소기업 결과가 보인다(이전 회사 데이터가
-       출력물에 섞이는 것이 최악이다). 빈 객체를 넘겨 블록을 확실히 비운다. */
-    const hasBm   = renderBizModelSection(isMicro ? {} : fd);
+    /* 사업모델 블록 — sme 16문항 / 소상공인 8문항(2026-10-07).
+       ⚠ 경로 게이트를 여기 두지 않는다. 적용 여부는 wizard _bmApplies가 정하고, 결과는
+          fd.bmDomainScores가 비어 있는지로 드러난다(창업초기·사회적경제는 빈 배열).
+       ⚠ 호출 자체를 건너뛰지 않는다 — 건너뛰면 이전 렌더의 블록이 남아 직전 회사
+          결과가 보인다(이전 회사 데이터가 출력물에 섞이는 것이 최악이다). */
+    const hasBm   = renderBizModelSection(fd);
     const hasSpec = !isMicro && renderSpecializedSection(data, fd);
-    const diagCard = document.getElementById('sec-diag');
-    if (diagCard) diagCard.style.display = (hasDiag || hasBm || hasSpec) ? '' : 'none';
 
-    /* ③ 강점과 약점 카드 안의 교차 경고 블록. sec-swot 카드는 항상 표시되므로
-       여기서는 블록만 토글한다(카드 display에 관여하지 않는다) */
-    renderCrossSection(isMicro ? {} : fd);
+    /* 교차 경고 블록 — sme는 ③ 강점과 약점(sec-swot), 소상공인은 ② 경영 진단(sec-diag).
+       소상공인은 sec-swot을 쓰지 않고, 사업모델 점수가 sec-diag에 있으므로 같은 자리에 둔다(결정 ③).
+       ⚠ 블록을 둘로 복제하지 않고 DOM 노드 하나를 옮긴다 — id가 둘이 되면 getElementById가
+          앞의 것만 잡아 한쪽이 영원히 빈다. 매 렌더 위치를 다시 정한다(경로 전환 대비). */
+    _placeCrossBlock(isMicro);
+    const hasCross = renderCrossSection(fd);
+    const diagCard = document.getElementById('sec-diag');
+    if (diagCard) diagCard.style.display =
+      (hasDiag || hasBm || hasSpec || (isMicro && hasCross)) ? '' : 'none';
 
     // micro 전용 — 생애주기 진단 + 상권 STP/TAM/SAM/SOM
     if (isMicro) {
