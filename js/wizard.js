@@ -3017,14 +3017,25 @@ const Wizard = (() => {
       ctx.fillStyle = '#F5C030'; ctx.fill();
     });
 
-    // 레이블
-    const shortLabels = ['경영재무', '인적자원', 'BM역량', '미래기술', '차별화'];
+    // 레이블 — d.label 단일 소스. ⚠ 인덱스 테이블을 두지 마라: micro(7축)·사회적경제(8축)도
+    //   이 함수를 거치므로 sme 5축 이름이 D1~D5 자리에 덮어써졌다.
+    //   좌우 축은 바깥쪽으로 정렬하고, 캔버스 밖으로 넘치면 '·'에서 줄을 나눈다.
     ctx.font = '11px Noto Sans KR, sans-serif';
-    ctx.textAlign = 'center';
+    ctx.fillStyle = '#E8EDF5';
     entries.forEach((d, i) => {
       const p = pt(angles[i], R + 22);
-      ctx.fillStyle = '#E8EDF5';
-      ctx.fillText(shortLabels[i] || d.label, p.x, p.y + 4);
+      const cos = Math.cos(angles[i]);
+      const align = Math.abs(cos) < 0.2 ? 'center' : (cos > 0 ? 'left' : 'right');
+      const room = align === 'center' ? w : (align === 'left' ? w - p.x : p.x) - 4;
+      const text = d.label || '';
+      let lines = [text];
+      if (ctx.measureText(text).width > room && text.includes('·')) {
+        const at = text.indexOf('·');
+        lines = [text.slice(0, at + 1), text.slice(at + 1)];
+      }
+      ctx.textAlign = align;
+      const y0 = p.y + 4 - (lines.length - 1) * 6.5;
+      lines.forEach((ln, k) => ctx.fillText(ln, p.x, y0 + k * 13));
     });
   }
 
