@@ -9,6 +9,47 @@
 
 ---
 
+## 작업 이력 (2026-10-07) — micro BM 2/3: 소상공인 사업모델 8문항 · 레이더 d8 축
+
+**결정** (사용자): ① 축 키 `d8` — `bm`이면 `classifyConsultingType`이 반응해 분류가 바뀐다.
+② 100점 종합은 건드리지 않고 "4영역 5점 만점"으로 병기(8문항은 전체의 13%, 합산 시 미응답자가
+감점되는 함정). ③ micro 교차 경고는 sec-diag(3/3 커밋).
+
+**구현**
+- `_bmApplies`에서 `isMicro` 제거, `isStartup` 가드 유지(개업 1년 미만은 실적 문항에 답할 수 없다).
+- `MICRO_BM_PICK`(12 BM × 4영역 × 2) + `_bmPickForMicro`(Object.assign 통과, 원본 불변) +
+  `_bmModuleFor(bmKey, path)` — **렌더링과 `bmDomainScores`가 같은 함수로 문항 집합을 고른다.**
+  한쪽만 줄이면 total이 화면 문항 수와 어긋난다.
+- `_calcMicroDomainScores(scores, group, hasBm)` — d8 버킷(`diag-bizmodel-container_`) + 색 `#A78BFA`
+  (sme BM역량과 같은 색). `hasBm`은 `data.bmDomainScores.length > 0` — 축 존재를 렌더링 결과에서 파생.
+- `MICRO_DOMAIN_EXPLAIN.d8` 집필(12 BM 공통 문구, 약자 없음). 프로파일 설명에 D8 병기.
+
+**선정 기준**: ① 교차 규칙 BM 트리거 전부 포함 — 21규칙 / **15쌍**(선정표 검토 때 "17키"라고
+적은 것은 잘못 센 것) ② 4영역 유지 ③ D1~D7 중복 제외(sv_2_1·md_2_1→D3 3_1, sv_3_2→D1 1_5,
+sv_4_1·sv_4_2·et_4_2→D1, bc_2_1·md_3_3→D3 3_4, bc_3_3→D7 7_3, md_3_2→D2·D7)
+④ LTV/CAC·NPS·NDR·Exit·TAM·CS 전담·PM·슈퍼바이저·프로그래매틱 제외.
+etc 영역3은 네 문항 모두 D1·D4·D5와 일부 겹쳐 덜 겹치는 et_3_1·et_3_2를 택했다(사용자 확인).
+
+**검토 중 발견해 함께 막은 것 2건**
+1. **app.js `calcDomainScores`가 micro에서도 호출된다**(유형 분류·이력 스냅샷). BM 키를 `bm` 축으로
+   흡수하는 2026-10-04 로직 때문에, 막지 않으면 결정 ①의 취지가 다른 경로로 깨진다.
+   → 3번째 인자 `pathSrc`, `_diagPathOf(pathSrc).isMicro`면 BM 키 무시. bizScale 분기는 쓰지 않았다.
+   실측: micro + BM 응답 → bm 축 0(BM 없는 입력과 결과 동일) / 인자 없이 호출 시 1.5(종전 경로 확인).
+2. **`bm:'*'` micro 교차 규칙 13개 부활.** 2026-10-04에 micro bmId가 `''`가 되며 조기 return으로
+   꺼져 있었는데(기록 없음 — 부수 효과), BM을 켜면 함께 살아난다. 문구에 ACM·프라임코스트·
+   출처 없는 `60% 초과`가 남아 있어 **사용자 결정으로 꺼진 상태 유지** — `detectCrossWarnings`
+   5번째 인자 `opts.bmPinnedOnly`. sme 호출은 opts 없음 → 불변.
+   - 채택하지 않은 대안: 13개 문구를 이번에 정리(범위 밖, microWarnings 중복 검토 선행 필요) /
+     그대로 켬(규칙 위반 문구가 AI·화면에 노출).
+
+**검증**: 선정표 12 BM 전부 영역당 2문항·트리거 15쌍 포함·원본 모듈 불변·미등록 BM → null.
+`calcDomainScores`·`_calcMicroDomainScores`·`detectCrossWarnings`를 앵커로 추출해 실행 확인
+(d8 생성/미생성, micro pinned → BM 규칙 1건만, sme 결과 불변).
+
+**franchise**: 본부 관점 문항이라 가맹점주에게 맞지 않으나 표대로 진행, 남은 이슈로 기록(사용자 결정).
+
+---
+
 ## 작업 이력 (2026-10-07) — micro BM 1/3: 레이더 라벨 인덱스 테이블 제거
 
 micro에 사업모델 진단(d8 축)을 붙이기 전 선정리. `drawRadarChart`가

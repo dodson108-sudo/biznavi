@@ -12,7 +12,7 @@
   잘못 적혀 있었다). **"300초까지 여유 있다"고 오판하지 마라** — AI 호출 소요 시간을 늘리는
   변경은 전부 이 60초에 걸린다. 과거 92초·141초 초과 사고가 모두 이 상한이었다.
 - **브랜치**: `main` (단일 브랜치 운영)
-- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20261007a`
+- **캐시버스팅**: `index.html`의 로컬 `?v=` **53곳**(외부 CDN 제외). 현재 `20261007b`
 
 ---
 
@@ -34,7 +34,7 @@
 | `isSocial` (소셜벤처) | `DiagVenture` V1~V8 | `diag-venture-container_` | 40 + 16 = **56** |
 | `isSocial` (협동조합) | `DiagCoop` C1~C8 | `diag-coop-container_` | 40 + 16 = **56** |
 | `isStartup` (개업 1년 미만) | `startup.js` S1~S4 | `diag-common-container_` | 8 + 16 = **24** |
-| `isMicro` (소상공인) | `DiagMicro` D1~D7 | `diag-micro-container_` | 35 + 16 = **51** |
+| `isMicro` (소상공인) | `DiagMicro` D1~D7 | `diag-micro-container_` | 35 + 16 + BM 8 = **59** |
 | 그 외 (sme) | `DiagCommon` | `diag-common-container_` | 20 + 16 = **36** |
 
 ⚠ `DiagSme`(18문항)는 `diag-sme-container`가 `index.html`에 없어 **어떤 경로에서도 렌더링되지 않는다.**
@@ -73,12 +73,13 @@ trade_logistics `거래처 신뢰도 노출` / facility_service `관리 실적·
 | 업종 특화 (19개) | `agri_food` `construction` `education` `energy` `export_sme` `facility_service` `fashion` `finance` `food_mfg` `knowledge_it` `local_service` `logistics` `media` `medical` `mfg_parts` `restaurant` `wholesale` `social_enterprise` `social_venture` |
 | 사업모델 (12개) | `advertising` `b2b_saas` `b2b_solution` `b2c_commerce` `b2c_sub` `deeptech` `etc` `franchise` `mfg_dist` `platform` `service` `usage_based` |
 
-### 사업모델(BM) 진단 — 중소기업 경로만 (2026-10-04 복원)
+### 사업모델(BM) 진단 — 중소기업 16문항(2026-10-04) · 소상공인 8문항(2026-10-07)
 | | |
 |---|---|
 | 모듈 | `bizmodel/` 12개 × **4영역 16문항**. 전역명은 **`BM_*`**(`BM_B2B_SAAS` 등) — `BIZMODEL_*`가 아니다 |
 | 선택 | `inferBizModel()` 자동 추론 + biz-context의 정정 select(`#bmSelect`). `#bm-confirm` 화면은 복원하지 않았다 |
-| 적용 게이트 | **`_bmApplies(path)` 한 곳.** 정책자금·사회적경제·소상공인·창업초기 제외 |
+| 적용 게이트 | **`_bmApplies(path)` 한 곳.** 정책자금·사회적경제·창업초기 제외 |
+| 문항 집합 | **`_bmModuleFor(bmKey, path)` 한 곳** — 렌더링과 `collect()`의 `bmDomainScores`가 같이 쓴다. micro는 `MICRO_BM_PICK`(4영역×2) |
 | 컨테이너 | `diag-bizmodel-container` / 점수 키 `diag-bizmodel-container_<bm접두어>_<영역>_<문항>` |
 | 문항 수 | sme **36 → 52** (DiagCommon 20 + 업종 16 + BM 16) |
 | 결과 표시 | 리포트 `#sec-bizmodel`(`sec-diag` 하위) · `#sec-cross`(`sec-swot` 하위) / PPT `_smeBizModelSlide`·`_smeCrossSlide` |
@@ -91,8 +92,14 @@ trade_logistics `거래처 신뢰도 노출` / facility_service `관리 실적·
 ⚠ **`BM_FULL_DESC`는 모듈 스코프 단일 소스다.** `populateBmConfirm`과 `_refreshBmSelect`가 공유한다.
 ⚠ **점수·라벨은 `collect()`의 `data.bmDomainScores`를 리포트·PPT가 그대로 읽는다 — 재계산 금지.**
 `count`·`total`이 함께 실려 **0점과 미응답을 구분**한다(미응답은 차트 제외 후 하단 명시).
-⚠ **소상공인·사회적경제는 아직 BM을 받지 않는다.** 레이더 축·도메인 해설·종합 점수 설계가
-선행되어야 한다 — sme는 `calcDomainScores`에 `bm` 축이 이미 있어 가능했다.
+⚠ **사회적경제는 아직 BM을 받지 않는다.** 레이더 축·도메인 해설·종합 점수 설계가 선행되어야 한다.
+⚠ **소상공인 BM은 레이더 `d8` 축 전용이다 — `bm` 키로 바꾸지 마라.** `bm`이면 5대 역량 키와 겹쳐
+`classifyConsultingType`이 반응해 분류가 바뀐다. 같은 이유로 `calcDomainScores(scores, isStartup, data)`의
+3번째 인자가 micro 경로면 BM 키를 무시한다(app.js가 micro에서도 이 함수로 유형 분류·이력 스냅샷을 만든다).
+d8은 `bmDomainScores`가 비어 있지 않을 때만 생긴다. 100점 종합에는 넣지 않고 "4영역 5점 만점"으로 병기만 한다.
+⚠ `MICRO_BM_PICK` 선정 기준: 교차 규칙 BM 트리거 15쌍 전부 포함 · 4영역 유지 · D1~D7 중복 제외 ·
+지표 산출/전담 조직 전제 문항 제외. 표를 고치면 트리거 포함 여부를 다시 검사할 것.
+⚠ **micro 교차 경고는 BM 핀 규칙만 통과한다**(`detectCrossWarnings`의 `opts.bmPinnedOnly`) — 남은 이슈 참조.
 ⚠ **`calcDomainScores`의 `bm` 축은 BM 실점수가 있으면 순수 BM 축이다**(2026-10-04 결정 ②).
 공통에서 끌어오던 두 소스를 **모두** 끊는다 — ① `3_2` 프록시(차별화 중복 투입)
 ② 공통 `3_3`·`3_4`(조직·운영 문항이라 애초에 BM이 아니었다 — 오매핑 정정).
@@ -576,6 +583,13 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
 ## 남은 이슈
 
 ### 진단 문항·표시
+- ⚠ **`bm:'*'`·`bizScale:'micro'` 교차 규칙 13개가 꺼져 있다.** 2026-10-04에 micro bmId가 비면서
+  조기 return으로 조용히 꺼졌고, 2026-10-07 micro BM 적용 시 `bmPinnedOnly`로 꺼진 상태를 유지했다.
+  문구에 약자(ACM·프라임코스트·Dog 메뉴)와 출처 없는 `60% 초과` 단정(주의사항 ⑬ 위반)이 있다.
+  **문구 정리 + `DiagMicro.detectCrossWarnings`(`microWarnings`)와의 중복 검토 후** 켤 것.
+- ⚠ **`BM_FRANCHISE`는 본부 관점 문항이다.** 소상공인이 franchise로 추론되면 대개 가맹점주인데
+  가맹점 모집·로열티·폐점률을 묻는다. micro 8문항도 선정표대로 주고 있다(2026-10-07 결정).
+  `inferBizModel()`이 micro 점주를 실제로 franchise로 추론하는지 미확인.
 - ⚠ **`service`(기준 그룹)에 영어 약자가 남아 있다.** 3그룹은 오버라이드가 덮었으므로
   이제 이것들을 보는 것은 `service` 경로뿐이다: 기본 `2_1` scale의
   `API 기반`·`구조화 데이터(Schema)`, `1_3` label의 `BEP`.

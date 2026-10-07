@@ -539,9 +539,11 @@ const CrossContext = (() => {
    * @param {string} bmId — 선택된 BM ID (예: 'franchise')
    * @param {Object} diagScores — 전체 진단 점수 객체
    * @param {string} [bizScale] — 'micro' | 'sme' | '' (optional, 규모별 필터링)
+   * @param {Object} [opts] — { bmPinnedOnly: true }면 bm:'*' 규칙을 건너뛴다.
+   *   소상공인 경로가 쓴다 — bm:'*' micro 규칙 13개는 문구 정리 전까지 꺼 둔다(2026-10-07).
    * @returns {Array} 발동된 교차 경고 목록
    * ============================================================ */
-  function detectCrossWarnings(industryId, bmId, diagScores, bizScale) {
+  function detectCrossWarnings(industryId, bmId, diagScores, bizScale, opts) {
     const BM_ID_MAP = {
       '프랜차이즈': 'franchise',
       'B2B SaaS': 'b2b_saas',
@@ -585,6 +587,7 @@ const CrossContext = (() => {
     CROSS_RULES.forEach(rule => {
       if (rule.industry !== industryId && rule.industry !== '*') return;
       if (rule.bm !== bmId && rule.bm !== '*') return;
+      if (opts && opts.bmPinnedOnly && rule.bm === '*') return;
       if (rule.bizScale && bizScale && rule.bizScale !== bizScale) return;
 
       const triggered = rule.triggers.every(trigger => {
@@ -624,8 +627,8 @@ const CrossContext = (() => {
   /* ============================================================
    * AI 프롬프트용 교차 경고 요약 텍스트 생성
    * ============================================================ */
-  function buildPromptSummary(industryId, bmId, diagScores, bizScale) {
-    const warnings = detectCrossWarnings(industryId, bmId, diagScores, bizScale);
+  function buildPromptSummary(industryId, bmId, diagScores, bizScale, opts) {
+    const warnings = detectCrossWarnings(industryId, bmId, diagScores, bizScale, opts);
     /* ⚠ 경고가 없으면 빈 문자열을 반환한다 — 문장을 지어내지 않는다.
        과거에는 '조합이 안정적입니다'를 반환했는데, bmId가 비어 조기 return된 경우
        (= 교차 진단을 수행조차 하지 않은 경우)와 구분되지 않아 근거 없는 단정이

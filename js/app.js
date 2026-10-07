@@ -259,7 +259,8 @@ const App = (() => {
 
     const data = Wizard.collect();
     // consultingType을 AI 호출 전에 미리 계산 — 프롬프트에 반영되도록
-    const _domScores = Wizard.calcDomainScores(data.diagScores || {}, data.isStartup);
+    // ⚠ data를 3번째로 넘긴다 — 소상공인 BM 점수(d8 전용)가 bm 축에 흡수되지 않게 한다
+    const _domScores = Wizard.calcDomainScores(data.diagScores || {}, data.isStartup, data);
     const _ctResult  = Wizard.classifyConsultingType(_domScores);
     data.consultingType          = _ctResult?.primary   || '';
     data.consultingTypeSecondary = _ctResult?.secondary || '';

@@ -412,15 +412,60 @@ const Wizard = (() => {
 
   const BM_CONTAINER_ID = 'diag-bizmodel-container';
 
-  /* BM 진단 적용 경로 — 현재 **중소기업(sme)만**이다.
-     ⚠ 소상공인·사회적경제·창업초기는 제외다. 적용 범위를 넓히려면 레이더차트·도메인 해설·
+  /* BM 진단 적용 경로 — **중소기업(16문항)·소상공인(8문항, 2026-10-07)**.
+     ⚠ 사회적경제·창업초기는 제외다. 적용 범위를 넓히려면 레이더차트·도메인 해설·
         종합 점수·리포트 섹션 4곳을 그 경로에도 함께 만들어야 한다(CLAUDE.md 작업 규칙).
         게이트를 여기 한 곳에만 두어, loadDiagnosisUI와 _tabOrder가 어긋나지 않게 한다.
+     ⚠ isStartup 가드를 떼지 마라 — 개업 1년 미만은 재구매율·갱신율 같은 실적 문항에 답할 수 없다.
+        (_diagPathOf에서 isStartup이면 isMicro가 false이므로 isMicro 가드만으로는 막히지 않는다)
      ⚠ 정책자금 경로는 BM 진단을 하지 않는다 — FundingRules 판정에 끼어들지 않는다. */
   function _bmApplies(path) {
     if (_purpose === 'funding') return false;
     const p = path || {};
-    return !p.isSocial && !p.isMicro && !p.isStartup;
+    return !p.isSocial && !p.isStartup;
+  }
+
+  /* 소상공인 BM 8문항 선정표 (2026-10-07 확정) — 4영역 × 2문항.
+     기준: ① 교차 규칙 BM 트리거 17키 전부 포함 ② 4영역 유지 ③ D1~D7과 겹치는 문항 제외
+           ④ 지표 산출·전담 조직을 전제하는 문항 제외(LTV/CAC·NPS·Exit·CS 전담 등).
+     ⚠ 키는 BM 모듈 문항 id다. bc_ 접두어는 b2c_sub·b2c_commerce가 공유하므로
+        반드시 BM 키 아래에서 찾는다(주의사항 ⑮).
+     ⚠ franchise 16문항은 본부 관점이라 가맹점주에게 맞지 않는다 — 남은 이슈로 기록됨. */
+  const MICRO_BM_PICK = {
+    service:      ['sv_1_3','sv_1_4', 'sv_2_2','sv_2_3', 'sv_3_1','sv_3_3', 'sv_4_3','sv_4_4'],
+    b2b_saas:     ['bs_1_1','bs_1_4', 'bs_2_2','bs_2_4', 'bs_3_1','bs_3_3', 'bs_4_1','bs_4_2'],
+    b2b_solution: ['bb_1_3','bb_1_4', 'bb_2_1','bb_2_2', 'bb_3_1','bb_3_4', 'bb_4_2','bb_4_4'],
+    b2c_commerce: ['bc_1_1','bc_1_3', 'bc_2_2','bc_2_3', 'bc_3_1','bc_3_2', 'bc_4_1','bc_4_2'],
+    b2c_sub:      ['bc_1_1','bc_1_3', 'bc_2_1','bc_2_4', 'bc_3_1','bc_3_2', 'bc_4_1','bc_4_2'],
+    deeptech:     ['dt_1_1','dt_1_2', 'dt_2_2','dt_2_4', 'dt_3_2','dt_3_3', 'dt_4_2','dt_4_3'],
+    etc:          ['et_1_1','et_1_3', 'et_2_1','et_2_2', 'et_3_1','et_3_2', 'et_4_1','et_4_3'],
+    franchise:    ['fr_1_2','fr_1_3', 'fr_2_2','fr_2_4', 'fr_3_2','fr_3_4', 'fr_4_1','fr_4_4'],
+    mfg_dist:     ['md_1_1','md_1_2', 'md_2_2','md_2_4', 'md_3_1','md_3_4', 'md_4_1','md_4_2'],
+    platform:     ['pl_1_1','pl_1_2', 'pl_2_3','pl_2_4', 'pl_3_1','pl_3_2', 'pl_4_2','pl_4_3'],
+    advertising:  ['adv_1_1','adv_1_3', 'adv_2_1','adv_2_2', 'adv_3_1','adv_3_2', 'adv_4_1','adv_4_4'],
+    usage_based:  ['ub_1_1','ub_1_4', 'ub_2_2','ub_2_3', 'ub_3_1','ub_3_3', 'ub_4_1','ub_4_3'],
+  };
+
+  /* BM 모듈 → 소상공인 8문항 모듈. 원본은 변형하지 않는다(sme가 같은 객체를 쓴다).
+     ⚠ Object.assign으로 통과시킨다 — 키를 골라 담으면 스키마가 바뀔 때 새 키가 조용히 탈락한다.
+     ⚠ 선정표에 없는 BM이면 null — 16문항을 그대로 주지 않는다(폴백으로 메우지 마라). */
+  function _bmPickForMicro(mod) {
+    const pick = mod && MICRO_BM_PICK[mod.id];
+    if (!pick || !Array.isArray(mod.areas)) return null;
+    return Object.assign({}, mod, {
+      areas: mod.areas.map(a => Object.assign({}, a, {
+        items: (a.items || []).filter(it => pick.indexOf(it.id) >= 0),
+      })),
+    });
+  }
+
+  /* 경로별 BM 진단 모듈 — 렌더링과 collect()가 반드시 같은 문항 집합을 봐야 한다.
+     ⚠ 한쪽만 8문항으로 줄이면 bmDomainScores의 total이 화면 문항 수와 어긋난다. */
+  function _bmModuleFor(bmKey, path) {
+    if (!_bmApplies(path)) return null;
+    const mod = _bmDiagModule(bmKey);
+    if (!mod) return null;
+    return (path && path.isMicro) ? _bmPickForMicro(mod) : mod;
   }
 
   /* biz-context 화면에서 쓸 '현재까지 판정된 규모'.
@@ -1448,11 +1493,11 @@ const Wizard = (() => {
     const tabIndustryBtn = document.getElementById('diagTabBtn-industry');
     if (tabIndustryBtn) tabIndustryBtn.style.display = industryData ? '' : 'none';
 
-    /* 사업모델 특화 모듈 렌더링 (2026-10-04 복원 — 중소기업 경로만)
+    /* 사업모델 특화 모듈 렌더링 (2026-10-04 중소기업 16문항 / 2026-10-07 소상공인 8문항)
        ⚠ 적용 여부는 _bmApplies() 한 곳이 정한다. 여기서 조건을 다시 쓰면
           _tabOrder()와 어긋나 탭과 내용이 따로 논다.
        ⚠ 모듈 전역명은 BM_* 다 (_bmDiagModule 참조) — BIZMODEL_*가 아니다. */
-    const bmData = _bmApplies(_path) ? _bmDiagModule(bizModelKey) : null;
+    const bmData = _bmModuleFor(bizModelKey, _path);
     if (bmData) {
       renderDiagModule(BM_CONTAINER_ID, bmData);
       _activeContainers.push(BM_CONTAINER_ID);
@@ -2083,7 +2128,12 @@ const Wizard = (() => {
   };
 
   /* ── 5대 역량 도메인 점수 계산 ── */
-  function calcDomainScores(scores, isStartup) {
+  /* ⚠ 3번째 인자 pathSrc(collect() 결과 등)를 주면 _diagPathOf로 경로를 판정한다.
+     app.js는 소상공인에서도 이 함수로 5대 역량을 만들어 classifyConsultingType·이력 스냅샷에
+     쓴다. 소상공인 BM 점수는 레이더 d8 축 전용이므로(2026-10-07 결정 ①) 여기서는 무시한다 —
+     흡수하면 bm 축이 생겨 컨설팅 유형 분류가 바뀐다. 경로는 bizScale이 아니라 _diagPathOf로 본다. */
+  function calcDomainScores(scores, isStartup, pathSrc) {
+    const skipBm = !!(pathSrc && _diagPathOf(pathSrc).isMicro);
     const domains = isStartup ? {
       finance:         { label: '자금·사업계획',  scores: [], color: '#4ADE80' },
       hr:              { label: '운영 준비도',    scores: [], color: '#60A5FA' },
@@ -2112,10 +2162,11 @@ const Wizard = (() => {
           레이더 축이 조용히 사라진다(에러가 나지 않아 발견이 늦다 — 반복된 사고 패턴).
        ⚠ 3_3·3_4는 레이더에서만 빠진다. 진단 화면·AI 프롬프트(DiagCommon.buildPromptSummary)·
           취약영역 배너(AIEngine.calcDiagScores 공통 4영역)에는 그대로 쓰인다. */
-    const hasBmScores = Object.keys(scores || {}).some(k =>
+    const hasBmScores = !skipBm && Object.keys(scores || {}).some(k =>
       k.indexOf('diag-bizmodel-container_') === 0 && scores[k] && scores[k].score > 0);
     Object.entries(scores || {}).forEach(([key, val]) => {
       if (!val || !val.score) return;
+      if (skipBm && key.indexOf('diag-bizmodel-container_') === 0) return;
       const s = val.score;
       if (isStartup) {
         /* STARTUP 4영역 → 5도메인 매핑 (2026-09-03 수정)
@@ -2312,6 +2363,13 @@ const Wizard = (() => {
       icon: '📱', what: '온라인 홍보 운영과 생성형 AI 활용, 콘텐츠 제작 수준을 진단한 결과입니다.',
       high: '온라인 홍보를 잘 활용하고 있습니다. AI 도구로 콘텐츠 만드는 속도를 더 높이세요.',
       low:  '온라인 홍보가 미흡합니다. ChatGPT(대화형 AI)·클로바X로 주 2회 사진과 글 올리기를 시작해보세요.'
+    },
+    /* d8 — 사업모델(2026-10-07). 사업모델 진단 탭이 렌더링된 경우에만 축이 생긴다.
+       ⚠ 12개 사업모델 공통으로 읽히도록 특정 모델 용어를 쓰지 않는다. */
+    d8: {
+      icon: '🧩', what: '선택한 사업모델에서 돈이 벌리는 구조를 4개 영역 8문항으로 진단한 결과입니다. 경영 진단 7개 영역과 겹치지 않는 문항만 골랐습니다.',
+      high: '사업모델의 핵심 구조가 잘 작동하고 있습니다. 점수가 가장 낮은 영역 하나를 골라 다음 개선 대상으로 삼으세요.',
+      low:  '사업모델의 수익 구조에 빈 곳이 있습니다. 리포트의 사업모델 영역별 점수에서 2점 이하 영역부터 확인하세요.'
     }
   };
 
@@ -2382,19 +2440,25 @@ const Wizard = (() => {
   /* 레이더차트 7축 색상 — 영역 순서대로 적용. color는 UI 속성이므로 wizard가 보유한다 */
   var MICRO_DOMAIN_COLORS = ['#4ADE80', '#60A5FA', '#C084FC', '#FB923C',
                              '#F5C030', '#F87171', '#34D399'];
+  /* d8 사업모델 축 색 — sme BM역량 축과 같은 색(같은 소스 계열임을 맞춘다) */
+  var MICRO_BM_COLOR = '#A78BFA';
 
   /* ── micro 7대 영역 점수 계산 ──
      ⚠ label을 여기 하드코딩하지 않는다. DiagMicro.getDomains(group)에서 파생시켜야
         진단 화면(getSchema)·레이더차트(여기)·PPT(calcScores)·AI 프롬프트가 같은 이름을 쓴다.
         (과거 하드코딩 탓에 D2가 진단 화면과 레이더차트에서 갈릴 수 있었고,
          'D1. 경영진단·손익분析'처럼 한자가 섞인 오타도 이 배열에만 남아 있었다) */
-  function _calcMicroDomainScores(scores, industryGroup) {
+  /* ⚠ hasBm: 사업모델 진단이 렌더링된 경로에서만 true(collect()의 bmDomainScores가 비어 있지 않음).
+     d8 축은 그때만 만든다 — 축 존재가 렌더링 결과에서 파생되어야 "축만 있고 문항 없음"이 생기지 않는다.
+     ⚠ 키는 'd8'이다. 'bm'으로 두면 5대 역량 키와 겹쳐 classifyConsultingType 계열이 반응한다(결정 ①). */
+  function _calcMicroDomainScores(scores, industryGroup, hasBm) {
     var base = (typeof DiagMicro !== 'undefined' && DiagMicro.getDomains)
       ? DiagMicro.getDomains(industryGroup) : [];
     var MICRO_DOMAINS = base.map(function(d, i) {
       return { id: d.id, key: 'd' + d.id, label: 'D' + d.id + '. ' + d.label,
                color: MICRO_DOMAIN_COLORS[i % MICRO_DOMAIN_COLORS.length] };
     });
+    if (hasBm) MICRO_DOMAINS.push({ id: 'bm', key: 'd8', label: 'D8. 사업모델', color: MICRO_BM_COLOR });
     var buckets = {};
     MICRO_DOMAINS.forEach(function(d) {
       // 점수 키 diag-micro-container_{id}_* 의 id로 직접 버킷을 만든다 (배열 순서에 의존하지 않는다)
@@ -2403,6 +2467,10 @@ const Wizard = (() => {
     Object.entries(scores || {}).forEach(function(entry) {
       var key = entry[0], val = entry[1];
       if (!val || !val.score) return;
+      if (key.indexOf('diag-bizmodel-container_') === 0) {
+        if (buckets.bm) buckets.bm.scores.push(val.score);
+        return;
+      }
       var m = key.match(/^diag-micro-container_(\d)_/);
       if (!m) return;
       if (buckets[m[1]]) buckets[m[1]].scores.push(val.score);
@@ -2620,7 +2688,7 @@ const Wizard = (() => {
     const domainScores = isSocial
       ? _calcOrgDomainScores(scores, orgMod)
       : isMicro
-        ? _calcMicroDomainScores(scores, microGroup)
+        ? _calcMicroDomainScores(scores, microGroup, (data.bmDomainScores || []).length > 0)
         : calcDomainScores(scores, isStartup);
     const explainMap = isSocial
       ? (ORG_DOMAIN_EXPLAIN[data.orgType] || SOCIAL_DOMAIN_EXPLAIN)
@@ -2757,7 +2825,10 @@ const Wizard = (() => {
       if (elProfileDesc)  elProfileDesc.textContent  = '사회적기업 8대 영역(S1~S8) 진단 결과입니다. 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다. 8개 영역은 균등 배점이며 SVI(사회적가치지표) 예상 점수가 아닙니다.';
     } else if (isMicro) {
       if (elProfileTitle) elProfileTitle.textContent = '📊 7대 영역 진단 프로파일';
-      if (elProfileDesc)  elProfileDesc.textContent  = '소상공인 7대 분야(D1~D7) 진단 결과입니다. 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다.';
+      if (elProfileDesc)  elProfileDesc.textContent  = (domainScores.d8
+        ? '소상공인 7대 분야(D1~D7)와 사업모델(D8) 진단 결과입니다.'
+        : '소상공인 7대 분야(D1~D7) 진단 결과입니다.')
+        + ' 5점 최고·1점 최저이며, 취약 영역(2점 이하)의 처방이 AI 분석 보고서에서 우선 제시됩니다.';
     } else {
       if (elProfileTitle) elProfileTitle.textContent = '📊 5대 역량 프로파일';
       if (elProfileDesc)  elProfileDesc.textContent  = '진단 응답을 바탕으로 귀사의 핵심 역량을 5개 영역별로 수치화한 결과입니다. 5점이 최고, 1점이 최저이며 3점이 업종 평균 수준입니다. 점수가 낮은 영역부터 솔루션 보고서에서 우선 개선 전략이 제시됩니다.';
@@ -3360,8 +3431,13 @@ const Wizard = (() => {
          실제 컨테이너('diag-bizmodel-container')와 달라 실제로는 160개 키를
          만들어 놓고 전량 버려지고 있었다. 되살리지 마라 — 답하지 않은 문항은
          경고를 내지 않는 것이 맞다(주의사항 ⑬ 확인되지 않은 것은 넣지 않는다). */
-      data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, crossScores, bizScale);
-      data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, crossScores, bizScale);
+      /* ⚠ 소상공인은 BM 핀 규칙(rule.bm !== '*')만 통과시킨다(2026-10-07).
+         bm:'*'·bizScale:'micro' 규칙 13개는 2026-10-04부터 micro bmId가 비어 조기 return으로
+         꺼져 있었다. BM을 켜면 함께 살아나는데, 문구에 약자(ACM·프라임코스트)와 출처 없는
+         '60% 초과' 단정이 남아 있어(주의사항 ⑬) 정리 전까지는 꺼진 상태를 유지한다. */
+      const crossOpts = { bmPinnedOnly: _diagPathOf(data).isMicro };
+      data.crossWarnings = CrossContext.detectCrossWarnings(industryId, bmId, crossScores, bizScale, crossOpts);
+      data.crossPrompt = CrossContext.buildPromptSummary(industryId, bmId, crossScores, bizScale, crossOpts);
     }
 
     /* 사업모델 4영역 점수 — 리포트·PPT가 이 결과를 그대로 읽는다(2026-10-04).
@@ -3370,7 +3446,8 @@ const Wizard = (() => {
        ⚠ 응답이 하나도 없는 영역은 avg 0 · count 0으로 남긴다 — 소비처가 "0점"과
           "미응답"을 구분할 수 있어야 한다(빈 영역은 차트에서 빼고 하단에 명시한다). */
     data.bmDomainScores = (() => {
-      const mod = _bmDiagModule(_inferredBmKey);
+      // ⚠ 렌더링과 같은 함수로 모듈을 고른다 — 소상공인은 8문항이라 total이 영역당 2다
+      const mod = _bmModuleFor(_inferredBmKey, _diagPathOf(data));
       if (!mod || !mod.areas) return [];
       return mod.areas.map(area => {
         const vals = area.items
