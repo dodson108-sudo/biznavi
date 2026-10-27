@@ -19,10 +19,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=20261027a" />
-  <link rel="stylesheet" href="css/landing.css?v=20261027a" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261027a" />
-  <link rel="stylesheet" href="css/print.css?v=20261027a" />
+  <link rel="stylesheet" href="css/style.css?v=20261027b" />
+  <link rel="stylesheet" href="css/landing.css?v=20261027b" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261027b" />
+  <link rel="stylesheet" href="css/print.css?v=20261027b" />
 </head>
 <body>
 
@@ -36,8 +36,8 @@
     <div class="lp-nav-inner">
       <a class="lp-nav-logo" href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="13" cy="13" r="12" stroke="#F5C030" stroke-width="1.6" fill="none"/>
-          <text x="13" y="18" text-anchor="middle" fill="#F5C030" font-size="13" font-weight="700" font-family="Arial,sans-serif">A</text>
+          <circle cx="13" cy="13" r="12" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <text x="13" y="18" text-anchor="middle" fill="currentColor" font-size="13" font-weight="700" font-family="Arial,sans-serif">A</text>
         </svg>
         BizNavi AI
       </a>
@@ -163,7 +163,7 @@
 
       <!-- 재무분석 모듈 -->
       <div class="lp-section-title" style="margin-bottom:24px">
-        <div style="display:inline-block;background:rgba(245,192,48,.12);border:1px solid rgba(245,192,48,.3);border-radius:20px;padding:4px 16px;font-size:0.8rem;color:var(--gold);font-weight:700;margin-bottom:12px">📊 재무분석 모듈</div>
+        <div class="lp-module-badge">📊 재무분석 모듈</div>
         <h2>재무제표를 자동으로 조회하고 분석합니다</h2>
         <p>DART 공시 데이터 + 한국은행 업종평균으로 우리 회사의 재무 건전성을 즉시 파악</p>
       </div>
@@ -192,7 +192,7 @@
 
       <!-- 경영전략 모듈 -->
       <div class="lp-section-title" style="margin-bottom:24px">
-        <div style="display:inline-block;background:rgba(245,192,48,.12);border:1px solid rgba(245,192,48,.3);border-radius:20px;padding:4px 16px;font-size:0.8rem;color:var(--gold);font-weight:700;margin-bottom:12px">🎯 경영전략 수립 모듈</div>
+        <div class="lp-module-badge">🎯 경영전략 수립 모듈</div>
         <h2>업종과 규모에 맞는 전략을 자동으로 설계합니다</h2>
         <p>소상공인부터 중소기업까지 — 진단 점수 기반으로 맞춤 전략 보고서를 30분 안에 생성</p>
       </div>
@@ -306,30 +306,26 @@
             <div class="lp-mockup-dot"></div>
             <span class="lp-mockup-label">BizNavi AI — 재무분석 대시보드</span>
           </div>
-          <div style="font-size:10px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:10px">6대 재무비율 분석 · 업종 평균 비교</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-            <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:8px">
-              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">유동비율</div>
-              <div style="font-size:1.1rem;font-weight:700;color:#4ADE80">182%</div>
-              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 150% ↑ 양호</div>
+          <div class="lp-mockup-cap">6대 재무비율 분석 · 업종 평균 비교</div>
+          <div class="lp-mk-grid">
+            <div class="lp-mk-cell ok">
+              <div class="k">유동비율</div><div class="v">182%</div>
+              <div class="n">업종평균 150% ↑ 양호</div>
             </div>
-            <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:8px">
-              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">부채비율</div>
-              <div style="font-size:1.1rem;font-weight:700;color:#4ADE80">98%</div>
-              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 120% ↓ 양호</div>
+            <div class="lp-mk-cell ok">
+              <div class="k">부채비율</div><div class="v">98%</div>
+              <div class="n">업종평균 120% ↓ 양호</div>
             </div>
-            <div style="background:rgba(245,192,48,.06);border:1px solid rgba(245,192,48,.2);border-radius:8px;padding:8px">
-              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">매출액순이익률</div>
-              <div style="font-size:1.1rem;font-weight:700;color:#F5C030">5.2%</div>
-              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 4.8% ↑ 보통</div>
+            <div class="lp-mk-cell mid">
+              <div class="k">매출액순이익률</div><div class="v">5.2%</div>
+              <div class="n">업종평균 4.8% ↑ 보통</div>
             </div>
-            <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:8px">
-              <div style="font-size:9px;color:rgba(255,255,255,.5);margin-bottom:2px">매출채권회전율</div>
-              <div style="font-size:1.1rem;font-weight:700;color:#F87171">4.1회</div>
-              <div style="font-size:9px;color:rgba(255,255,255,.4)">업종평균 6.2회 ↓ 주의</div>
+            <div class="lp-mk-cell bad">
+              <div class="k">매출채권회전율</div><div class="v">4.1회</div>
+              <div class="n">업종평균 6.2회 ↓ 주의</div>
             </div>
           </div>
-          <div style="font-size:10px;color:rgba(245,192,48,.7);font-weight:700;letter-spacing:.5px;margin-bottom:8px">SWOT 전략 분석</div>
+          <div class="lp-mockup-cap">SWOT 전략 분석</div>
           <div class="lp-swot" style="font-size:10px">
             <div class="lp-swot-cell s"><h4>강점</h4><p>독자 기술력·낮은 원가구조</p></div>
             <div class="lp-swot-cell w"><h4>약점</h4><p>브랜드 인지도·마케팅 역량</p></div>
@@ -1692,61 +1688,61 @@
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/gov-support.js?v=20261027a"></script>
+<script src="js/gov-support.js?v=20261027b"></script>
 <script src="js/industry-trends.js"></script>
-<script src="js/reference-db.js?v=20261027a"></script>
-<script src="js/ai-engine.js?v=20261027a"></script>
-<script src="js/dashboard.js?v=20261027a"></script>
+<script src="js/reference-db.js?v=20261027b"></script>
+<script src="js/ai-engine.js?v=20261027b"></script>
+<script src="js/dashboard.js?v=20261027b"></script>
 <!-- PPT 내보내기 — CDN 실패해도 페이지가 깨지지 않도록 defer + 버튼 비활성화로 방어 -->
 <script defer src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-<script defer src="js/ppt-export.js?v=20261027a"></script>
-<script src="js/wizard.js?v=20261027a"></script>
+<script defer src="js/ppt-export.js?v=20261027b"></script>
+<script src="js/wizard.js?v=20261027b"></script>
 <script src="js/diagnosis/cross-context.js"></script>
-<script src="js/diagnosis/common.js?v=20261027a"></script>
+<script src="js/diagnosis/common.js?v=20261027b"></script>
 <script src="js/diagnosis/diagnosis-micro.js"></script>
 <script src="js/diagnosis/diagnosis-sme.js"></script>
-<script src="js/diagnosis/diagnosis-social.js?v=20261027a"></script>
-<script src="js/diagnosis/diagnosis-venture.js?v=20261027a"></script>
-<script src="js/diagnosis/diagnosis-coop.js?v=20261027a"></script>
+<script src="js/diagnosis/diagnosis-social.js?v=20261027b"></script>
+<script src="js/diagnosis/diagnosis-venture.js?v=20261027b"></script>
+<script src="js/diagnosis/diagnosis-coop.js?v=20261027b"></script>
 <script src="js/diagnosis/startup.js"></script>
-<script src="js/diagnosis/industry/mfg_parts.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/food_mfg.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/local_service.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/wholesale.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/restaurant.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/knowledge_it.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/construction.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/medical.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/finance.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/education.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/fashion.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/media.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/export_sme.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/logistics.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/energy.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/agri_food.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/facility_service.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/social_enterprise.js?v=20261027a"></script>
-<script src="js/diagnosis/industry/social_venture.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/platform.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/franchise.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/service.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/etc.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/usage_based.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/advertising.js?v=20261027a"></script>
-<script src="js/diagnosis/bizmodel/deeptech.js?v=20261027a"></script>
-<script src="js/app.js?v=20261027a"></script>
-<script src="js/history-tracker.js?v=20261027a"></script>
-<script src="js/pattern-db.js?v=20261027a"></script>
-<script src="js/bep-simulator.js?v=20261027a"></script>
-<script src="js/finance-wizard.js?v=20261027a"></script>
+<script src="js/diagnosis/industry/mfg_parts.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/food_mfg.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/local_service.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/wholesale.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/restaurant.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/knowledge_it.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/construction.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/medical.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/finance.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/education.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/fashion.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/media.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/export_sme.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/logistics.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/energy.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/agri_food.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/facility_service.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/social_enterprise.js?v=20261027b"></script>
+<script src="js/diagnosis/industry/social_venture.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/b2b_saas.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/b2c_sub.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/b2b_solution.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/b2c_commerce.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/platform.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/franchise.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/mfg_dist.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/service.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/etc.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/usage_based.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/advertising.js?v=20261027b"></script>
+<script src="js/diagnosis/bizmodel/deeptech.js?v=20261027b"></script>
+<script src="js/app.js?v=20261027b"></script>
+<script src="js/history-tracker.js?v=20261027b"></script>
+<script src="js/pattern-db.js?v=20261027b"></script>
+<script src="js/bep-simulator.js?v=20261027b"></script>
+<script src="js/finance-wizard.js?v=20261027b"></script>
 <script src="js/ticker.js"></script>
-<script src="js/hero-canvas.js?v=20261027a"></script>
-<script src="js/hero-bg.js?v=20261027a"></script>
+<script src="js/hero-canvas.js?v=20261027b"></script>
+<script src="js/hero-bg.js?v=20261027b"></script>
 </body>
 </html>
