@@ -23,7 +23,7 @@ const PptExport = (() => {
         팔레트를 바꿨는데 일부 슬라이드만 옛 색으로 남는 것을 막기 위한 것이다.
 
      ⚠ 팔레트가 둘인 이유 — 유형별 전환 중이기 때문이다.
-        `LEGACY`는 micro·사회적경제·정책자금이 쓰던 기존 색이고 출력이 바뀌면 안 된다.
+        `LEGACY`는 micro·사회적경제가 쓰던 기존 색이고 출력이 바뀌면 안 된다.
         `THEME`은 새 색 체계이며 **현재 sme 경로만** 쓴다(2026-09-21, 1단계).
         2·3단계에서 나머지 유형을 THEME으로 옮기면 LEGACY는 삭제한다.
 
@@ -32,7 +32,7 @@ const PptExport = (() => {
         일어나지 않아 한 장만 색이 다른 슬라이드가 나온다. */
   const FONT = '맑은 고딕';
 
-  /* 기존 팔레트 — micro·사회적경제·정책자금 (출력 불변) */
+  /* 기존 팔레트 — micro·사회적경제 (출력 불변) */
   const LEGACY = {
     bg:      'FFFFFF',
     title:   '1A2340',   // 진한 남색
@@ -101,7 +101,7 @@ const PptExport = (() => {
   /* 슬라이드 좌표 (16:9, 10 x 5.63 inch) */
   const M = { x: 0.55, w: 8.9, titleY: 0.42, bodyY: 1.15 };
 
-  /* ── 텍스트 상한 — **LEGACY 유형(micro·사회적경제·정책자금) 전용** ──
+  /* ── 텍스트 상한 — **LEGACY 유형(micro·사회적경제) 전용** ──
      ⚠ PptxGenJS는 자동 축소를 하지 않는다. 넘치면 슬라이드 밖으로 흘러 잘린다.
         LEGACY는 글자 수 상한으로 자르고 '…'을 붙여 잘렸음을 남긴다.
         슬라이드 단위로 잘림이 있었으면 하단에 안내를 붙인다.
@@ -1475,93 +1475,6 @@ const PptExport = (() => {
       fontFace: FONT, fontSize: 10, color: TH.body });
   }
 
-  /* ── 정책자금 — 7장 (레이더차트 슬라이드 없음) ── */
-  function _buildFunding(pptx, ctx) {
-    const fd = ctx.fd;
-    const v = (fd && fd.fundingVerdict) || {};
-    const agencies = v.agencies || [];
-    _cover(pptx, '정책자금 진단 보고서', fd.companyName, _dateKr() + ' · 기관 기준 자가진단');
-
-    {
-      const s = _newSlide(pptx, '판정 요약', '기관별 점검 결과');
-      const VLABEL = { blocked: '결격 사유 있음', review: '확인 필요', clear: '결격 없음' };
-      const VCOLOR = { blocked: TH.critical, review: TH.high, clear: TH.ok };
-      _bullets(s, agencies.map(a => {
-        const fx = (a.findings || []).filter(f => f.kind !== 'reference');
-        const clear = fx.filter(f => f.status === 'clear').length;
-        const need = fx.length - clear;
-        const vl = a.eligible === false ? '대상 아님' : (VLABEL[a.verdict] || '—');
-        return {
-          t: _plain(a.name || a.agency || ''),
-          sub: vl + '   ·   점검 ' + fx.length + '개 · 통과 ' + clear + ' · 확인 필요 ' + need,
-          color: a.eligible === false ? TH.medium : (VCOLOR[a.verdict] || TH.medium),
-        };
-      }), { max: 4, rowH: 0.86 });
-      if ((v.unknownItems || []).length) {
-        s.addText('확인이 필요한 항목 ' + v.unknownItems.length + '건 — 응답하지 않았거나 앱에서 판정할 수 없는 항목입니다.', {
-          x: M.x, y: 4.5, w: M.w, h: 0.3, fontFace: FONT, fontSize: 10, color: TH.high });
-      }
-      _footNote(s);
-    }
-
-    agencies.slice(0, 2).forEach(a => {
-      const s = _newSlide(pptx, _plain(a.name || a.agency || '기관'), '결격 요건 점검');
-      if (a.eligible === false) {
-        s.addText('신청 대상이 아닙니다', { x: M.x, y: s._bodyTop, w: M.w, h: 0.3,
-          fontFace: FONT, fontSize: 14, bold: true, color: TH.medium });
-        s.addText(_clip(_plain(a.notEligibleReason || ''), LIMIT.para * 2), {
-          x: M.x, y: s._bodyTop + 0.4, w: M.w, h: 2.2,
-          fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
-      } else {
-        const fx = (a.findings || []).filter(f => f.kind !== 'reference' && f.status !== 'clear');
-        if (a.warning) {
-          s.addText('⚠ ' + _clip(_plain(a.warning), 160), { x: M.x, y: s._bodyTop, w: M.w, h: 0.5,
-            fontFace: FONT, fontSize: 11, bold: true, color: TH.high, valign: 'top' });
-        }
-        _bullets(s, fx.slice(0, 4).map(f => ({
-          t: _plain(f.label || f.title || ''),
-          sub: _plain(f.message || '') + (f.source ? '   [' + _plain(f.source) + ']' : ''),
-          color: f.severity === 'high' ? TH.critical : f.severity === 'medium' ? TH.high : TH.medium,
-        })), { y: s._bodyTop + (a.warning ? 0.6 : 0), max: 4, rowH: 0.82 });
-        if (!fx.length) {
-          s.addText('확인이 필요한 항목이 없습니다.', { x: M.x, y: s._bodyTop + 0.6, w: M.w, h: 0.3,
-            fontFace: FONT, fontSize: 12, color: TH.ok });
-        }
-        _footNote(s, fx.length > 4 ? '점검 항목 ' + (fx.length - 4) + '건 생략' : '');
-      }
-    });
-
-    /* AI 로드맵이 없으면 슬라이드를 만들지 않는다 */
-    const rm = ctx.fundingRoadmap;
-    if (rm && (rm.priority || []).length) {
-      const s = _newSlide(pptx, '실행 로드맵', 'AI 우선순위 과제');
-      _bullets(s, rm.priority.slice(0, 4).map((x, i) => ({
-        t: (x.order || i + 1) + '. ' + _plain(x.action || x.task || ''),
-        sub: _plain(x.how || x.why || ''),
-      })), { max: 4, rowH: 0.86 });
-      _footNote(s);
-    }
-
-    {
-      const docs = _fundingDocs(fd);
-      if (docs.length) {
-        const s = _newSlide(pptx, '준비 서류', '신청 전 확인');
-        s.addText(docs.slice(0, 10).map(x => '· ' + _clip(x, 44)).join('\n'), {
-          x: M.x, y: s._bodyTop, w: M.w / 2, h: 3.2,
-          fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
-        if (docs.length > 10) {
-          s.addText(docs.slice(10, 20).map(x => '· ' + _clip(x, 44)).join('\n'), {
-            x: M.x + M.w / 2, y: s._bodyTop, w: M.w / 2, h: 3.2,
-            fontFace: FONT, fontSize: 11, color: TH.body, valign: 'top' });
-        }
-        s.addText('※ 기관·사업별로 추가 서류가 요구될 수 있습니다. 신청 전 주관기관 공고를 확인하십시오.', {
-          x: M.x, y: 4.75, w: M.w, h: 0.3, fontFace: FONT, fontSize: 9, color: TH.muted, italic: true });
-      }
-    }
-
-    _govSlide(pptx, fd);
-  }
-
   /* ══════════════════ 데이터 헬퍼 ══════════════════ */
   function _dateKr() {
     const d = new Date();
@@ -1610,21 +1523,10 @@ const PptExport = (() => {
       avg: Number((ds[k] && ds[k].avg) || 0),
     }));
   }
-  function _fundingDocs(fd) {
-    const base = ['사업자등록증 사본', '최근 3개년 재무제표', '부가가치세 과세표준증명원',
-                  '국세·지방세 납세증명서', '대표자 신분증 사본', '사업계획서'];
-    const f = (fd && fd.fundingData) || {};
-    if (f.taxArrears === 'yes') base.push('징수유예·분납 승인 서류');
-    if ((f.certs || []).length && (f.certs || [])[0] !== '해당 없음') base.push('보유 인증서 사본');
-    if (f.isManufacturing === 'yes') base.push('공장등록증 또는 제조시설 증빙');
-    return base;
-  }
-
   /* ══════════════════ 진입점 ══════════════════ */
   const KIND_LABEL = {
     micro: '소상공인진단', sme: '경영전략진단',
     social: '사회적기업진단', venture: '소셜벤처진단', coop: '협동조합진단',
-    funding: '정책자금진단',
   };
 
   async function download() {
@@ -1653,13 +1555,12 @@ const PptExport = (() => {
           예상 못한 kind도 받는다. 팔레트와 빌더가 갈라지면 남색 띠가 있는
           표지에 흰 배경 본문이 붙는 식으로 한 문서 안에서 색 체계가 섞인다.
           현재 THEME을 쓰는 것은 sme 경로뿐이고 나머지는 LEGACY로 출력이 불변이다. */
-    const _legacyKind = ctx.kind === 'funding' || ctx.kind === 'micro'
+    const _legacyKind = ctx.kind === 'micro'
       || ['social', 'venture', 'coop'].indexOf(ctx.kind) >= 0;
     _useTheme(_legacyKind ? LEGACY : THEME);
 
     try {
-      if (ctx.kind === 'funding')                              _buildFunding(pptx, ctx);
-      else if (['social', 'venture', 'coop'].indexOf(ctx.kind) >= 0) _buildSocial(pptx, ctx);
+      if (['social', 'venture', 'coop'].indexOf(ctx.kind) >= 0) _buildSocial(pptx, ctx);
       else if (ctx.kind === 'micro')                           _buildMicro(pptx, ctx);
       else                                                     _buildSme(pptx, ctx);
     } catch (e) {

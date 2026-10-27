@@ -23,7 +23,6 @@
 |---|---|---|
 | 경영전략 진단 | `App.startWizard()` | 규모·조직형태에 따라 분기 (아래) |
 | 재무분석 | `App.showFinanceWizard()` | `finance-wizard.js` (DART·ECOS 연동) |
-| 정책자금 진단 | `App.startFundingDiagnosis()` | `funding-rules.js` (step5 결격 판정) |
 
 ### 경로 판정 — `wizard.js _diagPathOf()` 단일 진입점
 우선순위 **조직형태 → 창업초기 → 규모**. 판정 결과에 따라 컨테이너·점수 키 접두어가 정해진다.
@@ -69,7 +68,7 @@ trade_logistics `거래처 신뢰도 노출` / facility_service `관리 실적·
 | 경로 | 파일 |
 |---|---|
 | 규모·조직형태별 | `common.js` · `diagnosis-micro.js` · `diagnosis-sme.js` · `diagnosis-social.js` · `diagnosis-venture.js` · `diagnosis-coop.js` · `startup.js` |
-| 교차·판정 | `cross-context.js` (CROSS_RULES 34개, 그중 21개가 BM 트리거) · `funding-rules.js` |
+| 교차·판정 | `cross-context.js` (CROSS_RULES 34개, 그중 21개가 BM 트리거) |
 | 업종 특화 (19개) | `agri_food` `construction` `education` `energy` `export_sme` `facility_service` `fashion` `finance` `food_mfg` `knowledge_it` `local_service` `logistics` `media` `medical` `mfg_parts` `restaurant` `wholesale` `social_enterprise` `social_venture` |
 | 사업모델 (12개) | `advertising` `b2b_saas` `b2b_solution` `b2c_commerce` `b2c_sub` `deeptech` `etc` `franchise` `mfg_dist` `platform` `service` `usage_based` |
 
@@ -78,7 +77,7 @@ trade_logistics `거래처 신뢰도 노출` / facility_service `관리 실적·
 |---|---|
 | 모듈 | `bizmodel/` 12개 × **4영역 16문항**. 전역명은 **`BM_*`**(`BM_B2B_SAAS` 등) — `BIZMODEL_*`가 아니다 |
 | 선택 | `inferBizModel()` 자동 추론 + biz-context의 정정 select(`#bmSelect`). `#bm-confirm` 화면은 복원하지 않았다 |
-| 적용 게이트 | **`_bmApplies(path)` 한 곳.** 정책자금·사회적경제·창업초기 제외 |
+| 적용 게이트 | **`_bmApplies(path)` 한 곳.** 사회적경제·창업초기 제외 |
 | 문항 집합 | **`_bmModuleFor(bmKey, path)` 한 곳** — 렌더링과 `collect()`의 `bmDomainScores`가 같이 쓴다. micro는 `MICRO_BM_PICK`(4영역×2) |
 | 컨테이너 | `diag-bizmodel-container` / 점수 키 `diag-bizmodel-container_<bm접두어>_<영역>_<문항>` |
 | 문항 수 | sme **36 → 52** (DiagCommon 20 + 업종 16 + BM 16) |
@@ -118,7 +117,6 @@ d8은 `bmDomainScores`가 비어 있지 않을 때만 생긴다. 100점 종합�
 | 경영진단 micro | `claude-analyze-1/2/3` | 3회 순차, 1차는 `_SYSTEM_MICRO_1`, web_search 없음 |
 | 경영진단 sme | `claude-analyze-1/2` | 1차에 web_search 포함 |
 | 사회적경제 | `claude-analyze-social` | **단일 호출**, `max_tokens 6000` |
-| 정책자금 | `claude-analyze-funding` | **단일 호출**, `max_tokens 6000` |
 
 ---
 ## 파일 구조 및 역할
@@ -136,7 +134,6 @@ biznavi/
 ├── api/                Vercel Serverless Functions
 │   ├── claude-analyze-1/2/3.js  경영진단 AI (3분할)
 │   ├── claude-analyze-social.js 사회적경제 AI (단일)
-│   ├── claude-analyze-funding.js 정책자금 AI (단일)
 │   ├── analyze-biz.js  AI 업종 판별 (18개 분류)
 │   ├── dart-lookup.js · bok-avg.js · kosis-survival.js · bizinfo.js
 │   ├── biz-lookup.js · ocr-scan.js
@@ -152,7 +149,7 @@ biznavi/
     ├── app.js          메인 코디네이터 (화면전환, 분석 실행, 햄버거 메뉴)
     ├── wizard.js       입력 위저드 + 진단 렌더링 + 경로 판정(_diagPathOf)
     ├── ai-engine.js    Claude API 호출 및 프롬프트 생성
-    ├── dashboard.js    결과 렌더링 (경영진단·사회적경제·정책자금 3종)
+    ├── dashboard.js    결과 렌더링 (경영진단·사회적경제 2종)
     ├── finance-wizard.js  재무분석 (DART·ECOS)
     ├── ppt-export.js · bep-simulator.js · history-tracker.js
     ├── gov-support.js · pattern-db.js · reference-db.js · industry-trends.js
@@ -160,7 +157,7 @@ biznavi/
     └── diagnosis/
         ├── common.js · diagnosis-micro.js · diagnosis-sme.js
         ├── diagnosis-social.js · diagnosis-venture.js · diagnosis-coop.js
-        ├── startup.js · cross-context.js · funding-rules.js
+        ├── startup.js · cross-context.js
         ├── industry/    업종 특화 진단 (19개 파일)
         └── bizmodel/    사업모델 특화 진단 (12개 파일 — sme 경로에서 렌더링)
 ```
@@ -174,7 +171,7 @@ biznavi/
 
 ### JS 로드 순서 (body 하단, 의존성 순)
 `ai-engine` → `dashboard` → `wizard` → `diagnosis/*`(common → industry 19 → bizmodel 12 →
-diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) → `app.js` → `ticker.js`
+diagnosis-micro/sme/social/venture/coop → cross-context) → `app.js` → `ticker.js`
 
 ⚠ **`app.js`는 반드시 마지막**(위 모듈 전부 참조). `ticker.js`는 독립 실행.
 ⚠ **새 스크립트를 추가하면 `index.html`의 `?v=` 개수가 늘어난다** — 캐시버스팅 일괄 치환 시 확인할 것.
@@ -292,7 +289,6 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   사용자가 고른 기준이고, 숨김·미선택이면 `''`이라 기존 순위가 그대로 흐른다(2026-10-02).
   **왜**: 한쪽만 반영하면 화면은 중소기업 진단인데 `dashboard.js`·`ppt-export.js`가 `fd.bizScale`로
   자체 판정해 **리포트만 소상공인으로 렌더링된다.**
-  ⚠ 정책자금 경로는 노출하지 않는다 — `FundingRules`의 중진공 소상공인 제외 판정에 끼어들면 안 된다.
   ⚠ `showBizContext()`는 매 렌더 먼저 `_resetScaleConflict()`한다 — 직원 수를 고쳐 `analyzeBiz()`를
     재실행하는 흐름은 `reset()`을 거치지 않아 이전 선택이 남는다.
 - **AI 프롬프트의 출력 명세(JSON 구조)를 두 곳에 두지 않는다.** 시스템 프롬프트에 두든 유저 프롬프트에 두든 **한 곳만** 둔다.
@@ -386,7 +382,7 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
   헬퍼가 한쪽 팔레트를 직접 붙잡으면 **그 헬퍼가 그린 슬라이드만 옛 색으로 남는다** —
   한 문서 안에서 색이 섞이는데 예외가 나지 않는다.
   ⚠ 현재 `THEME`(남색·금색·신호색, 본문 상단 띠)을 쓰는 것은 **sme 경로뿐**이고
-    micro·사회적경제·정책자금은 `LEGACY`로 출력이 불변이다(2026-09-21 1단계).
+    micro·사회적경제는 `LEGACY`로 출력이 불변이다(2026-09-21 1단계).
     두 팔레트는 **키 이름이 같아야 한다** — 그래야 헬퍼가 분기 없이 양쪽을 그린다.
   ⚠ 팔레트 선택 조건을 `kind === 'sme'`로 쓰지 마라. `_buildSme`는 `else` 폴백이라
     더 넓다 — 조건이 갈리면 표지와 본문의 색 체계가 서로 달라진다.
@@ -403,13 +399,11 @@ diagnosis-micro/sme/social/venture/coop → cross-context → funding-rules) →
 - **`orgType`을 `=== 'social_enterprise'` 단일 비교로 검사하지 말 것.** 협동조합·소셜벤처도 S1~S8을 사용하므로 `_isSocialOrg()`(wizard) 또는 3종 배열 포함 검사(ai-engine)를 쓴다. 단일 비교로 두면 협동조합 선택 시 화면만 사회적기업 진단이고 **점수 계산·AI 프롬프트는 micro로 빠진다**
 - **진단 문항은 사용자의 주관적 해석이 개입하지 않는 형태로 물어야 한다.** "~를 하십니까"보다 "서류에 ~라고 적혀 있습니까"가 정확하다. (2026-08-06 음식점 조리를 제조업으로 오인해 오진 발생)
 - **확인 필요(`conditional`)는 앱이 원리적으로 알 수 없는 항목에만 쓴다.** 사용자에게 물어보면 확정할 수 있는 항목을 `conditional`로 처리하면 진단의 실용성이 떨어진다
-- **정책자금 판정은 절대 단정하지 않는다.** 앱은 쟁점과 근거 조항을 제시하고 최종 판단은 기관·컨설턴트에게 남긴다. "신청 가능합니다"/"승인됩니다" 같은 표현을 쓰지 않는다
 - **예상 승인 금액을 계산하지 않는다.** 실제 승인액은 기관이 신용도 등을 반영해 개별 산정하므로 앱이 예측할 수 없다. 금액은 제도상 한도(공개 정보)만 표시한다
 - **BizNavi의 `industryKey`는 표준산업분류 코드가 아니므로 제외업종 자동 판정에 사용할 수 없다.** 안내·확인 유도용으로만 쓴다
 - **`collect()`의 `industry` 필드는 `#industry` select 제거(2026-04-17) 이후 항상 빈 문자열이다.** 업종 판별은 `industryKey`(영문)를 사용할 것. 한국어 라벨이 필요하면 `gov-support.js`의 `INDUSTRY_LABEL` 역매핑을 쓴다
 - **정부지원사업 데이터는 `js/gov-support.js` PROGRAMS가 단일 마스터다.** 구체 금액·비율·마감일을 하드코딩하지 말 것 — 매년 바뀌므로 그 자체가 오정보가 된다. 지원 형태(`supportType`)만 유지하고 수치는 주관기관 공고로 넘긴다
 - **`#revenue`(연매출)는 `type="text"` 자유 텍스트 필드다** (`"3억"`, `"비공개"` 등). 숫자 연산 전 반드시 파싱해야 하며, `Number()`를 그대로 적용하면 `NaN`이 된다
-- **정책자금 진단(`fundingData`)의 미응답 표현을 임의로 바꾸지 말 것** — 라디오 미선택 `'unknown'`(≠`'none'`), 체크박스 미응답 `[]`(≠`['해당 없음']`), 숫자 미입력 `null`(≠`0`). 4단계 판정 로직이 이 구분에 의존한다
 
 - 랜딩페이지 수정 → `landing.css` 또는 `index.html` 랜딩 섹션
 - 위저드/네비/모달 스타일 수정 → `style.css`
@@ -558,7 +552,7 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
 
 ### ⑪ 실패 시 가짜 데이터를 보여주지 마라
 `fakeAnalysis` 계열은 사용자가 자기 회사 분석으로 오인한다. 실패한 섹션만 에러 표시하고
-나머지는 정상 렌더링한다(정책자금·사회적경제가 이미 이 방식).
+나머지는 정상 렌더링한다(사회적경제가 이미 이 방식).
 
 ### ⑫ 법령 수치는 확신한 것만 쓴다
 과태료 금액·최저임금액·업종별 부채비율 기준처럼 매년 바뀌거나 조건이 갈리는 것은 쓰지 않고
@@ -599,8 +593,8 @@ micro의 `swot`은 `sec-swot`이 숨겨져 있어도 `_buildPrompt2Micro`가 `st
   (기본 `1_1` guide의 출처 없는 백분율은 2026-09-18에 제거했다.)
 - ⚠ **`DOMAIN_TO_ACTION_KEY`에 D5·D6이 없어** 모든 그룹이 그 두 도메인은 base를 쓴다.
   두 title이 중립이라 지금 문제는 없다
-- ⚠ **업종 수동 정정 UI가 경영진단 경로에 없다.** `loadDiagnosisUI(forceIndustryKey)` 인자는 있으나
-  사용자가 고를 UI는 정책자금 경로(`fundIndustryOverride`)에만 있다. AI가 실패하면 바로잡을 방법이 없다
+- ⚠ **업종 수동 정정 UI가 없다.** `loadDiagnosisUI(forceIndustryKey)` 인자는 있으나
+  사용자가 고를 UI가 없다. AI가 실패하면 바로잡을 방법이 없다
 - ⚠ **주유소가 실제로 어떤 키로 분류되는지 미확인.** 5-1에서 분류 기준 문구를 `local_service` →
   `wholesale`로 옮겼으나 **AI가 반환하는 키를 실측하지 않았다.** `local_service`를 반환하면
   `beauty` 그룹(시술·예약) 문구를 그대로 받는다

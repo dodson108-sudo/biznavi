@@ -50,13 +50,6 @@ const App = (() => {
     Wizard.reset();
     show('wizard');
   }
-  /* 정책자금 진단 진입점 — reset() 이후 purpose를 지정해야 함 (reset이 'general'로 초기화) */
-  function startFundingDiagnosis() {
-    Wizard.reset();
-    Wizard.setPurpose('funding');
-    Wizard.goStep(1);   // 인디케이터를 funding 2단계 표시로 다시 그림 (reset은 general 기준으로 그림)
-    show('wizard');
-  }
   function showModeSelect() { show('mode-select'); }
   function startFinanceAnalysis() { show('finance-wizard'); FinWizard.goStep(1); }
   function showFinanceWizard() { show('finance-wizard'); }
@@ -124,12 +117,6 @@ const App = (() => {
     const bizCtx = document.getElementById('biz-context');
     if (bizCtx) bizCtx.classList.add('hidden');
 
-    // 정책자금 진단 경로 — 경영진단 UI를 렌더링하지 않고 step5로 직행
-    if (Wizard.getPurpose && Wizard.getPurpose() === 'funding') {
-      Wizard.goStep(5);
-      return;
-    }
-
     // 진단 UI 렌더링 후 직접 step2 전환 (goStep(2) 경유 시 step1 hidden 상태에서 animation 오류 발생)
     Wizard.loadDiagnosisUI(industryKey);
     Wizard.updateRiskPlaceholder(industryKey);
@@ -169,44 +156,6 @@ const App = (() => {
 
   function goStep(n) {
     Wizard.goStep(n);
-  }
-
-  /* 정책자금 진단 입력 확인용 — 판정 로직은 4단계에서 구현.
-     의도적으로 runAnalysis()에 연결하지 않는다 (진단점수가 빈 상태로 Claude API를 호출하면
-     토큰만 소모되고 결과는 무의미하므로) */
-  function checkFundingInput() {
-    if (!Wizard.validate(5)) return;
-    const data = Wizard.collect() || {};
-    if (!data.fundingVerdict) {
-      alert('판정 결과를 생성하지 못했습니다.\n페이지를 새로고침한 뒤 다시 시도해 주세요.');
-      return;
-    }
-    _pendingData = data;
-    // ① 판정 결과를 먼저 렌더링한다 — AI 응답을 기다리지 않는다
-    //    정책자금은 진단 점수·레이더차트가 없으므로 diag-reveal을 거치지 않는다
-    Dashboard.renderFunding(data);
-    show('dashboard');
-    // ② 그 다음 AI 로드맵을 호출한다 (로드맵 섹션은 이미 로딩 상태)
-    _loadFundingRoadmap(data);
-  }
-
-  /* 정책자금 AI 로드맵 — 실패해도 판정 결과는 그대로 둔다.
-     가짜 데이터(fakeAnalysis 계열)를 절대 사용하지 않는다. */
-  async function _loadFundingRoadmap(data) {
-    try {
-      const roadmap = await AIEngine.callFundingRoadmap(data);
-      Dashboard.renderFundingRoadmap('done', roadmap);
-    } catch (e) {
-      console.error('[정책자금] 실행 로드맵 생성 실패:', e);
-      Dashboard.renderFundingRoadmap('error');
-    }
-  }
-
-  /* [다시 시도] — AI만 재호출한다. 판정 결과는 재계산하지 않는다 */
-  function retryFundingRoadmap() {
-    if (!_pendingData) return;
-    Dashboard.renderFundingRoadmap('loading');
-    _loadFundingRoadmap(_pendingData);
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -436,7 +385,7 @@ const App = (() => {
     setTimeout(() => drawer && drawer.classList.add('hidden'), 300);
   }
 
-  return { startWizard, startFundingDiagnosis, checkFundingInput, retryFundingRoadmap, retrySocialPlan, retryAnalysis, editInputsFromError, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
+  return { startWizard, retrySocialPlan, retryAnalysis, editInputsFromError, showLanding, showModeSelect, startFinanceAnalysis, showFinanceWizard, showFinanceDashboard, showFinanceReport, goStep, runAnalysis, restart, prevFromDash, proceedToSolution, goBackToDiag, analyzeBiz, startDiagnosis, backToStep1, showBmConfirm, confirmBm, openHistory, closeHistory };
 })();
 
 /* ===== LANDING PAGE JS ===== */

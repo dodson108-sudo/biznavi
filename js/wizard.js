@@ -9,12 +9,6 @@ const Wizard = (() => {
   const diagScores = {};
   const diagMemos = {};
 
-  /* 진단 목적 — 'general'(경영전략 진단, 기본) | 'funding'(정책자금 진단)
-     진입점(App.startWizard / App.startFundingDiagnosis)에서 setPurpose()로 지정 */
-  let _purpose = 'general';
-  function setPurpose(p) { _purpose = p || 'general'; }
-  function getPurpose()  { return _purpose; }
-
   const INDUSTRY_MAP = {
     '제조업':           'mfg_parts',
     '식품/음료':        'food_mfg',
@@ -148,8 +142,8 @@ const Wizard = (() => {
      ⚠ 조직 형태는 업종(industryKey)과 다른 축이다. industryKey에 밀어넣지 않는다.
         컨설팅업 사회적기업 = industryKey:'knowledge_it' + orgType:'social_enterprise' 가 정확한 상태다.
      ⚠ bizScale('micro'|'sme')에 'social'을 추가하지 않는다.
-        FundingRules가 bizScale === 'micro' 기준으로 중진공 소상공인 제외를 판정하므로
-        값을 바꾸면 그 로직이 깨진다. 별도 플래그로 분리한다. */
+        진단 경로 분기가 bizScale을 기준으로 삼으므로 값을 바꾸면 그 로직이 깨진다.
+        별도 플래그로 분리한다. */
   let _orgType = 'general';
 
   /* DiagSocial(S1~S8)을 적용하는 조직 형태.
@@ -417,10 +411,8 @@ const Wizard = (() => {
         종합 점수·리포트 섹션 4곳을 그 경로에도 함께 만들어야 한다(CLAUDE.md 작업 규칙).
         게이트를 여기 한 곳에만 두어, loadDiagnosisUI와 _tabOrder가 어긋나지 않게 한다.
      ⚠ isStartup 가드를 떼지 마라 — 개업 1년 미만은 재구매율·갱신율 같은 실적 문항에 답할 수 없다.
-        (_diagPathOf에서 isStartup이면 isMicro가 false이므로 isMicro 가드만으로는 막히지 않는다)
-     ⚠ 정책자금 경로는 BM 진단을 하지 않는다 — FundingRules 판정에 끼어들지 않는다. */
+        (_diagPathOf에서 isStartup이면 isMicro가 false이므로 isMicro 가드만으로는 막히지 않는다) */
   function _bmApplies(path) {
-    if (_purpose === 'funding') return false;
     const p = path || {};
     return !p.isSocial && !p.isStartup;
   }
@@ -1141,22 +1133,18 @@ const Wizard = (() => {
       </div>
     `;
 
-    // 정책자금 경로는 step5 인증 체크박스로 사회적경제 여부를 이미 받으므로
-    // 조직 형태 선택을 노출하지 않는다 (중복 질문 방지)
     const orgBlock = document.getElementById('orgTypeBlock');
-    if (orgBlock) orgBlock.style.display = (_purpose === 'funding') ? 'none' : '';
+    if (orgBlock) orgBlock.style.display = '';
 
     /* 규모 판정 불일치 — AI 판정과 직원 수 기반 판정이 다를 때만 선택지를 노출한다.
        같으면 아무것도 묻지 않고 화면에 나타나지도 않는다(2026-10-02).
-       ⚠ 정책자금 경로는 제외다 — FundingRules가 bizScale로 중진공 소상공인 제외를 판정하므로
-          그 경로의 판정에 사용자 선택을 끼워넣지 않는다.
        ⚠ 매 렌더마다 먼저 초기화한다 — 직원 수를 고치고 재분석하는 흐름에서 이전 선택이 남으면
           불일치가 해소됐는데도 옛 기준으로 진단이 나간다. */
     _resetScaleConflict();
     const aiScale  = (data.biz_scale === 'micro' || data.biz_scale === 'sme') ? data.biz_scale : '';
     const empVal   = document.getElementById('employees')?.value || '';
     const empScale = _empScaleOf(empVal);
-    if (_purpose !== 'funding' && aiScale && empScale && aiScale !== empScale) {
+    if (aiScale && empScale && aiScale !== empScale) {
       const box = document.getElementById('scaleConflictBlock');
       const msg = document.getElementById('scaleConflictMsg');
       const aiRadio  = document.getElementById('scaleChoiceAi');
@@ -1211,9 +1199,6 @@ const Wizard = (() => {
     const bmCard = document.getElementById('bm-confirm');
     if (bmCard) bmCard.classList.add('hidden');
 
-    // 정책자금 진단 경로 — step2·3·4를 건너뛰고 step5로 리다이렉트 (loadDiagnosisUI 미호출)
-    if (_purpose === 'funding' && n === 2) n = 5;
-
     // STEP 2에서 다음 버튼 클릭 시 탭 순서대로 진행 (n===3 또는 n===4 모두 처리)
     if (curStep === 2 && n > 2) {
       if (!validateCurrentTab()) return;
@@ -1233,7 +1218,6 @@ const Wizard = (() => {
     const prevStep = curStep;
     curStep = n;
     updateStepUI(n);
-    if (n === 5) updateFundIndustryDisplay();
 
     const prev = document.getElementById('step' + prevStep);
     const next = document.getElementById('step' + n);
@@ -1250,7 +1234,7 @@ const Wizard = (() => {
     window.scrollTo(0, 60);
   }
 
-  /* STEP 인디케이터를 general 기준(3단계)으로 원복 — funding 잔상 제거용
+  /* STEP 인디케이터를 3단계 기준으로 원복
      DOM에는 c1~c3 / l1~l3 / ln1~ln2만 존재 (c4·ln3 없음) */
   function _restoreStepIndicator() {
     const l2 = document.getElementById('l2');
@@ -1263,38 +1247,10 @@ const Wizard = (() => {
   }
 
   function updateStepUI(n) {
-    // ① 목적과 무관하게 먼저 general 기준으로 무조건 원복
+    // ① 먼저 기본(3단계) 기준으로 무조건 원복
     _restoreStepIndicator();
 
-    // ② 정책자금 진단 — 2단계(사업자 정보 → 정책자금 진단)로 축약 표시
-    if (_purpose === 'funding') {
-      const l2f = document.getElementById('l2');
-      if (l2f) l2f.textContent = '정책자금 진단';
-      const c3f = document.getElementById('c3');
-      const ind3f = c3f ? c3f.closest('.step-ind') : null;
-      if (ind3f) ind3f.style.display = 'none';
-      const ln2f = document.getElementById('ln2');
-      if (ln2f) ln2f.style.display = 'none';
-
-      const stage = n === 1 ? 1 : 2;   // step5 → 2번째 인디케이터
-      for (let i = 1; i <= 2; i++) {
-        const c = document.getElementById('c' + i);
-        const lb = document.getElementById('l' + i);
-        if (!c || !lb) continue;
-        c.classList.remove('active', 'done');
-        lb.classList.remove('active');
-        if (i < stage)        { c.classList.add('done'); c.textContent = '✓'; }
-        else if (i === stage) { c.classList.add('active'); c.textContent = i; lb.classList.add('active'); }
-        else                  { c.textContent = i; }
-      }
-      const ln1f = document.getElementById('ln1');
-      if (ln1f) ln1f.classList.toggle('done', stage > 1);
-      const fillF = document.getElementById('wizProgressFill');
-      if (fillF) fillF.style.width = (n === 1 ? 50 : 100) + '%';
-      return;
-    }
-
-    // ③ general — 기존 동작 그대로 유지
+    // ② 단계 표시 — 기존 동작 그대로 유지
     for (let i = 1; i <= 4; i++) {
       const c = document.getElementById('c' + i);
       const lb = document.getElementById('l' + i);
@@ -1342,19 +1298,6 @@ const Wizard = (() => {
     if (step === 4) {
       if (!get('problems')) { alert('현재 직면한 문제를 입력해주세요.'); return false; }
       if (!get('goals'))    { alert('달성 목표를 입력해주세요.');         return false; }
-    }
-    // 정책자금 진단 — 결격요건 7문항만 필수 ('모름'도 정상 입력). 체크박스·재무는 선택
-    if (step === 5) {
-      document.querySelectorAll('.fund-invalid').forEach(el => el.classList.remove('fund-invalid'));
-      const missing = FUND_ELIG_ITEMS.filter(([name]) => !document.querySelector(`input[name="${name}"]:checked`));
-      if (missing.length) {
-        missing.forEach(([name]) => document.getElementById(name)?.classList.add('fund-invalid'));
-        document.getElementById(missing[0][0])?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        alert('결격 요건 ' + missing.length + '개 항목이 선택되지 않았습니다.\n\n'
-              + missing.map(([, label]) => '· ' + label).join('\n')
-              + "\n\n정확히 모르시는 항목은 '모름'을 선택해 주세요.");
-        return false;
-      }
     }
     return true;
   }
@@ -3141,102 +3084,21 @@ const Wizard = (() => {
     return all;
   }
 
-  /* ── 정책자금 진단 (step5) 헬퍼 ────────────────────────────────
-     세 진단은 서로 독립이므로 step5 DOM이 아예 없을 수 있다 → 전부 fallback 처리 */
-
-  const _FUND_NONE = '해당 없음';
-
-  // 결격요건 7문항 (id = 감싸는 .form-group id = 라디오 그룹 name)
-  const FUND_ELIG_ITEMS = [
-    ['fundTaxArrears',    '국세·지방세 체납'],
-    ['fundCapitalImpair', '자본잠식 상태'],
-    ['fundCreditIssue',   '금융질서문란·신용회복 절차'],
-    ['fundClosureHist',   '최근 5년 내 휴업·폐업 이력'],
-    ['fundRestrictedBiz', '제한업종 해당 여부'],
-    ['fundPriorSupport',  '기존 정책자금 수혜·한도'],
-    ['fundOverdue',       '금융기관 연체 이력'],
-  ];
-
-  /* 숫자 입력 파싱 — 미입력이면 null (0과 명확히 구분). 0으로 채우지 않는다 */
-  function _fundNum(id) {
-    const raw = (document.getElementById(id)?.value ?? '').trim();
-    if (raw === '') return null;
-    const v = Number(raw.replace(/,/g, ''));
-    return Number.isFinite(v) ? v : null;
-  }
-
-  /* 부채비율 = 부채총계 / 자본총계 × 100 (소수점 1자리). 자본총계 ≤ 0이면 null */
-  function _fundDebtRatio(debt, equity) {
-    if (debt === null || equity === null || equity <= 0) return null;
-    return Math.round((debt / equity) * 1000) / 10;
-  }
-
-  /* '해당 없음' 배타 처리 — 모순 입력(['벤처기업','해당 없음'])을 입력 단계에서 차단 */
-  function _onFundCheckToggle(groupName, changed) {
-    if (!changed) return;
-    const boxes = Array.from(document.querySelectorAll(`input[name="${groupName}"]`));
-    if (!boxes.length) return;
-    if (changed.value === _FUND_NONE) {
-      if (changed.checked) boxes.forEach(b => { if (b !== changed) b.checked = false; });
-    } else if (changed.checked) {
-      boxes.forEach(b => { if (b.value === _FUND_NONE) b.checked = false; });
-    }
-  }
-
-  /* step5 상단 — AI가 판별한 업종을 한국어 라벨로 표시 (수정용 select는 별도) */
-  function updateFundIndustryDisplay() {
-    const el = document.getElementById('fundIndustryDetected');
-    if (!el) return;
-    const key = document.getElementById('aiIndustryKey')?.value || '';
-    const label = INDUSTRY_LABEL_BY_KEY[key] || '';
-    el.textContent = label
-      ? 'AI가 판별한 업종: ' + label
-      : '업종이 판별되지 않았습니다. 직접 선택해 주세요.';
-  }
-
-  /* 부채비율 실시간 표시 — 표시 전용, 판정하지 않는다 */
-  function updateFundDebtRatio() {
-    const box = document.getElementById('fundDebtRatio');
-    if (!box) return;
-    const debt = _fundNum('fundDebtTotal');
-    const equity = _fundNum('fundEquityTotal');
-    if (debt === null || equity === null) {
-      box.classList.add('hidden');
-      box.textContent = '';
-      return;
-    }
-    box.classList.remove('hidden');
-    box.textContent = equity <= 0
-      ? '자본잠식 상태로 부채비율 산출 불가'
-      : '부채비율 ' + _fundDebtRatio(debt, equity).toFixed(1) + '%';
-  }
-
   function collect() {
     const g = id => {
       const el = document.getElementById(id);
       return el ? el.value.trim() : '';
     };
     const data = {
-      purpose:         _purpose || 'general',   // 'general' | 'funding'
       companyName:     g('companyName'),
       bizType:         g('bizType'),         // 업태 (사업자등록증 — 예: 서비스)
       bizItem:         g('bizItem'),         // 종목 (사업자등록증 — 예: 미용업)
-      // AI 분석 업종 키 — 정책자금 경로에서만 사용자 직접 선택(override)을 우선 적용.
-      // ⚠ 경영진단 경로의 업종 판별에는 영향을 주지 않는다.
-      industryKey: (() => {
-        const ai = g('aiIndustryKey');
-        if (_purpose === 'funding') {
-          const override = g('fundIndustryOverride');
-          if (override) return override;
-        }
-        return ai;
-      })(),
+      industryKey:     g('aiIndustryKey'),   // AI 분석 업종 키
       aiBusinessDesc:  g('aiBusinessDesc'),  // AI 분석 사업 설명
       industry:        g('industry'),
       bizScale:        (function() {
         /* ⚠ 불일치 확인에서 고른 기준이 가장 앞이다 — loadDiagnosisUI와 같은 우선순위여야 한다.
-           한쪽만 반영하면 화면은 중소기업 진단인데 리포트·PPT는 소상공인으로 렌더링된다.
-           정책자금 경로에서는 선택지를 노출하지 않으므로 항상 ''이고 FundingRules 판정은 불변이다. */
+           한쪽만 반영하면 화면은 중소기업 진단인데 리포트·PPT는 소상공인으로 렌더링된다. */
         const chosen = _scaleOverride();
         if (chosen) return chosen;
         const explicit = g('bizScale') || g('bizScaleSelect');
@@ -3300,43 +3162,8 @@ const Wizard = (() => {
       isStartup:           g('aiIsStartup') === 'true',
       yearsInBusiness:     g('aiYearsInBusiness'),
       diagScores:          diagScores,
-      // 조직 유형 — bizScale과 별개 플래그 (FundingRules의 bizScale 판정에 영향 주지 않음)
+      // 조직 유형 — bizScale과 별개 플래그
       orgType:             'general',   // 후반부에서 최종 industryKey 기준으로 확정
-      // ── 정책자금 진단 (purpose='funding' / step5) ──
-      // 미선택·미입력을 'none'·0·''으로 채우지 않는다:
-      //   라디오 미선택 = 'unknown'(모름과 동일 취급), 체크박스 미응답 = [] (['해당 없음']과 다름),
-      //   숫자 미입력 = null (0과 다름) — 판정 로직(4단계)이 이 구분에 의존한다
-      fundingData: (() => {
-        const radio  = n => document.querySelector(`input[name="${n}"]:checked`)?.value ?? 'unknown';
-        const checks = n => Array.from(document.querySelectorAll(`input[name="${n}"]:checked`))
-                              .map(el => el?.value || '').filter(Boolean);
-        const debtTotal   = _fundNum('fundDebtTotal');
-        const equityTotal = _fundNum('fundEquityTotal');
-        return {
-          // ── 기본 정보 확인 (정밀 판정용) ──
-          // employeeCount: 0은 유효값(대표자 1인 사업장), 미입력은 null — 반드시 구분한다
-          employeeCount:   _fundNum('fundEmployeeCount'),
-          isManufacturing: radio('fundIsManufacturing'),   // 'yes'|'no'|'unknown'
-          currentStatus:   radio('fundCurrentStatus'),     // 'active'|'closed'|'unknown'
-          // ── 결격 요건 ──
-          taxArrears:    radio('fundTaxArrears'),
-          capitalImpair: radio('fundCapitalImpair'),
-          creditIssue:   radio('fundCreditIssue'),
-          closureHist:   radio('fundClosureHist'),
-          restrictedBiz: radio('fundRestrictedBiz'),
-          priorSupport:  radio('fundPriorSupport'),
-          overdue:       radio('fundOverdue'),
-          certs:         checks('fundCerts'),
-          ip:            checks('fundIP'),
-          assetTotal:    _fundNum('fundAssetTotal'),
-          debtTotal:     debtTotal,
-          equityTotal:   equityTotal,
-          opProfit:      _fundNum('fundOpProfit'),
-          debtRatio:     _fundDebtRatio(debtTotal, equityTotal),
-          // STEP 1 연매출 — 자유 텍스트 원문 그대로. 파싱·정규화하지 않는다 (숫자 연산 전 파싱 필수)
-          revenue:       g('revenue') || null,
-        };
-      })(),
       // DX 탐지 시그널 (1~2: 아날로그, 4~5: 디지털 선도)
       dxSignal: (() => {
         const s = diagScores['diag-common-container_dx_detect']?.score || 0;
@@ -3469,22 +3296,6 @@ const Wizard = (() => {
        있어(영문 키를 기대한다) 한국어 전체 설명이 들어가면 혼동을 만든다 */
     data.bizModelFullName = (BM_FULL_DESC[_inferredBmKey] || {}).name || '';
 
-    // 정책자금 진단 경로에서만 기관 선별·결격 판정 수행 (경영진단·재무분석에는 영향 없음)
-    if (_purpose === 'funding' && typeof FundingRules !== 'undefined') {
-      try {
-        data.fundingVerdict = FundingRules.evaluate(data.fundingData || {}, {
-          industryKey: data.industryKey || '',
-          bizScale:    data.bizScale    || '',
-          employees:   data.employees   || '',
-          foundedYear: data.foundedYear || '',
-          yearsInBusiness: data.yearsInBusiness || '',
-        });
-      } catch (e) {
-        console.error('FundingRules.evaluate 오류:', e);
-        data.fundingVerdict = null;
-      }
-    }
-
     return data;
   }
 
@@ -3536,7 +3347,6 @@ const Wizard = (() => {
     curStep = 1;
     curDiagTab = 'common';
     _inferredBmKey = '';
-    _purpose = 'general';
     _orgType = 'general';
     // 진단 컨테이너 초기화 — 비우지 않으면 다음 경로의 진행률·검증에 이전 문항이 섞인다
     _clearAllDiagContainers();
@@ -3799,22 +3609,10 @@ const Wizard = (() => {
     if (btEl) btEl.addEventListener('input', inferIndustryFromType);
     if (biEl) biEl.addEventListener('input', inferIndustryFromType);
 
-    // 정책자금 진단(step5) — '해당 없음' 배타 처리 + 부채비율 실시간 표시
-    // (HTML oninput 속성은 캐시 문제가 있었으므로 리스너로 등록 — 2026-06-05 c317c03 참조)
-    ['fundCerts', 'fundIP'].forEach(function(nm) {
-      document.querySelectorAll('input[name="' + nm + '"]').forEach(function(box) {
-        box.addEventListener('change', function() { _onFundCheckToggle(nm, box); });
-      });
-    });
-    ['fundDebtTotal', 'fundEquityTotal'].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) el.addEventListener('input', updateFundDebtRatio);
-    });
-
     // 조직 형태 선택 — 전용 모듈이 없는 형태 선택 시 확인 (HTML onchange 속성 미사용)
     var orgSel = document.getElementById('orgTypeSelect');
     if (orgSel) orgSel.addEventListener('change', _onOrgTypeChange);
   });
 
-  return { goStep, validate, collect, animateLoading, reset, setPurpose, getPurpose, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, onBmSelectChange, onScaleChoiceChange, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, updateSoloScaleUI, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN, COOP_DOMAIN_EXPLAIN, ORG_DOMAIN_EXPLAIN };
+  return { goStep, validate, collect, animateLoading, reset, setScore, setMemo, setNumeric, setMixed, switchDiagTab, prevDiagTab, showDiagReveal, calcDomainScores, classifyConsultingType, drawRadarChart, onIndustryChange, getIndustryKey, setBmKey, onBmSelectChange, onScaleChoiceChange, showBmConfirmCard, hideBmConfirmCard, populateBmConfirm, goToStep2FromBm, formatBizNo, validateBizNo, lookupBiz, inferIndustryFromType, skipBizLookup, switchAutoTab, handleOcrUpload, handleOcrDrop, onCompanyNameInput, lookupDart, applyDartRevenue, showBizContext, hideAllCards, loadDiagnosisUI, updateRiskPlaceholder, updateSoloScaleUI, SOCIAL_DOMAIN_EXPLAIN, VENTURE_DOMAIN_EXPLAIN, COOP_DOMAIN_EXPLAIN, ORG_DOMAIN_EXPLAIN };
 })();

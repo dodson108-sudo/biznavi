@@ -9,6 +9,53 @@
 
 ---
 
+## 작업 이력 (2026-10-27) — 정책자금 진단 기능 완전 제거
+
+**배경**: 홈페이지가 무거워 정책자금 진단을 걷어내기로 결정. 실사용 이력 없음.
+앞으로 BizNavi는 **재무분석**과 **경영전략 수립** 두 가지만 제공한다.
+
+### 삭제한 것
+| 대상 | 내용 |
+|---|---|
+| 파일 2개 | `js/diagnosis/funding-rules.js`(689줄) · `api/claude-analyze-funding.js`(100줄) |
+| `index.html` | 랜딩 버튼 · step5(결격 7문항+기본정보+재무) · 리포트 4섹션(`sec-funding-*`) · script 로드 |
+| `js/app.js` | `startFundingDiagnosis` · `checkFundingInput` · `_loadFundingRoadmap` · `retryFundingRoadmap` · export 3개 |
+| `js/dashboard.js` | `renderFunding` 외 렌더 5개 · `FUNDING_ONLY_SECTIONS` · `buildNav`의 `isFunding` 분기 · `reportKind`의 funding 분기 · `_fundingRoadmap` |
+| `js/ai-engine.js` | `_SYSTEM_FUNDING` · `_buildVerdictBlock` · `_buildFundingPrompt` · `_extractJSONFunding` · `callFundingRoadmap` |
+| `js/ppt-export.js` | `_buildFunding`(7장) · `_fundingDocs` · `KIND_LABEL.funding` · `_legacyKind`의 funding |
+| `js/wizard.js` | `_purpose`/`setPurpose`/`getPurpose` 체계 전체 · step5 헬퍼 블록 · `fundingData` · `FundingRules.evaluate` · `validate(5)` · step5 리스너 |
+| `vercel.json` · css | 함수 설정 1줄 · `css/dashboard.css` 190줄 · `css/style.css` 33줄 |
+
+합계 **2,165줄 삭제 / 84줄 삽입**, AI 호출 종류 4종 → 3종.
+
+### ⚠ 의도적으로 남긴 것 (이름만 비슷한 별개 기능)
+| 대상 | 이유 |
+|---|---|
+| `js/gov-support.js` 전체 | 경영전략 리포트 `sec-gov`(정부지원사업 매칭)가 쓴다 |
+| `diagnosis-venture.js` `key:'funding'` | 소셜벤처 **투자유치·자금조달** 영역(v5). 변수명만 같다 |
+| `diagnosis-micro.js` D5 문항·guide | 소상공인 진단 "정책자금 및 보증 연계" |
+| `wizard.js` `MICRO_DOMAIN_EXPLAIN` D5 | 같은 D5의 해설 카드 본문 |
+| `ai-engine.js` 처방 텍스트 18곳 | AI 폴백 처방 본문("정책자금 신청 준비" 등) |
+
+### `_purpose` 체계를 통째로 걷어낸 근거
+`_purpose`는 `'general' | 'funding'` 두 값뿐이고 외부 사용처가 `app.js` 2곳(모두 funding)뿐이었다.
+funding이 사라지면 분기 없는 분기가 되므로 선언·export까지 제거했다. `data.purpose`를 읽던 곳은
+`dashboard.js reportKind()` 한 곳이고 함께 제거했다.
+
+### 검증
+1. 전 JS 파일 `node --check` 통과
+2. 전용 식별자(`FundingRules`·`sec-funding`·`fundingData` 등) 잔존 **0건**
+3. 남긴 5곳 보존 확인 (위 표)
+4. `index.html`의 `<script src>` 전부 실존 파일
+5. **HTML↔JS 정합성 회귀 0건** — HTML이 부르는데 JS에 없는 함수 8개, JS가 찾는데 HTML에 없는 id 20개가
+   삭제 **전후 완전히 동일**(전부 이전부터 있던 것). 이번 삭제로 새로 생긴 불일치 없음
+6. 랜딩 진입 버튼 = 재무분석 · 경영전략 2개
+7. `index.html` `?v=` 52곳 → `20261027a`
+
+⚠ 브라우저 확인은 아직. 재무분석·경영전략 2경로 실행 확인 필요.
+
+---
+
 ## 작업 이력 (2026-10-07) — micro BM 3/3: 리포트·PPT 표시 (교차 경고는 sec-diag)
 
 - **dashboard 게이트 2곳 해제**: `renderBizModelSection(isMicro ? {} : fd)` / `renderCrossSection(isMicro ? {} : fd)`
